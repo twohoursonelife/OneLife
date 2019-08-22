@@ -2735,7 +2735,9 @@ static void setupMapChangeLogFile() {
                              biomeRandSeedA, biomeRandSeedB );
             
             File *f = logFolder.getChildFile( newFileName );
-           
+            
+            delete [] newFileName;
+            
             char *fullName = f->getFullFileName();
            
             delete f;
