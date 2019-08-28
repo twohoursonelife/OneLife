@@ -73,6 +73,8 @@ Server Fixes
 
 --Wildcard support on vog allow list.
 
+--Fixed digit in sqrt(2) constant.  Fixes #372
+
 
 
 
