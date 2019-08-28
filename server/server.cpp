@@ -1581,18 +1581,6 @@ void transferHeldContainedToMap( LiveObject *inPlayer, int inX, int inY ) {
 
 
 
-static void printPath( LiveObject *inPlayer ) {
-    printf( "PATH:  Start(%d,%d) ", inPlayer->xs, inPlayer->ys );
-    for( int i=0; i<inPlayer->pathLength; i++ ) {
-        printf( " %d:(%d,%d)", i, 
-                inPlayer->pathToDest[i].x,
-                inPlayer->pathToDest[i].y );
-        }
-    printf( "\n" );
-    }
-
-
-
 
 
 // diags are square root of 2 in length
@@ -2667,8 +2655,6 @@ double computePartialMovePathStepPrecise( LiveObject *inPlayer ) {
         ( Time::getCurrentTime() - 
           inPlayer->moveStartTime )
         / inPlayer->moveTotalSeconds;
-
-    printf( "Fraction done = %f\n", fractionDone );
     
     if( fractionDone > 1 ) {
         fractionDone = 1;
@@ -2681,8 +2667,6 @@ double computePartialMovePathStepPrecise( LiveObject *inPlayer ) {
 
     double distDone = fractionDone * inPlayer->pathDist;
 
-    printf( "Dist done = %f\n", distDone );
-    
     
     // walk through path steps until we see dist done
     double totalLength = 0;
@@ -2728,47 +2712,7 @@ double computePartialMovePathStepPrecise( LiveObject *inPlayer ) {
 
 int computePartialMovePathStep( LiveObject *inPlayer ) {
     return lrint( computePartialMovePathStepPrecise( inPlayer ) );
-    /*
-    
-    double fractionDone = 
-        ( Time::getCurrentTime() - 
-          inPlayer->moveStartTime )
-        / inPlayer->moveTotalSeconds;
-    
-    if( fractionDone > 1 ) {
-        fractionDone = 1;
-        }
-
-    double distDone = fractionDone * inPlayer->pathDist;
-    
-    // walk through path steps until we see dist done
-    double totalLength = 0;
-    
-    GridPos lastPos = { inPlayer->xs, inPlayer->ys };
-    
-    for( int i=0; i<inPlayer->pathLength; i++ ) {
-
-        GridPos thisPos = inPlayer->pathToDest[i];
-        
-        if( thisPos.x != lastPos.x &&
-            thisPos.y != lastPos.y ) {
-            totalLength += diagLength;
-            }
-        else {
-            // not diag
-            totalLength += 1;
-            }
-
-        if( totalLength >= distDone + 0.5 ) {
-            return i - 1;
-            }
-
-        lastPos = thisPos;
-        }
-    
-    return inPlayer->pathLength - 1;
-    */
-    }
+     }
 
 
 
@@ -2782,11 +2726,6 @@ doublePair computePartialMoveSpotPrecise( LiveObject *inPlayer ) {
         return result;
         }
 
-    printf( "C = %f, pathLength = %d\n", c, inPlayer->pathLength );
-    
-    if( c < 0 ) {
-        printf( "Hey\n" );
-        }
     
     int aInd = floor( c );
     int bInd = ceil( c );
@@ -16206,7 +16145,7 @@ int main() {
                     else if( m.type == MOVE ) {
                         //Thread::staticSleep( 1000 );
 
-                        
+                        /*
                         printf( "  Processing move, "
                                 "we think player at old start pos %d,%d\n",
                                 nextPlayer->xs,
@@ -16218,18 +16157,13 @@ int main() {
                                     nextPlayer->pathToDest[p].y );
                             }
                         printf( "\n" );
-                        printf( "Last move done in %f sec\n",
-                                nextPlayer->moveStartTime + 
-                                nextPlayer->moveTotalSeconds - 
-                                Time::getCurrentTime() );
-                        
+                        */
                         
                         char interrupt = false;
                         char pathPrefixAdded = false;
                         
 
                         // where exactly did we used to be standing?
-                        printPath( nextPlayer );
                         doublePair startPosPrecise =
                             computePartialMoveSpotPrecise( nextPlayer );
                                 
@@ -16650,9 +16584,7 @@ int main() {
                                                        nextPlayer->pathLength );
  
                                 nextPlayer->pathDist = dist;
-                                
-                                printPath( nextPlayer );
-                                printf( "Naive path dist = %f\n", dist );
+
                                 
                                 // get precise about distance for move timing
                                 // we don't necessarily start right
@@ -16685,19 +16617,11 @@ int main() {
                                       (double)
                                       nextPlayer->pathToDest[startIndex].y };
                                 
-                                printf( "Precise = %f,%f\n"
-                                        "newFirstSpot = %f,%f\n",
-                                        startPosPrecise.x,
-                                        startPosPrecise.y,
-                                        newFirstSpot.x,
-                                        newFirstSpot.y );
                                         
                                 // now add in true distance to first spot
                                 dist +=
                                     distance( startPosPrecise, newFirstSpot );
-                                
-                                printf( "TRUE path dist = %f\n", dist );
-
+  
 
                                 
 
@@ -16718,23 +16642,12 @@ int main() {
                            
                                 double secondsAlreadyDone = distAlreadyDone / 
                                     moveSpeed;
-                                
-                                printf( "Skipping %f seconds (%d steps) "
-                                        "along new %f-"
-                                        "second (%d-step) path\n",
-                                        secondsAlreadyDone,
-                                        startIndex,
-                                        nextPlayer->moveTotalSeconds,
-                                        nextPlayer->pathLength );
-                                
-                                printf( "  New path:  " );
-                                for( int p=0; p<nextPlayer->pathLength; p++ ) {
-                                    printf( "(%d,%d) ",
-                                            nextPlayer->pathToDest[p].x,
-                                            nextPlayer->pathToDest[p].y );
-                                    }
-                                printf( "\n" );
-
+                                /*
+                                printf( "Skipping %f seconds along new %f-"
+                                        "second path\n",
+                                        secondsAlreadyDone, 
+                                        nextPlayer->moveTotalSeconds );
+                                */
                                 nextPlayer->moveStartTime = 
                                     Time::getCurrentTime() - 
                                     secondsAlreadyDone;
