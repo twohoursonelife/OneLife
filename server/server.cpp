@@ -7286,6 +7286,8 @@ int processLoggedInPlayer( char inAllowReconnect,
 
             double totalWeight = 0;
             
+            SimpleVector<double> filteredParentChoiceWeights;
+            
             for( int i=0; i<filteredParentChoices.size(); i++ ) {
                 LiveObject *p = filteredParentChoices.getElementDirect( i );
 
@@ -7311,18 +7313,9 @@ int processLoggedInPlayer( char inAllowReconnect,
             
             for( int i=0; i<filteredParentChoices.size(); i++ ) {
                 LiveObject *p = filteredParentChoices.getElementDirect( i );
-
-                totalWeight += 0.5 - fabs( p->heat - 0.5 );
-
-
-                int yumMult = p->yummyFoodChain.size() - 1;
-                                
-                if( yumMult < 0 ) {
-                    yumMult = 0;
-                    }
-
-                // yum mult part of weight
-                totalWeight += 0.5 * yumMult / (double) maxYumMult;
+                
+                totalWeight += 
+                    filteredParentChoiceWeights.getElementDirect( i );
 
                 if( totalWeight >= choice ) {
                     parent = p;
