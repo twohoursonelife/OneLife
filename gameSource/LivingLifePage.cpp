@@ -6750,7 +6750,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         // OVER the player objects in this row (so that pick up and set down
         // looks correct, and so players are behind all same-row objects)
 
-        // we determine what counts as a wall through floorHugging
+        // we determine what counts as a wall through wallLayer flag
 
         // first permanent, non-wall objects
         for( int x=xStart; x<=xEnd; x++ ) {
@@ -6767,7 +6767,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    ! o->floorHugging &&
+                    ! o->wallLayer &&
                     o->permanent &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
                     
@@ -6803,7 +6803,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    ! o->floorHugging &&
+                    ! o->wallLayer &&
                     ! o->permanent &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
                     
@@ -6847,7 +6847,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    o->floorHugging &&
+                    o->wallLayer &&
                     o->permanent &&
                     o->numSlots == 0 &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
@@ -6883,7 +6883,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    o->floorHugging &&
+                    o->wallLayer &&
                     o->permanent &&
                     o->numSlots > 0 &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
