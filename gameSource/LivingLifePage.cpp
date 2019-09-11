@@ -21580,8 +21580,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( !foundEmpty && 
                 ! sideAccess &&
                 nStart > 0 &&
-                destID > 0 &&
-                ! getObject( destID )->blocksWalking ) {
+                ( destID == 0 ||
+                  ! getObject( destID )->blocksWalking ) ) {
                 
                 // all neighbors blocked
                 // we didn't consider tile itself before

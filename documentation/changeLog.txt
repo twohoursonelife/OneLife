@@ -12,6 +12,9 @@ Version 290     ???
   place to detect wall signs, but really, slots isn't the thing... sticking out
   beyond the normal wall boundaries is the thing.
 
+--Fixed so that you can walk to and set down or swap an object on an empty
+  surrounded tile with one click.  Fixes #361
+
 
 
 
