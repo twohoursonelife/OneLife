@@ -26,6 +26,11 @@ Version 326     ???
 --Fixed glitch in naming an unnamed Eve so that she doesn't get your family
   name.
 
+--Fixed a movement bug that caused jump-back when rapidly clickly to extend a
+  path (a timing bug).  This jump-back would also cause a carried child's view
+  to scroll way off into the unknown map area and then slide back.
+
+
 
 
 --Fixed display of numbers of years above 1000, which didn't zero-pad
