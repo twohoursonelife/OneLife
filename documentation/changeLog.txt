@@ -19,6 +19,10 @@ Version 326     ???
 
 --Fixed bug that sent metadata over radios.  Fixes #907
 
+--If a new player has played less than 5 lives or less than 2 hours total (not
+  including their time in the tutorial), their mother gets a message when they
+  are born.
+
 
 
 --Fixed display of numbers of years above 1000, which didn't zero-pad

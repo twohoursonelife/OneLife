@@ -492,6 +492,14 @@ static void removePeaceTreaty( int inLineageAEveID, int inLineageBEveID ) {
     }
 
 
+typedef struct PastLifeStats {
+        int lifeCount;
+        int lifeTotalSeconds;
+        char error;
+    } PastLifeStats;
+
+    
+
 
 
 // for incoming socket connections that are still in the login process
@@ -527,6 +535,7 @@ typedef struct FreshConnection {
         
         int tutorialNumber;
         CurseStatus curseStatus;
+        PastLifeStats lifeStats;
         
         char *twinCode;
         int twinCount;
@@ -569,6 +578,7 @@ typedef struct LiveObject {
         char *saidPassword;
 
         CurseStatus curseStatus;
+        PastLifeStats lifeStats;
         
         int curseTokenCount;
         char curseTokenUpdate;
@@ -6913,6 +6923,7 @@ int processLoggedInPlayer( char inAllowReconnect,
                            FreshConnection *connection,
                            int inTutorialNumber,
                            CurseStatus inCurseStatus,
+                           PastLifeStats inLifeStats,
                            float inFitnessScore,
                            // set to -2 to force Eve
                            int inForceParentID = -1,
@@ -8080,6 +8091,7 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.nameHasSuffix = false;
     newObject.lastSay = NULL;
     newObject.curseStatus = inCurseStatus;
+    newObject.lifeStats = inLifeStats;
     
     // password-protected objects
     newObject.saidPassword = NULL;
@@ -8249,7 +8261,6 @@ int processLoggedInPlayer( char inAllowReconnect,
                 }
             }
         
-        
         for( int i=0; 
              i < parent->lineage->size() && 
                  i < maxLineageTracked - 1;
@@ -8267,7 +8278,71 @@ int processLoggedInPlayer( char inAllowReconnect,
                 "PLEASE HELP THEM LEARN THE GAME.  THANKS!  -JASON",
                 parent );
             }
+        else if( isUsingStatsServer() && 
+                 ! newObject.lifeStats.error &&
+                 ( newObject.lifeStats.lifeCount < 
+                   SettingsManager::getIntSetting( "newPlayerLifeCount", 5 ) ||
+                   newObject.lifeStats.lifeTotalSeconds < 
+                   SettingsManager::getIntSetting( "newPlayerLifeTotalSeconds",
+                                                   7200 ) ) ) {
+            // a new player (not at a PAX kiosk)
+            // let mother know
+            char *motherMessage =  
+                SettingsManager::getSettingContents( 
+                    "newPlayerMessageForMother", "" );
+            
+            if( strcmp( motherMessage, "" ) != 0 ) {
+                sendGlobalMessage( motherMessage, parent );
+                }
+            
+            delete [] motherMessage;
+            }
         }
+
+    newObject.foodDecrementETASeconds =
+        currentTime + 
+        computeFoodDecrementTimeSeconds( &newObject );
+
+        
+    if( forceSpawn ) {
+        newObject.forceSpawn = true;
+        newObject.xs = forceSpawnInfo.pos.x;
+        newObject.ys = forceSpawnInfo.pos.y;
+        newObject.xd = forceSpawnInfo.pos.x;
+        newObject.yd = forceSpawnInfo.pos.y;
+        
+        newObject.birthPos = forceSpawnInfo.pos;
+        
+        newObject.lifeStartTimeSeconds = 
+            Time::getCurrentTime() -
+            forceSpawnInfo.age * ( 1.0 / getAgeRate() );
+        
+        newObject.displayedName = autoSprintf( "%s %s", 
+                                      forceSpawnInfo.firstName,
+                                      forceSpawnInfo.lastName );
+        newObject.displayID = forceSpawnInfo.displayID;
+        
+        newObject.clothing.hat = getObject( forceSpawnInfo.hatID, true );
+        newObject.clothing.tunic = getObject( forceSpawnInfo.tunicID, true );
+        newObject.clothing.bottom = getObject( forceSpawnInfo.bottomID, true );
+        newObject.clothing.frontShoe = 
+            getObject( forceSpawnInfo.frontShoeID, true );
+        newObject.clothing.backShoe = 
+            getObject( forceSpawnInfo.backShoeID, true );
+        newObject.clothing.backpack = 
+            getObject( forceSpawnInfo.backpackID, true );
+        
+        newObject.yummyBonusStore = 999;
+        
+        newObject.holdingID = getObject( forceSpawnInfo.holdingID, false )->id;
+
+        delete [] forceSpawnInfo.firstName;
+        delete [] forceSpawnInfo.lastName;
+        }
+    
+
+    newObject.lastGlobalMessageTime = 0;
+    
 
     newObject.foodDecrementETASeconds =
         currentTime + 
@@ -8591,6 +8666,7 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                                                nextConnection,
                                                nextConnection->tutorialNumber,
                                                anyTwinCurseLevel,
+                                               nextConnection->lifeStats,
                                                nextConnection->fitnessScore );
                 tempTwinEmails.deleteAll();
                                                    
@@ -8678,6 +8754,7 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                                        // first player
                                        0,
                                        anyTwinCurseLevel,
+                                       nextConnection->lifeStats,
                                        nextConnection->fitnessScore,
                                        parent,
                                        displayID,
@@ -13706,6 +13783,31 @@ int main() {
                         nextConnection->curseStatus.excessPoints );
                     }
                 }
+            else if( nextConnection->email != NULL &&
+                nextConnection->lifeStats.lifeCount == -1 ) {
+                // keep checking if life stats have arrived from
+                // stats server
+                int statsResult = getPlayerLifeStats( nextConnection->email,
+                    &( nextConnection->lifeStats.lifeCount ),
+                    &( nextConnection->lifeStats.lifeTotalSeconds ) );
+                
+                if( statsResult == -1 ) {
+                    // error
+                    // it's done now!
+                    nextConnection->lifeStats.lifeCount = 0;
+                    nextConnection->lifeStats.lifeTotalSeconds = 0;
+                    nextConnection->lifeStats.error = true;
+                    }
+                else if( statsResult == 1 ) {
+                    AppLog::infoF( 
+                        "Got life stats for %s from stats server: "
+                        "%d lives, %d total seconds (%.2lf hours)",
+                        nextConnection->email,
+                        nextConnection->lifeStats.lifeCount,
+                        nextConnection->lifeStats.lifeTotalSeconds,
+                        nextConnection->lifeStats.lifeTotalSeconds / 3600.0 );
+                    }
+                }
             else if( nextConnection->ticketServerRequest != NULL &&
                      ! nextConnection->ticketServerAccepted ) {
                 
@@ -13860,6 +13962,7 @@ int main() {
                             nextConnection,
                             nextConnection->tutorialNumber,
                             nextConnection->curseStatus,
+                            nextConnection->lifeStats,
                             nextConnection->fitnessScore );
                             
                         if( newID == -2 ) {
@@ -14130,7 +14233,30 @@ int main() {
                             // we'll catch that case later above
                             nextConnection->curseStatus =
                                 getCurseLevel( nextConnection->email );
+
+
+                            nextConnection->lifeStats.lifeCount = -1;
+                            nextConnection->lifeStats.lifeTotalSeconds = -1;
+                            nextConnection->lifeStats.error = false;
                             
+                            // this will leave them as -1 if request pending
+                            // we'll catch that case later above
+                            int statsResult = getPlayerLifeStats(
+                                nextConnection->email,
+                                &( nextConnection->
+                                   lifeStats.lifeCount ),
+                                &( nextConnection->
+                                   lifeStats.lifeTotalSeconds ) );
+
+                            if( statsResult == -1 ) {
+                                // error
+                                // it's done now!
+                                nextConnection->lifeStats.lifeCount = 0;
+                                nextConnection->lifeStats.lifeTotalSeconds = 0;
+                                nextConnection->lifeStats.error = true;
+                                }
+                                
+
 
                             if( requireClientPassword &&
                                 ! nextConnection->error  ) {
@@ -14240,6 +14366,7 @@ int main() {
                                             nextConnection,
                                             nextConnection->tutorialNumber,
                                             nextConnection->curseStatus,
+                                            nextConnection->lifeStats,
                                             nextConnection->fitnessScore );
                                             
                                         if( newID == -2 ) {
