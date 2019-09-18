@@ -30,6 +30,9 @@ Version 326     ???
   path (a timing bug).  This jump-back would also cause a carried child's view
   to scroll way off into the unknown map area and then slide back.
 
+--Fixed a jump-back movement glitch when a slow client tries to interrupt a
+  move that the server thinks is already done.
+
 
 
 
