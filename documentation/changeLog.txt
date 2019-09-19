@@ -23,6 +23,9 @@ Version 326     ???
   including their time in the tutorial), their mother gets a message when they
   are born.
 
+--Fixed glitch in naming an unnamed Eve so that she doesn't get your family
+  name.
+
 
 
 --Fixed display of numbers of years above 1000, which didn't zero-pad

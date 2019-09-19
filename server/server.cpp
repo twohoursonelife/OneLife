@@ -194,6 +194,7 @@ static int familySpan = 2;
 // phrases that trigger baby and family naming
 static SimpleVector<char*> nameGivingPhrases;
 static SimpleVector<char*> familyNameGivingPhrases;
+static SimpleVector<char*> eveNameGivingPhrases;
 static SimpleVector<char*> cursingPhrases;
 
 char *curseYouPhrase = NULL;
@@ -1905,6 +1906,7 @@ void quitCleanup() {
 
     nameGivingPhrases.deallocateStringElements();
     familyNameGivingPhrases.deallocateStringElements();
+    eveNameGivingPhrases.deallocateStringElements();
     cursingPhrases.deallocateStringElements();
     
     forgivingPhrases.deallocateStringElements();
@@ -10577,6 +10579,10 @@ char *isFamilyNamingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &familyNameGivingPhrases );
     }
 
+char *isEveNamingSay( char *inSaidString ) {
+    return isNamingSay( inSaidString, &eveNameGivingPhrases );
+    }
+
 char *isCurseNamingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &cursingPhrases );
     }
@@ -12174,6 +12180,48 @@ void executeKillAction( int inKillerIndex,
 
 
 
+static void nameEve( LiveObject *nextPlayer, char *name ) {
+    
+    const char *close = findCloseLastName( name );
+    nextPlayer->name = autoSprintf( "%s %s", eveName, close );
+    
+                                
+    nextPlayer->name = getUniqueCursableName( 
+        nextPlayer->name, 
+        &( nextPlayer->nameHasSuffix ),
+        true );
+                                
+    char firstName[99];
+    char lastName[99];
+    char suffix[99];
+    
+    if( nextPlayer->nameHasSuffix ) {
+        
+        sscanf( nextPlayer->name, 
+                "%s %s %s", 
+                firstName, lastName, suffix );
+        }
+    else {
+        sscanf( nextPlayer->name, 
+                "%s %s", 
+                firstName, lastName );
+        }
+    
+    nextPlayer->familyName = 
+        stringDuplicate( lastName );
+    
+    
+    if( ! nextPlayer->isTutorial ) {    
+        logName( nextPlayer->id,
+                 nextPlayer->email,
+                 nextPlayer->name,
+                 nextPlayer->lineageEveID );
+        }
+    }
+
+                                
+
+
 void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
                SimpleVector<int> *playerIndicesToSendNamesAbout ) {    
 
@@ -12956,10 +13004,30 @@ int main() {
     
     familySpan =
         SettingsManager::getIntSetting( "familySpan", 2 );
+
+    eveName = 
+        SettingsManager::getStringSetting( "eveName", "EVE" );
     
     
     readPhrases( "babyNamingPhrases", &nameGivingPhrases );
     readPhrases( "familyNamingPhrases", &familyNameGivingPhrases );
+
+    readPhrases( "babyNamingPhrases", &eveNameGivingPhrases );
+
+    // add YOU ARE EVE SMITH versions of these
+    // put them in front
+    SimpleVector<char*> oldPhrases( eveNameGivingPhrases.size() * 2 );
+    oldPhrases.push_back_other( &eveNameGivingPhrases );
+    eveNameGivingPhrases.deleteAll();
+    int numEvePhrases = oldPhrases.size();
+    for( int i=0; i<numEvePhrases; i++ ) {
+        char *phrase = oldPhrases.getElementDirect( i );
+        
+        char *newPhrase = autoSprintf( "%s %s", phrase, eveName );
+        eveNameGivingPhrases.push_back( newPhrase );
+        }
+    eveNameGivingPhrases.push_back_other( &oldPhrases );
+    
 
     readPhrases( "cursingPhrases", &cursingPhrases );
 
@@ -16632,43 +16700,7 @@ int main() {
                             char *name = isFamilyNamingSay( m.saidText );
                             
                             if( name != NULL && strcmp( name, "" ) != 0 ) {
-                                const char *close = findCloseLastName( name );
-                                nextPlayer->name = autoSprintf( "%s %s",
-                                                                eveName, 
-                                                                close );
-
-                                
-                                nextPlayer->name = getUniqueCursableName( 
-                                    nextPlayer->name, 
-                                    &( nextPlayer->nameHasSuffix ),
-                                    true );
-                                
-                                char firstName[99];
-                                char lastName[99];
-                                char suffix[99];
-
-                                if( nextPlayer->nameHasSuffix ) {
-                                    
-                                    sscanf( nextPlayer->name, 
-                                            "%s %s %s", 
-                                            firstName, lastName, suffix );
-                                    }
-                                else {
-                                    sscanf( nextPlayer->name, 
-                                            "%s %s", 
-                                            firstName, lastName );
-                                    }
-                                
-                                nextPlayer->familyName = 
-                                        stringDuplicate( lastName );
-
-
-                                if( ! nextPlayer->isTutorial ) {    
-                                    logName( nextPlayer->id,
-                                             nextPlayer->email,
-                                             nextPlayer->name,
-                                             nextPlayer->lineageEveID );
-                                    }
+                                nameEve( nextPlayer, name );
                                 
                                 if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
                                 if ( nextPlayer->declaredInfertile ) {
@@ -16677,7 +16709,7 @@ int main() {
                                 else {
                                     nextPlayer->displayedName = stringDuplicate( nextPlayer->name );
                                     }
-                                
+
                                 playerIndicesToSendNamesAbout.push_back( i );
                                 }
                             }
@@ -16786,10 +16818,29 @@ int main() {
                                                            babyAge, true );
 
                                 if( closestOther != NULL ) {
-                                    nameBaby( nextPlayer, closestOther,
-                                              name, 
-                                              &playerIndicesToSendNamesAbout );
                                     
+                                    if( closestOther->isEve ) {
+                                        
+                                        name = isEveNamingSay( m.saidText );
+                                        
+                                        if( name != NULL && 
+                                            strcmp( name, "" ) != 0 ) {
+                                            
+                                            nameEve( closestOther, name );
+                                            playerIndicesToSendNamesAbout.
+                                                push_back( 
+                                                    getLiveObjectIndex( 
+                                                        closestOther->id ) );
+                                            }
+                                        }
+                                    else {
+                                        // non-Eve
+                                        nameBaby( 
+                                            nextPlayer, closestOther,
+                                            name, 
+                                            &playerIndicesToSendNamesAbout );
+                                        }
+                                        
                                     if ( closestOther->displayedName != NULL ) delete [] closestOther->displayedName;
                                     if ( closestOther->declaredInfertile ) {
                                         closestOther->displayedName = autoSprintf( "%s %s", closestOther->name, infertilitySuffix);
