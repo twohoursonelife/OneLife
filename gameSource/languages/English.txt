@@ -273,6 +273,9 @@ bareGroundHint "BARE GROUND"
 nothingHint "NOTHING"
 eventuallyHint "(EVENTUALLY)"
 
+timeHint "(TIME PASSING)"
+
+
 
 noHint "NO INFORMATION" 
 
