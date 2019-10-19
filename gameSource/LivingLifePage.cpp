@@ -355,6 +355,8 @@ typedef struct {
         GridPos pos;
         char ancient;
         char temporary;
+        // 0 if not set
+        double temporaryExpireETA;
     } HomePos;
 
     
@@ -368,14 +370,45 @@ static int lastPlayerID = -1;
 
 
 
+static void processHomePosStack() {
+    int num = homePosStack.size();
+    if( num > 0 ) {
+        HomePos *r = homePosStack.getElement( num - 1 );
+        
+        if( r->temporary && r->temporaryExpireETA != 0 &&
+            game_getCurrentTime() > r->temporaryExpireETA ) {
+            // expired
+            homePosStack.deleteElement( num - 1 );
+            }
+        }
+    }
+
+
+
+static HomePos *getHomePosRecord() {
+    processHomePosStack();
+    
+    int num = homePosStack.size();
+    if( num > 0 ) {
+        return homePosStack.getElement( num - 1 );
+        }
+    else {
+        return NULL;
+        }
+    }
 
 
 // returns pointer to record, NOT destroyed by caller, or NULL if 
 // home unknown
-static  GridPos *getHomeLocation() {
-    int num = homePosStack.size();
-    if( num > 0 ) {
-        return &( homePosStack.getElement( num - 1 )->pos );
+static  GridPos *getHomeLocation( char *outTemp ) {
+    *outTemp = false;
+    
+    HomePos *r = getHomePosRecord();
+
+    if( r != NULL ) {
+        *outTemp = r->temporary;
+
+        return &( r->pos );
         }
     else {
         return NULL;
@@ -431,6 +464,9 @@ static void addTempHomeLocation( int inX, int inY ) {
     p.pos = newPos;
     p.ancient = false;
     p.temporary = true;
+    // no expiration for now
+    // until we drop the map
+    p.temporaryExpireETA = 0;
     
     homePosStack.push_back( p );
     }
@@ -467,13 +503,19 @@ static void addAncientHomeLocation( int inX, int inY ) {
 // otherwise, returns 0..7 index of arrow
 static int getHomeDir( doublePair inCurrentPlayerPos, 
                        double *outTileDistance = NULL,
-                       char *outTooClose = NULL ) {
-    GridPos *p = getHomeLocation();
+                       char *outTooClose = NULL,
+                       char *outTemp = NULL ) {
+    char temporary = false;
+    
+    GridPos *p = getHomeLocation( &temporary );
     
     if( p == NULL ) {
         return -1;
         }
     
+    if( outTemp != NULL ) {
+        *outTemp = temporary;
+        }
     
     if( outTooClose != NULL ) {
         *outTooClose = false;
@@ -5623,6 +5665,9 @@ char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
 
 
 
+static char mapHintEverDrawn = false;
+
+
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
     
@@ -8642,8 +8687,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
         if( ourLiveObject != NULL ) {
             
             double homeDist = 0;
+            char tooClose = false;
+            char temporary = false;
             
-            int arrowIndex = getHomeDir( ourLiveObject->currentPos, &homeDist );
+            int arrowIndex = getHomeDir( ourLiveObject->currentPos, &homeDist,
+                                         &tooClose, &temporary );
             
             if( arrowIndex == -1 || ! mHomeArrowStates[arrowIndex].solid ) {
                 // solid change
@@ -8709,6 +8757,23 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             distPos.y -= 47 * gui_fov_scale_hud;
             
+            doublePair mapHintPos = arrowPos;
+            mapHintPos.y -= 47 * gui_fov_scale_hud;
+
+            setDrawColor( 0, 0, 0, 1 );
+
+            if( temporary ) {
+                // push distance label further down
+                distPos.y -= 20 * gui_fov_scale_hud;
+                mapHintEverDrawn = true;
+                pencilFont->drawString( "MAP", mapHintPos, alignCenter );
+                }
+            else if( mapHintEverDrawn ) {
+                distPos.y -= 20 * gui_fov_scale_hud;
+                pencilErasedFont->drawString( "MAP", mapHintPos, alignCenter );
+                }
+            
+
             if( homeDist > 1000 ) {
                 drawTopAsErased = false;
                 
@@ -12001,14 +12066,20 @@ void LivingLifePage::step() {
     if( ourObject != NULL ) {    
         char tooClose = false;
         double homeDist = 0;
+        char temporary = false;
         
         int homeArrow = getHomeDir( ourObject->currentPos, &homeDist,
-                                    &tooClose );
+                                    &tooClose, &temporary );
         
         if( homeArrow != -1 && ! tooClose ) {
             mHomeSlipPosTargetOffset.y = mHomeSlipHideOffset.y + 68;
             
-            if( homeDist > 1000 ) {
+            char longDistance = homeDist > 1000;
+
+            if( longDistance ) {
+                mHomeSlipPosTargetOffset.y += 20;
+                }
+            if( temporary || ( mapHintEverDrawn && longDistance ) ) {
                 mHomeSlipPosTargetOffset.y += 20;
                 }
             }
@@ -12087,6 +12158,15 @@ void LivingLifePage::step() {
         
         if( d <= 1 ) {
             mHomeSlipPosOffset = mHomeSlipPosTargetOffset;
+            if( equal( mHomeSlipPosTargetOffset, mHomeSlipHideOffset ) ) {
+                // fully hidden
+                // clear all arrow states
+                for( int i=0; i<NUM_HOME_ARROWS; i++ ) {
+                    mHomeArrowStates[i].solid = false;
+                    mHomeArrowStates[i].fade = 0;
+                    }
+                mapHintEverDrawn = false;
+                }
             }
         else {
             int speed = frameRateFactor * 4;
@@ -12109,14 +12189,6 @@ void LivingLifePage::step() {
                 add( mHomeSlipPosOffset,
                      mult( dir, speed ) );
             }        
-        if( equal( mHomeSlipPosTargetOffset, mHomeSlipHideOffset ) ) {
-            // fully hidden
-            // clear all arrow states
-            for( int i=0; i<NUM_HOME_ARROWS; i++ ) {
-                mHomeArrowStates[i].solid = false;
-                    mHomeArrowStates[i].fade = 0;
-                }
-            }
         }
     
     
@@ -15349,6 +15421,21 @@ void LivingLifePage::step() {
                     if( existing != NULL &&
                         existing->id == ourID ) {
                         // got a PU for self
+
+                        if( existing->holdingID != o.holdingID ) {
+                            // holding change
+                            // if we have a temp home arrow
+                            // we've now dropped the map
+                            // start a fade-out timer
+                            HomePos *r = getHomePosRecord();
+                            
+                            if( r != NULL && r->temporary &&
+                                r->temporaryExpireETA == 0 ) {
+                                r->temporaryExpireETA = 
+                                    game_getCurrentTime() + 60;
+                                }
+                            }
+                        
                         
                         mYumSlipPosTargetOffset[2] = mYumSlipHideOffset[2];
                         mYumSlipPosTargetOffset[3] = mYumSlipHideOffset[3];
@@ -20347,6 +20434,9 @@ void LivingLifePage::makeActive( char inFresh ) {
 							   lastScreenViewCenter.y );
         return;
         }
+
+    mapHintEverDrawn = false;
+    
 
     mOldHintArrows.deleteAll();
 
