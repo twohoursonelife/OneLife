@@ -251,13 +251,20 @@ typedef struct TimeMeasureRecord {
     } TimeMeasureRecord;
 
 
+double runningPixelCount = 0;
+
 double spriteCountToDraw = 0;
 double uniqueSpriteCountToDraw = 0;
+
+double pixelCountToDraw = 0;
+
+
 
 static SimpleVector<double> fpsHistoryGraph;
 static SimpleVector<TimeMeasureRecord> timeMeasureHistoryGraph;
 static SimpleVector<double> spriteCountHistoryGraph;
 static SimpleVector<double> uniqueSpriteHistoryGraph;
+static SimpleVector<double> pixelCountHistoryGraph;
 
 
 static char showNet = false;
@@ -5488,6 +5495,39 @@ static void drawGraph( SimpleVector<TimeMeasureRecord> *inHistory,
     }
 
 
+// found here:
+// https://stackoverflow.com/questions/1449805/how-to-format-a-number-from-1123456789-to-1-123-456-789-in-c/24795133#24795133
+size_t stringFormatIntGrouped( char dst[16], int num ) {
+    char src[16];
+    char *p_src = src;
+    char *p_dst = dst;
+
+    const char separator = ',';
+    int num_len, commas;
+
+    num_len = sprintf( src, "%d", num );
+
+    if( *p_src == '-' ) {
+        *p_dst++ = *p_src++;
+        num_len--;
+        }
+
+    for( commas = 2 - num_len % 3;
+         *p_src;
+         commas = (commas + 1) % 3 ) {
+        
+        *p_dst++ = *p_src++;
+        if( commas == 1 ) {
+            *p_dst++ = separator;
+            }
+        }
+    *--p_dst = '\0';
+
+    return (size_t)( p_dst - dst );
+    }
+
+
+
 
 typedef struct DrawOrderRecord {
         char person;
@@ -6080,6 +6120,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
     
 
+    if( showFPS ) startCountingSpritePixelsDrawn();
 
     double hugR = CELL_D * 0.6;
 
@@ -6235,6 +6276,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
     
+    if( showFPS ) runningPixelCount += endCountingSpritePixelsDrawn();
+
 
 
     // draw overlay evenly over all floors and biomes
@@ -6337,6 +6380,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
     //toggleAdditiveTextureColoring( false );
     toggleAdditiveBlend( false );
     
+
+    if( showFPS ) startCountingSpritePixelsDrawn();
+
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
@@ -7494,6 +7540,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                    ls->fade, widthLimit );
         }
     
+
+    if( showFPS ) runningPixelCount += endCountingSpritePixelsDrawn();
+
     
     drawOffScreenSounds();
     
@@ -8297,12 +8346,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 // not an average
                 uniqueSpriteCountToDraw = uniqueDrawn;
                 
+                pixelCountToDraw = runningPixelCount / 30;
+
                 addToGraph( &spriteCountHistoryGraph, spriteCountToDraw );
                 addToGraph( &uniqueSpriteHistoryGraph, 
                             uniqueSpriteCountToDraw );
                 
+                addToGraph( &pixelCountHistoryGraph, pixelCountToDraw );
+                
                 startCountingSpritesDrawn();
                 startCountingUniqueSpriteDraws();
+                runningPixelCount = 0;
                 }
             }
         if( fpsToDraw != -1 ) {
@@ -8385,6 +8439,26 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawFixedShadowStringWhite( unqString, pos );
 
             delete [] unqString;
+
+
+            pos.y -= 80;
+            drawGraph( &pixelCountHistoryGraph, pos, yellow );
+
+            pos.x -= 60;
+            pos.y -= 20;
+
+            char pixBuffer[16];
+            
+            stringFormatIntGrouped( pixBuffer, (int)pixelCountToDraw ); 
+
+            
+            char *pixString = 
+                autoSprintf( "%9s %s", pixBuffer, 
+                             translate( "pixelsDrawn" ) );
+            
+            drawFixedShadowStringWhite( pixString, pos );
+
+            delete [] pixString;
             }
         else {
             drawFixedShadowStringWhite( translate( "fpsPending" ), pos );
