@@ -20687,6 +20687,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
                 p->hitSlotIndex = sl;
                 
                 p->hitAnObject = true;
+                p->hitObjectID = oID;
                 }
             }
         }
@@ -20776,6 +20777,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
                         p->hitSlotIndex = sl;
 
                         p->hitAnObject = true;
+                        p->hitObjectID = oID;
                         }
                     }
                 }
@@ -20953,6 +20955,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
                         p->hitSlotIndex = sl;
                         
                         p->hitAnObject = true;
+                        p->hitObjectID = oID;                
                         }
                     }
                 }
@@ -21534,76 +21537,88 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         // everything good to go for a kill-click, but they missed
         // hitting someone (and maybe they clicked on an object instead)
 
-        // find closest person for them to hit
-        
-        doublePair clickPos = { inX, inY };
-        
-        
-        int closePersonID = -1;
-        double closeDistance = DBL_MAX;
-        
-        for( int i=gameObjects.size()-1; i>=0; i-- ) {
-        
-            LiveObject *o = gameObjects.getElement( i );
 
-            if( o->id == ourID ) {
-                // don't consider ourself as a kill target
-                continue;
-                }
+        // make sure they didn't target some animal that their weapon
+        // can work on
+        if( p.hitAnObject && p.hitObjectID > 0 &&
+            getTrans( ourLiveObject->holdingID, p.hitObjectID ) != NULL ) {
             
-            if( o->outOfRange ) {
-                // out of range, but this was their last known position
-                // don't draw now
-                continue;
-                }
+            // a transition exists for this weapon on the destination
+            // object
+            }
+        else {
+            // clicked on nothing relevant
+
+            // find closest person for them to hit
+        
+            doublePair clickPos = { inX, inY };
+        
+        
+            int closePersonID = -1;
+            double closeDistance = DBL_MAX;
+        
+            for( int i=gameObjects.size()-1; i>=0; i-- ) {
+        
+                LiveObject *o = gameObjects.getElement( i );
+
+                if( o->id == ourID ) {
+                    // don't consider ourself as a kill target
+                    continue;
+                    }
             
-            if( o->heldByAdultID != -1 ) {
-                // held by someone else, can't click on them
-                continue;
-                }
+                if( o->outOfRange ) {
+                    // out of range, but this was their last known position
+                    // don't draw now
+                    continue;
+                    }
             
-            if( o->heldByDropOffset.x != 0 ||
-                o->heldByDropOffset.y != 0 ) {
-                // recently dropped baby, skip
-                continue;
-                }
+                if( o->heldByAdultID != -1 ) {
+                    // held by someone else, can't click on them
+                    continue;
+                    }
+            
+                if( o->heldByDropOffset.x != 0 ||
+                    o->heldByDropOffset.y != 0 ) {
+                    // recently dropped baby, skip
+                    continue;
+                    }
                 
                 
-            double oX = o->xd;
-            double oY = o->yd;
+                double oX = o->xd;
+                double oY = o->yd;
                 
-            if( o->currentSpeed != 0 && o->pathToDest != NULL ) {
-                oX = o->currentPos.x;
-                oY = o->currentPos.y;
+                if( o->currentSpeed != 0 && o->pathToDest != NULL ) {
+                    oX = o->currentPos.x;
+                    oY = o->currentPos.y;
+                    }
+
+                oY *= CELL_D;
+                oX *= CELL_D;
+            
+
+                // center of body up from feet position in tile
+                oY += CELL_D / 2;
+            
+                doublePair oPos = { oX, oY };
+            
+
+                double thisDistance = distance( clickPos, oPos );
+            
+                if( thisDistance < closeDistance ) {
+                    closeDistance = thisDistance;
+                    closePersonID = o->id;
+                    }
                 }
 
-            oY *= CELL_D;
-            oX *= CELL_D;
-            
-
-            // center of body up from feet position in tile
-            oY += CELL_D / 2;
-            
-            doublePair oPos = { oX, oY };
-            
-
-            double thisDistance = distance( clickPos, oPos );
-            
-            if( thisDistance < closeDistance ) {
-                closeDistance = thisDistance;
-                closePersonID = o->id;
+            if( closePersonID != -1 && closeDistance < 4 * CELL_D ) {
+                // somewhat close to clicking on someone
+                p.hitOtherPerson = true;
+                p.hitOtherPersonID = closePersonID;
+                p.hitAnObject = false;
+                p.hit = true;
+                killMode = true;
                 }
             }
-
-        if( closePersonID != -1 && closeDistance < 4 * CELL_D ) {
-            // somewhat close to clicking on someone
-            p.hitOtherPerson = true;
-            p.hitOtherPersonID = closePersonID;
-            p.hitAnObject = false;
-            p.hit = true;
-            killMode = true;
-            }
-        
         }
 
 
