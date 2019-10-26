@@ -335,6 +335,9 @@ void Picker::actionPerformed( GUIComponent *inTarget ) {
     // if( isCommandKeyDown() ) {
         // skipAmount *= 5;
         // }
+    if( isShiftKeyDown() ) {
+        skipAmount *= 5;
+        }
     
     if( inTarget == &mNextButton ) {
         mSkip += skipAmount;
