@@ -804,6 +804,8 @@ typedef struct LiveObject {
         int vogJumpIndex;
         char postVogMode;
         
+        char forceSpawn;
+        
 
         // list of positions owned by this player
         SimpleVector<GridPos> ownedPositions;
@@ -7996,6 +7998,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.postVogMode = false;
     newObject.vogJumpIndex = 0;
     
+    newObject.forceSpawn = false;
+
                 
     for( int i=0; i<HEAT_MAP_D * HEAT_MAP_D; i++ ) {
         newObject.heatMap[i] = 0;
@@ -8049,6 +8053,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
 
     if( forceSpawn ) {
+        newObject.forceSpawn = true;
         newObject.xs = forceSpawnInfo.pos.x;
         newObject.ys = forceSpawnInfo.pos.y;
         newObject.xd = forceSpawnInfo.pos.x;
@@ -23307,11 +23312,15 @@ int main() {
                                 
                                 // skip language filtering in some cases
                                 // VOG can talk to anyone
+                                // so can force spawns
                                 // also, skip in on very low pop servers
                                 // (just let everyone talk together)
                                 if( nextPlayer->vogMode || 
+                                    nextPlayer->forceSpawn || 
                                     ( speakerObj != NULL &&
                                       speakerObj->vogMode ) ||
+                                    ( speakerObj != NULL &&
+                                      speakerObj->forceSpawn ) ||
                                     players.size() < 
                                     minActivePlayersForLanguages ||
 									strlen( newSpeechPhrases.getElementDirect( u ) ) == 0 ||
