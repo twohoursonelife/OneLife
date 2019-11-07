@@ -12673,7 +12673,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
     )
     if( ourLiveObject != NULL ) {
         
-        if( overTempMeter || mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
+        if( ( overTempMeter && ourLiveObject->foodDrainTime > 0 ) 
+            || mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
+            
             int idToDescribe = mCurMouseOverID;
             
             if( mCurMouseOverID == 0 ) {
