@@ -85,7 +85,8 @@ int initTransBankStart( char *outRebuildingCache,
     currentFile = 0;
 
 
-    cache = initFolderCache( "transitions", outRebuildingCache );
+    cache = initFolderCache( "transitions", outRebuildingCache,
+                             shouldFileBeCached );
 
     return cache.numFiles;
     }
