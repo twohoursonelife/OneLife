@@ -2765,9 +2765,8 @@ static void setupMapChangeLogFile() {
  
             // file does not exist
             char *newFileName = 
-                autoSprintf( "%.ftime_%useedA_%useedB_mapLog.txt",
-                             Time::getCurrentTime(),
-                             biomeRandSeedA, biomeRandSeedB );
+                autoSprintf( "%.ftime_mapLog.txt",
+                             Time::getCurrentTime() );
             
             File *f = logFolder.getChildFile( newFileName );
             
@@ -2956,6 +2955,7 @@ void reseedMap( char inForceFresh ) {
                     }
                 }
             }
+        delete [] allObjects;
         }
     }
  
@@ -7442,7 +7442,17 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
 static void logMapChange( int inX, int inY, int inID ) {
     // log it?
     if( mapChangeLogFile != NULL ) {
-       
+        
+        double timeDelta = Time::getCurrentTime() - mapChangeLogTimeStart;
+
+        if( timeDelta > 3600 * 24 ) {
+            // break logs int 24-hour chunks
+            setupMapChangeLogFile();
+            timeDelta = Time::getCurrentTime() - mapChangeLogTimeStart;
+            }
+        
+        
+
         ObjectRecord *o = getObject( inID );
        
         const char *extraFlag = "";
@@ -7459,8 +7469,8 @@ static void logMapChange( int inX, int inY, int inID ) {
 
         if( o != NULL && o->isUseDummy ) {
             fprintf( mapChangeLogFile, 
-                     "%.2f %d %d %s%du%d %d\n", 
-                     Time::getCurrentTime() - mapChangeLogTimeStart,
+                     "%.2f %d %d %s%du%d %d\n",
+                     timeDelta,
                      inX, inY,
                      extraFlag,
                      o->useDummyParent,
@@ -7470,7 +7480,7 @@ static void logMapChange( int inX, int inY, int inID ) {
         else if( o != NULL && o->isVariableDummy ) {
             fprintf( mapChangeLogFile, 
                      "%.2f %d %d %s%dv%d %d\n", 
-                     Time::getCurrentTime() - mapChangeLogTimeStart,
+                     timeDelta,
                      inX, inY,
                      extraFlag,
                      o->variableDummyParent,
@@ -7480,7 +7490,7 @@ static void logMapChange( int inX, int inY, int inID ) {
         else {        
             fprintf( mapChangeLogFile, 
                      "%.2f %d %d %s%d %d\n", 
-                     Time::getCurrentTime() - mapChangeLogTimeStart,
+                     timeDelta,
                      inX, inY,
                      extraFlag,
                      inID,
