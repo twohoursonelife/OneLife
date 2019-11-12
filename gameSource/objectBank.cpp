@@ -33,6 +33,10 @@ static int mapSize;
 static ObjectRecord **idMap;
 
 
+// what object to return
+static int defaultObjectID = -1;
+
+
 static StringTree tree;
 
 
@@ -762,6 +766,15 @@ static void setupAlcohol( ObjectRecord *inR ) {
         sscanf( pos, "+alcohol%d", &( inR->alcohol ) );
         }
     }
+
+
+
+static void setupDefaultObject( ObjectRecord *inR ) {
+    if( strstr( inR->description, "+default" ) ) {
+        defaultObjectID = inR->id;
+        }
+    }
+
 
 
 
@@ -2133,7 +2146,27 @@ void initObjectBankFinish() {
             setupTapout( o );
             }
         }
-	
+    
+    // setup default object
+    for( int i=0; i<mapSize; i++ ) {
+        if( idMap[i] != NULL ) {
+            ObjectRecord *o = idMap[i];
+            setupDefaultObject( o );
+            }
+        }
+    
+    
+    if( defaultObjectID == -1 ) {
+        // no default defined
+        // pick first object
+        for( int i=0; i<mapSize; i++ ) {
+            if( idMap[i] != NULL ) {
+                defaultObjectID = i;
+                break;
+                }
+            }
+        }
+    
 
     for( int i=0; i<=MAX_BIOME; i++ ) {
         biomeHeatMap[ i ] = 0;
@@ -2709,6 +2742,15 @@ ObjectRecord *getObject( int inID ) {
             return idMap[inID];
             }
         }
+
+    if( defaultObjectID != -1 ) {
+        if( defaultObjectID < mapSize ) {
+            if( idMap[ defaultObjectID ] != NULL ) {
+                return idMap[ defaultObjectID ];
+                }
+            }
+        }
+    
     return NULL;
     }
 
