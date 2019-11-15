@@ -424,6 +424,12 @@ typedef struct ObjectRecord {
 
         int alcohol;
 
+        
+        char isBiomeLimited;
+        int maxBiomeMapEntry;
+        // one entry per biome
+        char *permittedBiomeMap;
+
     } ObjectRecord;
 
 
@@ -920,6 +926,10 @@ TapoutRecord *getTapoutRecord( int inObjectID );
 
 
 void clearTapoutCounts();
+
+
+
+char canBuildInBiome( ObjectRecord *inObj, int inTargetBiome );
 
 
 

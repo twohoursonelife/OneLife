@@ -3,6 +3,20 @@ This file only list changes to game code.  Changes to content can be found here:
 http://onehouronelife.com/updateLog.php
 
 
+
+
+Version 283   ???
+
+Server Fixes
+
+--Support for +biomeReq and +biomeBlock in object descriptions, only allowing
+  an object to be made in specific biomes or blocking it from specific biomes.
+
+
+
+
+Version 260    2019-August-28
+
 Server Fixes
 
 --Family limit failure condition set to 35 (was 23).
