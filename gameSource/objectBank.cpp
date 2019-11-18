@@ -2734,7 +2734,7 @@ void resaveAll() {
 #include "objectMetadata.h"
 
 
-ObjectRecord *getObject( int inID ) {
+ObjectRecord *getObject( int inID, char inNoDefault ) {
     inID = extractObjectID( inID );
     
     if( inID < mapSize ) {
@@ -2743,7 +2743,7 @@ ObjectRecord *getObject( int inID ) {
             }
         }
 
-    if( defaultObjectID != -1 ) {
+    if( ! inNoDefault && defaultObjectID != -1 ) {
         if( defaultObjectID < mapSize ) {
             if( idMap[ defaultObjectID ] != NULL ) {
                 return idMap[ defaultObjectID ];
