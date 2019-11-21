@@ -16746,6 +16746,16 @@ int main() {
                                     forceObjectToRead( nextPlayer, target, readPos, false );
                                     }
                                 
+                                // see if target object is permanent
+                                // and has writing on it.
+                                // if so, read by touching it
+                                
+                                if( targetObj->permanent &&
+                                    targetObj->written ) {
+                                    forcePlayerToRead( nextPlayer, target );
+                                    }
+                                
+
                                 // try using object on this target 
                                 
                                 TransRecord *r = NULL;
