@@ -854,7 +854,8 @@ typedef struct LiveObject {
         
         double foodDrainTime;
         double indoorBonusTime;
-
+        double indoorBonusFraction;
+        
 
         int foodStore;
         
@@ -2904,11 +2905,15 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
     inPlayer->indoorBonusTime = 0;
 
     if( inPlayer->isIndoors &&
+        inPlayer->indoorBonusFraction > 0 &&
         computeAge( inPlayer ) > defaultActionAge ) {
         
         // non-babies get a bonus for being indoors
-        value += indoorFoodDecrementSecondsBonus;
-        inPlayer->indoorBonusTime = indoorFoodDecrementSecondsBonus;
+        inPlayer->indoorBonusTime = 
+            indoorFoodDecrementSecondsBonus *
+            inPlayer->indoorBonusFraction;
+        
+        value += inPlayer->indoorBonusTime;
         }
     
     inPlayer->foodDrainTime = value;
@@ -3900,6 +3905,10 @@ static void recomputeHeatMap( LiveObject *inPlayer ) {
         rBoundaryAverage = rBoundarySum / rBoundarySize;
         }
 
+    if( inPlayer->isIndoors ) {
+        // the more insulating the boundary, the bigger the bonus
+        inPlayer->indoorBonusFraction = rBoundaryAverage;
+        }
     
     
 
@@ -7706,6 +7715,10 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.heatUpdate = false;
     newObject.lastHeatUpdate = currentTime;
     newObject.isIndoors = false;
+    
+    newObject.foodDrainTime = 0;
+    newObject.indoorBonusTime = 0;
+    newObject.indoorBonusFraction = 0;
     
 
     
