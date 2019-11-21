@@ -12716,7 +12716,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     
                     des = autoSprintf( translate( "foodTimeFormatString" ),
                                        translate( "foodTimeString" ),
-                                       ourLiveObject->foodDrainTime,
+                                       mainSeconds,
                                        indoorBonusString );
                     delete [] indoorBonusString;
                     
