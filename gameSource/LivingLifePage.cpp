@@ -20977,6 +20977,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     
     oldHomePosStack.push_back_other( &homePosStack );
     
+    homePosStack.deleteAll();
+    
 
     takingPhoto = false;
     photoSequenceNumber = -1;
