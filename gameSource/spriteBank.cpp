@@ -24,7 +24,7 @@ static int mapSize;
 // maps IDs to records
 // sparse, so some entries are NULL
 static SpriteRecord **idMap;
-static char *spriteDrawnMap;
+static char *spriteDrawnMap = NULL;
 
 
 static StringTree tree;
@@ -618,6 +618,9 @@ void freeSpriteBank() {
     if( blankSprite != NULL ) {
         freeSprite( blankSprite );
         }
+
+    delete [] spriteDrawnMap;
+
 
     spriteBankLoaded = false;
     }
