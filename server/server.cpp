@@ -12541,6 +12541,45 @@ static char isAccessBlocked( LiveObject *inPlayer,
 
 
 
+// cost set to 0 unless hungry work not blocked
+char isHungryWorkBlocked( LiveObject *inPlayer, 
+                          int inNewTarget, int *outCost ) {          
+    *outCost = 0;
+    
+    char *des =
+        getObject( inNewTarget )->description;
+                                    
+    char *desPos =
+        strstr( des, "+hungryWork" );
+    
+    if( desPos != NULL ) {
+                                        
+        int cost = 0;
+        
+        sscanf( desPos,
+                "+hungryWork%d", 
+                &cost );
+        
+        if( inPlayer->foodStore + 
+            inPlayer->yummyBonusStore < 
+            cost + 4 ) {
+            // block hungry work,
+            // not enough food to have a
+            // "safe" buffer after
+            return true;
+            }
+        
+        // can do work
+        *outCost = cost;
+        return false;
+        }
+
+    // not hungry work at all
+    return false;
+    }
+
+
+
 // returns NULL if not found
 static LiveObject *getPlayerByName( char *inName, 
                                     LiveObject *inPlayerSayingName ) {
@@ -17506,25 +17545,12 @@ int main() {
                                 
                                 if( r != NULL && 
                                     r->newTarget > 0 ) {
-                                    char *des =
-                                        getObject( r->newTarget )->description;
-                                    
-                                    char *desPos =
-                                        strstr( des, "+hungryWork" );
-                                    
-                                    if( desPos != NULL ) {
-                                        
-                                    
-                                        sscanf( desPos,
-                                                "+hungryWork%d", 
-                                                &hungryWorkCost );
-                                        
-                                        if( nextPlayer->foodStore < 
-                                            hungryWorkCost ) {
-                                            // block transition,
-                                            // not enough food
-                                            r = NULL;
-                                            }
+
+                                    if( isHungryWorkBlocked( 
+                                            nextPlayer,
+                                            r->newTarget,
+                                            &hungryWorkCost ) ) {
+                                        r = NULL;
                                         }
                                     }
 
