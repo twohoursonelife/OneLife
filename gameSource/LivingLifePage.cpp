@@ -2632,6 +2632,7 @@ LivingLifePage::LivingLifePage()
           mOldYumBonusValue( 0 ),
           mFirstYumEaten( false ),
           mYumIncrementFade( 0 ),
+          mHomeSlip2Sprite( loadSprite( "homeSlip2.tga", false ) ),
           mHomeSlipBlankTopSprite( 
               loadSprite( "homeSlipBlankTop.tga", false ) ),
           mLastMouseOverID( 0 ),
@@ -2653,7 +2654,7 @@ LivingLifePage::LivingLifePage()
         }
 
     mHomeSlipSprites[0] = mHomeSlipSprite;
-    mHomeSlipSprites[1] = mHomeSlipBlankTopSprite;
+    mHomeSlipSprites[1] = mHomeSlip2Sprite;
     
 
     mForceGroundClick = false;
@@ -2749,18 +2750,18 @@ LivingLifePage::LivingLifePage()
     mSayField.unfocus();
     
     
-    mNotePaperHideOffset.x = -242;
+    mNotePaperHideOffset.x = -282;
     mNotePaperHideOffset.y = -420;
 
 
-    mHomeSlipHideOffset[0].x = 0;
+    mHomeSlipHideOffset[0].x = -41;
     mHomeSlipHideOffset[0].y = -360;
 
-    mHomeSlipHideOffset[1].x = 0;
-    mHomeSlipHideOffset[1].y = 421;
+    mHomeSlipHideOffset[1].x =  30;
+    mHomeSlipHideOffset[1].y = -360;
 
     mHomeSlipShowDelta[0] = 68;
-    mHomeSlipShowDelta[1] = -50;
+    mHomeSlipShowDelta[1] = 68;
     
 
 
@@ -2779,10 +2780,10 @@ LivingLifePage::LivingLifePage()
     
 
     for( int i=0; i<3; i++ ) {    
-        mHungerSlipShowOffsets[i].x = -540;
+        mHungerSlipShowOffsets[i].x = -558;
         mHungerSlipShowOffsets[i].y = -250;
     
-        mHungerSlipHideOffsets[i].x = -540;
+        mHungerSlipHideOffsets[i].x = -558;
         mHungerSlipHideOffsets[i].y = -370;
         
         mHungerSlipWiggleTime[i] = 0;
@@ -3232,6 +3233,7 @@ LivingLifePage::~LivingLifePage() {
     freeSprite( mChalkBlotSprite );
     freeSprite( mPathMarkSprite );
     freeSprite( mHomeSlipSprite );
+    freeSprite( mHomeSlip2Sprite );
     freeSprite( mHomeSlipBlankTopSprite );
     
     if( teaserVideo ) {
@@ -5649,7 +5651,7 @@ void LivingLifePage::drawHomeSlip( doublePair inSlipPos, int inIndex ) {
         arrowPos.y += 35 * gui_fov_scale_hud;
         }
     else {
-        arrowPos.y -= 35 * gui_fov_scale_hud;
+        arrowPos.y += 35 * gui_fov_scale_hud;
         }
     
     LiveObject *ourLiveObject = getOurLiveObject();
@@ -5732,20 +5734,26 @@ void LivingLifePage::drawHomeSlip( doublePair inSlipPos, int inIndex ) {
             mapHintPos.y -= 47 * gui_fov_scale_hud;
             }
         else {
-            distPos.y += 32 * gui_fov_scale_hud;
-            mapHintPos.y += 32 * gui_fov_scale_hud;
+            distPos.y -= 47 * gui_fov_scale_hud;
+            mapHintPos.y -= 47 * gui_fov_scale_hud;
             }
         
 
         setDrawColor( 0, 0, 0, 1 );
 
+        if( inIndex == 1 ) {
+            doublePair bellPos = distPos;
+            bellPos.y += 20 * gui_fov_scale_hud;    
+            handwritingFont->drawString( "BELL", bellPos, alignCenter );
+            }
+        
         if( temporary ) {
             // push distance label further down
             if( inIndex == 0 ) {
                 distPos.y -= 20 * gui_fov_scale_hud;
                 }
             else {
-                distPos.y += 20 * gui_fov_scale_hud;
+                distPos.y -= 20 * gui_fov_scale_hud;
                 }
             mapHintEverDrawn[inIndex] = true;
             pencilFont->drawString( "MAP", mapHintPos, alignCenter );
@@ -5755,7 +5763,7 @@ void LivingLifePage::drawHomeSlip( doublePair inSlipPos, int inIndex ) {
                 distPos.y -= 20 * gui_fov_scale_hud;
                 }
             else {
-                distPos.y += 20 * gui_fov_scale_hud;
+                distPos.y -= 20 * gui_fov_scale_hud;
                 }
             pencilErasedFont->drawString( "MAP", mapHintPos, alignCenter );
             }
@@ -12150,7 +12158,7 @@ void LivingLifePage::step() {
                         mHomeSlipPosTargetOffset[j].y += 20;
                         }
                     else {
-                        mHomeSlipPosTargetOffset[j].y -= 20;
+                        mHomeSlipPosTargetOffset[j].y += 20;
                         }
                     }
                 if( temporary || 
@@ -12159,7 +12167,7 @@ void LivingLifePage::step() {
                         mHomeSlipPosTargetOffset[j].y += 20;
                         }
                     else {
-                        mHomeSlipPosTargetOffset[j].y -= 20;
+                        mHomeSlipPosTargetOffset[j].y += 20;
                         }
                     }
                 }
