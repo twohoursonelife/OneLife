@@ -769,12 +769,19 @@ void moveCategoryDown( int inObjectID, int inParentID ) {
 
 
 
-void moveCategoryMemberUp( int inParentID, int inObjectID ) {
+void moveCategoryMemberUp( int inParentID, int inObjectID, int inListIndex ) {
 
     CategoryRecord *r = getCategory( inParentID );
     
     if( r != NULL ) {        
-        int index = r->objectIDSet.getElementIndex( inObjectID );
+        int index = inListIndex;
+
+        if( r->objectIDSet.getElementDirect( index ) != inObjectID ) {
+            // mismatch
+            // do nothing
+            return;
+            }
+        
         
         if( index != -1 && index != 0 ) {
             
@@ -802,13 +809,20 @@ void moveCategoryMemberUp( int inParentID, int inObjectID ) {
 
 
 
-void moveCategoryMemberDown( int inParentID, int inObjectID ) {
+void moveCategoryMemberDown( int inParentID, int inObjectID, int inListIndex ) {
 
     CategoryRecord *r = getCategory( inParentID );
     
     if( r != NULL ) {        
-        int index = r->objectIDSet.getElementIndex( inObjectID );
-        
+        int index = inListIndex;
+
+        if( r->objectIDSet.getElementDirect( index ) != inObjectID ) {
+            // mismatch
+            // do nothing
+            return;
+            }
+
+
         if( index != -1 && 
             index != r->objectIDSet.size() - 1 ) {
             
