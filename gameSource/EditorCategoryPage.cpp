@@ -603,7 +603,8 @@ void EditorCategoryPage::keyDown( unsigned char inASCII ) {
             int objID = getCategory( mCurrentCategory )->
                 objectIDSet.getElementDirect( mSelectionIndex );
             
-            removeCategoryFromObject( objID, mCurrentCategory );
+            removeObjectFromCategory( mCurrentCategory, objID, 
+                                      mSelectionIndex );
             
             int newMax =
                 getCategory( mCurrentCategory )->objectIDSet.size() - 1;
