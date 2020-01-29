@@ -17107,7 +17107,11 @@ void LivingLifePage::step() {
                                           heldTransitionSourceID );
                             
                             if( tr != NULL &&
-                                tr->newActor == existing->holdingID &&
+                                ( tr->newActor == existing->holdingID
+                                  ||
+                                  bothSameUseParent( tr->newActor,
+                                                     existing->holdingID ) )
+                                &&
                                 tr->target == heldTransitionSourceID &&
                                 ( tr->newTarget == tr->target 
                                   ||
