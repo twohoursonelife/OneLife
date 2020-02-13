@@ -22920,8 +22920,10 @@ int main() {
                 
                 char *line;
                 
-                if( nextPlayer->holdingEtaDecay > 0 ) {
-                    // what they have will cure itself in time
+                if( nextPlayer->holdingID > 0 &&
+                    strstr(
+                        getObject( nextPlayer->holdingID )->description,
+                        "sick" ) != NULL ) {
                     // flag as sick
                     line = autoSprintf( "%d 1\n", nextPlayer->id );
                     }
