@@ -18970,20 +18970,21 @@ int main() {
                                                 clickedClothingTrans = NULL;
                                                 }
 
-                                            if( clickedClothingTrans != NULL ) {
-												int nt = 
-													clickedClothingTrans->newTarget;
-												
-												if( nt > 0 &&
-													getObject( nt )->clothing 
-													== 'n' ) {
-													// don't allow transitions
-													// that leave a non-wearable
-													// item on your body
-													clickedClothingTrans = NULL;
-													}
-												}
-											}
+                                            int nt = 
+                                                clickedClothingTrans->newTarget;
+                                            
+                                            if( nt > 0 &&
+                                                getObject( nt )->clothing 
+                                                != clickedClothing->clothing ) {
+                                                // don't allow transitions
+                                                // that leave a non-wearable
+                                                // item on your body
+                                                // OR convert clothing into
+                                                // a different type of clothing
+                                                // (converting a shrit to a hat)
+                                                clickedClothingTrans = NULL;
+                                                }
+                                            }
                                         }
                                     }
                                 
