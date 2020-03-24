@@ -5861,7 +5861,6 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                                etaTime,
                                                moveTime };
                     
-                   
                     liveMovementEtaTimes.insert( newX, newY, 0, 0, etaTime );
                     
                     liveMovements.insert( moveRec, etaTime );
@@ -9749,4 +9748,44 @@ void stepMapLongTermCulling( int inNumCurrentPlayers ) {
                 }
             }
         }
+    }
+
+
+int getDeadlyMovingMapObject( int inPosX, int inPosY,
+                              int *outMovingDestX, int *outMovingDestY ) {
+    
+    double curTime = Time::getCurrentTime();
+    
+    int numMoving = liveMovements.size();
+    
+    for( int i=0; i<numMoving; i++ ) {
+        MovementRecord *m = liveMovements.getElement( i );
+        
+        if( ! m->deadly ) {
+            continue;
+            }
+        double progress = 
+            ( m->totalTime - ( m->etaTime - curTime )  )
+            / m->totalTime;
+        
+        if( progress < 0 ||
+            progress > 1 ) {
+            continue;
+            }
+        int curPosX = lrint( ( m->x - m->sourceX ) * progress + m->sourceX );
+        int curPosY = lrint( ( m->y - m->sourceY ) * progress + m->sourceY );
+        
+        if( curPosX != inPosX ||
+            curPosY != inPosY ) {
+            continue;
+            }
+        
+        // hit position
+        *outMovingDestX = m->x;
+        *outMovingDestY = m->y;
+        return m->id;
+        }
+    
+
+    return 0;
     }
