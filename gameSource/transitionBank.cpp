@@ -3052,6 +3052,19 @@ void printTrans( TransRecord *inTrans ) {
         printf( " (move=%s,dist=%d)", moveName, inTrans->desiredMoveDist );
         }
     
+    if( inTrans->actorChangeChance < 1.0 ) {
+        printf( " (pA=%0.2f,[%s])",
+                inTrans->actorChangeChance,
+                getObjName( inTrans->newActorNoChange ) );
+        }
+    
+    if( inTrans->targetChangeChance < 1.0 ) {
+        printf( " (pT=%0.2f,[%s])",
+                inTrans->targetChangeChance,
+                getObjName( inTrans->newTargetNoChange ) );
+        }
+    
+
     printf( "\n" );
     }
 
