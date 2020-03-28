@@ -1968,41 +1968,44 @@ void printBiomeSamples() {
                 biomeSamples[i] / (double)numSamples );
         }
     }
- 
- 
- 
-void printObjectSamples() {
+
+
+
+int printObjectSamples( int inXCenter, int inYCenter ) {
     int objectToCount = 2285;
    
     JenkinsRandomSource sampleRandSource;
  
     int numSamples = 0;
- 
-    int range = 500;
- 
+
+    int rangeX = 354;
+    int rangeY = 354;
+
     int count = 0;
-   
-    for( int y=-range; y<range; y++ ) {
-        for( int x=-range; x<range; x++ ) {
-            int obj = getMapObjectRaw( x, y );
-           
-           
+    
+    for( int y=-rangeY; y<=rangeY; y++ ) {
+        for( int x=-rangeX; x<=rangeX; x++ ) {
+            int obj = getMapObjectRaw( x  + inXCenter, y + inYCenter );
+            
+            
             if( obj == objectToCount ) {
                 count++;
                 }
             numSamples++;
             }
         }
-   
- 
-    int rangeSize = (range + range ) * ( range + range );
- 
-    float sampleFraction =
-        numSamples /
+    
+
+    int rangeSize = (rangeX + rangeX + 1 ) * ( rangeY + rangeY + 1 );
+
+    float sampleFraction = 
+        numSamples / 
         ( float ) rangeSize;
    
     printf( "Counted %d objects in %d/%d samples, expect %d total\n",
             count, numSamples, rangeSize, (int)( count / sampleFraction ) );
+    
+    return count;
     }
  
  
