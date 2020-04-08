@@ -5,6 +5,12 @@ http://onehouronelife.com/updateLog.php
 
 Version 290     ???
 
+Version 326     ???
+
+--Editor search boxes now allow -term to avoid objects with term in the name.
+
+
+
 
 --Added support for +frontWall object tag, to fix glitch with open door behind
   wall shelf.  Don't decide whether a wall should be drawn in front of other
