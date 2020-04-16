@@ -162,6 +162,8 @@ static int eatBonus = 0;
 // static double eatBonusHalfLife = 50;
 
 static int canYumChainBreak = 0;
+// -1 for no cap
+static int yumBonusCap = -1;
 
 static double minAgeForCravings = 10;
 
@@ -6497,6 +6499,11 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
     if( currentBonus < 0 ) {
         currentBonus = 0;
         }    
+    
+    if( yumBonusCap != -1 &&
+        currentBonus > yumBonusCap ) {
+        currentBonus = yumBonusCap;
+        }
 
     if( wasYummy ) {
         // only get bonus if actually was yummy (whether fed self or not)
@@ -7394,6 +7401,8 @@ int processLoggedInPlayer( char inAllowReconnect,
         SettingsManager::getIntSetting( "minActivePlayersForLanguages", 15 );
 
     canYumChainBreak = SettingsManager::getIntSetting( "canYumChainBreak", 0 );
+    
+    yumBonusCap = SettingsManager::getIntSetting( "yumBonusCap", -1 );
     
 
     
@@ -25060,6 +25069,11 @@ int main() {
                         yumMult = 0;
                         }
                     
+                    if( yumBonusCap != -1 &&
+                        yumMult > yumBonusCap ) {
+                        yumMult = yumBonusCap;
+                        }
+
                     if( nextPlayer->connected ) {
                         
                         char *foodMessage = autoSprintf( 
