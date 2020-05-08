@@ -10849,11 +10849,24 @@ void LivingLifePage::endExtraObjectMove( int inExtraIndex ) {
 
 
 
+doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
+    if( inPlayer->heldByAdultID != -1 ) {
+        LiveObject *adult = getLiveObject( inPlayer->heldByAdultID );
+        
+        if( adult != NULL ) {
+            return adult->currentPos;
+            }
+        }
+    return inPlayer->currentPos;
+    }
+
+
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     char *foodDescription = 
         stringToUpperCase( getObject( inFoodID )->description );
                 
     stripDescriptionComment( foodDescription );
+
 
     char *message = 
         autoSprintf( "%s: %s (+%d)", translate( "craving"), 
@@ -18289,7 +18302,16 @@ void LivingLifePage::step() {
 
         }
     
+
+    // HomePos *curHomePosRecord = getHomePosRecord();
+
+    doublePair ourPos = { 0, 0 };
+
+    if( ourLiveObject != NULL ) {
+        ourPos = getPlayerPos( ourLiveObject );
+        }
     
+            
     // update all positions for moving objects
     if( !mapPullMode )
     for( int i=0; i<gameObjects.size(); i++ ) {
@@ -18375,7 +18397,7 @@ void LivingLifePage::step() {
         
 
         if( ! o->outOfRange &&
-            distance( o->currentPos, ourLiveObject->currentPos ) > 
+            distance( getPlayerPos( o ), ourPos ) > 
             maxChunkDimension ) {
             // mark as out of range, even if we've never heard an official
             // PO message about them

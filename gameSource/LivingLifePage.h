@@ -1050,6 +1050,10 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         char isHintFilterStringInvalid();
 
+
+        // where player is standing or held
+        doublePair getPlayerPos( LiveObject *inPlayer );
+
     };
 
 
