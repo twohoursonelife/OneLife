@@ -758,6 +758,17 @@ static void setupDefaultObject( ObjectRecord *inR ) {
 
 
 
+static void setupYumParent( ObjectRecord *inR ) {
+    inR->yumParentID = -1;
+
+    char *pos = strstr( inR->description, "+yum" );
+
+    if( pos != NULL ) {
+        sscanf( pos, "+yum%d", &( inR->yumParentID ) );
+        }
+    }
+
+
 
 int getMaxSpeechPipeIndex() {
     return maxSpeechPipeIndex;
@@ -833,6 +844,8 @@ float initObjectBankStep() {
 
                 setupAlcohol( r );
 
+                setupYumParent( r );
+                
 
                 // do this later, after we parse floorHugging
                 // setupWall( r );
@@ -3912,6 +3925,8 @@ int addObject( const char *inDescription,
     setupNoBackAccess( r );            
 
     setupAlcohol( r );
+    
+    setupYumParent( r );
 
     setupWall( r );
 
