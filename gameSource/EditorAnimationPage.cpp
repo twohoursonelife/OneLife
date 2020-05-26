@@ -3407,7 +3407,7 @@ void EditorAnimationPage::pointerDrag( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
 
-    if( mSettingRotCenter ) {
+    if( mCurrentObjectID != -1 && mSettingRotCenter ) {
         doublePair pos = { 0, -64 };
     
         ObjectRecord *r = getObject( mCurrentObjectID );
