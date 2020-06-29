@@ -6368,7 +6368,21 @@ static char isYummy( LiveObject *inPlayer, int inObjectID ) {
         return false;
         }
 
-    if( inObjectID == inPlayer->cravingFood.foodID &&
+
+    int origID = inObjectID;
+
+    if( o->yumParentID != -1 ) {
+        // set this whether valid or not
+        inObjectID = o->yumParentID;
+        
+        // NOTE:
+        // we're NOT replacing o with the yumParent object
+        // because o isn't used beyond this point
+        }   
+    
+    
+    // don't consider yumParent when testing for craving satisfaction
+    if( origID == inPlayer->cravingFood.foodID &&
         computeAge( inPlayer ) >= minAgeForCravings ) {
         return true;
         }
@@ -6475,7 +6489,8 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         // easy food first in an advanced town
         logFoodDepth( inPlayer->lineageEveID, eatenID );
         
-        if( eatenID == inPlayer->cravingFood.foodID &&
+        // don't consider yumParent when testing for craving satisfaction
+        if( inFoodEatenID == inPlayer->cravingFood.foodID &&
             computeAge( inPlayer ) >= minAgeForCravings ) {
             
             for( int i=0; i< inPlayer->cravingFood.bonus; i++ ) {
