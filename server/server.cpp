@@ -14674,7 +14674,7 @@ int main() {
                             tokens->size() == 7 ) {
                             
                             nextConnection->email = 
-                                stringDuplicate( 
+                                stringToLowerCase( 
                                     tokens->getElementDirect( 1 ) );
 
 
