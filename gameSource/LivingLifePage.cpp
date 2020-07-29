@@ -53,7 +53,7 @@
 
 static ObjectPickable objectPickable;
 
-
+#include "miniTwotech.h"
 
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
@@ -76,6 +76,7 @@ static float pencilErasedFontExtraFade = 0.75;
 
 
 extern doublePair lastScreenViewCenter;
+doublePair LivingLifePage::miniTwotechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
 static char shouldMoveCamera = true;
 
@@ -896,7 +897,13 @@ static char *getDisplayObjectDescription( int inID ) {
     return upper;
     }
 
-
+char *LivingLifePage::miniTwotechGetDisplayObjectDescription( int objId ) { 
+    ObjectRecord *o = getObject( objId );
+    if( o == NULL ) {
+		return "";
+    }
+	return getDisplayObjectDescription(objId);
+}
 
 typedef enum messageType {
     SHUTDOWN,
@@ -2489,6 +2496,14 @@ LivingLifePage::LivingLifePage()
     if( ! tutorialDone ) {
         mTutorialNumber = 1;
         }
+		
+	miniTwotech::setLivingLifePage(
+		this, 
+		&gameObjects, 
+		mMapD, 
+		pathFindingD, 
+		mMapContainedStacks, 
+		mMapSubContainedStacks);
     }
 
 
@@ -7825,7 +7840,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
         if( ! equal( mHintPosOffset[i], mHintHideOffset[i] ) 
             &&
-            mHintMessage[i] != NULL ) {
+            mHintMessage[i] != NULL && !miniTwotech::miniTwotechEnabled ) {
             
             doublePair hintPos  = 
                 add( mHintPosOffset[i], lastScreenViewCenter );
@@ -8816,6 +8831,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+	// miniTwotech
+	float worldMouseX, worldMouseY;
+	getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+	screenToWorld( lastScreenMouseX,
+				   lastScreenMouseY,
+				   &worldMouseX,
+				   &worldMouseY );
+	miniTwotech::livingLifeDraw(worldMouseX, worldMouseY);
     
     if( vogMode ) {
         // draw again, so we can see picker
@@ -11133,7 +11156,7 @@ void LivingLifePage::step() {
         sendToServerSocket( (char*)"KA 0 0#" );
         }
     
-
+	miniTwotech::livingLifeStep();
 
     char *message = getNextServerMessage();
 
@@ -12280,6 +12303,8 @@ void LivingLifePage::step() {
                 
                 if( !( mFirstServerMessagesReceived & 1 ) ) {
                     // first map chunk just recieved
+					
+					miniTwotech::initOnBirth();
                     
                     char found = false;
                     int closestX = 0;
@@ -13820,8 +13845,9 @@ void LivingLifePage::step() {
                             mNextHintObjectID = existing->holdingID;
                             mNextHintIndex = 
                                 mHintBookmarks[ mNextHintObjectID ];
+								
+							miniTwotech::currentHintObjId = mNextHintObjectID;
                             }
-                        
 
 
                         ObjectRecord *newClothing = 
@@ -15295,6 +15321,7 @@ void LivingLifePage::step() {
                 ourID = ourObject->id;
 
                 if( ourID != lastPlayerID ) {
+					miniTwotech::initOnBirth();
                     // different ID than last time, delete old home markers
                     oldHomePosStack.deleteAll();
                     }
@@ -19104,6 +19131,8 @@ char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
 
 
 void LivingLifePage::pointerDown( float inX, float inY ) {
+	if (miniTwotech::livingLifePageMouseDown( inX, inY )) return;
+	
     lastMouseX = inX;
     lastMouseY = inY;
 
@@ -19561,17 +19590,20 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // give hint about dest object which will be unchanged 
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
+				miniTwotech::currentHintObjId = destID;
                 }
             else if( tr->newActor > 0 && 
                      ourLiveObject->holdingID != tr->newActor ) {
                 // give hint about how what we're holding will change
                 mNextHintObjectID = tr->newActor;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
+				miniTwotech::currentHintObjId = tr->newActor;
                 }
             else if( tr->newTarget > 0 ) {
                 // give hint about changed target after we act on it
                 mNextHintObjectID = tr->newTarget;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
+				miniTwotech::currentHintObjId = tr->newTarget;
                 }
             }
         else {
@@ -19581,6 +19613,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( getTrans( 0, destID ) == NULL ) {
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
+				miniTwotech::currentHintObjId = destID;
                 }
             }
         }
@@ -20645,6 +20678,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
+	if (miniTwotech::livingLifeKeyDown(inASCII)) return;
     
     switch( inASCII ) {
         /*

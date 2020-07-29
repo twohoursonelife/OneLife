@@ -471,6 +471,8 @@ class LivingLifePage : public GamePage, public ActionListener {
             return mRequiredVersion;
             }
 
+		doublePair miniTwotechGetLastScreenViewCenter();
+		char *miniTwotechGetDisplayObjectDescription(int objId);
 
         virtual void actionPerformed( GUIComponent *inTarget );
         
@@ -519,9 +521,9 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 
         int mMapD;
-
+		public: // miniTwotech
         int *mMap;
-        
+        protected: // miniTwotech
         int *mMapBiomes;
         int *mMapFloors;
 
@@ -574,10 +576,10 @@ class LivingLifePage : public GamePage, public ActionListener {
         SimpleVector<int> mMapExtraMovingObjectsDestObjectIDs;
         SimpleVector<ExtraMapObject> mMapExtraMovingObjects;
 
-        
+        public: // miniTwotech
         int mMapOffsetX;
         int mMapOffsetY;
-
+		protected: // miniTwotech
 
         char mEKeyEnabled;
         char mEKeyDown;
@@ -845,10 +847,10 @@ class LivingLifePage : public GamePage, public ActionListener {
         char mForceGroundClick;
         
 
-
+		public: // miniTwotech
         LiveObject *getOurLiveObject();
         LiveObject *getLiveObject( int inID );
-        
+        protected: // miniTwotech
 
         void clearLiveObjects();
         
