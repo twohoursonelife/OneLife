@@ -1,5 +1,5 @@
-#ifndef MINITWOTECH_H
-#define MINITWOTECH_H
+#ifndef minitech_H
+#define minitech_H
 
 #include "LivingLifePage.h"
 #include <vector>
@@ -8,13 +8,13 @@
 
 using namespace std;
 
-class miniTwotech
+class minitech
 {
 
 public:
 
 	
-	static bool miniTwotechEnabled;
+	static bool minitechEnabled;
 	static float guiScale;
 	
 	static float viewWidth;
@@ -49,7 +49,7 @@ public:
 	static SimpleVector<int> *mMapContainedStacks;
 	static SimpleVector<SimpleVector<int>> *mMapSubContainedStacks;
 	
-	static bool miniTwotechMinimized;
+	static bool minitechMinimized;
 	static int stepCount;
 	static float currentX;
 	static float currentY;

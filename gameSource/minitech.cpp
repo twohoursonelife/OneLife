@@ -17,48 +17,48 @@
 // #include "minorGems/util/SettingsManager.h"
 
 
-#include "miniTwotech.h"
+#include "minitech.h"
 
 using namespace std;
 
-bool miniTwotech::miniTwotechEnabled = true;
-float miniTwotech::guiScale = 1.0f;
+bool minitech::minitechEnabled = true;
+float minitech::guiScale = 1.0f;
 
-float miniTwotech::viewWidth = 1280.0;
-float miniTwotech::viewHeight = 720.0;
+float minitech::viewWidth = 1280.0;
+float minitech::viewHeight = 720.0;
 
-Font *miniTwotech::handwritingFont;
-Font *miniTwotech::mainFont;
-Font *miniTwotech::tinyHandwritingFont;
-Font *miniTwotech::tinyMainFont;
+Font *minitech::handwritingFont;
+Font *minitech::mainFont;
+Font *minitech::tinyHandwritingFont;
+Font *minitech::tinyMainFont;
 
-LivingLifePage *miniTwotech::livingLifePage;
-LiveObject *miniTwotech::ourLiveObject;
-SimpleVector<LiveObject> *miniTwotech::players;
-int miniTwotech::mMapD;
-int miniTwotech::pathFindingD;
-int miniTwotech::maxObjects;
-SimpleVector<int> *miniTwotech::mMapContainedStacks;
-SimpleVector<SimpleVector<int>> *miniTwotech::mMapSubContainedStacks;
+LivingLifePage *minitech::livingLifePage;
+LiveObject *minitech::ourLiveObject;
+SimpleVector<LiveObject> *minitech::players;
+int minitech::mMapD;
+int minitech::pathFindingD;
+int minitech::maxObjects;
+SimpleVector<int> *minitech::mMapContainedStacks;
+SimpleVector<SimpleVector<int>> *minitech::mMapSubContainedStacks;
 
-bool miniTwotech::miniTwotechMinimized = true;
-int miniTwotech::stepCount;
-float miniTwotech::currentX;
-float miniTwotech::currentY;
+bool minitech::minitechMinimized = true;
+int minitech::stepCount;
+float minitech::currentX;
+float minitech::currentY;
 
-vector<TransRecord*> miniTwotech::currentHintTrans;
-int miniTwotech::currentTwoTechPage;
-int miniTwotech::useOrMake;
-int miniTwotech::lastUseOrMake;
-int miniTwotech::currentHintObjId;
-int miniTwotech::lastHintObjId;
-vector<miniTwotech::mouseListener*> miniTwotech::twotechMouseListeners;
-miniTwotech::mouseListener* miniTwotech::prevListener;
-miniTwotech::mouseListener* miniTwotech::nextListener;
+vector<TransRecord*> minitech::currentHintTrans;
+int minitech::currentTwoTechPage;
+int minitech::useOrMake;
+int minitech::lastUseOrMake;
+int minitech::currentHintObjId;
+int minitech::lastHintObjId;
+vector<minitech::mouseListener*> minitech::twotechMouseListeners;
+minitech::mouseListener* minitech::prevListener;
+minitech::mouseListener* minitech::nextListener;
 
 
 
-void miniTwotech::setLivingLifePage(
+void minitech::setLivingLifePage(
 	LivingLifePage *inLivingLifePage, 
 	SimpleVector<LiveObject> *inGameObjects, 
 	int inmMapD, 
@@ -76,7 +76,7 @@ void miniTwotech::setLivingLifePage(
 	mMapSubContainedStacks = inmMapSubContainedStacks;
 }
 
-void miniTwotech::initOnBirth() { 
+void minitech::initOnBirth() { 
 	
 	for (auto p: twotechMouseListeners) {
 		delete(p);
@@ -109,7 +109,7 @@ void miniTwotech::initOnBirth() {
 
 
 
-bool miniTwotech::posWithinArea(doublePair pos, doublePair areaTL, doublePair areaBR) {
+bool minitech::posWithinArea(doublePair pos, doublePair areaTL, doublePair areaBR) {
 	return 
 		pos.x >= areaTL.x &&
 		pos.x <= areaBR.x &&
@@ -117,13 +117,13 @@ bool miniTwotech::posWithinArea(doublePair pos, doublePair areaTL, doublePair ar
 		pos.y >= areaBR.y;
 }
 
-bool miniTwotech::posEqual(doublePair pos1, doublePair pos2) {
+bool minitech::posEqual(doublePair pos1, doublePair pos2) {
 	return 
 		pos1.x == pos2.x &&
 		pos1.y == pos2.y;
 }
 
-int miniTwotech::getDummyParent(int objId) {
+int minitech::getDummyParent(int objId) {
 	if (objId <= 0 || objId >= maxObjects) return objId;
 	ObjectRecord* o = getObject(objId);
 	if (o != NULL) {
@@ -132,13 +132,13 @@ int miniTwotech::getDummyParent(int objId) {
 	return objId;
 }
 
-bool miniTwotech::isCategory(int objId) {
+bool minitech::isCategory(int objId) {
 	if (objId <= 0) return false;
 	CategoryRecord *c = getCategory( objId );
 	return c != NULL;
 }
 
-miniTwotech::mouseListener* miniTwotech::getMouseListenerByArea( 
+minitech::mouseListener* minitech::getMouseListenerByArea( 
 	vector<mouseListener*>* listeners, doublePair posTL, doublePair posBR ) {
 	for (int i=0; i<listeners->size(); i++) {
 		if (
@@ -156,7 +156,7 @@ miniTwotech::mouseListener* miniTwotech::getMouseListenerByArea(
 	return listener;
 }
 
-GridPos miniTwotech::getClosestTile(GridPos src, int objId) {
+GridPos minitech::getClosestTile(GridPos src, int objId) {
 	
 	int *mMap = livingLifePage->mMap;
 		
@@ -252,7 +252,7 @@ GridPos miniTwotech::getClosestTile(GridPos src, int objId) {
 
 
 
-int miniTwotech::objIdFromXY( int x, int y ) {
+int minitech::objIdFromXY( int x, int y ) {
 	int mMapOffsetX = livingLifePage->mMapOffsetX;
 	int mMapOffsetY = livingLifePage->mMapOffsetY;
 	int *mMap = livingLifePage->mMap;
@@ -261,7 +261,7 @@ int miniTwotech::objIdFromXY( int x, int y ) {
 	return mMap[ mapY * mMapD + mapX ];
 }
 
-vector<bool> miniTwotech::getObjIsCloseVector() {
+vector<bool> minitech::getObjIsCloseVector() {
 	
 	vector<bool> objIsClose(maxObjects, false);
 	
@@ -321,7 +321,7 @@ vector<bool> miniTwotech::getObjIsCloseVector() {
 	return objIsClose;
 }
 
-vector<TransRecord*> miniTwotech::getUsesTrans(int objId) {
+vector<TransRecord*> minitech::getUsesTrans(int objId) {
 	
 	SimpleVector<TransRecord*> *usesTrans = getAllUses( objId );
 	vector<TransRecord*> results;
@@ -378,7 +378,7 @@ vector<TransRecord*> miniTwotech::getUsesTrans(int objId) {
 	return results;
 }
 
-vector<TransRecord*> miniTwotech::getProdTrans(int objId) {
+vector<TransRecord*> minitech::getProdTrans(int objId) {
 	
 	SimpleVector<TransRecord*> *prodTrans = getAllProduces( objId );
 	vector<TransRecord*> results;
@@ -437,7 +437,7 @@ vector<TransRecord*> miniTwotech::getProdTrans(int objId) {
 
 
 
-void miniTwotech::drawPoint(doublePair posCen, string color) {
+void minitech::drawPoint(doublePair posCen, string color) {
 	float pointSize = 3 * guiScale;
 	
 	if (color == "red") setDrawColor( 1, 0, 0, 1 );
@@ -447,7 +447,7 @@ void miniTwotech::drawPoint(doublePair posCen, string color) {
 	drawRect( posCen, pointSize, pointSize );	
 }
 
-void miniTwotech::drawObj(doublePair posCen, int objId, string strDescFirstLine, string strDescSecondLine) {
+void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, string strDescSecondLine) {
 	ObjectRecord* obj = getObject(objId);
 	if (objId <= 0) {
 		string firstPart;
@@ -478,11 +478,11 @@ void miniTwotech::drawObj(doublePair posCen, int objId, string strDescFirstLine,
 				getEmptyClothingSet(), zoom );
 }
 
-void miniTwotech::drawStr(
+void minitech::drawStr(
 	string str, doublePair posCen, string font, 
 	bool withBackground, bool avoidOffScreen) {
 	
-	doublePair screenCenter = livingLifePage->miniTwotechGetLastScreenViewCenter();
+	doublePair screenCenter = livingLifePage->minitechGetLastScreenViewCenter();
 	
 	char sBuf[64];
 	sprintf( sBuf, str.c_str() );
@@ -545,7 +545,7 @@ void miniTwotech::drawStr(
 	}
 }
 
-void miniTwotech::drawTileRect( int x, int y, string color, bool flashing ) {
+void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
 	doublePair startPos = { (double)x, (double)y };
 	startPos.x *= CELL_D;
 	startPos.y *= CELL_D;
@@ -567,7 +567,7 @@ void miniTwotech::drawTileRect( int x, int y, string color, bool flashing ) {
 
 
 
-vector<TransRecord*> miniTwotech::sortUsesTrans(vector<TransRecord*> unsortedTrans) {
+vector<TransRecord*> minitech::sortUsesTrans(vector<TransRecord*> unsortedTrans) {
 	
 	vector<bool> boolCloseVect = getObjIsCloseVector();
 	vector<float> distScore(unsortedTrans.size(), 0);
@@ -623,7 +623,7 @@ vector<TransRecord*> miniTwotech::sortUsesTrans(vector<TransRecord*> unsortedTra
 	return temp;
 }
 
-vector<TransRecord*> miniTwotech::sortProdTrans(vector<TransRecord*> unsortedTrans) {
+vector<TransRecord*> minitech::sortProdTrans(vector<TransRecord*> unsortedTrans) {
 	
 	vector<bool> boolCloseVect = getObjIsCloseVector();
 	vector<float> distScore(unsortedTrans.size(), 0);
@@ -680,7 +680,7 @@ vector<TransRecord*> miniTwotech::sortProdTrans(vector<TransRecord*> unsortedTra
 	return temp;
 }
 
-void miniTwotech::updateDrawTwoTech() {
+void minitech::updateDrawTwoTech() {
 	
 	int defaultNumOfLines = 5;
 	float iconSize = 76.0/2 *guiScale;
@@ -697,17 +697,17 @@ void miniTwotech::updateDrawTwoTech() {
 	float iconCaptionYOffset = - iconSize/2;
 	float buttonHeight = iconSize;
 	
-	doublePair screenPos = livingLifePage->miniTwotechGetLastScreenViewCenter();
+	doublePair screenPos = livingLifePage->minitechGetLastScreenViewCenter();
 	// drawStr(to_string(guiScale), screenPos, "tinyHandwritten", true, true);
 	
 	float recWidth;
 	float recHeight;
 	
-	doublePair posLT = livingLifePage->miniTwotechGetLastScreenViewCenter();
+	doublePair posLT = livingLifePage->minitechGetLastScreenViewCenter();
 	posLT.x = posLT.x + viewWidth/2;
 	posLT.y = posLT.y - viewHeight/2;
 	
-	if (miniTwotechMinimized) {
+	if (minitechMinimized) {
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY/2 + lineHeight/2 + paddingY/2;
@@ -726,7 +726,7 @@ void miniTwotech::updateDrawTwoTech() {
 			drawRect( posCenter, recWidth/2, recHeight/2);
 		}
 		if (maxAListener->mouseClick) {
-			miniTwotechMinimized = false;
+			minitechMinimized = false;
 			maxAListener->mouseClick = false;
 		}
 		return;
@@ -844,7 +844,7 @@ void miniTwotech::updateDrawTwoTech() {
 				&twotechMouseListeners, sub(iconLT, screenPos), sub(iconBR, screenPos));
 			if (iconAListener->mouseHover && trans->actor > 0) {
 				doublePair captionPos = {pos.x, pos.y + iconCaptionYOffset};
-				string objDesc(livingLifePage->miniTwotechGetDisplayObjectDescription(trans->actor));
+				string objDesc(livingLifePage->minitechGetDisplayObjectDescription(trans->actor));
 				drawStr(objDesc, captionPos, "tinyHandwritten", true, true);
 			}
 			if (iconAListener->mouseClick && trans->actor > 0) {
@@ -866,7 +866,7 @@ void miniTwotech::updateDrawTwoTech() {
 				&twotechMouseListeners, sub(iconLT, screenPos), sub(iconBR, screenPos));
 			if (iconBListener->mouseHover && trans->target > 0) {
 				doublePair captionPos = {pos.x, pos.y + iconCaptionYOffset};
-				string objDesc(livingLifePage->miniTwotechGetDisplayObjectDescription(trans->target));
+				string objDesc(livingLifePage->minitechGetDisplayObjectDescription(trans->target));
 				drawStr(objDesc, captionPos, "tinyHandwritten", true, true);
 			}
 			if (iconBListener->mouseClick && trans->target > 0) {
@@ -890,7 +890,7 @@ void miniTwotech::updateDrawTwoTech() {
 				&twotechMouseListeners, sub(iconLT, screenPos), sub(iconBR, screenPos));
 			if (iconCListener->mouseHover && trans->newActor > 0) {
 				doublePair captionPos = {pos.x, pos.y + iconCaptionYOffset};
-				string objDesc(livingLifePage->miniTwotechGetDisplayObjectDescription(trans->newActor));
+				string objDesc(livingLifePage->minitechGetDisplayObjectDescription(trans->newActor));
 				drawStr(objDesc, captionPos, "tinyHandwritten", true, true);
 			}
 			if (iconCListener->mouseClick && trans->newActor > 0) {
@@ -908,7 +908,7 @@ void miniTwotech::updateDrawTwoTech() {
 				&twotechMouseListeners, sub(iconLT, screenPos), sub(iconBR, screenPos));
 			if (iconDListener->mouseHover && trans->newTarget > 0) {
 				doublePair captionPos = {pos.x, pos.y + iconCaptionYOffset};
-				string objDesc(livingLifePage->miniTwotechGetDisplayObjectDescription(trans->newTarget));
+				string objDesc(livingLifePage->minitechGetDisplayObjectDescription(trans->newTarget));
 				drawStr(objDesc, captionPos, "tinyHandwritten", true, true);
 			}
 			if (iconDListener->mouseClick && trans->newTarget > 0) {
@@ -1026,7 +1026,7 @@ void miniTwotech::updateDrawTwoTech() {
 		sub(iconBR, screenPos));
 	if (headerIconListener->mouseHover) {
 		doublePair captionPos = {iconCen.x, iconCen.y + iconCaptionYOffset};
-		string objDesc(livingLifePage->miniTwotechGetDisplayObjectDescription(currentHintObjId));
+		string objDesc(livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId));
 		drawStr(objDesc, captionPos, "tinyHandwritten", true, true);
 	}
 
@@ -1046,16 +1046,16 @@ void miniTwotech::updateDrawTwoTech() {
 		drawRect(minCen, iconSize/4, iconSize/4);
 	}
 	if (minListener->mouseClick) {
-		miniTwotechMinimized = true;
+		minitechMinimized = true;
 		minListener->mouseClick = false;
 	}
 }
 
 
 
-void miniTwotech::livingLifeDraw(float mX, float mY) {
+void minitech::livingLifeDraw(float mX, float mY) {
 	
-	doublePair screenPos = livingLifePage->miniTwotechGetLastScreenViewCenter();
+	doublePair screenPos = livingLifePage->minitechGetLastScreenViewCenter();
 	doublePair mousePos = {mX, mY};
 	doublePair mousePosScreenAdj = sub(mousePos, screenPos);
 	
@@ -1090,9 +1090,9 @@ void miniTwotech::livingLifeDraw(float mX, float mY) {
 		if (currentHintObj->isUseDummy) currentHintObjId = currentHintObj->useDummyParent;
 	}
 	
-	if ( lastHintObjId == 0 && currentHintObjId != 0 ) miniTwotechMinimized = false;
+	if ( lastHintObjId == 0 && currentHintObjId != 0 ) minitechMinimized = false;
 	
-	if ( (lastHintObjId != currentHintObjId || lastUseOrMake != useOrMake) && !miniTwotechMinimized ) {
+	if ( (lastHintObjId != currentHintObjId || lastUseOrMake != useOrMake) && !minitechMinimized ) {
 		lastHintObjId = currentHintObjId;
 		lastUseOrMake = useOrMake;
 		currentTwoTechPage = 0;
@@ -1131,7 +1131,7 @@ void miniTwotech::livingLifeDraw(float mX, float mY) {
 
 }
 
-void miniTwotech::livingLifeStep() {
+void minitech::livingLifeStep() {
 	ourLiveObject = livingLifePage->getOurLiveObject();
 	if (!ourLiveObject) return;
 	
@@ -1144,7 +1144,7 @@ void miniTwotech::livingLifeStep() {
 
 }
 
-bool miniTwotech::livingLifeKeyDown(unsigned char inASCII) {	
+bool minitech::livingLifeKeyDown(unsigned char inASCII) {	
 	
 	bool commandKey = isCommandKeyDown();
 	bool shiftKey = isShiftKeyDown();
@@ -1166,26 +1166,26 @@ bool miniTwotech::livingLifeKeyDown(unsigned char inASCII) {
 		// guiScale -= 0.3;
 	// }
 	// if ( inASCII == 'p' || inASCII == 'l' ) {
-		// delete miniTwotech::handwritingFont;
-		// delete miniTwotech::mainFont;
-		// delete miniTwotech::tinyHandwritingFont;
-		// delete miniTwotech::tinyMainFont;
-		// miniTwotech::handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16*guiScale );
-		// miniTwotech::handwritingFont->setMinimumPositionPrecision( 1 );
-		// miniTwotech::mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16*guiScale );
-		// miniTwotech::mainFont->setMinimumPositionPrecision( 1 );	
-		// miniTwotech::tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2*guiScale );
-		// miniTwotech::tinyHandwritingFont->setMinimumPositionPrecision( 1 );
-		// miniTwotech::tinyMainFont = new Font( getFontTGAFileName(), 6, 16, false, 16/2*guiScale );
-		// miniTwotech::tinyMainFont->setMinimumPositionPrecision( 1 );
+		// delete minitech::handwritingFont;
+		// delete minitech::mainFont;
+		// delete minitech::tinyHandwritingFont;
+		// delete minitech::tinyMainFont;
+		// minitech::handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16*guiScale );
+		// minitech::handwritingFont->setMinimumPositionPrecision( 1 );
+		// minitech::mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16*guiScale );
+		// minitech::mainFont->setMinimumPositionPrecision( 1 );	
+		// minitech::tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2*guiScale );
+		// minitech::tinyHandwritingFont->setMinimumPositionPrecision( 1 );
+		// minitech::tinyMainFont = new Font( getFontTGAFileName(), 6, 16, false, 16/2*guiScale );
+		// minitech::tinyMainFont->setMinimumPositionPrecision( 1 );
 	// }
 	
 	return false;
 }
 
-bool miniTwotech::livingLifePageMouseDown( float mX, float mY ) {
+bool minitech::livingLifePageMouseDown( float mX, float mY ) {
 	
-	doublePair screenPos = livingLifePage->miniTwotechGetLastScreenViewCenter();
+	doublePair screenPos = livingLifePage->minitechGetLastScreenViewCenter();
 	doublePair mousePos = {mX, mY};
 	doublePair mousePosScreenAdj = sub(mousePos, screenPos);
 	
