@@ -18438,7 +18438,7 @@ void LivingLifePage::step() {
             o->heldFrozenRotFrameCount += animSpeed / BASE_SPEED;
             }
         
-        if( o->holdingID > 0 ) {
+        if( o->holdingID > 0 && ! o->outOfRange ) {
             handleAnimSound( o->holdingID, 0, o->curHeldAnim,
                              oldFrameCount, o->heldAnimationFrameCount,
                              o->currentPos.x,
