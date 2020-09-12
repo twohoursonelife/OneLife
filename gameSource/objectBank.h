@@ -451,21 +451,23 @@ typedef struct ObjectRecord {
 
         int alcohol;
         
-        // for floor objects that don't completely cover ground
-        char noCover;
-
-
-        // optional offset to default contained position for an object
-        // Code estimates an ideal contained position based on widest or lowest sprite,
-        // but this produces weird results in some cases.
-        int containOffsetX;
-        int containOffsetY;
-        
         // -1 if this object is in its own yum class
         // or the object ID of its YUM parent
         // tag of +yum453 in object description specifies 453 as the yum parent 
         int yumParentID;
         
+        // for floor objects that don't completely cover ground
+        char noCover;
+        
+        // are objects in container slots invisible?
+        char slotsInvis;
+        
+        // optional offset to default contained position for an object
+        // Code estimates an ideal contained position based on widest or lowest sprite,
+        // but this produces weird results in some cases.
+        int containOffsetX;
+        int containOffsetY;
+
     } ObjectRecord;
 
 
