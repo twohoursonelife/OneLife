@@ -141,6 +141,14 @@ int monumentCallID = 0;
 
 static double minFoodDecrementSeconds = 5.0;
 static double maxFoodDecrementSeconds = 20;
+
+static double newPlayerFoodDecrementSecondsBonus = 8;
+static int newPlayerFoodEatingBonus = 5;
+// first 10 hours of living
+static double newPlayerFoodBonusHalfLifeSeconds = 36000;
+
+
+
 static int babyBirthFoodDecrement = 10;
 
 // bonus applied to all foods
@@ -947,6 +955,9 @@ typedef struct LiveObject {
         //time when read position is expired and can be read again
         SimpleVector<double> readPositionsETA;
 
+        GridPos forceFlightDest;
+        double forceFlightDestSetTime;
+
         SimpleVector<int> permanentEmots;
                 
         //2HOL: last time player does something
@@ -959,8 +970,10 @@ typedef struct LiveObject {
         int cravingFoodYumIncrement;
         char cravingKnown;
 
-        GridPos forceFlightDest;
-        double forceFlightDestSetTime;
+        // to give new players a boost
+        // set these at birth based on how long they have played so far
+        int personalEatBonus;
+        double personalFoodDecrementSecondsBonus;
         
 
         // don't send global messages too quickly
@@ -2743,6 +2756,8 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
     
     // all player temp effects push us up above min
     value += minFoodDecrementSeconds;
+
+    value += inPlayer->personalFoodDecrementSecondsBonus;
     
     // The more you stack the yum bonus, the faster it drains
     // A nerf against extreme bonus stacking that lasts for a whole life
@@ -6283,6 +6298,109 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
     }
 
 
+static int getEatBonus( LiveObject *inPlayer ) {
+    int generation = inPlayer->parentChainLength - 1;
+    
+    int b = lrint( 
+        ( eatBonus - eatBonusFloor ) * 
+        pow( 0.5, 
+             generation / eatBonusHalfLife )
+        + eatBonusFloor );
+    
+    b += inPlayer->personalEatBonus;
+
+    return b;
+    }
+
+
+
+static int getEatCost( LiveObject *inPlayer ) {
+
+    if( eatCostMax == 0 ||
+        eatCostGrowthRate == 0 ) {
+        return 0;
+        }
+
+    // using P(t) form of logistic function from here:
+    // https://en.wikipedia.org/wiki/Logistic_function#
+    //         In_ecology:_modeling_population_growth
+
+
+    int generation = inPlayer->parentChainLength - 1;
+
+    // P(0) is 1, so we subtract 1 from the result value.
+    // but add 1 to max param
+    double K = eatCostMax + 1;
+
+    double costFloat = 
+        K / 
+        ( 1 + ( K - 1 ) * 
+          pow( M_E, -eatCostGrowthRate * generation ) );
+    
+    int cost = lrint( costFloat - 1 );
+
+    return cost;
+    }
+
+
+
+static double getLinearFoodScaleFactor( LiveObject *inPlayer ) {
+    
+    if( foodScaleFactor == foodScaleFactorFloor ) {
+        return foodScaleFactor;
+        }
+
+    int generation = inPlayer->parentChainLength - 1;
+    
+    double f = ( foodScaleFactor - foodScaleFactorFloor ) * 
+        pow( 0.5, 
+             generation / foodScaleFactorHalfLife )
+        + foodScaleFactorFloor;
+    
+    return f;
+    }
+
+
+static int getScaledFoodValue( LiveObject *inPlayer, int inFoodValue ) {
+    int v = inFoodValue;
+    
+    if( foodScaleFactorGamma == 1 ) {
+        v = ceil( getLinearFoodScaleFactor( inPlayer ) * inFoodValue );
+        }
+    else {
+        // apply half-life to gamma
+        // gamma starts at 1.0 and approaches foodScaleFactorGamma over time
+        // getting half-way there after foodScaleFactorHalfLife generations
+        int generation = inPlayer->parentChainLength - 1;
+
+        double h = pow( 0.5, 
+                        generation / foodScaleFactorHalfLife );
+        double g = h * 1.0 + (1-h) * foodScaleFactorGamma;
+        
+        int maxFoodValue = getMaxFoodValue();
+        
+        double scaledValue = inFoodValue / (double)maxFoodValue;
+        
+        double powerValue = pow( scaledValue, g );
+        
+        double rescaledValue = maxFoodValue * powerValue;
+        
+        // apply linear factor at end
+        v = 
+            ceil( getLinearFoodScaleFactor( inPlayer ) * rescaledValue );
+        }
+
+    if( v > 1 ) {
+        v -= getEatCost( inPlayer );
+
+        if( v < 1 ) {
+            v = 1;
+            }
+        }
+    
+    return v;
+    }
+
 
 
 
@@ -7113,6 +7231,15 @@ int processLoggedInPlayer( char inAllowReconnect,
     
     maxFoodDecrementSeconds = 
         SettingsManager::getFloatSetting( "maxFoodDecrementSeconds", 20 );
+
+    newPlayerFoodEatingBonus = 
+        SettingsManager::getIntSetting( "newPlayerFoodEatingBonus", 5 );
+    newPlayerFoodDecrementSecondsBonus =
+        SettingsManager::getFloatSetting( "newPlayerFoodDecrementSecondsBonus",
+                                          8 );
+    newPlayerFoodBonusHalfLifeSeconds =
+        SettingsManager::getFloatSetting( "newPlayerFoodBonusHalfLifeSeconds",
+                                          36000 );
 
     babyBirthFoodDecrement = 
         SettingsManager::getIntSetting( "babyBirthFoodDecrement", 10 );
@@ -8299,10 +8426,25 @@ int processLoggedInPlayer( char inAllowReconnect,
             }
         }
 
-    newObject.foodDecrementETASeconds =
-        currentTime + 
-        computeFoodDecrementTimeSeconds( &newObject );
+    newObject.personalEatBonus = 0;
+    newObject.personalFoodDecrementSecondsBonus = 0;
 
+    if( isUsingStatsServer() &&
+        ! newObject.lifeStats.error ) {
+        
+        int sec = newObject.lifeStats.lifeTotalSeconds;
+
+        double halfLifeFactor = 
+            pow( 0.5, sec / newPlayerFoodBonusHalfLifeSeconds );
+        
+
+        newObject.personalEatBonus = 
+            lrint( halfLifeFactor * newPlayerFoodEatingBonus );
+        
+        newObject.personalFoodDecrementSecondsBonus =
+            lrint( halfLifeFactor * newPlayerFoodDecrementSecondsBonus );
+        }
+    
         
     if( forceSpawn ) {
         newObject.forceSpawn = true;
