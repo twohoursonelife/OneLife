@@ -134,7 +134,8 @@ int monumentCallY = 0;
 int monumentCallID = 0;
 
 
-
+static int nightFrequency = 36;
+static int sendTimeMode = 1;
 
 static double minFoodDecrementSeconds = 5.0;
 static double maxFoodDecrementSeconds = 20;
@@ -2071,6 +2072,9 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
         if( numRead != 4 ) {
             m.id = 0;
             }
+        }
+    else if( strcmp( nameBuffer, "RTIME" ) == 0 ) {
+        m.type = RTIME;
         }
     else if( strcmp( nameBuffer, "SREMV" ) == 0 ) {
         m.type = SREMV;
@@ -5820,6 +5824,13 @@ int processLoggedInPlayer( char inAllowReconnect,
 
     // reload these settings every time someone new connects
     // thus, they can be changed without restarting the server
+	
+	sendTimeMode =
+        SettingsManager::getIntSetting( "sendTimeMode", 1 );
+		
+	nightFrequency =
+        SettingsManager::getIntSetting( "nightFrequency", 36 );
+	
     minFoodDecrementSeconds = 
         SettingsManager::getFloatSetting( "minFoodDecrementSeconds", 5.0f );
     
@@ -12023,6 +12034,55 @@ int main() {
                     // do not disconnect client here
                     // keep server flexible, so client can be updated
                     // with a protocol change before the server gets updated
+                    }
+                else if( m.type == RTIME ) {
+					double server_time = Time::getCurrentTime();
+					
+					int send_server_time;
+					int frequency;
+					switch (sendTimeMode) {
+						case 0:
+						//this disable client daylight cicle when received
+						send_server_time = -1;
+						break;
+						case 1:
+						//we give the time as a unique second integer in a 24 hours cicle
+						send_server_time = fmod(server_time, 86400);
+						frequency = nightFrequency;
+						break;
+						case 2:
+						//always night
+						send_server_time = 0;
+						frequency = 1;
+						break;
+					}
+					if (send_server_time != -1) {
+						int calc, seconds, minutes, hours;
+						
+						calc = fmod(server_time, 86400);
+						seconds = fmod(calc, 60);
+						calc /= 60;
+						minutes = fmod(calc, 60);
+						calc /= 60;
+						hours = fmod(calc, 60);						
+						AppLog::infoF( "\nCurrent time: %d hours %d minutes and %d seconds.", hours, minutes, seconds );
+						
+						int world_time_span = abs(86400/frequency);
+						calc = (fmod(send_server_time, world_time_span)*frequency)/60;
+						minutes = fmod(calc, 60);
+						calc /= 60;
+						hours = fmod(calc, 60);
+						AppLog::infoF( "Game world time: %d hours and %d minutes.\n", hours, minutes );
+					}
+					else {
+						AppLog::infoF( "Night mod: Time requested, sending disable daylight cicle intructions to client." );
+					}
+					
+                    char *message = autoSprintf( "STIME\n%d %d#", send_server_time, frequency );
+					
+                    sendMessageToPlayer( nextPlayer, message, 
+                                         strlen( message ) );
+                    delete [] message;
                     }
                 else if( m.type == BUG ) {
                     int allow = 

@@ -53,6 +53,8 @@
 
 static ObjectPickable objectPickable;
 
+#include "lightning.h"
+
 #include "minitech.h"
 
 #define MAP_D 64
@@ -80,6 +82,13 @@ doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreen
 
 static char shouldMoveCamera = true;
 
+//this will be overrided by the server equivalent
+static int night_frequency = 36;
+
+static int daylightMode = 0;
+
+static int requestedServerTime = -1;
+static int serverTimeOffset = 0;
 
 extern double viewWidth;
 extern double viewHeight;
@@ -943,6 +952,7 @@ typedef enum messageType {
     FORCED_SHUTDOWN,
     GLOBAL_MESSAGE,
     PONG,
+	STIME,
     COMPRESSED_MESSAGE,
     UNKNOWN
     } messageType;
@@ -1052,6 +1062,9 @@ messageType getMessageType( char *inMessage ) {
         }
     else if( strcmp( copy, "PONG" ) == 0 ) {
         returnValue = PONG;
+        }
+    else if( strcmp( copy, "STIME" ) == 0 ) {
+        returnValue = STIME;
         }
     else if( strcmp( copy, "SHUTDOWN" ) == 0 ) {
         returnValue = SHUTDOWN;
@@ -1291,7 +1304,8 @@ char *getNextServerMessage() {
                 else if( t == MAP_CHUNK ||
                          t == PONG ||
                          t == FLIGHT_DEST ||
-                         t == PHOTO_SIGNATURE ) {
+                         t == PHOTO_SIGNATURE ||
+						 t == STIME) {
                     // map chunks are followed by compressed data
                     // they cannot be queued
                     
@@ -4919,7 +4933,38 @@ void LivingLifePage::draw( doublePair inViewCenter,
         return;
         }
 
-
+	
+	int game_time = fmod(game_getCurrentTime(), 86400);
+	//printf("game_time: %d\n", game_time);
+	int time_current;
+	
+	char *timeMessage = autoSprintf( "RTIME 0 0 0#");
+	if (requestedServerTime != -1 ) {
+		time_current = game_time + serverTimeOffset;
+		if (time_current - requestedServerTime >= 300) {
+			printf("\nRequesting server time. Calculated: %d\n", time_current);
+			printf("Current night frequency: %d\n", night_frequency);
+			sendToServerSocket( timeMessage );
+			delete [] timeMessage;
+		}
+	}
+	else {
+		sendToServerSocket( timeMessage );
+		delete [] timeMessage;
+	}
+	//daylightMode overwrite
+	if (daylightMode == 2) {
+		//always night
+		time_current = 0;
+		night_frequency = 1;
+	}
+	else if (daylightMode == 3) {
+		//night in the game if it is night outside
+		int timezone = SettingsManager::getIntSetting( "timezone", 0 );
+		time_current = fmod(game_time + (timezone * 3600), 86400);
+		night_frequency = 1;
+	}
+	
     //setDrawColor( 1, 1, 1, 1 );
     //drawSquare( lastScreenViewCenter, viewWidth );
     
@@ -6349,8 +6394,23 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawObjectAnim( heldToDrawOnTop.getElementDirect( i ) );
             }
 
-
-
+		//shadow cast by objects
+		if ( daylightMode > 0 ) {
+			for( int x=xStart; x<=xEnd; x++ ) {
+				int worldX = x + mMapOffsetX - mMapD / 2;
+				if (Shadow(worldX, worldY)) {
+					doublePair pos;
+					pos.x = worldX * CELL_D;
+					pos.y = worldY * CELL_D;
+					//magic number carefully chosen so it would never be higher than the highest dark level
+					float shadow_intensity = 0.2f * DayLight(time_current, night_frequency);
+					setDrawColor( 0, 0, 0, shadow_intensity );
+					drawSquare( pos, CELL_D * .5 );
+				}
+			}
+		}
+		
+		
         // then permanent, non-container, wall objects
         for( int x=xStart; x<=xEnd; x++ ) {
             int mapI = y * mMapD + x;
@@ -6631,6 +6691,101 @@ void LivingLifePage::draw( doublePair inViewCenter,
     int screenGridOffsetX = lrint( lastScreenViewCenter.x / CELL_D );
     int screenGridOffsetY = lrint( lastScreenViewCenter.y / CELL_D );
     
+	//populates lists
+	if ( daylightMode > 0 ) {
+		//map light sources and blockers
+		for (int y = yEnd; y >= yStart; y--) {
+			int worldY = y + mMapOffsetY - mMapD / 2;
+
+			for (int x = xStart; x <= xEnd; x++) {
+				int mapI = y * mMapD + x;
+
+				int worldX = x + mMapOffsetX - mMapD / 2;
+
+				int lightValue = 0;
+				bool isBlocker = false;
+				if (mMap[mapI] > 0) {
+					ObjectRecord* o = getObject(mMap[mapI]);
+					lightValue = o->heatValue;
+					isBlocker = o->permanent;
+					//isBlocker = true;
+				}
+				if (lightValue > 0) {
+					lightValue = lightValue > 2 ? lightValue : 2;
+				}
+				
+				updateLightBlocker(worldX, worldY, isBlocker);
+				updateLightSource(worldX, worldY, lightValue);
+			}
+		}
+
+		//held light sources
+		for (int i = 0; i < gameObjects.size(); i++) {
+
+			LiveObject* o = gameObjects.getElement(i);
+
+			if (o->heldByAdultID != -1) {
+				// held by someone else, ignore
+				continue;
+			}
+
+			int heldLightValue = 0;
+			if (o->holdingID != 0) {
+				if (o->holdingID > 0) {
+					heldLightValue = getObject(o->holdingID)->heatValue;
+				}
+			}
+			int oX = round(o->currentPos.x);
+			int oY = round(o->currentPos.y);
+
+			if (heldLightValue > 0) {
+				heldLightValue = heldLightValue > 3 ? heldLightValue : 3;
+			}
+			updateHeldLightSources(o->displayID, oX, oY, heldLightValue);
+		}
+	}
+	
+	//draw the darkness and gradient created by the light 
+	if ( daylightMode > 0 ) {
+		for( int y=yEnd; y>=yStart; y-- ) {
+			int worldY = y + mMapOffsetY - mMapD / 2;
+			for( int x=xStart; x<=xEnd; x++ ) {
+				int worldX = x + mMapOffsetX - mMapD / 2;
+				
+				int lux = getIlluminationLevel( worldX, worldY );
+				float darkness = DayLight(time_current, night_frequency);
+				switch ( lux ) {
+					case 0:
+						setDrawColor( 0, 0, 0, darkness );
+					break;
+					case 1:
+						setDrawColor( 0, 0, 0, darkness * 0.8f );
+					break;
+					case 2:
+						setDrawColor( 0, 0, 0, darkness * 0.6f );
+					break;
+					case 3:
+						setDrawColor( 0, 0, 0, darkness * 0.4f );
+					break;
+					case 4:
+						toggleAdditiveBlend( true );
+						setDrawColor( 0.2, 0, 0.1, 0.1 );
+						toggleAdditiveBlend( false );
+					break;
+					case 5:
+						toggleAdditiveBlend( true );
+						setDrawColor( 0.2, 0, 0.1, 0.15 );
+						toggleAdditiveBlend( false );
+					break;
+				}
+				doublePair pos;
+				pos.x = worldX * CELL_D;
+				pos.y = worldY * CELL_D;
+				drawSquare( pos, CELL_D * .5 );
+			}
+		}
+	}
+	
     // debug overlay
     if( false )
     for( int y=-5; y<=5; y++ ) {
@@ -16330,6 +16485,16 @@ void LivingLifePage::step() {
             if( lastPongReceived == lastPingSent ) {
                 pongDeltaTime = game_getCurrentTime() - pingSentTime;
                 }
+            }
+        else if( type == STIME ) {
+			sscanf( message, "STIME\n%d %d", 
+                    &( requestedServerTime ), &( night_frequency ) );
+			if (requestedServerTime != -1) {
+				daylightMode = SettingsManager::getIntSetting( "daylightMode", 1 );
+				int game_time = fmod(game_getCurrentTime(), 86400);
+				serverTimeOffset = requestedServerTime - game_time;
+				}
+			else { daylightMode = 0;}
             }
         else if( type == NAMES ) {
             int numLines;
