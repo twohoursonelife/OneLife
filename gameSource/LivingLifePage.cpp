@@ -85,7 +85,7 @@ static char shouldMoveCamera = true;
 //this will be overrided by the server equivalent
 static int night_frequency = 36;
 
-static int daylightMode = 0;
+static int daylightMode = -1;
 
 static int requestedServerTime = -1;
 static int serverTimeOffset = 0;
@@ -4933,27 +4933,32 @@ void LivingLifePage::draw( doublePair inViewCenter,
         return;
         }
 
+	//only load once
+	if (daylightMode == -1) {
+		daylightMode = SettingsManager::getIntSetting( "daylightMode", 1 );
+	}
 	
 	int game_time = fmod(game_getCurrentTime(), 86400);
-	//printf("game_time: %d\n", game_time);
 	int time_current;
-	
-	char *timeMessage = autoSprintf( "RTIME 0 0 0#");
-	if (requestedServerTime != -1 ) {
-		time_current = game_time + serverTimeOffset;
-		if (time_current - requestedServerTime >= 300) {
-			printf("\nRequesting server time. Calculated: %d\n", time_current);
-			printf("Current night frequency: %d\n", night_frequency);
+	if (daylightMode == 0 || daylightMode == 1) {
+		char *timeMessage = autoSprintf( "RTIME 0 0 0#");
+		if (requestedServerTime != -1 ) {
+			time_current = game_time + serverTimeOffset;
+			
+			//three hundred seconds are equivalent to 5 minutes
+			if (time_current - requestedServerTime >= 300) {
+				printf("\nRequesting server time. Calculated: %d\n", time_current);
+				printf("Current night frequency: %d\n", night_frequency);
+				sendToServerSocket( timeMessage );
+				delete [] timeMessage;
+			}
+		}
+		else {
 			sendToServerSocket( timeMessage );
 			delete [] timeMessage;
 		}
 	}
-	else {
-		sendToServerSocket( timeMessage );
-		delete [] timeMessage;
-	}
-	//daylightMode overwrite
-	if (daylightMode == 2) {
+	else if (daylightMode == 2) {
 		//always night
 		time_current = 0;
 		night_frequency = 1;
@@ -4963,6 +4968,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
 		int timezone = SettingsManager::getIntSetting( "timezone", 0 );
 		time_current = fmod(game_time + (timezone * 3600), 86400);
 		night_frequency = 1;
+	}
+	else if (daylightMode == 4) {
+		//client side night only; each 40 minutes
+		int timezone = SettingsManager::getIntSetting( "timezone", 0 );
+		night_frequency = 36;
+		
+		//time zone becomes game time offset (the game world have different timezones xd)
+		time_current = fmod(game_time + (timezone * 3600)/night_frequency, 86400);
 	}
 	
     //setDrawColor( 1, 1, 1, 1 );
@@ -16489,12 +16502,21 @@ void LivingLifePage::step() {
         else if( type == STIME ) {
 			sscanf( message, "STIME\n%d %d", 
                     &( requestedServerTime ), &( night_frequency ) );
+			
+			int game_time = fmod(game_getCurrentTime(), 86400);
 			if (requestedServerTime != -1) {
-				daylightMode = SettingsManager::getIntSetting( "daylightMode", 1 );
-				int game_time = fmod(game_getCurrentTime(), 86400);
+				//server sent time, resuming client daylight cicle
+				daylightMode = 1;
 				serverTimeOffset = requestedServerTime - game_time;
 				}
-			else { daylightMode = 0;}
+			else {
+				//received a -1 time, disabling night mode
+				daylightMode = 0;
+				//this ensures the client will keep the requesting normally
+				//in case the server configuration changes
+				requestedServerTime = game_time;
+				serverTimeOffset = 0;
+				}
             }
         else if( type == NAMES ) {
             int numLines;

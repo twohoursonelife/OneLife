@@ -1807,6 +1807,7 @@ typedef enum messageType {
     VOGT,
     VOGX,
     PHOTO,
+    RTIME,
     UNKNOWN
     } messageType;
 
