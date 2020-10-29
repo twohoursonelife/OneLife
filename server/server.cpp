@@ -7428,9 +7428,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.isIndoors = false;
     
 
-    newObject.foodDecrementETASeconds =
-        currentTime + 
-        computeFoodDecrementTimeSeconds( &newObject );
+    
+    
                 
     newObject.foodUpdate = true;
     newObject.lastAteID = 0;
@@ -8187,6 +8186,11 @@ int processLoggedInPlayer( char inAllowReconnect,
             }
         }
 
+    newObject.foodDecrementETASeconds =
+        currentTime + 
+        computeFoodDecrementTimeSeconds( &newObject );
+
+        
     if( forceSpawn ) {
         newObject.forceSpawn = true;
         newObject.xs = forceSpawnInfo.pos.x;
