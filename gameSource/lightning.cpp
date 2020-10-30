@@ -91,6 +91,50 @@ bool checkLightCollision( float a, float b, float c, float radius ) {
 	}
 }
 
+ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time) {
+	int lux = getIlluminationLevel(cellX, cellY);
+	ColorInfo c;
+	c.r = 0;
+	c.g = 0;
+	c.b = 0;
+	c.a = 1;
+	c.additive = false;
+
+	float modifier = 1;
+	if (time % 5 == 0 || time % 11 == 0) {
+		modifier = 0.9f;
+	}
+	
+	switch ( lux ) {
+	case 0:
+		c.a *= darkness;
+	break;
+	case 1:
+		c.a *= darkness * 0.8f * modifier;
+	break;
+	case 2:
+		c.a *= darkness * 0.6f;
+	break;
+	case 3:
+		c.a *= darkness * 0.4f;
+	break;
+	case 4:
+		c.r = 0.15f;
+		c.g = 0.15f;
+		c.a *= darkness / 3;
+		c.additive = true;
+	break;
+	case 5:
+		c.r = 0.3f;
+		c.g = 0.2f;
+		c.a *= darkness / 3;
+		c.additive = true;
+	break;
+	}
+	
+	return c;
+}
+
 int getIlluminationLevel(int cellX, int cellY) {
 	SimpleVector<LightSource> allLightSources;
 	allLightSources.push_back_other(&mapLightSources);
@@ -107,7 +151,7 @@ int getIlluminationLevel(int cellX, int cellY) {
 		int sY = source.y;
 
 		float dist_source = distance(sX, sY, cX, cY);
-		float light_intensity = source.value + 0.5f;//magic number kek
+		float light_intensity = source.value - 1.5f;
 		
 		if ( false ) {
 			//simplified version
@@ -143,19 +187,19 @@ int getIlluminationLevel(int cellX, int cellY) {
 			}
 		}
 		
-		if (dist_source <= light_intensity / 2) {
+		if (dist_source <= light_intensity) {
 			currentLightValue = 1;
 		}
-		if (dist_source <= light_intensity / 3) {
+		if (dist_source <= light_intensity / 1.5) {
 			currentLightValue = 2;
-		}
-		if (dist_source <= light_intensity / 4) {
+		}                                                                                                                                                                         
+		if (dist_source <= light_intensity / 2.5) {
 			currentLightValue = 3;
 		}
-		if (dist_source <= light_intensity / 5) {
+		if (dist_source <= light_intensity / 4.5) {
 			currentLightValue = 4;
 		}
-		if (dist_source <= light_intensity / 9) {
+		if (dist_source <= light_intensity / 8) {
 			currentLightValue = 5;
 		}
 		
@@ -293,7 +337,7 @@ void removeLightSource(int cellX, int cellY) {
 }
 
 void updateLightSource(int cellX, int cellY, int lightValue) {
-	if (mapLightSources.size() > 300) { mapLightSources.deleteAll(); }
+	if (mapLightSources.size() > 150) { mapLightSources.deleteAll(); }
 	
 	bool alreadyExist = lightSourceExists(cellX, cellY);
 	if (lightValue == 0 && alreadyExist) {
@@ -354,7 +398,7 @@ void removeLightBlocker( int cellX, int cellY) {
 }
 
 void updateLightBlocker( int cellX, int cellY, int blockStatus ) {
-	if (lightBlockers.size() > 150) { lightBlockers.deleteAll(); }
+	if (lightBlockers.size() > 250) { lightBlockers.deleteAll(); }
 	
 	bool alreadyExist = lightBlockerExists(cellX, cellY);
 	if (blockStatus == false && alreadyExist) {
@@ -366,6 +410,19 @@ void updateLightBlocker( int cellX, int cellY, int blockStatus ) {
 	}
 	else if (alreadyExist) {
 		removeLightBlocker(cellX, cellY);
+	}
+	
+	SimpleVector<LightSource> allLightSources;
+	allLightSources.push_back_other(&mapLightSources);
+	allLightSources.push_back_other(&heldLightSources);
+	for (int i = 0; i < allLightSources.size(); i++) {
+		LightSource source = allLightSources.getElementDirect(i);
+		int sX = source.x;
+		int sY = source.y;
+		int sV = source.value;
+
+		float dist_source = distance(sX, sY, cellX, cellY);
+		if (dist_source < sV) { return; }
 	}
 
 	LightBlocker b;

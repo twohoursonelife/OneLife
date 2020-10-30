@@ -6724,7 +6724,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 					//isBlocker = true;
 				}
 				if (lightValue > 0) {
-					lightValue = lightValue > 2 ? lightValue : 2;
+					lightValue = lightValue > 3 ? lightValue : 3;
 				}
 				
 				updateLightBlocker(worldX, worldY, isBlocker);
@@ -6752,7 +6752,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 			int oY = round(o->currentPos.y);
 
 			if (heldLightValue > 0) {
-				heldLightValue = heldLightValue > 3 ? heldLightValue : 3;
+				heldLightValue = heldLightValue > 4 ? heldLightValue : 4;
 			}
 			updateHeldLightSources(o->displayID, oX, oY, heldLightValue);
 		}
@@ -6764,32 +6764,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
 			int worldY = y + mMapOffsetY - mMapD / 2;
 			for( int x=xStart; x<=xEnd; x++ ) {
 				int worldX = x + mMapOffsetX - mMapD / 2;
-				
-				int lux = getIlluminationLevel( worldX, worldY );
 				float darkness = DayLight(time_current, night_frequency);
-				switch ( lux ) {
-					case 0:
-						setDrawColor( 0, 0, 0, darkness );
-					break;
-					case 1:
-						setDrawColor( 0, 0, 0, darkness * 0.8f );
-					break;
-					case 2:
-						setDrawColor( 0, 0, 0, darkness * 0.6f );
-					break;
-					case 3:
-						setDrawColor( 0, 0, 0, darkness * 0.4f );
-					break;
-					case 4:
-						toggleAdditiveBlend( true );
-						setDrawColor( 0.2, 0, 0.1, 0.1 );
-						toggleAdditiveBlend( false );
-					break;
-					case 5:
-						toggleAdditiveBlend( true );
-						setDrawColor( 0.2, 0, 0.1, 0.15 );
-						toggleAdditiveBlend( false );
-					break;
+				ColorInfo c = getDrawSpecifics(worldX, worldY, darkness, game_time);
+				if (c.additive) {
+					toggleAdditiveBlend( true );
+					setDrawColor( c.r, c.g, c.b, c.a );
+					toggleAdditiveBlend( false );
+				}
+				else {
+					setDrawColor( c.r, c.g, c.b, c.a );
 				}
 				doublePair pos;
 				pos.x = worldX * CELL_D;

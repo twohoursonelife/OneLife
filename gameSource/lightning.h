@@ -16,6 +16,16 @@ typedef struct LightBlocker {
 	int radius;
 } LightBlocker;
 
+typedef struct ColorInfo {
+	float r;
+	float b;
+	float g;
+	float a;
+	bool additive;
+} ColorInfo;
+
+ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time);
+
 float DayLight(int time_current, int night_frequency);
 
 bool Shadow(int cellX, int cellY);
