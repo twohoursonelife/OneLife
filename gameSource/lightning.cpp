@@ -102,7 +102,7 @@ ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time) {
 
 	float modifier = 1;
 	if (time % 5 == 0 || time % 11 == 0) {
-		modifier = 0.9f;
+		modifier = 0.95f;
 	}
 	
 	switch ( lux ) {
@@ -113,20 +113,24 @@ ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time) {
 		c.a *= darkness * 0.8f * modifier;
 	break;
 	case 2:
+		c.r = 0.1f;
+		c.g = 0.05f;
 		c.a *= darkness * 0.6f;
 	break;
 	case 3:
+		c.r = 0.15f;
+		c.g = 0.1f;
 		c.a *= darkness * 0.4f;
 	break;
 	case 4:
-		c.r = 0.15f;
-		c.g = 0.15f;
+		c.r = 0.25f;
+		c.g = 0.2f;
 		c.a *= darkness / 3;
 		c.additive = true;
 	break;
 	case 5:
 		c.r = 0.3f;
-		c.g = 0.2f;
+		c.g = 0.15f;
 		c.a *= darkness / 3;
 		c.additive = true;
 	break;
