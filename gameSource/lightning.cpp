@@ -419,14 +419,15 @@ void updateLightBlocker( int cellX, int cellY, int blockStatus ) {
 	SimpleVector<LightSource> allLightSources;
 	allLightSources.push_back_other(&mapLightSources);
 	allLightSources.push_back_other(&heldLightSources);
-	for (int i = 0; i < allLightSources.size(); i++) {
+	for (int i = 0; i<allLightSources.size(); i++) {
 		LightSource source = allLightSources.getElementDirect(i);
+		
 		int sX = source.x;
 		int sY = source.y;
 		int sV = source.value;
 
 		float dist_source = distance(sX, sY, cellX, cellY);
-		if (dist_source < sV) { return; }
+		if (dist_source > sV) { return; }
 	}
 
 	LightBlocker b;
