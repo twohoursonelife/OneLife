@@ -260,10 +260,10 @@ bool Shadow(int cellX, int cellY) {
 		int sY = source.y;
 		
 		float dist_source = distance(sX, sY, cX, cY);
-		float light_intensity = source.value + sqrt(0.5f); //magic number kek
+		float light_intensity = source.value - 1.5f;
 		
-		//this light source can't cast a shadow because it is out of reach to begin with
-		if (dist_source > light_intensity / 2) {
+		//this light source can't have a shadow because it is out of reach to begin with
+		if (dist_source > light_intensity) {
 			continue;
 		}
 		outOfReach = false;
@@ -402,7 +402,7 @@ void removeLightBlocker( int cellX, int cellY) {
 }
 
 void updateLightBlocker( int cellX, int cellY, int blockStatus ) {
-	if (lightBlockers.size() > 250) { lightBlockers.deleteAll(); }
+	if (lightBlockers.size() > 500) { lightBlockers.deleteAll(); }
 	
 	bool alreadyExist = lightBlockerExists(cellX, cellY);
 	if (blockStatus == false && alreadyExist) {
@@ -419,6 +419,7 @@ void updateLightBlocker( int cellX, int cellY, int blockStatus ) {
 	SimpleVector<LightSource> allLightSources;
 	allLightSources.push_back_other(&mapLightSources);
 	allLightSources.push_back_other(&heldLightSources);
+	bool onRange = false;
 	for (int i = 0; i<allLightSources.size(); i++) {
 		LightSource source = allLightSources.getElementDirect(i);
 		
@@ -427,9 +428,14 @@ void updateLightBlocker( int cellX, int cellY, int blockStatus ) {
 		int sV = source.value;
 
 		float dist_source = distance(sX, sY, cellX, cellY);
-		if (dist_source > sV) { return; }
+		if (dist_source <= sV) { 
+		onRange = true;
+		break;
+		}
 	}
-
+	
+	if (!onRange) { return; }
+	
 	LightBlocker b;
 	b.x = cellX;
 	b.y = cellY;

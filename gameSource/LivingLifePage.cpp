@@ -6721,17 +6721,44 @@ void LivingLifePage::draw( doublePair inViewCenter,
 					ObjectRecord* o = getObject(mMap[mapI]);
 					lightValue = o->heatValue;
 					isBlocker = o->permanent;
+					
+					//contained light sources
+					if( mMapContainedStacks[mapI].size() > 0 ) {
+						int *inContained = mMapContainedStacks[mapI].getElementArray();
+						SimpleVector<int> *inSubContained = mMapSubContainedStacks[mapI].getElementArray();
+						
+						for( int i=0; i<mMapContainedStacks[mapI].size(); i++ ) {
+							ObjectRecord *contained = getObject(inContained[i]);
+							int currentLightValue = contained->heatValue;
+							currentLightValue -= 1; //contained gives less light
+							if (currentLightValue > lightValue) {
+								lightValue = currentLightValue;
+							}
+							
+							//sub contained light sources
+							if( inSubContained != NULL && inSubContained[i].size() > 0 ) {
+								for( int s=0; s<inSubContained[i].size(); s++ ) {
+									ObjectRecord *subContained = getObject(inSubContained[i].getElementDirect(s));
+									int tempLightValue = subContained->heatValue;
+									tempLightValue -= 1; //contained gives less light
+									if (tempLightValue > lightValue) {
+										lightValue = tempLightValue;
+									}
+								}
+							}
+						}
+					}
 				}
+				
 				if (lightValue > 0) {
 					lightValue = lightValue > 3 ? lightValue : 3;
 				}
-				
 				updateLightBlocker(worldX, worldY, isBlocker);
 				updateLightSource(worldX, worldY, lightValue);
 			}
 		}
 
-		//held light sources
+		//actor light sources
 		for (int i = 0; i < gameObjects.size(); i++) {
 
 			LiveObject* o = gameObjects.getElement(i);
@@ -6743,10 +6770,45 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 			int heldLightValue = 0;
 			if (o->holdingID != 0) {
+				//held light sources
 				if (o->holdingID > 0) {
 					heldLightValue = getObject(o->holdingID)->heatValue;
+					if ( heldLightValue > 0 ) {
+						heldLightValue += 1; //off the ground gives more light
+					}
+				}
+				
+				//contained light sources
+				if (o->numContained > 0) {
+					for( int c=0; c< o->numContained; c++ ) {
+						int currentLightValue = getObject( o->containedIDs[c] )->heatValue;
+						currentLightValue -= 1; //contained gives less light
+						if ( currentLightValue > heldLightValue ) {
+							heldLightValue = currentLightValue;
+						}
+					}
 				}
 			}
+			
+			//clothes and clothes contained light sources
+			for( int c=0; c<NUM_CLOTHING_PIECES; c++ ) {
+				ObjectRecord *cObj = clothingByIndex( o->clothing, c );
+				if( cObj != NULL ) {
+					int currentLightValue = cObj->heatValue;
+					for( int cc=0; cc< o->clothingContained[c].size(); cc++ ) {
+						int ccID = o->clothingContained[c].getElementDirect( cc );
+						int tempLightValue = getObject( ccID )->heatValue;
+						tempLightValue -= 1; //contained gives less light
+						if ( tempLightValue > currentLightValue ) {
+							currentLightValue = tempLightValue;
+						}
+					}
+					if ( currentLightValue > heldLightValue ) {
+						heldLightValue = currentLightValue;
+					}
+				}
+			}
+			
 			int oX = round(o->currentPos.x);
 			int oY = round(o->currentPos.y);
 
