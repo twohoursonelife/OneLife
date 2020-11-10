@@ -5105,6 +5105,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             else if( b == -1 ) {
                 // unknown biome image at end
+				setDrawColor( 0.1, 0.1, 0.1, 1 );
                 s = groundSprites[ groundSpritesArraySize - 1 ];
                 }
             
@@ -6729,7 +6730,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
 				if (mMap[mapI] > 0) {
 					ObjectRecord* o = getObject(mMap[mapI]);
 					lightValue = o->heatValue;
-					isBlocker = o->permanent;
+					if (o->permanent && o->blocksWalking) {
+						isBlocker = true;
+					}
 					
 					//contained light sources
 					if( mMapContainedStacks[mapI].size() > 0 ) {
@@ -6834,8 +6837,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 			int oX = round(o->currentPos.x);
 			int oY = round(o->currentPos.y);
 
-			if (heldLightValue > 0) {
-				heldLightValue = heldLightValue > 4 ? heldLightValue : 4;
+			if (heldLightValue > 1) {
+				heldLightValue = heldLightValue > 3 ? heldLightValue : 3;
 			}
 			updateHeldLightSources(o->displayID, oX, oY, heldLightValue);
 		}
