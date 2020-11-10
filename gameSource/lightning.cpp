@@ -18,6 +18,9 @@ float night_darkness = 0.75f;
 //for smooth transition modify be gaussian function instead
 int curve_deviation = 10;
 
+//make light range more rounded
+float light_decrease = sqrt(2);
+
 float DayLight(int time_current, int night_frequency) {
 	if (time_current == -1) { return 0; }
 
@@ -92,7 +95,9 @@ bool checkLightCollision( float a, float b, float c, float radius ) {
 }
 
 ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time) {
-	int lux = getIlluminationLevel(cellX, cellY);
+	int lux, shadow;
+	getIlluminationLevel(cellX, cellY, &lux, &shadow);
+	
 	ColorInfo c;
 	c.r = 0;
 	c.g = 0;
@@ -102,7 +107,7 @@ ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time) {
 
 	float modifier = 1;
 	if (time % 5 == 0 || time % 11 == 0) {
-		modifier = 0.95f;
+		modifier = 0.95f; //time is only used to flick the light
 	}
 	
 	switch ( lux ) {
@@ -136,10 +141,13 @@ ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time) {
 	break;
 	}
 	
+	c.lux = lux;
+	c.shadow = shadow;
+	
 	return c;
 }
 
-int getIlluminationLevel(int cellX, int cellY) {
+void getIlluminationLevel(int cellX, int cellY, int *lux, int *shadow) {
 	SimpleVector<LightSource> allLightSources;
 	allLightSources.push_back_other(&mapLightSources);
 	allLightSources.push_back_other(&heldLightSources);
@@ -148,48 +156,16 @@ int getIlluminationLevel(int cellX, int cellY) {
 	int cY = cellY;
 	
 	int lightValue = 0;
+	int numOfBlockers = 0;
 	for (int i = 0; i < allLightSources.size(); i++) {
 		LightSource source = allLightSources.getElementDirect(i);
 		int currentLightValue = 0;
+		int currentNumOfBlockers = 0;
 		int sX = source.x;
 		int sY = source.y;
 
 		float dist_source = distance(sX, sY, cX, cY);
-		float light_intensity = source.value - 1.5f;
-		
-		if ( false ) {
-			//simplified version
-			if (dist_source <= light_intensity / 2) {
-				lightValue = 5; //max
-				break;
-			}
-			else {
-				lightValue = 0; //min
-				continue;
-			}
-		}
-		if ( false ) {
-			//def lightness
-			if (dist_source <= light_intensity / 5) {
-				lightValue = 5;
-				break;
-			}
-			//def intern shadow
-			else if (dist_source <= light_intensity / 3) {
-				lightValue = 2;
-				break;
-			}
-			//def extern shadow
-			else if (dist_source <= light_intensity / 2) {
-				lightValue = 1;
-				break;
-			}
-			//def darkness
-			else {
-				lightValue = 0;
-				continue;
-			}
-		}
+		float light_intensity = source.value - light_decrease;
 		
 		if (dist_source <= light_intensity) {
 			currentLightValue = 1;
@@ -210,39 +186,42 @@ int getIlluminationLevel(int cellX, int cellY) {
 		//this light source is not contributing to the lightValue, skip
 		if (currentLightValue == 0) { continue; }
 		
-		if (false) {
-			bool sourceIsBlocked = false;
-			for (int j = 0; j < lightBlockers.size(); j++) {
-				LightBlocker blocker = lightBlockers.getElementDirect(j);
-				int bX = blocker.x;
-				int bY = blocker.y;
-				
-				float dist_blocker = distance(bX, bY, cX, cY);
-				float dist_cross = distance(sX, sY, bX, bY);
-				if ( dist_source <= dist_cross) { continue; }
-				else if (dist_source <= dist_blocker){ continue; }
-				else if (dist_cross == 0 ) { continue; }
-				else {
-					//fixed radius for now
-					sourceIsBlocked = checkLightCollision(dist_source, dist_cross, dist_blocker, 0.75f);
-				}
-				if (sourceIsBlocked) {
-					//it will become negative sometimes, but that's ignored ahead
-					currentLightValue -= 1;
-					break;
-				}
+		for (int j = 0; j < lightBlockers.size(); j++) {
+			LightBlocker blocker = lightBlockers.getElementDirect(j);
+			
+			int bX = blocker.x;
+			int bY = blocker.y;
+			
+			float dist_blocker = distance(bX, bY, cX, cY);
+			float dist_cross = distance(sX, sY, bX, bY);
+			
+			bool isBlocked = false;
+			if ( dist_source <= dist_cross) { continue; }
+			else if (dist_source <= dist_blocker){ continue; }
+			else if (dist_cross == 0 ) { continue; }
+			else {
+				//fixed radius for now
+				isBlocked = checkLightCollision(dist_source, dist_cross, dist_blocker, sqrt(0.5f));
+			}
+			if (isBlocked) {
+				currentNumOfBlockers += 1;
 			}
 		}
 		
 		//always take the highest light level measured
 		if (currentLightValue > lightValue) {
 			lightValue = currentLightValue;
+			numOfBlockers = currentNumOfBlockers;
+		}
+		else if (currentLightValue == lightValue && currentNumOfBlockers < numOfBlockers) {
+			numOfBlockers = currentNumOfBlockers;
 		}
 	}
-	return lightValue;
+	*shadow = numOfBlockers;
+	*lux = lightValue;
 }
 
-bool Shadow(int cellX, int cellY) {
+bool IsShadow(int cellX, int cellY) {
 	SimpleVector<LightSource> allLightSources;
 	allLightSources.push_back_other(&mapLightSources);
 	allLightSources.push_back_other(&heldLightSources);
@@ -251,7 +230,7 @@ bool Shadow(int cellX, int cellY) {
 	int cY = cellY;
 	
 	bool outOfReach = true;
-	bool shadow = true;
+	bool isShadow = true;
 	
 	//see if it shadow stays true after checking all light sources
 	for (int i = 0; i < allLightSources.size(); i++) {
@@ -260,7 +239,7 @@ bool Shadow(int cellX, int cellY) {
 		int sY = source.y;
 		
 		float dist_source = distance(sX, sY, cX, cY);
-		float light_intensity = source.value - 1.5f;
+		float light_intensity = source.value - light_decrease;
 		
 		//this light source can't have a shadow because it is out of reach to begin with
 		if (dist_source > light_intensity) {
@@ -283,20 +262,20 @@ bool Shadow(int cellX, int cellY) {
 			else if (dist_cross == 0 ) { continue; }
 			else {
 				//fixed radius for now
-				sourceIsBlocked = checkLightCollision(dist_source, dist_cross, dist_blocker, 0.5f);
+				sourceIsBlocked = checkLightCollision(dist_source, dist_cross, dist_blocker, sqrt(0.5f));
 			}
 			if (sourceIsBlocked) {
 				break;
 			}
 		}
 		if (!sourceIsBlocked) {
-			shadow = false;
+			isShadow = false;
 		}
 	}
 	
 	//don't draw shadows for objects out of reach
-	if (outOfReach) { shadow = false; }
-	return shadow;
+	if (outOfReach) { isShadow = false; }
+	return isShadow;
 }
 
 

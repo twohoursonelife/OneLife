@@ -6407,17 +6407,24 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawObjectAnim( heldToDrawOnTop.getElementDirect( i ) );
             }
 
-		//shadow cast by objects
+		//shadow cast by objects; shadow only apply to "ground level" objects
 		if ( daylightMode > 0 ) {
 			for( int x=xStart; x<=xEnd; x++ ) {
 				int worldX = x + mMapOffsetX - mMapD / 2;
-				if (Shadow(worldX, worldY)) {
+				
+				float darkness = DayLight(time_current, night_frequency);
+				ColorInfo c = getDrawSpecifics(worldX, worldY, darkness, game_time);
+				if (c.shadow > 0) {
+					float cell_darkness = 0.25f;
+					if (!c.additive) {
+						cell_darkness = c.a;
+					}
+					//shadow acts like an extra overlay
+					float shadow_intensity = (c.shadow*(1-cell_darkness))/(c.shadow+2);
+					setDrawColor( 0, 0, 0, shadow_intensity );
 					doublePair pos;
 					pos.x = worldX * CELL_D;
 					pos.y = worldY * CELL_D;
-					//magic number carefully chosen so it would never be higher than the highest dark level
-					float shadow_intensity = 0.2f * DayLight(time_current, night_frequency);
-					setDrawColor( 0, 0, 0, shadow_intensity );
 					drawSquare( pos, CELL_D * .5 );
 				}
 			}
@@ -6706,17 +6713,19 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
 	//populates lists
 	if ( daylightMode > 0 ) {
+		
+		
 		//map light sources and blockers
 		for (int y = yEnd; y >= yStart; y--) {
 			int worldY = y + mMapOffsetY - mMapD / 2;
 
 			for (int x = xStart; x <= xEnd; x++) {
 				int mapI = y * mMapD + x;
-
 				int worldX = x + mMapOffsetX - mMapD / 2;
 
 				int lightValue = 0;
 				bool isBlocker = false;
+				
 				if (mMap[mapI] > 0) {
 					ObjectRecord* o = getObject(mMap[mapI]);
 					lightValue = o->heatValue;
@@ -6731,33 +6740,34 @@ void LivingLifePage::draw( doublePair inViewCenter,
 							ObjectRecord *contained = getObject(inContained[i]);
 							int currentLightValue = contained->heatValue;
 							currentLightValue -= 1; //contained gives less light
-							if (currentLightValue > lightValue) {
-								lightValue = currentLightValue;
-							}
 							
-							//sub contained light sources
+							//subcontained light sources
 							if( inSubContained != NULL && inSubContained[i].size() > 0 ) {
 								for( int s=0; s<inSubContained[i].size(); s++ ) {
 									ObjectRecord *subContained = getObject(inSubContained[i].getElementDirect(s));
 									int tempLightValue = subContained->heatValue;
-									tempLightValue -= 1; //contained gives less light
-									if (tempLightValue > lightValue) {
-										lightValue = tempLightValue;
+									tempLightValue -= 2; //subcontained gives even less light
+									if (tempLightValue > currentLightValue) {
+										currentLightValue = tempLightValue;
 									}
 								}
+							}
+							if (currentLightValue > lightValue) {
+								lightValue = currentLightValue;
 							}
 						}
 					}
 				}
 				
-				if (lightValue > 0) {
+				if (lightValue > 1) {
 					lightValue = lightValue > 3 ? lightValue : 3;
 				}
 				updateLightBlocker(worldX, worldY, isBlocker);
 				updateLightSource(worldX, worldY, lightValue);
 			}
 		}
-
+		
+		
 		//actor light sources
 		for (int i = 0; i < gameObjects.size(); i++) {
 
@@ -6770,6 +6780,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 			int heldLightValue = 0;
 			if (o->holdingID != 0) {
+				
 				//held light sources
 				if (o->holdingID > 0) {
 					heldLightValue = getObject(o->holdingID)->heatValue;
@@ -6778,11 +6789,22 @@ void LivingLifePage::draw( doublePair inViewCenter,
 					}
 				}
 				
-				//contained light sources
+				//contained held light sources
 				if (o->numContained > 0) {
-					for( int c=0; c< o->numContained; c++ ) {
-						int currentLightValue = getObject( o->containedIDs[c] )->heatValue;
+					for( int i=0; i< o->numContained; i++ ) {
+						ObjectRecord *contained = getObject(o->containedIDs[i]);
+						int currentLightValue = contained->heatValue;
 						currentLightValue -= 1; //contained gives less light
+						
+						//subcontained held light sources
+						for( int s=0; s<o->subContainedIDs[i].size(); s++ ) {
+							ObjectRecord *subContained = getObject(o->subContainedIDs[i].getElementDirect(s));
+							int tempLightValue = subContained->heatValue;
+							tempLightValue -= 2; //subcontained gives even less light
+							if ( tempLightValue > currentLightValue ) {
+								currentLightValue = tempLightValue;
+							}
+                        }
 						if ( currentLightValue > heldLightValue ) {
 							heldLightValue = currentLightValue;
 						}

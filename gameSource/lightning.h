@@ -22,15 +22,17 @@ typedef struct ColorInfo {
 	float g;
 	float a;
 	bool additive;
+	int lux;
+	int shadow;
 } ColorInfo;
 
 ColorInfo getDrawSpecifics(int cellX, int cellY, float darkness, int time);
 
 float DayLight(int time_current, int night_frequency);
 
-bool Shadow(int cellX, int cellY);
+bool IsShadow(int cellX, int cellY);
 
-int getIlluminationLevel(int cellX, int cellY);
+void getIlluminationLevel(int cellX, int cellY, int *lux, int *shadow);
 
 void updateLightBlocker( int cellX, int cellY, int blockStatus );
 
