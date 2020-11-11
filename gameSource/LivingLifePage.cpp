@@ -4938,6 +4938,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 		daylightMode = SettingsManager::getIntSetting( "daylightMode", 1 );
 	}
 	
+	//player is in tutorial, load again next time
+	if (mTutorialNumber > 0) {
+		daylightMode = -1;
+	}
+	
 	int game_time = fmod(game_getCurrentTime(), 86400);
 	int time_current;
 	if (daylightMode == 0 || daylightMode == 1) {
