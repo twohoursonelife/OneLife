@@ -6421,12 +6421,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
 				float darkness = DayLight(time_current, night_frequency);
 				ColorInfo c = getDrawSpecifics(worldX, worldY, darkness, game_time);
 				if (c.shadow > 0) {
-					float cell_darkness = 0.25f;
+					float cell_darkness = 0.35f * darkness;
 					if (!c.additive) {
 						cell_darkness = c.a;
 					}
 					//shadow acts like an extra overlay
-					float shadow_intensity = (c.shadow*(1-cell_darkness))/(c.shadow+2);
+					float shadow_intensity = ((c.shadow*(1-cell_darkness))/(c.shadow+2))*darkness;
 					setDrawColor( 0, 0, 0, shadow_intensity );
 					doublePair pos;
 					pos.x = worldX * CELL_D;
