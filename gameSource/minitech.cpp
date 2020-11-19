@@ -832,7 +832,7 @@ vector<TransRecord*> minitech::sortProdTrans(vector<TransRecord*> unsortedTrans)
 		
 		int idA = trans->actor;
 		int idB = trans->target;
-		int idC = trans->newActor;
+		//int idC = trans->newActor;
 		//int idD = trans->newTarget;
 		//int holdingID = getDummyParent(ourLiveObject->holdingID);
 		
@@ -1462,7 +1462,7 @@ void minitech::inputHintStrToSearch(string hintStr) {
 			});
 			
 			vector<ObjectRecord*> sortedHits(unsortedHits.size());
-			for ( int i=0; i<unsortedHits.size(); i++ ) {
+			for ( int i=0; i<(int)unsortedHits.size(); i++ ) {
 				sortedHits[i] = unsortedHits[index[i]];
 			}
 			
