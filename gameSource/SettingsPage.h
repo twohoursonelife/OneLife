@@ -36,6 +36,7 @@ class SettingsPage : public GamePage, public ActionListener {
         int mOldFullscreenSetting;
         int mOldBorderlessSetting;
         int mEnableNudeSetting;
+		int mDisableNightSetting;
         
         SoundUsage mTestSound;
 
@@ -51,6 +52,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mBorderlessBox;
         
 		CheckboxButton mEnableNudeBox;
+		CheckboxButton mDisableNightBox;
 
         ValueSlider mMusicLoudnessSlider;
         ValueSlider mSoundEffectsLoudnessSlider;

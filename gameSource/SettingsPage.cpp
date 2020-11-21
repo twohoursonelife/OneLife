@@ -24,11 +24,12 @@ extern float musicLoudness;
 SettingsPage::SettingsPage()
         : mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
-          mRestartButton( mainFont, 128, 128, translate( "restartButton" ) ),
-          mRedetectButton( mainFont, 153, 249, translate( "redetectButton" ) ),
-          mFullscreenBox( 0, 128, 4 ),
-          mBorderlessBox( 0, 168, 4 ),
-          mEnableNudeBox( -335, 148, 4 ),
+          mRestartButton( mainFont, 0, 230, translate( "restartButton" ) ),
+          mRedetectButton( mainFont, 0, 300, translate( "redetectButton" ) ),
+		  mFullscreenBox( -200, 120, 4 ),
+		  mBorderlessBox( -200, 160, 4 ),
+          mEnableNudeBox( 200, 160, 4 ),
+		  mDisableNightBox( 200, 120, 4 ),
           mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
                                 0.0, 1.0, 
                                 translate( "musicLoudness" ) ),
@@ -82,6 +83,9 @@ SettingsPage::SettingsPage()
 
     addComponent( &mEnableNudeBox );
     mEnableNudeBox.addActionListener( this );
+	
+    addComponent( &mDisableNightBox );
+    mDisableNightBox.addActionListener( this );
 
     addComponent( &mRestartButton );
     mRestartButton.addActionListener( this );
@@ -115,7 +119,12 @@ SettingsPage::SettingsPage()
 
     mEnableNudeBox.setToggled( mEnableNudeSetting );
     
-    
+	mDisableNightSetting = 1;
+	if ( SettingsManager::getIntSetting( "daylightMode", 1 ) != 1 ) {
+		mDisableNightSetting = 0;
+		}
+		
+    mDisableNightBox.setToggled( mDisableNightSetting );
 
     addComponent( &mMusicLoudnessSlider );
     addComponent( &mSoundEffectsLoudnessSlider );
@@ -174,6 +183,11 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting( "nudeEnabled", newSetting );
         
         mRestartButton.setVisible( mEnableNudeSetting != newSetting );
+        }
+	else if( inTarget == &mDisableNightBox ) {
+        int newSetting = mDisableNightBox.getToggled();
+        
+        SettingsManager::setSetting( "daylightMode", newSetting );
         }
     else if( inTarget == &mRestartButton ||
              inTarget == &mRedetectButton ) {
@@ -321,6 +335,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
     mainFont->drawString( "Enable Nudity", pos, alignRight );
 
+
+    pos = mDisableNightBox.getPosition();
+    
+    pos.x -= 30;
+    pos.y -= 2;
+
+    mainFont->drawString( "Disable Day Cycle", pos, alignRight );
 
     pos = mCursorModeSet->getPosition();
     
