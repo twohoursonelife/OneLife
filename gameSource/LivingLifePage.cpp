@@ -7672,7 +7672,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         else if( photoSig != NULL ) {
             float currentFOV = gui_fov_scale;
-            changeFOV( 1.0 );
+            changeFOV( 1.0f );
 
             doublePair pos;
             
@@ -19330,6 +19330,14 @@ void LivingLifePage::makeActive( char inFresh ) {
     
 
     if( !inFresh ) {
+		//reset camera if LivingLifePage is made active again
+		LiveObject *ourLiveObject = getOurLiveObject();
+		if ( ourLiveObject != NULL )
+		
+		lastScreenViewCenter.x = ourLiveObject->currentPos.x * CELL_D;
+		lastScreenViewCenter.y = ourLiveObject->currentPos.y * CELL_D;
+		setViewCenterPosition( lastScreenViewCenter.x,
+							   lastScreenViewCenter.y );
         return;
         }
 
