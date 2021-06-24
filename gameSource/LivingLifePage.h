@@ -984,10 +984,12 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         
         //FOV
+		public:
         void changeHUDFOV( float newScale = 1.0f );
         void changeFOV( float newScale = 1.0f );
         void calcOffsetHUD();
         void calcFontScale( float newScale, Font* font );
+		protected:
 
         char mPlayerInFlight;
 

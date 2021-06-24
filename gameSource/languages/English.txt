@@ -629,6 +629,8 @@ pauseMessage3b "YOU CAN'T QUIT NOW"
 
 pauseMessage4 "-"
 
+pauseMessage5 "PRESS [#] TO OPEN SETTINGS"
+
 
 
 commandHintsA "CHAT COMMANDS:##~~##/HELP##/DIE##/DISCONNECT##/FPS##/NETWORK##/PING####/HAPPY##/MAD##/ANGRY##/SAD##/DEVIOUS##/JOY##/BLUSH##/HUBBA##/ILL##/YOOHOO##/HMPH##/LOVE##/OREALLY##/SHOCK"
