@@ -1150,8 +1150,11 @@ static void drawPauseScreen() {
     //                      messagePos, alignCenter );
 
     messagePos.y -= 3.75 * ( viewHeight / 15 );
-    mainFont->drawString( translate( "pauseMessage5" ), 
-                          messagePos, alignCenter );
+    
+    if ( currentGamePage == livingLifePage ) {
+        mainFont->drawString( translate( "pauseMessage5" ), 
+                              messagePos, alignCenter );
+        }
 
     messagePos.y -= 0.625 * (viewHeight / 15);
 
@@ -1245,7 +1248,7 @@ static void startConnecting() {
 
 
 void showSettings() {
-	showingInGameSettings = true;
+    showingInGameSettings = true;
 	
     lastScreenViewCenter.x = 0;
     lastScreenViewCenter.y = 0;
@@ -1757,18 +1760,18 @@ void drawFrame( char inUpdate ) {
                     currentGamePage->base_makeActive( true );
                 }
             }
-        else if( currentGamePage == settingsPage ) {
-            if( settingsPage->checkSignal( "back" ) ) {
-                existingAccountPage->setStatus( NULL, false );
-				
-				if ( showingInGameSettings ) {
-					currentGamePage = livingLifePage;
-					currentGamePage->base_makeActive( false );
-					}
-				else {
-					currentGamePage = existingAccountPage;
-					currentGamePage->base_makeActive( true );
-					}
+            else if( currentGamePage == settingsPage ) {
+                if( settingsPage->checkSignal( "back" ) ) {
+                    existingAccountPage->setStatus( NULL, false );
+
+                    if ( showingInGameSettings ) {
+                        currentGamePage = livingLifePage;
+                        currentGamePage->base_makeActive( false );
+                        }
+                    else {
+                        currentGamePage = existingAccountPage;
+                        currentGamePage->base_makeActive( true );
+                        }
                 }
             else if( settingsPage->checkSignal( "editAccount" ) ) {
                 loginEditOverride = true;
@@ -2343,12 +2346,14 @@ void keyDown( unsigned char inASCII ) {
                 // unpause
                 pauseGame();
                 break;
-			case 35: // hash
-				//unpáuse, reset fov then show settings
-				pauseGame();
-				livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
-				showSettings();
-				break;
+            case 35: // hash
+                if ( currentGamePage == livingLifePage ) {
+                    //unpáuse, reset fov then show settings
+                    pauseGame();
+                    livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+                    showSettings();
+                    }
+                break;
             }
         
         // don't let user type on pause screen anymore
