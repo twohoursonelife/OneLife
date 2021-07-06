@@ -204,7 +204,11 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         SettingsManager::setSetting( "nudeEnabled", newSetting );
         
-        mRestartButton.setVisible( mEnableNudeSetting != newSetting );
+        //extern variable in objectBank removes the need to restart the game
+        //we just need to set the new value to the variable and the game will
+        //start ignoring the nudity sprites every times it draws a new object
+        //mRestartButton.setVisible( mEnableNudeSetting != newSetting );
+        NudeToggle = newSetting;
         }
     else if( inTarget == &mEnableFOVBox ) {
         int newSetting = mEnableFOVBox.getToggled();
