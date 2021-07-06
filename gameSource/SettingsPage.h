@@ -54,9 +54,9 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mFullscreenBox;
         CheckboxButton mBorderlessBox;
         
-		CheckboxButton mEnableNudeBox;
-		CheckboxButton mEnableFOVBox;
-		CheckboxButton mEnableKActionsBox;
+        CheckboxButton mEnableNudeBox;
+        CheckboxButton mEnableFOVBox;
+        CheckboxButton mEnableKActionsBox;
 
         ValueSlider mMusicLoudnessSlider;
         ValueSlider mSoundEffectsLoudnessSlider;

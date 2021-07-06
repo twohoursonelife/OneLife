@@ -25,15 +25,15 @@ extern float musicLoudness;
 
 SettingsPage::SettingsPage()
         : mInfoSeeds( mainFont, 542, -150, "?" ),
-		  mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
+          mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
           mRestartButton( mainFont, 128, 128, translate( "restartButton" ) ),
           mRedetectButton( mainFont, 153, 249, translate( "redetectButton" ) ),
           mFullscreenBox( 0, 128, 4 ),
           mBorderlessBox( 0, 168, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
-		  mEnableFOVBox( 561, 128, 3),
-		  mEnableKActionsBox( 561, 90, 3),
+          mEnableFOVBox( 561, 128, 3),
+          mEnableKActionsBox( 561, 90, 3),
           mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
                                 0.0, 1.0, 
                                 translate( "musicLoudness" ) ),
@@ -68,14 +68,14 @@ SettingsPage::SettingsPage()
     mCursorScaleSlider.toggleField( false );
 
 
-	setButtonStyle( &mInfoSeeds );
+    setButtonStyle( &mInfoSeeds );
     setButtonStyle( &mBackButton );
     setButtonStyle( &mEditAccountButton );
     setButtonStyle( &mRestartButton );
     setButtonStyle( &mRedetectButton );
 
-	addComponent( &mInfoSeeds);
-	mInfoSeeds.addActionListener( this );
+    addComponent( &mInfoSeeds);
+    mInfoSeeds.addActionListener( this );
 
     addComponent( &mBackButton );
     mBackButton.addActionListener( this );
@@ -91,11 +91,11 @@ SettingsPage::SettingsPage()
 
     addComponent( &mEnableNudeBox );
     mEnableNudeBox.addActionListener( this );
-	
-	addComponent( &mEnableFOVBox );
+
+    addComponent( &mEnableFOVBox );
     mEnableFOVBox.addActionListener( this );
-	
-	addComponent( &mEnableKActionsBox );
+
+    addComponent( &mEnableKActionsBox );
     mEnableKActionsBox.addActionListener( this );
 
     addComponent( &mRestartButton );
@@ -129,16 +129,16 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "nudeEnabled", 1 );
 
     mEnableNudeBox.setToggled( mEnableNudeSetting );
-	
-	mEnableFOVSetting =
+
+    mEnableFOVSetting =
         SettingsManager::getIntSetting( "fovEnabled", 0 );
-	
-	mEnableFOVBox.setToggled( mEnableFOVSetting );
+
+    mEnableFOVBox.setToggled( mEnableFOVSetting );
     
-	mEnableKActionsSetting =
+    mEnableKActionsSetting =
         SettingsManager::getIntSetting( "keyboardActions", 0 );
-	
-	mEnableKActionsBox.setToggled( mEnableKActionsSetting );
+
+    mEnableKActionsBox.setToggled( mEnableKActionsSetting );
     
 
     addComponent( &mMusicLoudnessSlider );
@@ -171,13 +171,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         setSignal( "back" );
         setMusicLoudness( 0 );
         }
-	else if( inTarget == &mInfoSeeds ) {
-		 char *url = strdup("https://twohoursonelife.fandom.com/wiki/Spawn_seeds");
-		 
-		 if( strcmp( url, "" ) != 0 ) {
-			 launchURL( url );
-			}
-		}
+    else if( inTarget == &mInfoSeeds ) {
+        char *url = strdup("https://twohoursonelife.fandom.com/wiki/Spawn_seeds");
+
+        if( strcmp( url, "" ) != 0 ) {
+            launchURL( url );
+            }
+        }
     else if( inTarget == &mEditAccountButton ) {
         
         setSignal( "editAccount" );
@@ -199,19 +199,19 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         mRestartButton.setVisible( mOldBorderlessSetting != newSetting );
         }
-	else if( inTarget == &mEnableNudeBox ) {
+    else if( inTarget == &mEnableNudeBox ) {
         int newSetting = mEnableNudeBox.getToggled();
         
         SettingsManager::setSetting( "nudeEnabled", newSetting );
         
         mRestartButton.setVisible( mEnableNudeSetting != newSetting );
         }
-	else if( inTarget == &mEnableFOVBox ) {
+    else if( inTarget == &mEnableFOVBox ) {
         int newSetting = mEnableFOVBox.getToggled();
         
         SettingsManager::setSetting( "fovEnabled", newSetting );
         }
-	else if( inTarget == &mEnableKActionsBox ) {
+    else if( inTarget == &mEnableKActionsBox ) {
         int newSetting = mEnableKActionsBox.getToggled();
         
         SettingsManager::setSetting( "keyboardActions", newSetting );
@@ -361,15 +361,15 @@ void SettingsPage::draw( doublePair inViewCenter,
     pos.y -= 2;
 
     mainFont->drawString( "Enable Nudity", pos, alignRight );
-	
-	pos = mEnableFOVBox.getPosition();
+
+    pos = mEnableFOVBox.getPosition();
     
     pos.x -= 30;
     pos.y -= 2;
 
     mainFont->drawString( "Enable FOV", pos, alignRight );
-	
-	pos = mEnableKActionsBox.getPosition();
+
+    pos = mEnableKActionsBox.getPosition();
     
     pos.x -= 30;
     pos.y -= 2;
