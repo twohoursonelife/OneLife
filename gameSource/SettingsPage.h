@@ -45,7 +45,6 @@ class SettingsPage : public GamePage, public ActionListener {
         double mMusicStartTime;
 
 
-        TextButton mInfoSeeds;
         TextButton mBackButton;
         TextButton mEditAccountButton;
         TextButton mRestartButton;
@@ -57,12 +56,19 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnableNudeBox;
         CheckboxButton mEnableFOVBox;
         CheckboxButton mEnableKActionsBox;
+        CheckboxButton mUseCustomServerBox;
 
         ValueSlider mMusicLoudnessSlider;
         ValueSlider mSoundEffectsLoudnessSlider;
 
+        TextField mCustomServerAddressField;
+        TextField mCustomServerPortField;
+
+        TextButton mCopyButton;
+        TextButton mPasteButton;
 
         DropdownList mSpawnSeed;
+        TextButton mInfoSeeds;
 
         RadioButtonSet *mCursorModeSet;
         

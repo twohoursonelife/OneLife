@@ -24,28 +24,39 @@ extern float musicLoudness;
 
 
 SettingsPage::SettingsPage()
-        : mInfoSeeds( mainFont, 542, -150, "?" ),
-          mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
+        : mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
-          mRestartButton( mainFont, 128, 128, translate( "restartButton" ) ),
-          mRedetectButton( mainFont, 153, 249, translate( "redetectButton" ) ),
-          mFullscreenBox( 0, 128, 4 ),
-          mBorderlessBox( 0, 168, 4 ),
-          mEnableNudeBox( -335, 148, 4 ),
-          mEnableFOVBox( 561, 128, 3),
-          mEnableKActionsBox( 561, 90, 3),
-          mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
+          mRestartButton( mainFont, -200, 110, translate( "restartButton" ) ),
+          mRedetectButton( mainFont, 75, 265, translate( "redetectButton" ) ),
+          mFullscreenBox( -335, 90, 4 ),
+          mBorderlessBox( -335, 130, 4 ),
+          mEnableNudeBox( -561, 0, 3 ),
+          mEnableFOVBox( -561, -40, 3),
+          mEnableKActionsBox( -561, -80, 3),
+          mUseCustomServerBox( -561, -120, 3 ),
+          mMusicLoudnessSlider( mainFont, 220, 75, 4, 200, 30,
                                 0.0, 1.0, 
-                                translate( "musicLoudness" ) ),
-          mSoundEffectsLoudnessSlider( mainFont, 0, -48, 4, 200, 30,
+                                translate( "musicLoudness" ), true ),
+          mSoundEffectsLoudnessSlider( mainFont, 220, 25, 4, 200, 30,
                                        0.0, 1.0, 
                                        translate( "soundLoudness" ) ),
-          mSpawnSeed( mainFont, 226, -150, 14, false, 
+          mCustomServerAddressField( mainFont, 306, -80, 14, false, 
+                                     translate( "address" ),
+                                     NULL,
+                                     // forbid spaces
+                                     " " ),
+          mCustomServerPortField( mainFont, 84, -138, 4, false, 
+                                  translate( "port" ),
+                                  "0123456789", NULL ),
+          mCopyButton( mainFont, 381, -146, translate( "copy" ) ),
+          mPasteButton( mainFont, 518, -146, translate( "paste" ) ),
+          mSpawnSeed( mainFont, 226, -230, 14, false, 
                                      translate( "spawnSeed" ),
                                      NULL,
                                      // forbid spaces
                                      " " ),
-          mCursorScaleSlider( mainFont, 297, 155, 4, 200, 30,
+          mInfoSeeds( mainFont, 542, -230, "?" ),
+          mCursorScaleSlider( mainFont, 300, 145, 4, 200, 30,
                                        1.0, 10.0, 
                                        translate( "scale" ) ) {
                             
@@ -73,6 +84,8 @@ SettingsPage::SettingsPage()
     setButtonStyle( &mEditAccountButton );
     setButtonStyle( &mRestartButton );
     setButtonStyle( &mRedetectButton );
+    setButtonStyle( &mCopyButton );
+    setButtonStyle( &mPasteButton );
 
     addComponent( &mInfoSeeds);
     mInfoSeeds.addActionListener( this );
@@ -104,8 +117,25 @@ SettingsPage::SettingsPage()
     addComponent( &mRedetectButton );
     mRedetectButton.addActionListener( this );
 
+    addComponent( &mUseCustomServerBox );
+    mUseCustomServerBox.addActionListener( this );
+
+    addComponent( &mCustomServerAddressField );
+    addComponent( &mCustomServerPortField );
+    
+    addComponent( &mCopyButton );
+    addComponent( &mPasteButton );
+    
     addComponent( &mSpawnSeed);
     
+    mCopyButton.addActionListener( this );
+    mPasteButton.addActionListener( this );
+    
+    if( ! isClipboardSupported() ) {
+        mCopyButton.setVisible( false );
+        mPasteButton.setVisible( false );
+        }
+
     mRestartButton.setVisible( false );
     
     mOldFullscreenSetting = 
@@ -142,7 +172,9 @@ SettingsPage::SettingsPage()
     
 
     addComponent( &mMusicLoudnessSlider );
+    mMusicLoudnessSlider.toggleField( false );
     addComponent( &mSoundEffectsLoudnessSlider );
+    mSoundEffectsLoudnessSlider.toggleField( false );
     
     mMusicLoudnessSlider.addActionListener( this );
     mSoundEffectsLoudnessSlider.addActionListener( this );
@@ -163,6 +195,21 @@ SettingsPage::~SettingsPage() {
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     if( inTarget == &mBackButton ) {
         
+        int useCustomServer = 0;
+        if( mUseCustomServerBox.getToggled() ) {
+            useCustomServer = 1;
+            }
+        
+        SettingsManager::setSetting( "useCustomServer", useCustomServer );
+        char *address = mCustomServerAddressField.getText();
+        
+        SettingsManager::setSetting( "customServerAddress", address );
+        delete [] address;
+        
+        SettingsManager::setSetting( "customServerPort",
+                                     mCustomServerPortField.getInt() );
+
+
         char *seedList = mSpawnSeed.getAndUpdateList();
         
         SettingsManager::setSetting( "spawnSeed", seedList );
@@ -219,6 +266,15 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         int newSetting = mEnableKActionsBox.getToggled();
         
         SettingsManager::setSetting( "keyboardActions", newSetting );
+        }
+    else if( inTarget == &mUseCustomServerBox ) {
+        int newSetting = mUseCustomServerBox.getToggled();
+        
+        mCustomServerAddressField.setVisible( newSetting );
+        mCustomServerPortField.setVisible( newSetting );
+    
+        mCopyButton.setVisible( newSetting );
+        mPasteButton.setVisible( newSetting );
         }
     else if( inTarget == &mRestartButton ||
              inTarget == &mRedetectButton ) {
@@ -278,6 +334,65 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             setMusicLoudness( mMusicLoudnessSlider.getValue(), true );
             }
         }
+    else if( inTarget == &mCopyButton ) {
+        char *address = mCustomServerAddressField.getText();
+        
+        char *fullAddress = autoSprintf( "%s:%d", address,
+                                         mCustomServerPortField.getInt() );
+        delete [] address;
+        
+        setClipboardText( fullAddress );
+        
+        delete [] fullAddress;
+        }
+    else if( inTarget == &mPasteButton ) {
+        char *text = getClipboardText();
+
+        char *trimmed = trimWhitespace( text );
+        
+        delete [] text;
+        
+
+        char setWithPort = false;
+        
+        if( strstr( trimmed, ":" ) != NULL ) {
+            char addressBuff[100];
+            int port = 0;
+            
+            int numRead = sscanf( trimmed, "%99[^:]:%d", addressBuff, &port );
+            
+            if( numRead == 2 ) {
+                setWithPort = true;
+                
+                char *trimmedAddr = trimWhitespace( addressBuff );
+                
+                // terminate at first space, if any
+                char *spacePos = strstr( trimmedAddr, " " );
+                if( spacePos != NULL ) {
+                    spacePos[0] = '\0';
+                    }
+
+                mCustomServerAddressField.setText( trimmedAddr );
+
+                delete [] trimmedAddr;
+                
+                mCustomServerPortField.setInt( port );
+                }
+            }
+        
+        if( ! setWithPort ) {
+            // treat the whole thing as an address
+            
+            // terminate at first space, if any
+            char *spacePos = strstr( trimmed, " " );
+            
+            if( spacePos != NULL ) {
+                spacePos[0] = '\0';
+                }
+            mCustomServerAddressField.setText( trimmed );
+            }
+        delete [] trimmed;
+        }
     else if( inTarget == mCursorModeSet ) {
         setCursorMode( mCursorModeSet->getSelectedItem() );
         
@@ -304,26 +419,26 @@ void SettingsPage::draw( doublePair inViewCenter,
     
     doublePair pos = mFullscreenBox.getPosition();
     
-    pos.x -= 30;
+    pos.x -= mainFont->measureString( translate( "fullscreen" ) ) + 45;
     pos.y -= 2;
     
-    mainFont->drawString( translate( "fullscreen" ), pos, alignRight );
+    mainFont->drawString( translate( "fullscreen" ), pos, alignLeft );
 
 
     if( mBorderlessBox.isVisible() ) {
         pos = mBorderlessBox.getPosition();
     
-        pos.x -= 30;
+        pos.x -= mainFont->measureString( translate( "fullscreen" ) ) + 45;
         pos.y -= 2;
         
-        mainFont->drawString( translate( "borderless" ), pos, alignRight );
+        mainFont->drawString( translate( "borderless" ), pos, alignLeft );
         }
     
 
     pos = mFullscreenBox.getPosition();
     
-    pos.y += 96;
-    pos.x -= 16;
+    pos.y += 130;
+    pos.x += 160;
     
     if( getCountingOnVsync() ) {
         mainFont->drawString( translate( "vsyncYes" ), pos, alignLeft );
@@ -349,36 +464,58 @@ void SettingsPage::draw( doublePair inViewCenter,
     
 
     pos = mFullscreenBox.getPosition();
-    pos.x -= 30;
+    pos.x -= mainFont->measureString( translate( "fullscreen" ) ) + 45;
 
-    pos.y += 96;
-    mainFont->drawString( translate( "vsyncOn" ), pos, alignRight );
+    pos.y += 130;
+    mainFont->drawString( translate( "vsyncOn" ), pos, alignLeft );
     pos.y += 44;
-    mainFont->drawString( translate( "targetFPS" ), pos, alignRight );
+    mainFont->drawString( translate( "targetFPS" ), pos, alignLeft );
     pos.y += 44;
-    mainFont->drawString( translate( "currentFPS" ), pos, alignRight );
+    mainFont->drawString( translate( "currentFPS" ), pos, alignLeft );
 
 
     pos = mEnableNudeBox.getPosition();
     
-    pos.x -= 30;
+    pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Enable Nudity", pos, alignRight );
+    mainFont->drawString( "Enable Nudity", pos, alignLeft );
 
     pos = mEnableFOVBox.getPosition();
     
-    pos.x -= 30;
+    pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Enable FOV", pos, alignRight );
+    mainFont->drawString( "Adjustable FOV", pos, alignLeft );
 
     pos = mEnableKActionsBox.getPosition();
     
-    pos.x -= 30;
+    pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Keyboard Actions", pos, alignRight );
+    mainFont->drawString( "Keyboard Actions", pos, alignLeft );
+
+
+    pos = mUseCustomServerBox.getPosition();
+    
+    pos.x += 45;
+    pos.y -= 2;
+    
+    mainFont->drawString( "Custom Server", pos, alignLeft );
+
+    pos = mMusicLoudnessSlider.getPosition();
+    
+    pos.x += 72;
+    pos.y -= 2;
+
+    mainFont->drawString( translate( "musicLoudness"), pos, alignRight );
+
+    pos = mSoundEffectsLoudnessSlider.getPosition();
+    
+    pos.x += 72;
+    pos.y -= 2;
+
+    mainFont->drawString( translate( "soundLoudness"), pos, alignRight );
 
 
     pos = mCursorModeSet->getPosition();
@@ -422,6 +559,30 @@ void SettingsPage::makeActive( char inFresh ) {
         
         mCursorScaleSlider.setValue( getEmulatedCursorScale() );
 
+
+        int useCustomServer = 
+            SettingsManager::getIntSetting( "useCustomServer", 0 );
+        
+        mUseCustomServerBox.setToggled( useCustomServer );
+        
+        mCustomServerAddressField.setVisible( useCustomServer );
+        mCustomServerPortField.setVisible( useCustomServer );
+    
+        mCopyButton.setVisible( useCustomServer );
+        mPasteButton.setVisible( useCustomServer );
+        
+
+        char *address = 
+            SettingsManager::getStringSetting( "customServerAddress",
+                                               "localhost" );
+        
+        int port = SettingsManager::getIntSetting( "customServerPort", 8005 );
+        
+        mCustomServerAddressField.setText( address );
+        mCustomServerPortField.setInt( port );
+        
+        delete [] address;
+        
 
         char *seed = 
             SettingsManager::getSettingContents( "spawnSeed",
