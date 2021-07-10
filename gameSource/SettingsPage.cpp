@@ -24,29 +24,24 @@ extern float musicLoudness;
 
 
 SettingsPage::SettingsPage()
-        : mInfoSeeds( mainFont, 542, -150, "?" ),
-		  mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
+        : mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
-          mRestartButton( mainFont, 128, 128, translate( "restartButton" ) ),
-          mRedetectButton( mainFont, 153, 249, translate( "redetectButton" ) ),
-          mFullscreenBox( 0, 128, 4 ),
-          mBorderlessBox( 0, 168, 4 ),
-          mEnableNudeBox( -335, 148, 4 ),
-		  mEnableFOVBox( 561, 128, 3),
-		  mEnableKActionsBox( 561, 90, 3),
-		  mEnableCenterCameraBox( 561, 52, 3),
-          mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
+          mRestartButton( mainFont, -200, 110, translate( "restartButton" ) ),
+          mRedetectButton( mainFont, 75, 265, translate( "redetectButton" ) ),
+          mFullscreenBox( -335, 90, 4 ),
+          mBorderlessBox( -335, 130, 4 ),
+          mEnableNudeBox( -561, 0, 3 ),
+          mEnableFOVBox( -561, -40, 3),
+          mEnableKActionsBox( -561, -80, 3),
+          mEnableCenterCameraBox( -561, -120, 3),
+          mUseCustomServerBox( -561, -120, 3 ),
+          mMusicLoudnessSlider( mainFont, 220, 75, 4, 200, 30,
                                 0.0, 1.0, 
-                                translate( "musicLoudness" ) ),
-          mSoundEffectsLoudnessSlider( mainFont, 0, -48, 4, 200, 30,
+                                translate( "musicLoudness" ), true ),
+          mSoundEffectsLoudnessSlider( mainFont, 220, 25, 4, 200, 30,
                                        0.0, 1.0, 
                                        translate( "soundLoudness" ) ),
-          mSpawnSeed( mainFont, 226, -150, 14, false, 
-                                     translate( "spawnSeed" ),
-                                     NULL,
-                                     // forbid spaces
-                                     " " ),
-          mCursorScaleSlider( mainFont, 297, 155, 4, 200, 30,
+          mCursorScaleSlider( mainFont, 300, 145, 4, 200, 30,
                                        1.0, 10.0, 
                                        translate( "scale" ) ) {
                             
@@ -109,7 +104,7 @@ SettingsPage::SettingsPage()
     mRedetectButton.addActionListener( this );
 
     //addComponent( &mSpawnSeed );
-    
+
     mRestartButton.setVisible( false );
     
     mOldFullscreenSetting = 
@@ -151,7 +146,9 @@ SettingsPage::SettingsPage()
     
 
     addComponent( &mMusicLoudnessSlider );
+    mMusicLoudnessSlider.toggleField( false );
     addComponent( &mSoundEffectsLoudnessSlider );
+    mSoundEffectsLoudnessSlider.toggleField( false );
     
     mMusicLoudnessSlider.addActionListener( this );
     mSoundEffectsLoudnessSlider.addActionListener( this );
@@ -172,6 +169,7 @@ SettingsPage::~SettingsPage() {
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     if( inTarget == &mBackButton ) {
         
+
         char *seedList = mSpawnSeed.getAndUpdateList();
         
         SettingsManager::setSetting( "spawnSeed", seedList );
@@ -318,26 +316,26 @@ void SettingsPage::draw( doublePair inViewCenter,
     
     doublePair pos = mFullscreenBox.getPosition();
     
-    pos.x -= 30;
+    pos.x -= mainFont->measureString( translate( "fullscreen" ) ) + 45;
     pos.y -= 2;
     
-    mainFont->drawString( translate( "fullscreen" ), pos, alignRight );
+    mainFont->drawString( translate( "fullscreen" ), pos, alignLeft );
 
 
     if( mBorderlessBox.isVisible() ) {
         pos = mBorderlessBox.getPosition();
     
-        pos.x -= 30;
+        pos.x -= mainFont->measureString( translate( "fullscreen" ) ) + 45;
         pos.y -= 2;
         
-        mainFont->drawString( translate( "borderless" ), pos, alignRight );
+        mainFont->drawString( translate( "borderless" ), pos, alignLeft );
         }
     
 
     pos = mFullscreenBox.getPosition();
     
-    pos.y += 96;
-    pos.x -= 16;
+    pos.y += 130;
+    pos.x += 160;
     
     if( getCountingOnVsync() ) {
         mainFont->drawString( translate( "vsyncYes" ), pos, alignLeft );
@@ -363,40 +361,40 @@ void SettingsPage::draw( doublePair inViewCenter,
     
 
     pos = mFullscreenBox.getPosition();
-    pos.x -= 30;
+    pos.x -= mainFont->measureString( translate( "fullscreen" ) ) + 45;
 
-    pos.y += 96;
-    mainFont->drawString( translate( "vsyncOn" ), pos, alignRight );
+    pos.y += 130;
+    mainFont->drawString( translate( "vsyncOn" ), pos, alignLeft );
     pos.y += 44;
-    mainFont->drawString( translate( "targetFPS" ), pos, alignRight );
+    mainFont->drawString( translate( "targetFPS" ), pos, alignLeft );
     pos.y += 44;
-    mainFont->drawString( translate( "currentFPS" ), pos, alignRight );
+    mainFont->drawString( translate( "currentFPS" ), pos, alignLeft );
 
 
     pos = mEnableNudeBox.getPosition();
     
-    pos.x -= 30;
+    pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Enable Nudity", pos, alignRight );
-	
-	pos = mEnableFOVBox.getPosition();
+    mainFont->drawString( "Enable Nudity", pos, alignLeft );
+
+    pos = mEnableFOVBox.getPosition();
     
-    pos.x -= 30;
+    pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Enable FOV", pos, alignRight );
-	
-	pos = mEnableKActionsBox.getPosition();
+    mainFont->drawString( "Adjustable FOV", pos, alignLeft );
+
+    pos = mEnableKActionsBox.getPosition();
     
-    pos.x -= 30;
+    pos.x += 45;
     pos.y -= 2;
 
     mainFont->drawString( "Keyboard Actions", pos, alignRight );
-	
-	pos = mEnableCenterCameraBox.getPosition();
     
-    pos.x -= 30;
+    pos = mEnableCenterCameraBox.getPosition();
+    
+    pos.x += 45;
     pos.y -= 2;
 
     mainFont->drawString( "Center Camera", pos, alignRight );
@@ -442,7 +440,6 @@ void SettingsPage::makeActive( char inFresh ) {
         mCursorScaleSlider.setVisible( mode > 0 );
         
         mCursorScaleSlider.setValue( getEmulatedCursorScale() );
-
 
         char *seed = 
             SettingsManager::getSettingContents( "spawnSeed",
