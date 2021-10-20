@@ -15,6 +15,10 @@ gameSource/EditOneLife
 gameSource/animations
 gameSource/categories
 gameSource/dataVersionNumber.txt
+gameSource/graphics/font_32_64.tga
+gameSource/graphics/font_handwriting_32_32.tga
+gameSource/graphics/font_pencil_32_32.tga
+gameSource/graphics/font_pencil_erased_32_32.tga
 gameSource/ground
 gameSource/groundTileCache
 gameSource/log.txt
@@ -28,6 +32,7 @@ gameSource/scenes
 gameSource/screenShots/*
 gameSource/settings/accountKey.ini
 gameSource/settings/countingOnVsync.ini
+gameSource/settings/customServerAddress.ini
 gameSource/settings/email.ini
 gameSource/settings/fovDefault.ini
 gameSource/settings/fovMax.ini
@@ -36,6 +41,7 @@ gameSource/settings/fovScaleHUD.ini
 gameSource/settings/hudDrawMode.ini
 gameSource/settings/loginSuccess.ini
 gameSource/settings/targetFrameRate.ini
+gameSource/settings/useCustomServer.ini
 gameSource/sprites
 gameSource/sounds
 gameSource/testUser/*
@@ -52,6 +58,9 @@ server/mapChangeLogs
 server/mapDummyRecall.txt
 server/OneLifeServer
 server/serverCodeVersionNumber.txt
+server/settings/nextPlayerID.ini
+server/settings/requireTicketServerCheck.ini
+server/settings/sequenceNumber.ini
 server/tutorialMaps
 server/log.txt
 server/recentPlacements.txt
