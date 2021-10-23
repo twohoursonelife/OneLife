@@ -41,6 +41,8 @@ gameSource/settings/fovScaleHUD.ini
 gameSource/settings/hudDrawMode.ini
 gameSource/settings/loginSuccess.ini
 gameSource/settings/targetFrameRate.ini
+gameSource/settings/tutorialDone.ini
+gameSource/settings/twinCode.ini
 gameSource/settings/useCustomServer.ini
 gameSource/sprites
 gameSource/sounds
