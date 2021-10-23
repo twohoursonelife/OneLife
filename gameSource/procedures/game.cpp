@@ -50,60 +50,40 @@ CustomRandomSource randSource( 34957197 );
 
 
 #include "minorGems/util/log/AppLog.h"
-
-
-
 #include "minorGems/game/game.h"
 #include "minorGems/game/gameGraphics.h"
 #include "minorGems/game/Font.h"
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
-
-
-
-
-
-#include "spriteBank.h"
-#include "objectBank.h"
-#include "categoryBank.h"
-#include "transitionBank.h"
-#include "soundBank.h"
-
-#include "liveObjectSet.h"
-
-#include "groundSprites.h"
-
-#include "emotion.h"
-#include "photos.h"
-#include "lifeTokens.h"
-#include "fitnessScore.h"
-
-
-#include "FinalMessagePage.h"
-#include "LoadingPage.h"
-#include "AutoUpdatePage.h"
-#include "LivingLifePage.h"
-#include "ExistingAccountPage.h"
-#include "ExtendedMessagePage.h"
-#include "RebirthChoicePage.h"
-#include "SettingsPage.h"
-#include "ReviewPage.h"
-#include "TwinPage.h"
-#include "PollPage.h"
-#include "GeneticHistoryPage.h"
+#include "OneLife/gameSource/spriteBank.h"
+#include "OneLife/gameSource/objectBank.h"
+#include "OneLife/gameSource/categoryBank.h"
+#include "OneLife/gameSource/transitionBank.h"
+#include "OneLife/gameSource/soundBank.h"
+#include "OneLife/gameSource/liveObjectSet.h"
+#include "OneLife/gameSource/groundSprites.h"
+#include "OneLife/gameSource/emotion.h"
+#include "OneLife/gameSource/photos.h"
+#include "OneLife/gameSource/lifeTokens.h"
+#include "OneLife/gameSource/fitnessScore.h"
+#include "OneLife/gameSource/FinalMessagePage.h"
+#include "OneLife/gameSource/LoadingPage.h"
+#include "OneLife/gameSource/AutoUpdatePage.h"
+#include "OneLife/gameSource/LivingLifePage.h"
+#include "OneLife/gameSource/ExistingAccountPage.h"
+#include "OneLife/gameSource/ExtendedMessagePage.h"
+#include "OneLife/gameSource/RebirthChoicePage.h"
+#include "OneLife/gameSource/SettingsPage.h"
+#include "OneLife/gameSource/ReviewPage.h"
+#include "OneLife/gameSource/TwinPage.h"
+#include "OneLife/gameSource/PollPage.h"
+#include "OneLife/gameSource/GeneticHistoryPage.h"
 //#include "TestPage.h"
-
-#include "ServerActionPage.h"
-
-#include "ageControl.h"
-
-#include "musicPlayer.h"
-
-#include "whiteSprites.h"
-
-#include "message.h"
-
-
+#include "OneLife/gameSource/ServerActionPage.h"
+#include "OneLife/gameSource/ageControl.h"
+#include "OneLife/gameSource/musicPlayer.h"
+#include "OneLife/gameSource/whiteSprites.h"
+#include "OneLife/gameSource/message.h"
 // should we pull the map
 static char mapPullMode = 0;
 static char autoLogIn = 0;

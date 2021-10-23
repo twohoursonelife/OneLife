@@ -5579,8 +5579,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         doublePair sheetPos = mult( add( pos, lastCornerPos ),
                                                     0.5 );
 
-                        if( !isTrippingEffectOn ) // All tiles are drawn to change color independently
-						drawSprite( s->wholeSheet, sheetPos );
+                        if( !isTrippingEffectOn ) drawSprite( s->wholeSheet, sheetPos );// All tiles are drawn to change color independently
                         
 						if( !isTrippingEffectOn )
                         // mark all cells under sheet as drawn
@@ -22402,7 +22401,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         if( strstr( typedText, filterCommand ) == typedText ) {
                             // starts with filter command
                             
-                            LiveObject *ourLiveObject = getOurLiveObject();
+                            //LiveObject *ourLiveObject = getOurLiveObject();//TODO: uncomment if needed (cause warning otherwise)
                             
                             int emotIndex = getEmotionIndex( typedText );
                             
