@@ -6,6 +6,7 @@
 *~
 *.orig
 Makefile*
+!gameSource/Makefile
 
 callgrind.out*
 leak.out*

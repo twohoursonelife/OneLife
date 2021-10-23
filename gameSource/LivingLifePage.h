@@ -2,7 +2,7 @@
 #define LIVING_LIFE_PAGE_INCLUDED
 
 
-
+#include "OneLife/gameSource/components/socket.h"
 
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/SimpleVector.h"
@@ -572,6 +572,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         int *mMap;
         
 	protected:
+
+		client::component::Socket* socket;
         
         int *mMapBiomes;
         int *mMapFloors;

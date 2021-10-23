@@ -748,46 +748,10 @@ SimpleVector<unsigned char> serverSocketBuffer;
 static char serverSocketConnected = false;
 static float connectionMessageFade = 1.0f;
 static double connectedTime = 0;
-
 static char forceDisconnect = false;
 
+/**********************************************************************************************************************/
 
-// reads all waiting data from socket and stores it in buffer
-// returns false on socket error
-static char readServerSocketFull( int inServerSocket ) {
-
-    if( forceDisconnect ) {
-        forceDisconnect = false;
-        return false;
-        }
-    
-
-    unsigned char buffer[512];
-    
-    int numRead = readFromSocket( inServerSocket, buffer, 512 );
-    
-    
-    while( numRead > 0 ) {
-        if( ! serverSocketConnected ) {    
-            serverSocketConnected = true;
-            connectedTime = game_getCurrentTime();
-            }
-        
-        serverSocketBuffer.appendArray( buffer, numRead );
-        numServerBytesRead += numRead;
-        bytesInCount += numRead;
-        
-        numRead = readFromSocket( inServerSocket, buffer, 512 );
-        }    
-
-    if( numRead == -1 ) {
-        printf( "Failed to read from server socket at time %f\n",
-                game_getCurrentTime() );
-        return false;
-        }
-    
-    return true;
-    }
 
 
 
@@ -2453,6 +2417,14 @@ LivingLifePage::LivingLifePage()
           mUsingSteam( false ),
           mZKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 ) {
+
+	this->socket = new client::component::Socket(
+		&forceDisconnect,
+		&serverSocketConnected,
+		&connectedTime,
+		&serverSocketBuffer,
+		&numServerBytesRead,
+		&bytesInCount);
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -10966,7 +10938,7 @@ void LivingLifePage::step() {
     
 
     // first, read all available data from server
-    char readSuccess = readServerSocketFull( mServerSocket );
+    char readSuccess = this->socket->readServerSocketFull( mServerSocket );
     
 
     if( ! readSuccess ) {
