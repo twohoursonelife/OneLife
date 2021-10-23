@@ -15,6 +15,7 @@ ROOT_PATH = ../..
 
 LAYER_SOURCE = \
 minitech.cpp \
+game.cpp \
 procedures/game.cpp \
 spriteBank.cpp \
 objectBank.cpp \
