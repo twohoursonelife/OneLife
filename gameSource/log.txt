@@ -1,0 +1,112 @@
+L4 | Wed Jan 26 14:59:26 2022 (700 ms) | general | New game starting up
+L4 | Wed Jan 26 14:59:26 2022 (701 ms) | general | Target game image size:  1280x720
+
+L4 | Wed Jan 26 14:59:26 2022 (701 ms) | general | Ideal window dimensions:  1280x720
+
+L4 | Wed Jan 26 14:59:26 2022 (701 ms) | general | Trying to start in fullscreen mode.
+L4 | Wed Jan 26 14:59:26 2022 (701 ms) | general | The following frame rates are considered possible:
+L4 | Wed Jan 26 14:59:26 2022 (702 ms) | general | 30 fps
+L4 | Wed Jan 26 14:59:26 2022 (702 ms) | general | 60 fps
+L4 | Wed Jan 26 14:59:26 2022 (702 ms) | general | 100 fps
+L4 | Wed Jan 26 14:59:26 2022 (702 ms) | general | 120 fps
+L4 | Wed Jan 26 14:59:26 2022 (702 ms) | general | 144 fps
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general | Setting real (not borderless) fullscreen mode
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general | Current screen configuration is 1360x768 with aspect ratio 1.77
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general | Sticking with user's current screen resolution
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general | Checking if requested video mode (1360x768) is available
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general | Available video modes:
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    1366 x 768
+
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    1360 x 768
+
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    ^^^^ this mode matches current aspect ratio
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    ^^^^ this mode matches requested mode
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    1280 x 720
+
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    1024 x 768
+
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    1024 x 576
+
+L4 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    960 x 720
+
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    960 x 600
+
+L5 | Wed Jan 26 14:59:26 2022 (703 ms) | general |    960 x 540
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    928 x 696
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    896 x 672
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    864 x 486
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    840 x 525
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    800 x 600
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    800 x 512
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    800 x 450
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    720 x 450
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    720 x 405
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    700 x 525
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    700 x 450
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    684 x 384
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    680 x 384
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    640 x 512
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    640 x 480
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    640 x 400
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    640 x 360
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    576 x 432
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    512 x 384
+
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    512 x 288
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    480 x 270
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    432 x 243
+
+L4 | Wed Jan 26 14:59:26 2022 (704 ms) | general |    ^^^^ this mode matches current aspect ratio
+L5 | Wed Jan 26 14:59:26 2022 (705 ms) | general |    400 x 300
+
+L5 | Wed Jan 26 14:59:26 2022 (705 ms) | general |    360 x 202
+
+L5 | Wed Jan 26 14:59:26 2022 (705 ms) | general |    320 x 240
+
+L5 | Wed Jan 26 14:59:26 2022 (705 ms) | general |    320 x 180
+
+L4 | Wed Jan 26 14:59:26 2022 (705 ms) | general |    ^^^^ this mode matches current aspect ratio
+L4 | Wed Jan 26 14:59:26 2022 (900 ms) | general | Successfully opened audio: 44100Hz (requested 44100Hz), sample buffer size=512 (requested 1024)
+
+L4 | Wed Jan 26 14:59:28 2022 (798 ms) | general | Measured frame rate = 59.940050 fps
+
+L4 | Wed Jan 26 14:59:28 2022 (798 ms) | general | Closest possible frame rate = 60 fps
+
+L4 | Wed Jan 26 14:59:28 2022 (798 ms) | general | Vsync seems to be enforcing an allowed frame rate of 60 fps.
+
+L4 | Wed Jan 26 14:59:28 2022 (799 ms) | general | Recording game into file recordedGames/recordedGame000003.txt
+L4 | Wed Jan 26 14:59:28 2022 (799 ms) | general | Only keeping 20 past recordings
+L4 | Wed Jan 26 14:59:28 2022 (799 ms) | general | Removed 0 stale recordings
+L4 | Wed Jan 26 14:59:28 2022 (897 ms) | general | OneLife client v256 (binV=256, dataV=0) starting up
