@@ -13642,6 +13642,13 @@ int main() {
                                 allow = true;
                                 break;
                                 }
+                            else if( strcmp(
+                                         "*",
+                                         list->getElementDirect( i ) ) == 0 ) {
+                                // wildcard present in settings file
+                                allow = true;
+                                break;
+                                }
                             }
                         
                         list->deallocateStringElements();
