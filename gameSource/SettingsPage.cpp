@@ -22,6 +22,8 @@ extern Font *mainFont;
 
 extern float musicLoudness;
 
+extern bool showingInGameSettings;
+
 
 SettingsPage::SettingsPage()
         : mBackground( "background.tga", 0.75f ),
@@ -597,6 +599,8 @@ bool SettingsPage::checkRestartRequired() {
         mOldBorderlessSetting != mBorderlessBox.getToggled()
         ) {
         setStatusDirect( "RESTART REQUIRED##FOR NEW SETTINGS TO TAKE EFFECT", true );
+        // Do not show RESTART button when setting page is accessed mid-game
+        if ( ! showingInGameSettings )
         mRestartButton.setVisible( true );
         }
     else {
