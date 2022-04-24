@@ -2350,7 +2350,7 @@ void keyDown( unsigned char inASCII ) {
                 if ( currentGamePage == livingLifePage ) {
                     //unpáuse, reset fov then show settings
                     pauseGame();
-                    livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+                    livingLifePage->changeFOV( 1.0f );
                     showSettings();
                     }
                 break;

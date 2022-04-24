@@ -19354,6 +19354,12 @@ void LivingLifePage::makeActive( char inFresh ) {
     
 
     if( !inFresh ) {
+    
+    //set fov to default if opening again
+    if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
+      changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+      }
+      
 		//reset camera if LivingLifePage is made active again
 		LiveObject *ourLiveObject = getOurLiveObject();
 		if ( ourLiveObject != NULL )
