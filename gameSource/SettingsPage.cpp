@@ -34,10 +34,9 @@ SettingsPage::SettingsPage()
           mEnableFOVBox( -561, -40, 3),
           mEnableKActionsBox( -561, -80, 3),
           mEnableCenterCameraBox( -561, -120, 3),
-          mUseCustomServerBox( -561, -120, 3 ),
           mMusicLoudnessSlider( mainFont, 220, 75, 4, 200, 30,
                                 0.0, 1.0, 
-                                translate( "musicLoudness" ), true ),
+                                translate( "musicLoudness" ) ),
           mSoundEffectsLoudnessSlider( mainFont, 220, 25, 4, 200, 30,
                                        0.0, 1.0, 
                                        translate( "soundLoudness" ) ),
@@ -64,14 +63,10 @@ SettingsPage::SettingsPage()
     mCursorScaleSlider.toggleField( false );
 
 
-	setButtonStyle( &mInfoSeeds );
     setButtonStyle( &mBackButton );
     setButtonStyle( &mEditAccountButton );
     setButtonStyle( &mRestartButton );
     setButtonStyle( &mRedetectButton );
-
-	//addComponent( &mInfoSeeds );
-	//mInfoSeeds.addActionListener( this );
 
     addComponent( &mBackButton );
     mBackButton.addActionListener( this );
@@ -104,7 +99,6 @@ SettingsPage::SettingsPage()
     mRedetectButton.addActionListener( this );
 
     //addComponent( &mSpawnSeed );
-
     mRestartButton.setVisible( false );
     
     mOldFullscreenSetting = 
@@ -168,23 +162,9 @@ SettingsPage::~SettingsPage() {
 
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     if( inTarget == &mBackButton ) {
-        
-
-        char *seedList = mSpawnSeed.getAndUpdateList();
-        
-        SettingsManager::setSetting( "spawnSeed", seedList );
-        delete [] seedList;
-        
         setSignal( "back" );
         setMusicLoudness( 0 );
         }
-	else if( inTarget == &mInfoSeeds ) {
-		 char *url = strdup("https://twohoursonelife.fandom.com/wiki/Spawn_seeds");
-		 
-		 if( strcmp( url, "" ) != 0 ) {
-			 launchURL( url );
-			}
-		}
     else if( inTarget == &mEditAccountButton ) {
         
         setSignal( "editAccount" );
@@ -390,14 +370,28 @@ void SettingsPage::draw( doublePair inViewCenter,
     pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Keyboard Actions", pos, alignRight );
+    mainFont->drawString( "Keyboard Actions", pos, alignLeft );
     
     pos = mEnableCenterCameraBox.getPosition();
     
     pos.x += 45;
     pos.y -= 2;
 
-    mainFont->drawString( "Center Camera", pos, alignRight );
+    mainFont->drawString( "Center Camera", pos, alignLeft );
+
+    pos = mMusicLoudnessSlider.getPosition();
+
+    pos.x += 52;
+    pos.y -= 2;
+
+    mainFont->drawString( translate( "musicLoudness"), pos, alignRight );
+
+    pos = mSoundEffectsLoudnessSlider.getPosition();
+
+    pos.x += 52;
+    pos.y -= 2;
+
+    mainFont->drawString( translate( "soundLoudness"), pos, alignRight );
 
 
     pos = mCursorModeSet->getPosition();
@@ -409,7 +403,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         
         pos = mCursorScaleSlider.getPosition();
         
-        pos.x += 72;
+        pos.x += 52;
         pos.y -= 2;
         
         mainFont->drawString( translate( "scale"), pos, alignRight );
@@ -440,16 +434,6 @@ void SettingsPage::makeActive( char inFresh ) {
         mCursorScaleSlider.setVisible( mode > 0 );
         
         mCursorScaleSlider.setValue( getEmulatedCursorScale() );
-
-        char *seed = 
-            SettingsManager::getSettingContents( "spawnSeed",
-                                               "" );
-        
-        mSpawnSeed.setList( seed );
-        
-        delete [] seed;
-        
-
 
         mMusicLoudnessSlider.setValue( musicLoudness );
         mSoundEffectsLoudnessSlider.setValue( getSoundEffectsLoudness() );

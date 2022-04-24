@@ -54,22 +54,14 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mFullscreenBox;
         CheckboxButton mBorderlessBox;
         
-		CheckboxButton mEnableNudeBox;
-		CheckboxButton mEnableFOVBox;
-		CheckboxButton mEnableKActionsBox;
-		CheckboxButton mEnableCenterCameraBox;
+	CheckboxButton mEnableNudeBox;
+	CheckboxButton mEnableFOVBox;
+	CheckboxButton mEnableKActionsBox;
+	CheckboxButton mEnableCenterCameraBox;
 
         ValueSlider mMusicLoudnessSlider;
         ValueSlider mSoundEffectsLoudnessSlider;
 
-        TextField mCustomServerAddressField;
-        TextField mCustomServerPortField;
-
-        TextButton mCopyButton;
-        TextButton mPasteButton;
-
-        DropdownList mSpawnSeed;
-        TextButton mInfoSeeds;
 
         RadioButtonSet *mCursorModeSet;
         
