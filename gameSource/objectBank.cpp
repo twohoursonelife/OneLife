@@ -1258,6 +1258,20 @@ float initObjectBankStep() {
                             
                     next++;
                     }
+                    
+                r->slotsNoSwap = 0;
+                if( strstr( lines[next], 
+                            "slotsNoSwap=" ) != NULL ) {
+                    // flag present
+                    
+                    int flagRead = 0;                            
+                    sscanf( lines[next], "slotsNoSwap=%d", 
+                            &( flagRead ) );
+                    
+                    r->slotsNoSwap = flagRead;
+                            
+                    next++;
+                    }
                 
                 
                 r->slotPos = new doublePair[ r->numSlots ];
@@ -2634,6 +2648,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->slotParent,
                         inObject->slotTimeStretch,
                         inObject->slotsLocked,
+                        inObject->slotsNoSwap,
                         inObject->numSprites, 
                         inObject->sprites, 
                         inObject->spritePos,
@@ -2908,6 +2923,7 @@ int addObject( const char *inDescription,
                int *inSlotParent,
                float inSlotTimeStretch,
                char inSlotsLocked,
+               char inSlotsNoSwap,
                int inNumSprites, int *inSprites, 
                doublePair *inSpritePos,
                double *inSpriteRot,
@@ -3120,6 +3136,7 @@ int addObject( const char *inDescription,
                                       inNumSlots, inSlotTimeStretch ) );
         lines.push_back( autoSprintf( "slotSize=%f", inSlotSize ) );
         lines.push_back( autoSprintf( "slotsLocked=%d", (int)inSlotsLocked ) );
+        lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
 
         for( int i=0; i<inNumSlots; i++ ) {
             lines.push_back( autoSprintf( "slotPos=%f,%f,vert=%d,parent=%d", 
@@ -3428,6 +3445,7 @@ int addObject( const char *inDescription,
     
     r->slotTimeStretch = inSlotTimeStretch;
     r->slotsLocked = inSlotsLocked;
+    r->slotsNoSwap = inSlotsNoSwap;
 
     r->numSprites = inNumSprites;
     
@@ -5647,6 +5665,11 @@ doublePair getObjectCenterOffset( ObjectRecord *inObject ) {
             // don't consider parts visible only when worn
             continue;
             }
+            
+		if( inObject->spriteColor[i].r < 1.0 && inObject->spriteColor[i].r > 0.998 ) {
+			// special flag to skip sprite when calculating position to draw object
+			continue;
+		}
         
 
         int w = sprite->visibleW;
@@ -5750,14 +5773,20 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 		
 		doublePair centerOffset = { (double)sprite->centerXOffset,
 									(double)sprite->centerYOffset };
+                                    
+		doublePair centerAnchorOffset = { (double)sprite->centerAnchorXOffset,
+                                          (double)sprite->centerAnchorYOffset };
 			
 		centerOffset = rotate( centerOffset, 
+							   2 * M_PI * inObject->spriteRot[i] );
+                               
+		centerAnchorOffset = rotate( centerAnchorOffset, 
 							   2 * M_PI * inObject->spriteRot[i] );
 
 		doublePair spriteCenter = add( inObject->spritePos[i], 
 									   centerOffset );
 		
-		double y = spriteCenter.y - dimensions.y / 2 + sprite->centerAnchorYOffset;
+		double y = spriteCenter.y - abs(dimensions.y) / 2 + centerAnchorOffset.y;
 
         if( lowestRecord == NULL ||
             // lowest point of sprite is lower than what we've seen so far

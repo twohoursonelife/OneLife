@@ -2862,6 +2862,10 @@ void LivingLifePage::clearLiveObjects() {
         if( nextObject->name != NULL ) {
             delete [] nextObject->name;
             }
+            
+        if( nextObject->tag != NULL ) {
+            delete [] nextObject->tag;
+            }
 
         delete nextObject->futureAnimStack;
         delete nextObject->futureHeldAnimStack;
@@ -9170,9 +9174,25 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 else {
                     des = (char*)translate( "you" );
-                    if( ourLiveObject->name != NULL ) {
+                    if( ourLiveObject->name != NULL || ourLiveObject->tag != NULL ) {
+                        
+                        char* displayName;
+                        if( ourLiveObject->name != NULL && ourLiveObject->tag != NULL ) {
+                            displayName = autoSprintf( "%s %s",
+                                               ourLiveObject->name, 
+                                               ourLiveObject->tag );
+                            }
+                        else if( ourLiveObject->name != NULL ) {
+                            displayName = autoSprintf( "%s",
+                                               ourLiveObject->name );
+                            }
+                        else if( ourLiveObject->tag != NULL ) {
+                            displayName = autoSprintf( "%s",
+                                               ourLiveObject->tag );
+                            }
+
                         des = autoSprintf( "%s - %s", des, 
-                                           ourLiveObject->name );
+                                           displayName );
                         desToDelete = des;
                         }
                     }
@@ -9186,9 +9206,27 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 if( des == NULL ) {
                     des = (char*)translate( "unrelated" );
                     }
-                if( otherObj != NULL && otherObj->name != NULL ) {
+                if( otherObj != NULL && 
+                    ( otherObj->name != NULL || otherObj->tag != NULL )
+                    ) {
+                        
+                    char* displayName;
+                    if( otherObj->name != NULL && otherObj->tag != NULL ) {
+                        displayName = autoSprintf( "%s %s",
+                                           otherObj->name, 
+                                           otherObj->tag );
+                        }
+                    else if( otherObj->name != NULL ) {
+                        displayName = autoSprintf( "%s",
+                                           otherObj->name );
+                        }
+                    else if( otherObj->tag != NULL ) {
+                        displayName = autoSprintf( "%s",
+                                           otherObj->tag );
+                        }
+                        
                     des = autoSprintf( "%s - %s",
-                                       otherObj->name, des );
+                                       displayName, des );
                     desToDelete = des;
                     }
                 if( otherObj != NULL && 
@@ -13389,6 +13427,7 @@ void LivingLifePage::step() {
                                 }
                             }
                         
+                        bool useOnContainedContainmentTrans = false;
 
                         if( strstr( idBuffer, "," ) != NULL ) {
                             int numInts;
@@ -13400,6 +13439,19 @@ void LivingLifePage::step() {
 
                             mMap[mapI] = newID;
                             
+                            // Check for possible contained change as well as container change
+                            // in a containment transition
+                            ObjectRecord *oldObj = getObject( old );
+                            ObjectRecord *newObj = getObject( newID );
+                            
+                            if( oldObj != NULL &&
+                                newObj != NULL &&
+                                old != newID &&
+                                strstr( oldObj->description, "+useOnContained" ) != NULL &&
+                                strstr( newObj->description, "+useOnContained" ) != NULL ) {
+                                useOnContainedContainmentTrans = true;
+                                }
+                            
                             delete [] ints[0];
 							
                             SimpleVector<int> oldContained;
@@ -13407,7 +13459,7 @@ void LivingLifePage::step() {
                             // with no changed to container
                             // look for contained change
                             if( speed == 0 &&
-                                old == newID && 
+                                ( old == newID || useOnContainedContainmentTrans ) && 
                                 responsiblePlayerID < 0 ) {
                             
                                 oldContained.push_back_other( 
@@ -13457,7 +13509,7 @@ void LivingLifePage::step() {
                             delete [] ints;
 
                             if( speed == 0 &&
-                                old == newID && 
+                                ( old == newID || useOnContainedContainmentTrans ) && 
                                 responsiblePlayerID < 0
                                 &&
                                 oldContained.size() ==
@@ -13757,6 +13809,10 @@ void LivingLifePage::step() {
                             responsiblePlayerObject = 
                                 getGameObject( responsiblePlayerID );
                             }
+                        if( responsiblePlayerID < -1 ) {
+                            responsiblePlayerObject = 
+                                getGameObject( -responsiblePlayerID );
+                            }
                         
                         if( old > 0 &&
                             newID > 0 &&
@@ -13776,12 +13832,27 @@ void LivingLifePage::step() {
                             }
                         
 
-                        if( old > 0 &&
+                        if( (old > 0 &&
                             old == newID &&
                             mMapContainedStacks[mapI].size() > 
                             oldContainedCount &&
                             responsiblePlayerObject != NULL &&
-                            responsiblePlayerObject->holdingID == 0 ) {
+                            responsiblePlayerObject->holdingID == 0) 
+                            
+                            ||
+                            
+                            // exception case for containment transition
+                            // denoted by responsiblePlayerID being negative of the actual
+                            // newID could have changed in this case
+                            // but we still want the container using sound
+                            (old > 0 &&
+                            mMapContainedStacks[mapI].size() > 
+                            oldContainedCount &&
+                            responsiblePlayerObject != NULL &&
+                            responsiblePlayerID < -1 &&
+                            responsiblePlayerObject->holdingID == 0)
+
+                            ) {
                             
                             // target is changed container and
                             // responsible player's hands now empty
@@ -14033,7 +14104,6 @@ void LivingLifePage::step() {
                             
                             LiveObject *responsiblePlayerObject = NULL;
                             
-                            
                             if( responsiblePlayerID > 0 ) {
                                 responsiblePlayerObject = 
                                     getGameObject( responsiblePlayerID );
@@ -14060,7 +14130,8 @@ void LivingLifePage::step() {
                             
                             
                             if( responsiblePlayerObject == NULL ||
-                                !responsiblePlayerObject->onScreen ) {
+                                !responsiblePlayerObject->onScreen ||
+                                useOnContainedContainmentTrans ) {
                                 
                                 // set it down instantly, no drop animation
                                 // (player's held offset isn't valid)
@@ -14253,6 +14324,7 @@ void LivingLifePage::step() {
 
                 o.name = NULL;
                 o.relationName = NULL;
+                o.tag = NULL;
 
                 o.curseLevel = 0;
                 o.excessCursePoints = 0;
@@ -14873,7 +14945,7 @@ void LivingLifePage::step() {
                             mNextHintIndex = 
                                 mHintBookmarks[ mNextHintObjectID ];
 								
-							if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = mNextHintObjectID;
+							if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(mNextHintObjectID);
                             }
 
 
@@ -17450,16 +17522,34 @@ void LivingLifePage::step() {
                             if( existing->name != NULL ) {
                                 delete [] existing->name;
                                 }
+                                
+                            if( existing->tag != NULL ) {
+                                delete [] existing->tag;
+                                existing->tag = NULL;
+                                }
                             
                             char *firstSpace = strstr( lines[i], " " );
         
                             if( firstSpace != NULL ) {
 
+                                
+                                char *firstPlus = strstr( lines[i], "+" );
+                                
+                                if( firstPlus != NULL ) {
+                                    char *tagStart = &( firstPlus[0] );
+                                    existing->tag = stringDuplicate( tagStart );
+                                    (firstPlus - 1)[0] = '\0';
+                                    }
+
                                 char *nameStart = &( firstSpace[1] );
                                 
-                                existing->name = stringDuplicate( nameStart );
-								
-								LiveObject *ourLiveObject = getOurLiveObject();
+                                if( firstSpace[1] != '+' ) {
+                                
+                                    existing->name = stringDuplicate( nameStart );
+                                    
+                                    }
+                                    
+                                LiveObject *ourLiveObject = getOurLiveObject();
 								if ( id == ourLiveObject->id && 
 									//Little hack here to not have the ding
 									//when we are just reconnected
@@ -20684,12 +20774,24 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
         destObjInClickedTile = destID;
 
+        destNumContained = mMapContainedStacks[ mapY * mMapD + mapX ].size();
+        
+        int newActorSlots = 0;
+        TransRecord *barehandTrans = getPTrans( 0, destObjInClickedTile );
+        if( barehandTrans != NULL ) {
+            ObjectRecord *newActor = getObject( barehandTrans->newActor );
+            if( newActor != NULL ) {
+                newActorSlots = newActor->numSlots;
+                }
+            }
+        
         if( destObjInClickedTile > 0 ) {
             destObjInClickedTilePermanent =
-                getObject( destObjInClickedTile )->permanent;
+                getObject( destObjInClickedTile )->permanent &&
+                !(barehandTrans != NULL &&
+                barehandTrans->newTarget == 0 &&
+                newActorSlots >= destNumContained);
             }
-    
-        destNumContained = mMapContainedStacks[ mapY * mMapD + mapX ].size();
         
 
         // if holding something, and this is a set-down action
@@ -20818,20 +20920,20 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // give hint about dest object which will be unchanged 
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-				if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = destID;
+				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
                 }
             else if( tr->newActor > 0 && 
                      ourLiveObject->holdingID != tr->newActor ) {
                 // give hint about how what we're holding will change
                 mNextHintObjectID = tr->newActor;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-				if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = tr->newActor;
+				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newActor);
                 }
             else if( tr->newTarget > 0 ) {
                 // give hint about changed target after we act on it
                 mNextHintObjectID = tr->newTarget;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-				if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = tr->newTarget;
+				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newTarget);
                 }
             }
         else {
@@ -20841,7 +20943,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( getTrans( 0, destID ) == NULL ) {
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-				if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = destID;
+				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
                 }
             }
         }
@@ -21523,6 +21625,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                          ) 
                        )
                      && ourLiveObject->holdingID == 0 &&
+                     destNumContained > 0 &&
                      getNumContainerSlots( destID ) > 0 ) {
                 
                 // for permanent container objects that have no bare-hand
@@ -21563,6 +21666,10 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                     }
                 
 
+                // if container doesn't allow swap
+                // forget the the slot index
+                if( getObject( destID )->slotsNoSwap ) p.hitSlotIndex = -1;
+                
                 send = true;
                 delete [] extra;
                 extra = autoSprintf( " %d", p.hitSlotIndex );
@@ -23026,11 +23133,27 @@ void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
 	y += ourLiveObject->yd;
 
 	bool remove = false;
+    bool use = false;
+    int objId = getObjId( x, y );
 	if (ourLiveObject->holdingID <= 0) {
-		remove = true;
+        int numContained = 0;
+        int mapX = x - mMapOffsetX + mMapD / 2;
+        int mapY = y - mMapOffsetY + mMapD / 2;
+        int mapI = mapY * mMapD + mapX;
+        if (mapI >= 0 && mapI < mMapD*mMapD) numContained = mMapContainedStacks[ mapI ].size();
+        
+        bool hasPickupTrans = false;
+        if (objId > 0) {
+            TransRecord *r = getTrans( 0, objId );
+            if ( r != NULL && r->newTarget == 0 ) hasPickupTrans = true;
+        }
+        
+        if (numContained == 0 && hasPickupTrans) {
+            use = true;
+        } else {
+            remove = true;
+        }
 	}
-	bool use = false;
-	int objId = getObjId( x, y );
 	if (objId > 0) {
 		ObjectRecord* obj = getObject(objId);
 		if (obj->numSlots == 0 && obj->blocksWalking) {
