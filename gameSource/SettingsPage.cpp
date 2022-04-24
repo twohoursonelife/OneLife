@@ -22,6 +22,8 @@ extern Font *mainFont;
 
 extern float musicLoudness;
 
+extern bool showingInGameSettings;
+
 
 SettingsPage::SettingsPage()
         : mBackButton( mainFont, -542, -280, translate( "backButton" ) ),
@@ -175,7 +177,8 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         SettingsManager::setSetting( "fullscreen", newSetting );
         
-        mRestartButton.setVisible( mOldFullscreenSetting != newSetting );
+        if ( ! showingInGameSettings )
+          mRestartButton.setVisible( mOldFullscreenSetting != newSetting );
         
         mBorderlessBox.setVisible( newSetting );
         }
@@ -184,7 +187,8 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         SettingsManager::setSetting( "borderless", newSetting );
         
-        mRestartButton.setVisible( mOldBorderlessSetting != newSetting );
+        if ( ! showingInGameSettings )
+          mRestartButton.setVisible( mOldBorderlessSetting != newSetting );
         }
 	else if( inTarget == &mEnableNudeBox ) {
         int newSetting = mEnableNudeBox.getToggled();
