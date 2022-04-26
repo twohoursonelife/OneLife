@@ -18177,24 +18177,6 @@ int main() {
                                         ObjectRecord *targetObj =
                                             getObject( target );
                                         
-                                        // if a permanent container has a barehand pick-up transition
-                                        // which does not shrink the container
-                                        // treat it as non-permanent
-                                        // so it can be swapped and picked up
-                                        int numContained = getNumContained( m.x, m.y );
-                                        int newActorSlots = 0;
-                                        TransRecord *barehandTrans = getPTrans( 0, target );
-                                        if( barehandTrans != NULL ) {
-                                            ObjectRecord *newActor = getObject( barehandTrans->newActor );
-                                            if( newActor != NULL ) {
-                                                newActorSlots = newActor->numSlots;
-                                                }
-                                            }
-                                        bool targetIsTruelyPermanent = 
-                                            targetObj->permanent &&
-                                            !(barehandTrans != NULL &&
-                                            barehandTrans->newTarget == 0 &&
-                                            newActorSlots >= numContained);
 
                                         if( !canDrop ) {
                                             // user may have a permanent object
@@ -18207,7 +18189,7 @@ int main() {
                                             // can treat it like a swap
 
                                     
-                                            if( ! targetIsTruelyPermanent 
+                                            if( ! targetObj->permanent 
                                                 && getObject( targetObj->id )->minPickupAge < computeAge( nextPlayer ) ) {
                                                 // target can be picked up
 
@@ -18307,7 +18289,7 @@ int main() {
                                         else if( forceUse ||
                                                  ( canDrop && 
                                                    ! canGoIn &&
-                                                   targetIsTruelyPermanent &&
+                                                   targetObj->permanent &&
                                                    nextPlayer->numContained 
                                                    == 0 ) ) {
                                             // try treating it like
@@ -18321,7 +18303,7 @@ int main() {
                                             }
                                         else if( canDrop && 
                                                  ! canGoIn &&
-                                                 ! targetIsTruelyPermanent 
+                                                 ! targetObj->permanent 
                                                  &&
                                                  canPickup( 
                                                      targetObj->id,
