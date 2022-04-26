@@ -7522,6 +7522,13 @@ int processLoggedInPlayer( char inAllowReconnect,
             }
         }
     
+    if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
+        ObjectRecord *randomObject;
+        while ( randomObject == NULL ) {
+            randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
+            }
+        inForceDisplayID = randomObject->id;
+        }    
 
     if( inForceDisplayID != -1 ) {
         newObject.displayID = inForceDisplayID;
