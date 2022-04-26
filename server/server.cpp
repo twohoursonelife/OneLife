@@ -15929,7 +15929,7 @@ int main() {
                                     if( r == NULL && targetObj->numSlots == 0 ) {
                                         r = getPTrans( nextPlayer->holdingID,
                                                       target, false, false, 1 );
-                                        containmentTransition = true;
+                                        if( r != NULL ) containmentTransition = true;
                                         }
                                     }
                                 
