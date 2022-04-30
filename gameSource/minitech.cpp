@@ -182,7 +182,15 @@ bool minitech::isCategory(int objId) {
 	CategoryRecord *c = getCategory( objId );
 	if (c == NULL) return false;
     if( !c->isPattern && c->objectIDSet.size() > 0 ) return true;
-    if( c->isPattern ) return true;
+    if( c->isPattern ) {
+        ObjectRecord* parent = getObject(c->parentID);
+        if( parent != NULL && parent->description != NULL ) {
+            if( strstr( parent->description, "@" ) != NULL ||
+                strstr( parent->description, "Perhaps" ) != NULL ) {
+                    return true;
+            }
+        }
+    }
     return false;
 }
 
