@@ -1580,7 +1580,7 @@ void minitech::updateDrawTwoTech() {
             if (lastHintSearchNoResults) {
                 searchStr = "SEARCHING: " + lastHintStr + " (NO RESULTS)";
             } else {
-                searchStr = "SEARCHING: " + lastHintStr;
+                searchStr = "SEARCHING: " + lastHintStr + " (SAY '/' TO CLEAR)";
             }
 		} else if (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId) {
 			string objName(livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId));

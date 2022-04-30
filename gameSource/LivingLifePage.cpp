@@ -11707,7 +11707,12 @@ void LivingLifePage::step() {
                 }
             delete [] lines;
 
-            mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine / gui_fov_scale_hud;
+            if( gui_fov_scale_hud >= 1 ) {
+                mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine / gui_fov_scale_hud;
+                } 
+            else {
+                mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+                }
             }
         }
     
