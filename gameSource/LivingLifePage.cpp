@@ -17530,6 +17530,7 @@ void LivingLifePage::step() {
                                 
                             if( existing->tag != NULL ) {
                                 delete [] existing->tag;
+                                existing->tag = NULL;
                                 }
                             
                             char *firstSpace = strstr( lines[i], " " );
@@ -17543,9 +17544,6 @@ void LivingLifePage::step() {
                                     char *tagStart = &( firstPlus[0] );
                                     existing->tag = stringDuplicate( tagStart );
                                     (firstPlus - 1)[0] = '\0';
-                                    }
-                                else {
-                                    existing->tag = stringDuplicate( "" );
                                     }
 
                                 char *nameStart = &( firstSpace[1] );
