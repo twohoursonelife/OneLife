@@ -15380,7 +15380,6 @@ int main() {
 							if( infertilityDeclaring != NULL && !nextPlayer->declaredInfertile ) {
 								nextPlayer->declaredInfertile = true;
                                 nextPlayer->tag = stringDuplicate( infertilitySuffix );
-                                playerIndicesToSendNamesAbout.push_back( i );
 							} else if( fertilityDeclaring != NULL && nextPlayer->declaredInfertile ) {
 								nextPlayer->declaredInfertile = false;
 								if ( nextPlayer->tag != NULL ) {
@@ -15388,8 +15387,9 @@ int main() {
                                     nextPlayer->tag = NULL;
                                 }
 								if (nextPlayer->name == NULL) nextPlayer->tag = stringDuplicate( fertilitySuffix );
-                                playerIndicesToSendNamesAbout.push_back( i );
 							}
+                            
+                        playerIndicesToSendNamesAbout.push_back( i );
                         }
                         
 
