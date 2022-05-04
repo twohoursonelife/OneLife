@@ -1000,6 +1000,19 @@ char *LivingLifePage::minitechGetDisplayObjectDescription( int objId ) {
 	return getDisplayObjectDescription(objId);
 }
 
+static bool possibleUseOnContainedContTrans( int oldId, int newId ) { 
+    if( oldId == newId ) return false;
+    if( oldId <= 0 || newId <= 0 ) return false;
+    ObjectRecord *oldObj = getObject( oldId );
+    ObjectRecord *newObj = getObject( newId );
+    if( oldObj == NULL || newObj == NULL ) return false;
+    if( oldObj->description == NULL || newObj->description == NULL ) return false;
+    if( strstr( oldObj->description, "+useOnContained" ) != NULL &&
+        strstr( newObj->description, "+useOnContained" ) != NULL )
+        return true;
+    return false;
+}
+
 typedef enum messageType {
     SHUTDOWN,
     SERVER_FULL,
@@ -2861,10 +2874,6 @@ void LivingLifePage::clearLiveObjects() {
 
         if( nextObject->name != NULL ) {
             delete [] nextObject->name;
-            }
-            
-        if( nextObject->tag != NULL ) {
-            delete [] nextObject->tag;
             }
 
         delete nextObject->futureAnimStack;
@@ -9174,25 +9183,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 else {
                     des = (char*)translate( "you" );
-                    if( ourLiveObject->name != NULL || ourLiveObject->tag != NULL ) {
-                        
-                        char* displayName;
-                        if( ourLiveObject->name != NULL && ourLiveObject->tag != NULL ) {
-                            displayName = autoSprintf( "%s %s",
-                                               ourLiveObject->name, 
-                                               ourLiveObject->tag );
-                            }
-                        else if( ourLiveObject->name != NULL ) {
-                            displayName = autoSprintf( "%s",
-                                               ourLiveObject->name );
-                            }
-                        else if( ourLiveObject->tag != NULL ) {
-                            displayName = autoSprintf( "%s",
-                                               ourLiveObject->tag );
-                            }
-
+                    if( ourLiveObject->name != NULL ) {
                         des = autoSprintf( "%s - %s", des, 
-                                           displayName );
+                                           ourLiveObject->name );
                         desToDelete = des;
                         }
                     }
@@ -9206,27 +9199,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 if( des == NULL ) {
                     des = (char*)translate( "unrelated" );
                     }
-                if( otherObj != NULL && 
-                    ( otherObj->name != NULL || otherObj->tag != NULL )
-                    ) {
-                        
-                    char* displayName;
-                    if( otherObj->name != NULL && otherObj->tag != NULL ) {
-                        displayName = autoSprintf( "%s %s",
-                                           otherObj->name, 
-                                           otherObj->tag );
-                        }
-                    else if( otherObj->name != NULL ) {
-                        displayName = autoSprintf( "%s",
-                                           otherObj->name );
-                        }
-                    else if( otherObj->tag != NULL ) {
-                        displayName = autoSprintf( "%s",
-                                           otherObj->tag );
-                        }
-                        
+                if( otherObj != NULL && otherObj->name != NULL ) {
                     des = autoSprintf( "%s - %s",
-                                       displayName, des );
+                                       otherObj->name, des );
                     desToDelete = des;
                     }
                 if( otherObj != NULL && 
@@ -13444,20 +13419,11 @@ void LivingLifePage::step() {
 
                             mMap[mapI] = newID;
                             
+                            delete [] ints[0];
+                            
                             // Check for possible contained change as well as container change
                             // in a containment transition
-                            ObjectRecord *oldObj = getObject( old );
-                            ObjectRecord *newObj = getObject( newID );
-                            
-                            if( oldObj != NULL &&
-                                newObj != NULL &&
-                                old != newID &&
-                                strstr( oldObj->description, "+useOnContained" ) != NULL &&
-                                strstr( newObj->description, "+useOnContained" ) != NULL ) {
-                                useOnContainedContainmentTrans = true;
-                                }
-                            
-                            delete [] ints[0];
+                            useOnContainedContainmentTrans = possibleUseOnContainedContTrans(old, newID);
 							
                             SimpleVector<int> oldContained;
                             // player triggered
@@ -14329,7 +14295,6 @@ void LivingLifePage::step() {
 
                 o.name = NULL;
                 o.relationName = NULL;
-                o.tag = NULL;
 
                 o.curseLevel = 0;
                 o.excessCursePoints = 0;
@@ -17527,34 +17492,16 @@ void LivingLifePage::step() {
                             if( existing->name != NULL ) {
                                 delete [] existing->name;
                                 }
-                                
-                            if( existing->tag != NULL ) {
-                                delete [] existing->tag;
-                                existing->tag = NULL;
-                                }
                             
                             char *firstSpace = strstr( lines[i], " " );
         
                             if( firstSpace != NULL ) {
 
-                                
-                                char *firstPlus = strstr( lines[i], "+" );
-                                
-                                if( firstPlus != NULL ) {
-                                    char *tagStart = &( firstPlus[0] );
-                                    existing->tag = stringDuplicate( tagStart );
-                                    (firstPlus - 1)[0] = '\0';
-                                    }
-
                                 char *nameStart = &( firstSpace[1] );
                                 
-                                if( firstSpace[1] != '+' ) {
-                                
-                                    existing->name = stringDuplicate( nameStart );
-                                    
-                                    }
-                                    
-                                LiveObject *ourLiveObject = getOurLiveObject();
+                                existing->name = stringDuplicate( nameStart );
+								
+								LiveObject *ourLiveObject = getOurLiveObject();
 								if ( id == ourLiveObject->id && 
 									//Little hack here to not have the ding
 									//when we are just reconnected
