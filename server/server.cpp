@@ -8240,9 +8240,14 @@ static int getContainerSwapIndex( LiveObject *inPlayer,
         int bottomItem = 
             getContained( inContX, inContY, botInd, 0 );
         
+        TransRecord *pickUpTrans = getPTrans( 0, bottomItem );
+        bool hasPickUpTrans = 
+            pickUpTrans != NULL && 
+            pickUpTrans->newTarget == 0;
+                
         if( bottomItem > 0 &&
             ( getObject( bottomItem )->minPickupAge > playerAge ||
-            getObject( bottomItem )->permanent )
+            ( getObject( bottomItem )->permanent && !hasPickUpTrans ) ) 
             ) {
             // too young to hold!
             // or contained object is permanent
@@ -8801,7 +8806,11 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                 
                 while( inSlotNumber > 0 &&
                        (getObject( toRemoveID )->minPickupAge > playerAge ||
-                       getObject( toRemoveID )->permanent) )  {
+                       ( getObject( toRemoveID )->permanent &&
+                       ( getPTrans( 0, toRemoveID ) == NULL ||
+                       getPTrans( 0, toRemoveID )->newTarget != 0 ) )
+                       )
+                       )  {
             
                     inSlotNumber--;
                     
@@ -8839,13 +8848,20 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                 }
 
 
+            TransRecord *pickUpTrans = getPTrans( 0, toRemoveID );
+            bool hasPickUpTrans = 
+                pickUpTrans != NULL && 
+                pickUpTrans->newTarget == 0;
+        
             if( inPlayer->holdingID == 0 && 
                 numIn > 0 &&
                 // old enough to handle it
                 getObject( toRemoveID )->minPickupAge <= 
                 computeAge( inPlayer ) &&
                 // permanent object cannot be removed from container
-                !getObject( toRemoveID )->permanent ) {
+                ( !getObject( toRemoveID )->permanent ||
+                hasPickUpTrans )
+                ) {
                 // get from container
 
 
@@ -9277,8 +9293,11 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
                ( getObject( inPlayer->clothingContained[inC].
                           getElementDirect( slotToRemove ) )->minPickupAge >
                playerAge ||
-               getObject( inPlayer->clothingContained[inC].
-                          getElementDirect( slotToRemove ) )->permanent )
+               ( getObject( inPlayer->clothingContained[inC].
+                          getElementDirect( slotToRemove ) )->permanent &&
+               ( getPTrans( 0, inPlayer->clothingContained[inC].getElementDirect( slotToRemove ) ) == NULL ||
+               getPTrans( 0, inPlayer->clothingContained[inC].getElementDirect( slotToRemove ) )->newTarget != 0 ) )
+               )
                ) {
             
             slotToRemove --;
@@ -9296,13 +9315,21 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
             getElementDirect( slotToRemove );
         }
 
+    TransRecord *pickUpTrans = getPTrans( 0, toRemoveID );
+    bool hasPickUpTrans = 
+        pickUpTrans != NULL && 
+        pickUpTrans->newTarget == 0;
+                                            
     if( oldNumContained > 0 &&
         oldNumContained > slotToRemove &&
         slotToRemove >= 0 &&
         // old enough to handle it
         getObject( toRemoveID )->minPickupAge <= playerAge &&
-        // permanent object cannot be removed from container
-        !getObject( toRemoveID )->permanent ) {
+        // permanent object that dont have a pick up transition
+        // cannot be removed from container
+        ( !getObject( toRemoveID )->permanent ||
+        hasPickUpTrans )
+        ) {
                                     
 
         inPlayer->holdingID = 
@@ -18166,11 +18193,18 @@ int main() {
                                                 clothingContained[m.c].
                                                 getElementDirect( nextPlayer->clothingContained[m.c].size() - 1 );
                                             
+                                            TransRecord *pickUpTrans = getPTrans( 0, otherID );
+                                            bool hasPickUpTrans = 
+                                                pickUpTrans != NULL && 
+                                                pickUpTrans->newTarget == 0;
+                                            
                                             if( otherID != 
                                                 oldHeldAfterTrans &&
                                                 getObject( otherID )->
                                                 minPickupAge <= playerAge &&
-                                                !getObject( otherID )->permanent ) {
+                                                ( !getObject( otherID )->permanent || 
+                                                hasPickUpTrans )
+                                                ) {
                                                 
                                               removeFromClothingContainerToHold(
                                                     nextPlayer, m.c, s, true );
