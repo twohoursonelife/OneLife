@@ -2967,6 +2967,225 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
     
     delete [] blockedMap;
     }
+    
+    
+static FILE *outputMapFile = NULL;
+static SimpleVector<GridPos> outputMapSavedPos;
+int outputMapFile_w;
+int outputMapFile_h;
+int outputMapFile_oX;
+int outputMapFile_oY;
+
+
+static void initOutputMap() {
+    
+    File sceneDir( NULL, "scenes" );
+    
+    if( ! sceneDir.exists() ) {
+        Directory::makeDirectory( &sceneDir );
+        }
+
+    if( ! sceneDir.isDirectory() ) {
+        AppLog::error( "Non-directory scenes is in the way" );
+        return;
+        }
+    
+    int outputMapID = SettingsManager::getIntSetting( "outputMapID", -1 );
+    
+    File *nextFile = sceneDir.getChildFile( "next.txt" );
+    int nextID = nextFile->readFileIntContents( 0 );
+    if( outputMapID == -1 ) {
+        outputMapID = nextID;
+        }
+    if( outputMapID + 1 > nextID ) {
+        nextID = outputMapID + 1;
+        nextFile->writeToFile( nextID );
+        }
+    
+    char *name = autoSprintf( "%d.txt", outputMapID );
+    File *outputMapFileRaw = sceneDir.getChildFile( name );
+    delete [] name;
+    
+    if( !outputMapFileRaw->exists() ) {
+        outputMapFile = fopen( outputMapFileRaw->getFullFileName(), "a" );
+        outputMapFile_w = SettingsManager::getIntSetting( "outputMapMapSizeX", 400 );
+        outputMapFile_h = SettingsManager::getIntSetting( "outputMapMapSizeY", 400 );
+        outputMapFile_oX = SettingsManager::getIntSetting( "outputMapInitCenterX", 200 );
+        outputMapFile_oY = SettingsManager::getIntSetting( "outputMapInitCenterY", 200 );
+        if( outputMapFile_w > 800 ) outputMapFile_w = 800;
+        if( outputMapFile_h > 800 ) outputMapFile_h = 800;
+        if( outputMapFile_oX >= outputMapFile_w || outputMapFile_w < 0 ) outputMapFile_oX = int(outputMapFile_w / 2);
+        if( outputMapFile_oY >= outputMapFile_h || outputMapFile_h < 0 ) outputMapFile_oY = int(outputMapFile_h / 2);
+        fprintf( outputMapFile, "w=%d\nh=%d\norigin=%d,%d\nfloorPresent\n", outputMapFile_w, outputMapFile_h, outputMapFile_oX, outputMapFile_oY );
+        } 
+    else {
+        outputMapFile = fopen( outputMapFileRaw->getFullFileName(), "a" );
+        
+        char *fileText = outputMapFileRaw->readFileContents();
+        
+        if( fileText != NULL ) {
+            
+            int numLines = 0;
+            
+            char **lines = split( fileText, "\n", &numLines );
+            delete [] fileText;
+            
+            int next = 0;
+            
+            sscanf( lines[next], "w=%d", &outputMapFile_w );
+            next++;
+            sscanf( lines[next], "h=%d", &outputMapFile_h );
+            next++;
+
+            if( strstr( lines[next], "origin" ) != NULL ) {
+                sscanf( lines[next], "origin=%d,%d", &outputMapFile_oX, &outputMapFile_oY );
+                next++;
+                }
+            
+            if( strstr( lines[next], "floorPresent" ) != NULL ) {
+                next++;
+                }
+        
+            while( next < numLines ) {
+                
+                int x, y;
+                int numRead = sscanf( lines[next], "x=%d,y=%d", &x, &y );
+                
+                if( numRead == 2 ) {
+                    GridPos thisPos = { x, y };
+                    outputMapSavedPos.push_back( thisPos );
+                    }
+                
+                next++;
+                
+                }
+        
+            }
+        }
+    }
+
+
+static void outputMap( SimpleVector<char *> *tokens, 
+    int sizeX, int sizeY,
+    int x, int y,
+    int mMapOffsetX, int mMapOffsetY, int mMapD ) {
+    
+    if( outputMapFile != NULL ) {
+        
+        for( int i=0; i<tokens->size(); i++ ) {
+            int cX = i % sizeX;
+            int cY = i / sizeX;
+            
+            int mapX = cX + x - mMapOffsetX + mMapD / 2;
+            int mapY = cY + y - mMapOffsetY + mMapD / 2;
+            
+            if( mapX >= 0 && mapX < mMapD
+                &&
+                mapY >= 0 && mapY < mMapD ) {
+                
+                int mapI = mapY * mMapD + mapX;
+                
+
+                int realX = cX + x + outputMapFile_oX;
+                int realY = -( cY + y ) + outputMapFile_oY;
+                
+                if( realX >= outputMapFile_w ||
+                    realX < 0 ||
+                    realY >= outputMapFile_h ||
+                    realY < 0 )
+                    continue;
+                
+                int savedAlready = false;
+                GridPos thisPos = { realX, realY };
+                
+                for( int j=0; j<outputMapSavedPos.size(); j++ ) {
+                    if( equal( outputMapSavedPos.getElementDirect( j ), thisPos ) ) {
+                        savedAlready = true;
+                        break;
+                        }
+                    }
+                
+                if( savedAlready ) continue;
+                
+                outputMapSavedPos.push_back( thisPos );
+                
+                int biome = -1;
+                int floor = 0;
+                int oid = 0;
+                
+                sscanf( tokens->getElementDirect(i),
+                        "%d:%d:%d", 
+                        &( biome ),
+                        &( floor ),
+                        &( oid ) );
+                                
+                oid = getObjectParent( oid );
+                
+                fprintf( outputMapFile, "x=%d,y=%d\n", realX, realY );
+                
+                fprintf( outputMapFile, "biome=%d\n", biome );
+                
+                if( oid > 0 ) {
+                    fprintf( outputMapFile, "oID=%d\n", oid );
+                    fprintf( outputMapFile, "heldID=-1\n" );
+                    
+                    int numContained = 0;
+                    
+                    if( strstr( tokens->getElementDirect(i), "," ) != NULL ) {
+                        
+                        int numInts;
+                        char **ints = split( tokens->getElementDirect(i), ",", &numInts );
+                        
+                        delete [] ints[0];
+                        
+                        numContained = numInts - 1;
+                        
+                        fprintf( outputMapFile, "numCont=%d\n", numContained );
+                        
+                        for( int c=0; c<numContained; c++ ) {
+                            
+                            int contained = atoi( ints[ c + 1 ] );
+                            contained = getObjectParent( contained );
+                            
+                            fprintf( outputMapFile, "cont=%d\n", contained );
+                            fprintf( outputMapFile, "numSubCont=0\n" );
+
+                            delete [] ints[ c + 1 ];
+                            }
+                            
+                        delete [] ints;
+                        
+                        } 
+                    else {
+                        fprintf( outputMapFile, "numCont=%d\n", numContained );
+                        }
+                    
+
+                    int numUses = 0;
+                    ObjectRecord *obj = getObject( oid );
+                    if( obj != NULL ) numUses = obj->numUses;
+                    
+                    fprintf( outputMapFile, "hat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=%d\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\nempty\n", numUses );
+                    
+                    } 
+                else {
+                    fprintf( outputMapFile, "empty\n" );
+                    fprintf( outputMapFile, "empty\n" );
+                    }
+                
+                if( floor > 0 ) {
+                    
+                    fprintf( outputMapFile, "oID=%d\nheldID=-1\nnumCont=0\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=0\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\n", floor );
+                    
+                    } 
+                else {
+                    fprintf( outputMapFile, "empty\n" );
+                    }
+                
+                }
+            }
+        }
+    }
 
 
 
@@ -3177,6 +3396,8 @@ static double apocalypseDisplaySeconds = 6;
 
 static double remapPeakSeconds = 60;
 static double remapDelaySeconds = 30;
+
+int outputMapMode = 0;
 
 
 //EXTENDED FUNCTIONALITY
@@ -3547,6 +3768,9 @@ LivingLifePage::LivingLifePage()
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
         }
+
+    outputMapMode = SettingsManager::getIntSetting( "outputMapOn", 0 );
+    if( outputMapMode > 1 || outputMapMode < 0 ) outputMapMode = 0;
 
     if( SettingsManager::getIntSetting( "debugInfo", 0 ) ) {
         debugMode = true;
@@ -16292,6 +16516,11 @@ void LivingLifePage::step() {
                 int numCells = sizeX * sizeY;
                 
                 if( tokens->size() == numCells ) {
+                    
+                    if( outputMapMode == 1 ) {
+                        if( outputMapFile == NULL ) initOutputMap();
+                        outputMap( tokens, sizeX, sizeY, x, y, mMapOffsetX, mMapOffsetY, mMapD );
+                        }
                     
                     for( int i=0; i<tokens->size(); i++ ) {
                         int cX = i % sizeX;
