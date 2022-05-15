@@ -1109,13 +1109,16 @@ void minitech::updateDrawTwoTech() {
                 if( newTarget != NULL && 
                     newTarget->numSlots > 0 &&
                     ( newActor == NULL || 
-                        ( newActor->numSlots == 0 || 
-                        !newActor->permanent )
-                    )
+                      newActor->numSlots == 0 )
                 ) {
                     // in
                     inOrOutContainmentTrans = 0;
-                } else {
+                    }
+                else if( newActor != NULL && 
+                    newActor->numSlots > 0 &&
+                    ( newTarget == NULL || 
+                      newTarget->numSlots == 0 )
+                ) {
                     // out
                     inOrOutContainmentTrans = 1;
                 }
