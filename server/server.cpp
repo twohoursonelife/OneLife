@@ -8619,6 +8619,8 @@ static char addHeldToContainer( LiveObject *inPlayer,
                 int contID = getContained( 
                     inContX, inContY,
                     slotNumber );
+                    
+                if( contID < 0 ) contID *= -1;
             
                 while( slotNumber >= 0 &&
                        containmentPermitted( contTrans->newTarget, contID ) )  {
