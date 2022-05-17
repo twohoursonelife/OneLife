@@ -13135,10 +13135,11 @@ int main() {
 
                                     // Get the substr from one after the seed delim
                                     std::string seed { emailAndSeed.substr( seedDelimPos + 1 ) };
-                                    std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
+                                    std::string seedPepper =
+                                        SettingsManager::getStringSetting("seedPepper", "default seed");
 
                                     nextConnection->hashedSpawnSeed =
-                                        hashStr(seed, hashStr(seedSalt));
+                                        hashStr(seed, hashStr(seedPepper));
                                 }
 
                                 // Remove seed from email
