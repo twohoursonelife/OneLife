@@ -1002,7 +1002,8 @@ char *LivingLifePage::minitechGetDisplayObjectDescription( int objId ) {
 
 static bool possibleUseOnContainedContTrans( int oldId, int newId ) { 
     if( oldId == newId ) return false;
-    if( oldId <= 0 || newId <= 0 ) return false;
+    int maxObjectID = getMaxObjectID();
+    if( oldId <= 0 || newId <= 0 || oldId > maxObjectID || newId > maxObjectID ) return false;
     ObjectRecord *oldObj = getObject( oldId );
     ObjectRecord *newObj = getObject( newId );
     if( oldObj == NULL || newObj == NULL ) return false;
