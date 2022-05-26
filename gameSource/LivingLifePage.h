@@ -26,6 +26,8 @@
 
 #include "TextField.h"
 
+#include <string>
+
 
 #define NUM_HUNGER_BOX_SPRITES 20
 
@@ -515,7 +517,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 
 		doublePair minitechGetLastScreenViewCenter();
-		char *minitechGetDisplayObjectDescription(int objId);
+		std::string minitechGetDisplayObjectDescription(int objId);
 		bool minitechSayFieldIsFocused() { return mSayField.isFocused(); }
 
         virtual void actionPerformed( GUIComponent *inTarget );
