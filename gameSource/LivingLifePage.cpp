@@ -3070,19 +3070,21 @@ static void initOutputMap() {
 
     File *nextFile = sceneDir.getChildFile( "next.txt" );
     int nextID = nextFile->readFileIntContents( 0 );
+    // Check to see if the tutorial is done. If it isn't, there is no seed spawn.
     int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
     File *outputMapFileRaw = NULL;
-    if( seed == "" || tutorialDone == 0 ) {
+    if( seed == "" || tutorialDone == 0 ) { // if there's no seed, or it's a tutorial, there's no repeatability.
         outputMapID = nextID;
         do {
-            char *name = autoSprintf( "Auto_%d.txt", outputMapID );
+	    // Differentiate between maps generated from random births and tutorial lives.
+            char *name = autoSprintf( "%s_%d.txt", tutorialDone ? "Auto" : "Tutorial", outputMapID );
             outputMapFileRaw = sceneDir.getChildFile( name );
             outputMapID++;
             delete [] name;
-        } while ( outputMapFileRaw->exists() );
+        } while ( outputMapFileRaw->exists() ); // Keep incrementing until we know we're not using an existing file.
 
         nextID = outputMapID + 1;
-        nextFile->writeToFile( nextID );
+        nextFile->writeToFile( nextID ); // Save the number so we don't have to try as many next time.
         }
     else {
         std::string safe_seed = url_encode(seed); // Lots of characters are allowed in seeds that are not allowed in filenames.
