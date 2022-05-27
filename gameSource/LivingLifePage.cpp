@@ -3102,8 +3102,8 @@ static void initOutputMap() {
         outputMapFile = fopen( outputMapFileRaw->getFullFileName(), "ab" );
         outputMapFile_w = SettingsManager::getIntSetting( "outputMapMapSizeX", 400 );
         outputMapFile_h = SettingsManager::getIntSetting( "outputMapMapSizeY", 400 );
-        outputMapFile_oX = SettingsManager::getIntSetting( "outputMapInitCenterX", 200 );
-        outputMapFile_oY = SettingsManager::getIntSetting( "outputMapInitCenterY", 200 );
+        outputMapFile_oX = SettingsManager::getIntSetting( "outputMapInitCenterX", int(outputMapFile_w / 2) );
+        outputMapFile_oY = SettingsManager::getIntSetting( "outputMapInitCenterY", int(outputMapFile_h / 2) );
         if( outputMapFile_w > 800 ) outputMapFile_w = 800;
         if( outputMapFile_h > 800 ) outputMapFile_h = 800;
         if( outputMapFile_oX >= outputMapFile_w || outputMapFile_w < 0 ) outputMapFile_oX = int(outputMapFile_w / 2);
