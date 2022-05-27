@@ -3076,7 +3076,11 @@ static void initOutputMap() {
     if( seed == "" || tutorialDone == 0 ) { // if there's no seed, or it's a tutorial, there's no repeatability.
         outputMapID = nextID;
         do {
-	    // Differentiate between maps generated from random births and tutorial lives.
+            // Differentiate between maps generated from random births and tutorial lives.
+            if( outputMapFileRaw != NULL) {
+                delete outputMapFileRaw;
+                outputMapFileRaw = NULL;
+                }
             char *name = autoSprintf( "%s_%d.txt", tutorialDone ? "Auto" : "Tutorial", outputMapID );
             outputMapFileRaw = sceneDir.getChildFile( name );
             outputMapID++;
