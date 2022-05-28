@@ -3087,7 +3087,7 @@ static void initOutputMap() {
             delete [] name;
         } while ( outputMapFileRaw->exists() ); // Keep incrementing until we know we're not using an existing file.
 
-        nextID = outputMapID + 1;
+        nextID = outputMapID;
         nextFile->writeToFile( nextID ); // Save the number so we don't have to try as many next time.
         }
     else {
