@@ -21,11 +21,11 @@ void LoadingPage::draw( doublePair inViewCenter,
 
     doublePair labelPos = { 0, 0 };
 
-    drawMessage( "LOADING", labelPos, false );
+    drawMessage( "LOADING", labelPos, false, 1.0, true );
 
     labelPos.y = -100;
     
-    drawMessage( mPhaseName, labelPos, false );
+    drawMessage( mPhaseName, labelPos, false, 1.0, true );
 
 
     if( mShowProgress ) {

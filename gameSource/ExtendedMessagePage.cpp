@@ -69,11 +69,11 @@ void ExtendedMessagePage::draw( doublePair inViewCenter,
     
     doublePair pos = { 0, 200 };
     
-    drawMessage( mMessageKey, pos );
+    drawMessage( mMessageKey, pos, false, 1.0, true );
     
     if( mSubMessage != NULL ) {
         pos.y = 50;
-        drawMessage( mSubMessage, pos );
+        drawMessage( mSubMessage, pos, false, 1.0, true );
         }
     
     }
