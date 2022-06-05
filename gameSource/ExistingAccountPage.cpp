@@ -25,6 +25,9 @@
 static JenkinsRandomSource randSource;
 
 char fieldsLocked = true;
+int emailFieldLockedMode = 0;
+int keyFieldLockedMode = 0;
+int seedFieldLockedMode = 0;
 
 extern Font *mainFont;
 
@@ -65,6 +68,9 @@ ExistingAccountPage::ExistingAccountPage()
           mGameLogo( "logo.tga", 1.0f, {-360, 256} ),
           mSeedButton( mainFont, -360, -64, "SEED" ),
           mUnlockButton( mainFont, -360, -256, "UNLOCK FIELDS" ),
+          mEmailLockButton( mainFont, -108, 96, "!" ),
+          mKeyLockButton( mainFont, -108, 0, "!" ),
+          mSpawnSeedLockButton( mainFont, -108, -192, "!" ),
           mLoginButton( mainFont, -360, -64, translate( "loginButton" ) ),
           mFriendsButton( mainFont, -360, -64, translate( "friendsButton" ) ),
           mGenesButton( mainFont, 522, 300, translate( "genesButton" ) ),
@@ -91,8 +97,8 @@ ExistingAccountPage::ExistingAccountPage()
     
     // center this in free space
     
-    mPasteButton.setPosition( mKeyField.getRightEdgeX() + 64,
-                              47 );
+    // mPasteButton.setPosition( mKeyField.getRightEdgeX() + 64,
+                              // 47 );
     
     // align this one with the paste button
     mAtSignButton.setPosition( mEmailField.getRightEdgeX() + 48,
@@ -127,6 +133,9 @@ ExistingAccountPage::ExistingAccountPage()
     setButtonStyle( &mDisableCustomServerButton );
     setButtonStyle( &mUnlockButton );
     setButtonStyle( &mSeedButton );
+    setButtonStyle( &mEmailLockButton );
+    setButtonStyle( &mKeyLockButton );
+    setButtonStyle( &mSpawnSeedLockButton );
     
     mFields[0] = &mEmailField;
     mFields[1] = &mKeyField;
@@ -158,6 +167,9 @@ ExistingAccountPage::ExistingAccountPage()
     addComponent( &mUnlockButton );
     addComponent( &mSeedButton );
     addComponent( &mSpawnSeed );
+    addComponent( &mEmailLockButton );
+    addComponent( &mKeyLockButton );
+    addComponent( &mSpawnSeedLockButton );
     
     // this section have all buttons with the same width
     mTutorialButton.setSize( 175, 60 );
@@ -193,6 +205,10 @@ ExistingAccountPage::ExistingAccountPage()
     
     mDisableCustomServerButton.addActionListener( this );
     mUnlockButton.addActionListener( this );
+    
+    mEmailLockButton.addActionListener( this );
+    mKeyLockButton.addActionListener( this );
+    mSpawnSeedLockButton.addActionListener( this );
     
     mRetryButton.setVisible( false );
     mRedetectButton.setVisible( false );
@@ -245,6 +261,42 @@ void ExistingAccountPage::showDisableCustomServerButton( char inShow ) {
     }
 
 
+void ExistingAccountPage::updatefieldsAndLockButtons() {
+    mEmailLockButton.setLabelText( emailFieldLockedMode == 2 ? "ok" : "!" );
+    mEmailLockButton.setPosition( 
+        mEmailField.getRightEdgeX() + mEmailLockButton.getWidth() / 2 + 4, 
+        mEmailField.getPosition().y );
+    mEmailLockButton.setPadding( 8, 4 );
+    mEmailLockButton.setVisible( emailFieldLockedMode != 0 );
+    mEmailField.setContentsHidden( emailFieldLockedMode != 2 );
+    mEmailField.setIgnoreEvents( emailFieldLockedMode != 2 );
+    mEmailField.unfocus();
+    
+    mKeyLockButton.setLabelText( keyFieldLockedMode == 2 ? "ok" : "!" );
+    mKeyLockButton.setPosition( 
+        mKeyField.getRightEdgeX() + mKeyLockButton.getWidth() / 2 + 4, 
+        mKeyField.getPosition().y );
+    mKeyLockButton.setPadding( 8, 4 );
+    mKeyLockButton.setVisible( keyFieldLockedMode != 0 );
+    mKeyField.setContentsHidden( keyFieldLockedMode != 2 );
+    mKeyField.setIgnoreEvents( keyFieldLockedMode != 2 );
+    mKeyField.unfocus();
+    mPasteButton.setPosition( 
+        mKeyField.getRightEdgeX() + 4 + mKeyLockButton.getWidth() + 
+        12 + mPasteButton.getWidth() / 2, 
+        mKeyField.getPosition().y );
+    mPasteButton.setPadding( 8, 4 );
+    
+    mSpawnSeedLockButton.setLabelText( seedFieldLockedMode == 2 ? "ok" : "!" );
+    mSpawnSeedLockButton.setPosition( 
+        mSpawnSeed.getRightEdgeX() + mSpawnSeedLockButton.getWidth() / 2 + 4, 
+        mSpawnSeed.getPosition().y );
+    mSpawnSeedLockButton.setPadding( 8, 4 );
+    mSpawnSeedLockButton.setVisible( seedFieldLockedMode != 0 );
+    mSpawnSeed.setContentsHidden( seedFieldLockedMode != 2 );
+    mSpawnSeed.setIgnoreEvents( seedFieldLockedMode != 2 );
+    mSpawnSeed.unfocus();
+    }
 
 
 void ExistingAccountPage::makeActive( char inFresh ) {
@@ -316,6 +368,8 @@ void ExistingAccountPage::makeActive( char inFresh ) {
 
     char *emailText = mEmailField.getText();
     char *keyText = mKeyField.getText();
+    
+    updatefieldsAndLockButtons();
 
     mUnlockButton.setLabelText( "LOCK FIELDS" );
     fieldsLocked = false;
@@ -343,11 +397,13 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         mEmailField.unfocus();
         mKeyField.unfocus();
         
-        mEmailField.setContentsHidden( true );
-        mKeyField.setContentsHidden( true );
+        // mEmailField.setContentsHidden( true );
+        // mKeyField.setContentsHidden( true );
         
-        mEmailField.setIgnoreEvents( fieldsLocked );
-        mKeyField.setIgnoreEvents( fieldsLocked );
+        emailFieldLockedMode = 0;
+        keyFieldLockedMode = 0;
+        seedFieldLockedMode = 0;
+        updatefieldsAndLockButtons();
         
         char *url = SettingsManager::getStringSetting( "lineageServerURL", "" );
 
@@ -437,10 +493,46 @@ void ExistingAccountPage::step() {
     mSeedButton.setIgnoreEvents( blockClicks );
     mFriendsButton.setIgnoreEvents( blockClicks );
     
-    mEmailField.setIgnoreEvents( fieldsLocked ? true : blockClicks );
-    mKeyField.setIgnoreEvents( fieldsLocked ? true : blockClicks );
+    // mEmailField.setIgnoreEvents( fieldsLocked ? true : blockClicks );
+    // mKeyField.setIgnoreEvents( fieldsLocked ? true : blockClicks );
+    }
+    
+    
+static bool insideTextField( float inX, float inY, auto *targetField ) {
+    doublePair pos = targetField->getPosition();
+    return fabs( inX - pos.x ) < targetField->getWidth() / 2 &&
+        fabs( inY - pos.y ) < 48 / 2;
     }
 
+
+void ExistingAccountPage::pointerUp( float inX, float inY ) {
+    
+    if( insideTextField( inX, inY, &mEmailField ) ) {
+        if( emailFieldLockedMode == 0 ) {
+            keyFieldLockedMode = 0;
+            seedFieldLockedMode = 0;
+            emailFieldLockedMode = 1;
+            updatefieldsAndLockButtons();
+            }
+        }
+    if( insideTextField( inX, inY, &mKeyField ) ) {
+        if( keyFieldLockedMode == 0 ) {
+            emailFieldLockedMode = 0;
+            seedFieldLockedMode = 0;
+            keyFieldLockedMode = 1;
+            updatefieldsAndLockButtons();
+            }
+        }
+    if( insideTextField( inX, inY, &mSpawnSeed ) ) {
+        if( seedFieldLockedMode == 0 ) {
+            emailFieldLockedMode = 0;
+            keyFieldLockedMode = 0;
+            seedFieldLockedMode = 1;
+            updatefieldsAndLockButtons();
+            }
+        }
+    
+    }
 
 
 void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
@@ -627,6 +719,18 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         mEmailField.unfocus();
         mKeyField.unfocus();
         mSpawnSeed.unfocus();
+        }
+    else if( inTarget == &mEmailLockButton ) {
+        emailFieldLockedMode = (emailFieldLockedMode + 1) % 3;
+        updatefieldsAndLockButtons();
+        }
+    else if( inTarget == &mKeyLockButton ) {
+        keyFieldLockedMode = (keyFieldLockedMode + 1) % 3;
+        updatefieldsAndLockButtons();
+        }
+    else if( inTarget == &mSpawnSeedLockButton ) {
+        seedFieldLockedMode = (seedFieldLockedMode + 1) % 3;
+        updatefieldsAndLockButtons();
         }
     }
 

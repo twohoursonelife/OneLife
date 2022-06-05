@@ -67,6 +67,8 @@ class ExistingAccountPage : public GamePage, public ActionListener {
         // for TAB and ENTER (switch fields and start login)
         virtual void keyDown( unsigned char inASCII );
         
+        virtual void pointerUp( float inX, float inY );
+        
         // for arrow keys (switch fields)
         virtual void specialKeyDown( int inKeyCode );
         
@@ -94,6 +96,10 @@ class ExistingAccountPage : public GamePage, public ActionListener {
         TextButton mSeedButton;
         TextButton mUnlockButton;
         
+        TextButton mEmailLockButton;
+        TextButton mKeyLockButton;
+        TextButton mSpawnSeedLockButton;
+        
         TextButton mLoginButton;
         TextButton mFriendsButton;
         TextButton mGenesButton;
@@ -120,6 +126,8 @@ class ExistingAccountPage : public GamePage, public ActionListener {
         char mHideAccount;
 
         void switchFields();
+        
+        void updatefieldsAndLockButtons();
         
         void processLogin( char inStore, const char *inSignal );
 

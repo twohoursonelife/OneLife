@@ -96,6 +96,9 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
         
         double getRightEdgeX();
+        double getLeftEdgeX();
+        
+        double getWidth();
         
 
         // defaults to false
