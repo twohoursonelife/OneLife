@@ -3196,12 +3196,10 @@ static void outputMap( SimpleVector<char *> *tokens,
                     continue;
                 
 
-                char lookupSaved = false;
-                char savedAlready = outputMapSavedPos.lookup(realX, realY, 0, 0, &lookupSaved);
-                // return from lookup will either be default (false), or the real value, which is also in lookupSaved.
-                // However, lookupSaved is a pointer, and we aren't allocating memory for this, so we shouldn't use it.
-                // If there is no real value, lookupSaved never changes.
-                lookupSaved = false;
+                char savedAlready = false;
+                outputMapSavedPos.lookup(realX, realY, 0, 0, &savedAlready);
+                // the return value of lookup returns the value looked up, or the default value(CHAR_MAX)
+                // savedAlready returns whether the lookup succeeded or not.
 
 
                 
@@ -3216,7 +3214,7 @@ static void outputMap( SimpleVector<char *> *tokens,
                         &( floor ),
                         &( oid ) );
 
-                if( savedAlready != CHAR_MAX ) continue;
+                if( savedAlready ) continue;
                 // Saving a little later, because this way we have access to the map for later changes.
                 // The extra time at this point is negligible.
                 outputMapSavedPos.insert(realX, realY, 0, 0, biome);
