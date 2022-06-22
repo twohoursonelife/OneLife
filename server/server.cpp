@@ -7958,11 +7958,6 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
             strcmp( inConnection.twinCode, nextConnection->twinCode ) == 0 
             &&
             inConnection.twinCount == nextConnection->twinCount ) {
-            
-            if( strcmp( inConnection.email, nextConnection->email ) == 0 ) {
-                // don't count this connection itself
-                continue;
-                }
 
             if( nextConnection->curseStatus.curseLevel > 
                 anyTwinCurseLevel.curseLevel ) {
@@ -7974,14 +7969,43 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
         }
 
     
-    if( twinConnections.size() + 1 >= inConnection.twinCount ) {
+    if( twinConnections.size() >= inConnection.twinCount ) {
         // everyone connected and ready in twin party
 
         AppLog::infoF( "Found %d other people waiting for twin party of %s, "
                        "ready", 
                        twinConnections.size(), inConnection.email );
+                       
+                       
+        // see if player was previously disconnected
+        for( int i=0; i<players.size(); i++ ) {
+            LiveObject *o = players.getElement( i );
+            
+            if( ! o->error && ! o->connected &&
+                strcmp( o->email, inConnection.email ) == 0 ) {
+                       
+                // take them out of waiting list too
+                for( int i=0; i<waitingForTwinConnections.size(); i++ ) {
+                    if( waitingForTwinConnections.getElement( i )->sock ==
+                        inConnection.sock ) {
+                        // found
+                        
+                        waitingForTwinConnections.deleteElement( i );
+                        break;
+                        }
+                    }
+
+                if( inConnection.twinCode != NULL ) {
+                    delete [] inConnection.twinCode;
+                    inConnection.twinCode = NULL;
+                    }
+                nextLogInTwin = false;
+                return;
+                }
+            }
+            
         
-        char *emailCopy = stringDuplicate( inConnection.email );
+        nextLogInTwin = true;
         
         // set up twin emails for lineage ban
         for( int i=0; i<twinConnections.size(); i++ ) {
@@ -7990,137 +8014,140 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
         
             tempTwinEmails.push_back( nextConnection->email );
             }
-        
-        nextLogInTwin = true;
-        firstTwinID = -1;
-        
-        int newID = processLoggedInPlayer( false,
-                                           inConnection.sock,
-                                           inConnection.sockBuffer,
-                                           inConnection.email,
-                                           inConnection.hashedSpawnSeed,
-                                           inConnection.tutorialNumber,
-                                           anyTwinCurseLevel,
-                                           inConnection.fitnessScore );
-        tempTwinEmails.deleteAll();
-        
-        if( newID == -1 ) {
-            AppLog::infoF( "%s reconnected to existing life, not triggering "
-                           "fellow twins to spawn now.",
-                           emailCopy );
-
-            // take them out of waiting list too
-            for( int i=0; i<waitingForTwinConnections.size(); i++ ) {
-                if( waitingForTwinConnections.getElement( i )->sock ==
-                    inConnection.sock ) {
-                    // found
-                    
-                    waitingForTwinConnections.deleteElement( i );
-                    break;
-                    }
-                }
-
-            delete [] emailCopy;
-
-            if( inConnection.twinCode != NULL ) {
-                delete [] inConnection.twinCode;
-                inConnection.twinCode = NULL;
-                }
-            nextLogInTwin = false;
-            return;
-            }
-
-        delete [] emailCopy;
-        
-        firstTwinID = newID;
-        
-        LiveObject *newPlayer = NULL;
-
-        if( inConnection.tutorialNumber == 0 ) {
-            newPlayer = getLiveObject( newID );
-            }
-        else {
-            newPlayer = tutorialLoadingPlayers.getElement(
-                tutorialLoadingPlayers.size() - 1 );
-            }
-
-
-        int parent = newPlayer->parentID;
-        int displayID = newPlayer->displayID;
-        GridPos playerPos = { newPlayer->xd, newPlayer->yd };
-        
-        GridPos *forcedEvePos = NULL;
-        
-        if( parent == -1 ) {
-            // first twin placed was Eve
-            // others are identical Eves
-            forcedEvePos = &playerPos;
-            // trigger forced Eve placement
-            parent = -2;
-            }
-
 
         char usePersonalCurses = 
             SettingsManager::getIntSetting( "usePersonalCurses", 0 );
-    
 
 
+        int newID = -1;
+        LiveObject *newPlayer = NULL;
+        
+        int parent = 0;
+        int displayID = 0;
+        GridPos playerPos;
+        GridPos *forcedEvePos = NULL;
+        
         // save these out here, because newPlayer points into 
         // tutorialLoadingPlayers, which may expand during this loop,
         // invalidating that pointer
-        char isTutorial = newPlayer->isTutorial;
-        TutorialLoadProgress sharedTutorialLoad = newPlayer->tutorialLoad;
+        char isTutorial = false;
+        TutorialLoadProgress sharedTutorialLoad;
+
+
 
         for( int i=0; i<twinConnections.size(); i++ ) {
             FreshConnection *nextConnection = 
                 twinConnections.getElementDirect( i );
-            
-            processLoggedInPlayer( false, 
-                                   nextConnection->sock,
-                                   nextConnection->sockBuffer,
-                                   nextConnection->email,
-                                   nextConnection->hashedSpawnSeed,
-                                   // ignore tutorial number of all but
-                                   // first player
-                                   0,
-                                   anyTwinCurseLevel,
-                                   nextConnection->fitnessScore,
-                                   parent,
-                                   displayID,
-                                   forcedEvePos );
-            
-            // just added is always last object in list
-            
-            if( usePersonalCurses ) {
-                // curse level not known until after first twin logs in
-                // their curse level is set based on blockage caused
-                // by any of the other twins in the party
-                // pass it on.
-                LiveObject *newTwinPlayer = 
-                    players.getElement( players.size() - 1 );
-                newTwinPlayer->curseStatus = newPlayer->curseStatus;
-                }
-
-
-
-            LiveObject newTwinPlayer = 
-                players.getElementDirect( players.size() - 1 );
-
-            if( isTutorial ) {
-                // force this one to wait for same tutorial map load
-                newTwinPlayer.tutorialLoad = sharedTutorialLoad;
-
-                // flag them as a tutorial player too, so they can't have
-                // babies in the tutorial, and they won't be remembered
-                // as a long-lineage position at shutdown
-                newTwinPlayer.isTutorial = true;
-
-                players.deleteElement( players.size() - 1 );
                 
-                tutorialLoadingPlayers.push_back( newTwinPlayer );
+            if( i == 0 ) {
+            
+                newID = processLoggedInPlayer( false, 
+                                               nextConnection->sock,
+                                               nextConnection->sockBuffer,
+                                               nextConnection->email,
+                                               nextConnection->hashedSpawnSeed,
+                                               nextConnection->tutorialNumber,
+                                               anyTwinCurseLevel,
+                                               nextConnection->fitnessScore );
+                tempTwinEmails.deleteAll();
+                                                   
+                if( newID == -1 ) {
+                    char *emailCopy = stringDuplicate( inConnection.email );
+                    
+                    AppLog::infoF( "%s reconnected to existing life, not triggering "
+                                   "fellow twins to spawn now.",
+                                   emailCopy );
+                                   
+                    delete [] emailCopy;
+
+                    if( inConnection.twinCode != NULL ) {
+                        delete [] inConnection.twinCode;
+                        inConnection.twinCode = NULL;
+                        }
+                    nextLogInTwin = false;
+                    return;
+                    }
+                    
+                firstTwinID = newID;
+                    
+                if( nextConnection->tutorialNumber == 0 ) {
+                    newPlayer = getLiveObject( newID );
+                    }
+                else {
+                    newPlayer = tutorialLoadingPlayers.getElement(
+                        tutorialLoadingPlayers.size() - 1 );
+                    }
+                    
+                parent = newPlayer->parentID;
+                displayID = newPlayer->displayID;
+                playerPos = { newPlayer->xd, newPlayer->yd };
+                forcedEvePos = NULL;
+                
+                if( parent == -1 ) {
+                    // first twin placed was Eve
+                    // others are identical Eves
+                    forcedEvePos = &playerPos;
+                    // trigger forced Eve placement
+                    parent = -2;
+                    }
+                    
+                isTutorial = newPlayer->isTutorial;
+                sharedTutorialLoad = newPlayer->tutorialLoad;
+                    
+                                                   
                 }
+            else {
+                
+                processLoggedInPlayer( false, 
+                                       nextConnection->sock,
+                                       nextConnection->sockBuffer,
+                                       nextConnection->email,
+                                       nextConnection->hashedSpawnSeed,
+                                       // ignore tutorial number of all but
+                                       // first player
+                                       0,
+                                       anyTwinCurseLevel,
+                                       nextConnection->fitnessScore,
+                                       parent,
+                                       displayID,
+                                       forcedEvePos );
+                                       
+                // just added is always last object in list
+                
+                if( usePersonalCurses ) {
+                    // curse level not known until after first twin logs in
+                    // their curse level is set based on blockage caused
+                    // by any of the other twins in the party
+                    // pass it on.
+                    LiveObject *newTwinPlayer = 
+                        players.getElement( players.size() - 1 );
+                    newTwinPlayer->curseStatus = newPlayer->curseStatus;
+                    }
+
+
+
+                LiveObject newTwinPlayer = 
+                    players.getElementDirect( players.size() - 1 );
+
+                if( isTutorial ) {
+                    // force this one to wait for same tutorial map load
+                    newTwinPlayer.tutorialLoad = sharedTutorialLoad;
+
+                    // flag them as a tutorial player too, so they can't have
+                    // babies in the tutorial, and they won't be remembered
+                    // as a long-lineage position at shutdown
+                    newTwinPlayer.isTutorial = true;
+
+                    players.deleteElement( players.size() - 1 );
+                    
+                    tutorialLoadingPlayers.push_back( newTwinPlayer );
+                    }
+                                       
+                }
+                                       
             }
-        
+
+                
         firstTwinID = -1;
 
         char *twinCode = stringDuplicate( inConnection.twinCode );
@@ -8150,7 +8177,6 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
         nextLogInTwin = false;
         }
     }
-
 
 
 // doesn't check whether dest itself is blocked
