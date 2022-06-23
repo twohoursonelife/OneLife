@@ -427,6 +427,7 @@ typedef struct FreshConnection {
 
         char *email;
         uint32_t hashedSpawnSeed;
+        char *famTarget = NULL;
         
         int tutorialNumber;
         CurseStatus curseStatus;
@@ -6468,7 +6469,8 @@ int processLoggedInPlayer( char inAllowReconnect,
                            Socket *inSock,
                            SimpleVector<char> *inSockBuffer,
                            char *inEmail,
-                           uint32_t hashedSpawnSeed,
+                           //passing the whole thing for the seed and famTarget
+                           FreshConnection *connection,
                            int inTutorialNumber,
                            CurseStatus inCurseStatus,
 						   float inFitnessScore,
@@ -6817,6 +6819,19 @@ int processLoggedInPlayer( char inAllowReconnect,
 		    if( player->declaredInfertile ) {
 				continue;
 				}
+                
+            //we specified a family we wanna be born into, skip others
+            if( connection->famTarget != NULL ) {
+                if( player->familyName != NULL ) {
+                    std::string famTarget( connection->famTarget );
+                    std::string familyName( player->familyName );
+                    if( familyName != famTarget ) continue;
+                    }
+                else {
+                    continue;
+                    }
+                }
+            
 
             //GridPos motherPos = getPlayerPos( player );
                 
@@ -6947,11 +6962,16 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     
+    if( connection->famTarget != NULL && parentChoices.size() == 0 ) {
+        // -2 means failure to be born due to famTarget restriction
+        return -2;
+        }
+    
     if( SettingsManager::getIntSetting( "forceAllPlayersEve", 0 ) ) {
         parentChoices.deleteAll();
         }
 		
-    if( hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) ) {
+    if( connection->hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) ) {
         parentChoices.deleteAll();
         }
 
@@ -7443,7 +7463,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         uint32_t tempHashedSpawnSeed;
         int useSeedList = SettingsManager::getIntSetting( "useSeedList", 0 );
         //pick a random seed from a list to be the default spawn
-        if ( useSeedList && hashedSpawnSeed == 0 ) {
+        if ( useSeedList && connection->hashedSpawnSeed == 0 ) {
             
             //parse the seeds
             SimpleVector<char *> *list = 
@@ -7489,7 +7509,7 @@ int processLoggedInPlayer( char inAllowReconnect,
           }
         else {
             //use defalt seed configuration
-            tempHashedSpawnSeed = hashedSpawnSeed;
+            tempHashedSpawnSeed = connection->hashedSpawnSeed;
         }
 
         if( tempHashedSpawnSeed != 0 ) {
@@ -8045,7 +8065,7 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                                                nextConnection->sock,
                                                nextConnection->sockBuffer,
                                                nextConnection->email,
-                                               nextConnection->hashedSpawnSeed,
+                                               nextConnection,
                                                nextConnection->tutorialNumber,
                                                anyTwinCurseLevel,
                                                nextConnection->fitnessScore );
@@ -8065,6 +8085,27 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         inConnection.twinCode = NULL;
                         }
                     nextLogInTwin = false;
+                    return;
+                    }
+                else if( newID == -2 ) {
+                    
+                    for( int j=0; j<twinConnections.size(); j++ ) {
+                        FreshConnection *nextConnectionToReject = 
+                            twinConnections.getElementDirect( j );
+                    
+                        nextConnectionToReject->error = true;
+                        nextConnectionToReject->errorCauseString =
+                            "Target family is not found or does not have fertiles";
+                            
+                        if( nextConnectionToReject->twinCode != NULL ) {
+                            delete [] nextConnectionToReject->twinCode;
+                            nextConnectionToReject->twinCode = NULL;
+                            }
+                        }
+                    
+                    nextLogInTwin = false;
+                    // Do not remove the connection from waitingForTwinConnections
+                    // we need to notify them about the famTarget failure
                     return;
                     }
                     
@@ -8102,7 +8143,7 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                                        nextConnection->sock,
                                        nextConnection->sockBuffer,
                                        nextConnection->email,
-                                       nextConnection->hashedSpawnSeed,
+                                       nextConnection,
                                        // ignore tutorial number of all but
                                        // first player
                                        0,
@@ -13059,9 +13100,13 @@ int main() {
                     delete [] nextConnection->sequenceNumberString;
                     nextConnection->sequenceNumberString = NULL;
                             
+                    bool removeConnectionFromList = true;
+                    
                     if( nextConnection->twinCode != NULL
                         && 
                         nextConnection->twinCount > 0 ) {
+                        // Failed connection due to famTarget will be notified elsewhere
+                        // we can remove their connection from the list here
                         processWaitingTwinConnection( *nextConnection );
                         }
                     else {
@@ -13070,19 +13115,30 @@ int main() {
                             nextConnection->twinCode = NULL;
                             }
                                 
-                        processLoggedInPlayer( 
+                        int newID = processLoggedInPlayer( 
                             true,
                             nextConnection->sock,
                             nextConnection->sockBuffer,
                             nextConnection->email,
-                            nextConnection->hashedSpawnSeed,
+                            nextConnection,
                             nextConnection->tutorialNumber,
                             nextConnection->curseStatus,
                             nextConnection->fitnessScore );
+                            
+                        if( newID == -2 ) {
+                            nextConnection->error = true;
+                            nextConnection->errorCauseString =
+                                "Target family is not found or does not have fertiles";
+                            // Do not remove this connection
+                            // we need to notify them about the famTarget failure
+                            removeConnectionFromList = false;
+                            }
                         }
                                                         
-                    newConnections.deleteElement( i );
-                    i--;
+                    if( removeConnectionFromList ) {
+                        newConnections.deleteElement( i );
+                        i--;
+                        }
                     }
                 }
             else if( nextConnection->ticketServerRequest == NULL ) {
@@ -13186,6 +13242,36 @@ int main() {
                                 }
                             } else {
                                 nextConnection->hashedSpawnSeed = 0;
+                                
+                                // Check for famTarget as well only if seed isn't present in email
+                                const char famTargetDelim = ':';
+
+
+                                std::string emailAndFamTarget { nextConnection->email };
+
+                                const size_t famTargetDelimPos = emailAndFamTarget.find( famTargetDelim );
+
+                                if( famTargetDelimPos != std::string::npos ) {
+
+                                    // Get the substr from one after the famTarget delim
+                                    std::string famTarget { emailAndFamTarget.substr( famTargetDelimPos + 1 ) };
+
+                                    nextConnection->famTarget =
+                                        stringDuplicate( famTarget.c_str() );
+
+                                    // Remove famTarget from email
+                                    if( famTargetDelimPos == 0 ) {
+                                        // There was only a famTarget not email
+                                        nextConnection->email = stringDuplicate( "blank_email" );
+                                    } else {
+                                        std::string onlyEmail { emailAndFamTarget.substr( 0, famTargetDelimPos ) };
+
+                                        delete[] nextConnection->email;
+                                        nextConnection->email = stringDuplicate( onlyEmail.c_str() );
+                                    }
+                                } else {
+                                    nextConnection->famTarget = NULL;
+                                }
                             }
 
                             char *pwHash = tokens->getElementDirect( 2 );
@@ -13308,9 +13394,13 @@ int main() {
                                     nextConnection->sequenceNumberString = NULL;
 
 
+                                    bool removeConnectionFromList = true;
+                                    
                                     if( nextConnection->twinCode != NULL
                                         && 
                                         nextConnection->twinCount > 0 ) {
+                                        // Failed connection due to famTarget will be notified elsewhere
+                                        // we can remove their connection from the list here                        
                                         processWaitingTwinConnection(
                                             *nextConnection );
                                         }
@@ -13319,19 +13409,30 @@ int main() {
                                             delete [] nextConnection->twinCode;
                                             nextConnection->twinCode = NULL;
                                             }
-                                        processLoggedInPlayer(
+                                        int newID = processLoggedInPlayer( 
                                             true,
                                             nextConnection->sock,
                                             nextConnection->sockBuffer,
                                             nextConnection->email,
-                                            nextConnection->hashedSpawnSeed,
+                                            nextConnection,
                                             nextConnection->tutorialNumber,
                                             nextConnection->curseStatus,
                                             nextConnection->fitnessScore );
+                                            
+                                        if( newID == -2 ) {
+                                            nextConnection->error = true;
+                                            nextConnection->errorCauseString =
+                                                "Target family is not found or does not have fertiles";
+                                            // Do not remove this connection
+                                            // we need to notify them about the famTarget failure
+                                            removeConnectionFromList = false;
+                                            }
                                         }
                                                                         
-                                    newConnections.deleteElement( i );
-                                    i--;
+                                    if( removeConnectionFromList ) {
+                                        newConnections.deleteElement( i );
+                                        i--;
+                                        }
                                     }
                                 }
                             }
