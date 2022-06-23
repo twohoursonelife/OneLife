@@ -186,6 +186,7 @@ void PageComponent::base_pointerMove( float inX, float inY ){
         }
     
     pointerMove( inX, inY );
+    if( mIgnoreEvents && mCursorTip != NULL ) clearState();
     }
 
 
