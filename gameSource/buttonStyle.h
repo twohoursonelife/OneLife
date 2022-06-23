@@ -6,3 +6,5 @@
 void setButtonStyle( Button *inButton );
 
     
+// old button style before login page redesign
+void setDarkButtonStyle( Button *inButton );

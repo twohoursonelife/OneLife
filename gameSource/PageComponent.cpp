@@ -2,11 +2,16 @@
 
 #include "minorGems/game/game.h"
 
+#include "minorGems/game/drawUtils.h"
+
+extern Font *tinyHandwritingFont;
+extern double viewWidth;
 
 PageComponent::PageComponent( double inX, double inY )
         : mX( inX ), mY( inY ), mParent( NULL ), mVisible( true ),
           mIgnoreEvents( false ),
-          mMouseEventHog( NULL ) {
+          mMouseEventHog( NULL ),
+          mCursorTip( NULL ) {
     
     }
         
@@ -27,7 +32,7 @@ void PageComponent::setParent( PageComponent *inParent ) {
 
 
 void PageComponent::setToolTip( const char *inTip ) {
-    if( mParent != NULL ) {
+    if( mParent != NULL && mCursorTip == NULL ) {
         mParent->setToolTip( inTip );
         }
     }
@@ -55,6 +60,7 @@ void PageComponent::base_step(){
     }
 
 
+doublePair pointerPos = { 0, 0 };
 
 void PageComponent::base_draw( doublePair inViewCenter, 
                                double inViewSize ){
@@ -73,6 +79,35 @@ void PageComponent::base_draw( doublePair inViewCenter,
         }
 
     draw();
+    
+    if( mCursorTip != NULL && isMouseOver() ) {
+        
+        float textWidth = tinyHandwritingFont->measureString( mCursorTip );
+        
+        doublePair pos = pointerPos;
+        pos.x += 8 * 2;
+        pos.y -= 8 * 2;
+        
+        pos.x -= mX;
+        pos.y -= mY;
+        
+        // Alternatively, fixed tips position bottom left of element
+        // doublePair pos = {mWide / 2, - mHigh / 2};
+        // pos.x += - 8 * 2;
+        // pos.y -= - 8 * 2;
+        
+        float padding = 4;
+        // Tip never goes off screen, not working well
+        // double rightBorderX = double(viewWidth / 4 * 0.85 );
+        // if( pos.x + textWidth + padding > rightBorderX ) pos.x = rightBorderX - (textWidth + padding);
+        
+        setDrawColor( 0, 0, 0, 1.0 );
+        drawRect( pos.x - padding, pos.y - 8 / 2 - padding, 
+                  pos.x + textWidth + padding, pos.y + 8 / 2 + padding );
+        
+        setDrawColor( 1, 1, 1, 1.0 );
+        tinyHandwritingFont->drawString( mCursorTip, pos, alignLeft );
+        }
 
     setViewCenterPosition( oldViewCenter.x, oldViewCenter.y );
     }
@@ -114,20 +149,29 @@ void PageComponent::base_clearState(){
 void PageComponent::setIgnoreEvents( char inIgnoreEvents ) {
     mIgnoreEvents = inIgnoreEvents;
     }
+    
+    
+void PageComponent::setCursorTip( const char *inTip ) {
+    mCursorTip = inTip;
+    }
 
 
 
 void PageComponent::base_pointerMove( float inX, float inY ){
-    if( mIgnoreEvents ) {
+    if( mIgnoreEvents && mCursorTip == NULL ) {
         return;
+        }
+    
+    if( mCursorTip != NULL ) {
+        pointerPos = {inX, inY};
         }
     
     inX -= mX;
     inY -= mY;
-    
 
     if( mMouseEventHog != NULL ) {
-        if( mMouseEventHog->isVisible() && mMouseEventHog->isActive() ) {
+        // Displaying cursor tips even when inactive
+        if( mMouseEventHog->isVisible() ) {//&& mMouseEventHog->isActive() ) {
             mMouseEventHog->base_pointerMove( inX, inY );
             }
         }
@@ -135,7 +179,7 @@ void PageComponent::base_pointerMove( float inX, float inY ){
         for( int i=0; i<mComponents.size(); i++ ) {
             PageComponent *c = *( mComponents.getElement( i ) );
             
-            if( c->isVisible() && c->isActive() ) {
+            if( c->isVisible() ) {//&& c->isActive() ) {
                 c->base_pointerMove( inX, inY );
                 }
             }

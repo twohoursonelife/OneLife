@@ -59,6 +59,8 @@ CustomRandomSource randSource( 34957197 );
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 
+#include "minorGems/graphics/RGBAImage.h"
+
 
 
 
@@ -325,6 +327,14 @@ const char *getFontTGAFileName() {
     return "font_32_64.tga";
     }
     
+bool newFontExist() {
+    bool exist = false;
+    Image *spriteImage = readTGAFile( "newfont_32_64.tga" );
+    if( spriteImage != NULL ) exist = true;
+    delete spriteImage;
+    return exist;
+    }
+    
 const char *getNewFontTGAFileName() {
     return "newfont_32_64.tga";
     }
@@ -356,6 +366,7 @@ Font *mainFontFixed;
 Font *mainFontReview;
 Font *numbersFontFixed;
 Font *handwritingFont;
+Font *tinyHandwritingFont;
 Font *pencilFont;
 Font *pencilErasedFont;
 
@@ -475,6 +486,15 @@ void initDrawString( int inWidth, int inHeight ) {
     mainFont->setMinimumPositionPrecision( 1 );
     oldMainFont = new Font( getFontTGAFileName(), 6, 6, false, 16 );
     oldMainFont->setMinimumPositionPrecision( 1 );
+    
+    if( newFontExist() ) {
+        mainFont = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
+        }
+    else {
+        mainFont = new Font( "font_32_64.tga", 3, 6, false, 12 );
+        }
+    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
+    mainFont->setMinimumPositionPrecision( 1 );
 
     setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
 
@@ -589,6 +609,9 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
         new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     handwritingFont->setMinimumPositionPrecision( 1 );
+    
+	tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+	tinyHandwritingFont->setMinimumPositionPrecision( 1 );
 
     pencilFont = 
         new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
@@ -756,6 +779,7 @@ void freeFrameDrawer() {
     delete numbersFontFixed;
     
     delete handwritingFont;
+    delete tinyHandwritingFont;
     delete pencilFont;
     delete pencilErasedFont;
     
@@ -1818,13 +1842,6 @@ void drawFrame( char inUpdate ) {
                 // or one time for autoLogInMode
                 mapPullMode = false;
                 autoLogIn = false;
-                
-                // login button clears twin status
-                // they have to login from twin page to play as twin
-                if( userTwinCode != NULL ) {
-                    delete [] userTwinCode;
-                    userTwinCode = NULL;
-                    }
 
                 startConnecting();
                 }
@@ -1833,10 +1850,10 @@ void drawFrame( char inUpdate ) {
 
                 // tutorial button clears twin status
                 // they have to login from twin page to play as twin
-                if( userTwinCode != NULL ) {
-                    delete [] userTwinCode;
-                    userTwinCode = NULL;
-                    }
+                // if( userTwinCode != NULL ) {
+                    // delete [] userTwinCode;
+                    // userTwinCode = NULL;
+                    // }
 
                 startConnecting();
                 }
@@ -2299,7 +2316,7 @@ void pointerUp( float inX, float inY ) {
 
 
 
-void keyDown( unsigned char inASCII ) {
+void keyDown( unsigned char inASCII ) {if(inASCII==27) return;
 
     // taking screen shot is ALWAYS possible
     if( inASCII == '=' ) {    

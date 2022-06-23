@@ -20,6 +20,7 @@ extern double frameRateFactor;
 int DropdownList::sDeleteFirstDelaySteps = 30 / frameRateFactor;
 int DropdownList::sDeleteNextDelaySteps = 2 / frameRateFactor;
 
+extern Font *oldMainFont;
 
 
 
@@ -30,7 +31,7 @@ DropdownList::DropdownList( Font *inDisplayFont,
                       const char *inAllowedChars,
                       const char *inForbiddenChars )
         : PageComponent( inX, inY ),
-          mActive( true ), 
+          mActive( true ), mHover( false ), 
           mContentsHidden( false ),
           mHiddenSprite( loadSprite( "hiddenFieldTexture.tga", false ) ),
           mFont( inDisplayFont ), 
@@ -213,16 +214,21 @@ void DropdownList::setList( const char *inText ) {
 char *DropdownList::getAndUpdateList() {
 	
 	char *newList = strdup("");
+    listLen = 0;
 	
 	if( strcmp( mRawText, "" ) != 0 ) {
 		int numLines;
 		char **lines = split( mRawText, "\n", &numLines );
+        listLen = numLines;
 		
 		for( int i=0; i<numLines; i++ ) {
 			if( strcmp( mText, lines[i] ) != 0 ) {
 				newList = concatonate( newList, "\n" );
 				newList = concatonate( newList, lines[i] );
 				}
+            else {
+                listLen -= 1;
+                }
 			delete [] lines[i];
 			}
 		delete [] lines;
@@ -231,13 +237,13 @@ char *DropdownList::getAndUpdateList() {
 		if( strcmp( newList, "" ) != 0 ) newList = concatonate( "\n", newList );
 		}
 	
+    if( strcmp( mRawText, "" ) != 0 ) listLen += 1;
 	newList = concatonate( mText, newList );
 	
 	delete [] mRawText;
-	mRawText = stringDuplicate( newList );
-	delete [] newList;
+	mRawText = stringDuplicate( trimWhitespace( newList ) );
 	
-	return stringDuplicate( mRawText );
+	return stringDuplicate( newList );
     }
 	
 	
@@ -627,7 +633,7 @@ void DropdownList::draw() {
 				doublePair lineTextPos = { textPos.x, textPos.y - (i + 1) * mHigh };
 					
 				setDrawColor( 0, 0, 0, 0.5 );
-				float buttonRightOffset = mFont->measureString( "x" );
+				float buttonRightOffset = oldMainFont->measureString( "x" );
 				doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, lineTextPos.y };
 				if( hoverIndex == i && nearRightEdge ) {
 					drawRect( 
@@ -658,7 +664,7 @@ void DropdownList::draw() {
 				mFont->drawString( lineText, lineTextPos, alignLeft );
 				
 				setDrawColor( 1, 1, 1, 1 );
-				mFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+				oldMainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
 				
 				
 				
@@ -784,6 +790,7 @@ char DropdownList::isNearRightEdge( float inX, float inY ) {
 void DropdownList::pointerMove( float inX, float inY ) {
 	hoverIndex = insideIndex( inX, inY );
 	nearRightEdge = isNearRightEdge( inX, inY );
+	mHover = hoverIndex != -1 || isInsideTextBox( inX, inY );
     }
 
 
@@ -800,6 +807,7 @@ void DropdownList::pointerDown( float inX, float inY ) {
 	} else {
 		deleteOption( hoverIndex );
 		}
+    fireActionPerformed( this );
     }
 
 
@@ -1034,6 +1042,13 @@ double DropdownList::getLeftEdgeX() {
 double DropdownList::getWidth() {
     
     return mWide;
+    }
+
+
+
+double DropdownList::setWidth( double inWide ) {
+    
+    mWide = inWide;
     }
 
 
@@ -1547,3 +1562,6 @@ void DropdownList::usePasteShortcut( char inShortcutOn ) {
     }
 
 
+char DropdownList::isMouseOver() {
+    return mHover;
+    }
