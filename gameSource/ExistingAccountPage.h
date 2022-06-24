@@ -144,7 +144,7 @@ class ExistingAccountPage : public GamePage, public ActionListener {
 
         char mHideAccount;
 
-        void switchFields();
+        void nextPage();
         
         void updatefieldsAndLockButtons();
         void updateLeftPane();

@@ -1301,13 +1301,22 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
 
 
 
-void ExistingAccountPage::switchFields() {
-    // if( mFields[0]->isFocused() ) {
-        // mFields[1]->focus();
-        // }
-    // else if( mFields[1]->isFocused() ) {
-        // mFields[0]->focus();
-        // }
+void ExistingAccountPage::nextPage() {
+    
+    emailFieldLockedMode = 0;
+    keyFieldLockedMode = 0;
+    seedFieldLockedMode = 0;
+    mEmailField.unfocus();
+    mKeyField.unfocus();
+    mSpawnSeed.unfocus();
+    updatefieldsAndLockButtons();
+    
+    if( leftPanePage == 0 ) {
+        actionPerformed( &mNextToGameTabButton );
+        }
+    else if( leftPanePage == 1 ) {
+        actionPerformed( &mLoginButton );
+        }
     }
 
     
@@ -1315,22 +1324,14 @@ void ExistingAccountPage::switchFields() {
 void ExistingAccountPage::keyDown( unsigned char inASCII ) {
     if( inASCII == 9 ) {
         // tab
-        switchFields();
+        
         return;
         }
 
     if( inASCII == 10 || inASCII == 13 ) {
         // enter key
         
-        if( mKeyField.isFocused() ) {
-
-            processLogin( true, "done" );
-            
-            return;
-            }
-        else if( mEmailField.isFocused() ) {
-            switchFields();
-            }
+        nextPage();
         }
     }
 
@@ -1340,7 +1341,7 @@ void ExistingAccountPage::specialKeyDown( int inKeyCode ) {
     if( inKeyCode == MG_KEY_DOWN ||
         inKeyCode == MG_KEY_UP ) {
         
-        switchFields();
+        nextPage();
         return;
         }
     }
