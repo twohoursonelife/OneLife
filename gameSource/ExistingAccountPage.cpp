@@ -42,11 +42,13 @@ extern Font *mainFont;
 extern char gamePlayingBack;
 
 extern char useSpawnSeed;
+extern char useTargetFamily;
 extern char *userEmail;
 extern char *accountKey;
 extern char *userTwinCode;
 extern int userTwinCount;
 bool useTwinCode = false;
+int specifySpawn = 0; // 1 = targetFamily, 2 = spawnSeed, 0 = random
 
 char *fitnessMessage = NULL;
 char *tokenMessage = NULL;
@@ -92,14 +94,19 @@ ExistingAccountPage::ExistingAccountPage()
           mTwinCodeCopyButton( mainFont, 0, 0, translate( "copy" ) ),
           mTwinCodePasteButton( mainFont, 0, 0, translate( "paste" ) ),
           
-          mSeedButton( mainFont, 0, 0, "MY SPAWN" ),
+          mSpecificButton( mainFont, 0, 0, "SPECIFIC" ),
           mRandomButton( mainFont, 0, 0, "RANDOM" ),
           mSpawnSeed( mainFont, -360, -176, 10, false, 
-                                     translate( "spawnSeed" ),
+                                     "SPAWN CODE:",
                                      NULL,
                                      // forbid spaces
                                      " " ),
-          mSpawnSeedLockButton( mainFont, -108, -192, "!" ),
+          mSpawnSeedLockButton( mainFont, -108, -176, "!" ),
+          mTargetFamily( mainFont, -360, -176, 10, true, 
+                                     "TARGET FAMILY NAME:",
+                                     NULL,
+                                     // forbid spaces
+                                     " " ),
           
           mBackToAccountTabButton( mainFont, 0, 0, "BACK" ),
           mLoginButton( mainFont, 0, 0, "START" ),
@@ -136,6 +143,7 @@ ExistingAccountPage::ExistingAccountPage()
     mKeyField.setWidth( 360 );
     mTwinCodeField.setWidth( 360 );
     mSpawnSeed.setWidth( 360 );
+    mTargetFamily.setWidth( 360 );
     
     mFriendsButton.setSize( 175, 60 );
     mSoloButton.setSize( 175, 60 );
@@ -160,9 +168,9 @@ ExistingAccountPage::ExistingAccountPage()
     
     
     
-    mSeedButton.setSize( 175, 60 );
+    mSpecificButton.setSize( 175, 60 );
     mRandomButton.setSize( 175, 60 );
-    mSeedButton.setPosition( mEmailField.getLeftEdgeX() + ( mSeedButton.getWidth()/2 ), -80 );
+    mSpecificButton.setPosition( mEmailField.getLeftEdgeX() + ( mSpecificButton.getWidth()/2 ), -80 );
     mRandomButton.setPosition( mEmailField.getRightEdgeX() - ( mRandomButton.getWidth()/2 ), -80 );
     
     mNextToGameTabButton.setSize( 360, 60 );
@@ -188,6 +196,21 @@ ExistingAccountPage::ExistingAccountPage()
     mPlayerCountRadioButtonSet->setPosition(
         mGenerateButton.getPosition().x + 4 + 175 / 2 ,
         mGenerateButton.getPosition().y );
+        
+        
+        
+    const char *specifySpawnChoiceList[2] = { "SPECIFY FAMILY NAME",
+                                              "USE SPAWN CODE" };
+    
+    mSeedOrFamilyButtonSet = 
+        new RadioButtonSet( mainFont, 0, 0,
+                            2, specifySpawnChoiceList,
+                            true, 4 );
+    
+    
+    mSeedOrFamilyButtonSet->setPosition(
+        mSpawnSeedLockButton.getPosition().x + 4 + mSpawnSeedLockButton.getWidth() / 2 ,
+        mSpawnSeedLockButton.getPosition().y + mainFont->getFontHeight() / 2 + 2 );
     
     
 
@@ -207,7 +230,7 @@ ExistingAccountPage::ExistingAccountPage()
     setButtonStyle( &mGenerateButton );
     setButtonStyle( &mTwinCodeCopyButton );
     setButtonStyle( &mTwinCodePasteButton );
-    setButtonStyle( &mSeedButton );
+    setButtonStyle( &mSpecificButton );
     setButtonStyle( &mRandomButton );
     setButtonStyle( &mSpawnSeedLockButton );
     setButtonStyle( &mBackToAccountTabButton );
@@ -259,6 +282,8 @@ ExistingAccountPage::ExistingAccountPage()
     addComponent( &mLoginButton );
     addComponent( &mBackToAccountTabButton );
     
+    addComponent( mSeedOrFamilyButtonSet );
+    addComponent( &mTargetFamily );    
     addComponent( &mSpawnSeedLockButton );
     addComponent( &mSpawnSeed );
     addComponent( mPlayerCountRadioButtonSet );
@@ -266,7 +291,7 @@ ExistingAccountPage::ExistingAccountPage()
     addComponent( &mTwinCodeCopyButton );
     addComponent( &mGenerateButton );
     addComponent( &mRandomButton );
-    addComponent( &mSeedButton );
+    addComponent( &mSpecificButton );
     addComponent( &mTwinCodeField );
     addComponent( &mSoloButton );
     addComponent( &mFriendsButton );
@@ -302,6 +327,7 @@ ExistingAccountPage::ExistingAccountPage()
     mEmailField.setLabelTop( true );
     mKeyField.setLabelTop( true );
     mSpawnSeed.setLabelTop( true );
+    mTargetFamily.setLabelTop( true );
     mTwinCodeField.setLabelTop( true );
     
     
@@ -320,10 +346,12 @@ ExistingAccountPage::ExistingAccountPage()
     mTwinCodePasteButton.addActionListener( this );
     mPlayerCountRadioButtonSet->addActionListener( this );
     
-    mSeedButton.addActionListener( this );
+    mSpecificButton.addActionListener( this );
     mRandomButton.addActionListener( this );
     mSpawnSeed.addActionListener( this );
     mSpawnSeedLockButton.addActionListener( this );
+    mTargetFamily.addActionListener( this );
+    mSeedOrFamilyButtonSet->addActionListener( this );
     mBackToAccountTabButton.addActionListener( this );
     mLoginButton.addActionListener( this );
     
@@ -363,9 +391,11 @@ ExistingAccountPage::ExistingAccountPage()
     mGenerateButton.setCursorTip( "GENERATE A RANDOM TWIN CODE" );
     mPlayerCountRadioButtonSet->setCursorTip( "CHOOSE HOW MANY WILL JOIN" );
     
-    mSeedButton.setCursorTip( "MAKE A FIXED SPAWN POINT USING THE SAME SEED CODE" );
+    mSpecificButton.setCursorTip( "BE BORN INTO SPECIFIC FAMILY OR AT A FIXED SPAWN POINT" );
     mRandomButton.setCursorTip( "BE BORN INTO A RANDOM FAMILY" );
-    mSpawnSeed.setCursorTip( "SEED CODE CAN BE ANY STRING OF TEXT OR NUMBERS" );
+    mSpawnSeed.setCursorTip( "SPAWN CODE CAN BE ANY STRING OF TEXT OR NUMBERS, CASE SENSITIVE" );
+    mTargetFamily.setCursorTip( "ENTER THE NAME OF THE FAMILY YOU WANT TO JOIN" );
+    mSeedOrFamilyButtonSet->setCursorTip( "SPECIFY THE FAMILY YOU WANT TO JOIN, OR MAKE A FIXED SPAWN POINT WITH A SPAWN CODE" );
     
     mBackToAccountTabButton.setCursorTip( "BACK TO ACCOUNT PAGE" );
     mLoginButton.setCursorTip( "BE BORN INTO THE WORLD" );
@@ -457,6 +487,7 @@ ExistingAccountPage::ExistingAccountPage()
         
 ExistingAccountPage::~ExistingAccountPage() {
     delete mPlayerCountRadioButtonSet;
+    delete mSeedOrFamilyButtonSet;
 
     mWordList.deallocateStringElements();
     
@@ -572,13 +603,14 @@ void ExistingAccountPage::updateLeftPane() {
     
     mTwinCodeField.setVisible( leftPanePage == 1 && useTwinCode );
     
-    mSeedButton.setVisible( leftPanePage == 1 && !useSteamUpdate );
-    mSeedButton.setActive( !useSpawnSeed );
+    mSpecificButton.setVisible( leftPanePage == 1 && !useSteamUpdate );
+    mSpecificButton.setActive( !specifySpawn );
     mRandomButton.setVisible( leftPanePage == 1 && !useSteamUpdate );
-    mRandomButton.setActive( useSpawnSeed );
+    mRandomButton.setActive( specifySpawn );
     
-    mSpawnSeed.setVisible( leftPanePage == 1 && useSpawnSeed && !useSteamUpdate );
-    
+    mSpawnSeed.setVisible( leftPanePage == 1 && specifySpawn == 2 && !useSteamUpdate );
+    mTargetFamily.setVisible( leftPanePage == 1 && specifySpawn == 1 && !useSteamUpdate );
+    mSeedOrFamilyButtonSet->setVisible( leftPanePage == 1 && specifySpawn != 0 && !useSteamUpdate );
     
     mBackToAccountTabButton.setVisible( leftPanePage == 1 );
     mLoginButton.setVisible( leftPanePage == 1 );
@@ -614,7 +646,23 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         
     delete [] seed;
     
-    useSpawnSeed = SettingsManager::getIntSetting( "useSpawnSeed", 0 );
+    specifySpawn = SettingsManager::getIntSetting( "specifySpawn", 0 );
+    if( specifySpawn == 1 ) {
+        useTargetFamily = true;
+        useSpawnSeed = false;
+        mSeedOrFamilyButtonSet->setSelectedItem( 0 );
+        }
+    else if( specifySpawn == 2 ) {
+        useTargetFamily = false;
+        useSpawnSeed = true;
+        mSeedOrFamilyButtonSet->setSelectedItem( 1 );
+        }
+    else {
+        specifySpawn = 0;
+        useTargetFamily = false;
+        useSpawnSeed = false;
+        mSeedOrFamilyButtonSet->setSelectedItem( 0 );
+        }
     
     tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 ) != 0;
     
@@ -630,7 +678,7 @@ void ExistingAccountPage::makeActive( char inFresh ) {
     //mFPSMeasureDone = false;
     
     mLoginButton.setVisible( false );
-    mSeedButton.setVisible( false );
+    mSpecificButton.setVisible( false );
     mFriendsButton.setVisible( false );
     mGenesButton.setVisible( false );
     
@@ -724,7 +772,7 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         setDarkButtonStyle( &mGenerateButton );
         setDarkButtonStyle( &mTwinCodeCopyButton );
         setDarkButtonStyle( &mTwinCodePasteButton );
-        setDarkButtonStyle( &mSeedButton );
+        setDarkButtonStyle( &mSpecificButton );
         setDarkButtonStyle( &mRandomButton );
         setDarkButtonStyle( &mSpawnSeedLockButton );
         setDarkButtonStyle( &mBackToAccountTabButton );
@@ -780,6 +828,7 @@ void ExistingAccountPage::step() {
     mTwinCodeCopyButton.setVisible( leftPanePage == 1 && useTwinCode == 1 && mTwinCodeField.isFocused() );
     mTwinCodePasteButton.setVisible( leftPanePage == 1 && useTwinCode == 1 && mTwinCodeField.isFocused() );
     mPlayerCountRadioButtonSet->setVisible( leftPanePage == 1 && useTwinCode == 1 && mTwinCodeField.isFocused() );
+    mSeedOrFamilyButtonSet->setVisible( leftPanePage == 1 && specifySpawn != 0 );
     
     int blockClicks = false;
     if ( mSpawnSeed.isFocused() ) { blockClicks = true; }
@@ -874,6 +923,13 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting( "spawnSeed", seedList );
         delete [] seedList;
         }
+    if( inTarget != &mTargetFamily ) {
+        char *text = mTargetFamily.getText();
+        char *targetFamily = trimWhitespace( text );
+        SettingsManager::setSetting( "targetFamily", targetFamily );
+        delete [] text;
+        delete [] targetFamily;
+        }
 
     if( inTarget == &mLoginButton ) {
         
@@ -896,27 +952,79 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         
         processLogin( true, "done" );
         }
-    else if( inTarget == &mSeedButton ) {
-        useSpawnSeed = true;
-        SettingsManager::setSetting( "useSpawnSeed", 1 );
+    else if( inTarget == &mSpecificButton ) {
+        
         // processLogin( true, "done" );
-        mSeedButton.setActive( false );
+        mSpecificButton.setActive( false );
         mRandomButton.setActive( true );
-        mSpawnSeed.setVisible( true );
+        // mSpawnSeed.setVisible( true );
+            
+        specifySpawn = SettingsManager::getIntSetting( "specifySpawn", 0 );
+
+        if( specifySpawn == 2 ) {
+            useTargetFamily = false;
+            useSpawnSeed = true;
+            mSeedOrFamilyButtonSet->setSelectedItem( 1 );
+            
+            mSpawnSeed.setVisible( true );
+            }
+        else {
+            specifySpawn = 1;
+            SettingsManager::setSetting( "specifySpawn", 1 );
+            useTargetFamily = true;
+            useSpawnSeed = false;
+            mSeedOrFamilyButtonSet->setSelectedItem( 0 );
+            
+            mTargetFamily.setVisible( true );
+            }
         
         seedUIElementsClicked = true;
         }
     else if( inTarget == &mRandomButton ) {
-        useSpawnSeed = false;
-        SettingsManager::setSetting( "useSpawnSeed", 0 );
-        mSeedButton.setActive( true );
+
+        mSpecificButton.setActive( true );
         mRandomButton.setActive( false );
+
+        specifySpawn = 0;
+        SettingsManager::setSetting( "specifySpawn", 0 );        
+        useTargetFamily = false;
+        useSpawnSeed = false;
         
         seedFieldLockedMode = 0;
         mSpawnSeed.unfocus();
         updatefieldsAndLockButtons();
         
         mSpawnSeed.setVisible( false );
+        
+        mTargetFamily.unfocus();
+        mTargetFamily.setVisible( false );
+        }
+    else if( inTarget == mSeedOrFamilyButtonSet ) {
+        if( mSeedOrFamilyButtonSet->getSelectedItem() == 0 ) {
+            specifySpawn = 1;
+            SettingsManager::setSetting( "specifySpawn", 1 );
+            useTargetFamily = true;
+            useSpawnSeed = false;
+            
+            seedFieldLockedMode = 0;
+            mSpawnSeed.unfocus();
+            updatefieldsAndLockButtons();
+            
+            mSpawnSeed.setVisible( false );
+            
+            mTargetFamily.setVisible( true );
+            }
+        else {
+            specifySpawn = 2;
+            SettingsManager::setSetting( "specifySpawn", 2 );
+            useTargetFamily = false;
+            useSpawnSeed = true;
+            
+            mSpawnSeed.setVisible( true );
+            
+            mTargetFamily.unfocus();
+            mTargetFamily.setVisible( false );
+            }
         }
     else if( inTarget == &mTutorialButton ) {
         processLogin( true, "tutorial" );
@@ -1321,7 +1429,7 @@ void ExistingAccountPage::draw( doublePair inViewCenter,
 
             if( !fpsFailed ) {
                 // mLoginButton.setVisible( true );
-                // mSeedButton.setVisible( true );
+                // mSpecificButton.setVisible( true );
                 
                 int pastSuccess = 
                     SettingsManager::getIntSetting( "loginSuccess", 0 );
@@ -1435,7 +1543,7 @@ void ExistingAccountPage::draw( doublePair inViewCenter,
     
     if( leftPanePage == 1 ) {
         if( !useSteamUpdate ) {
-            pos = mSeedButton.getPosition();
+            pos = mSpecificButton.getPosition();
             pos.x = mEmailField.getLeftEdgeX() + mainFont->getFontHeight() * 0.25 * 0.5;
             pos.y += 30 + 16;
             setDrawColor( 1, 1, 1, 1.0 );

@@ -108,10 +108,12 @@ class ExistingAccountPage : public GamePage, public ActionListener {
         JenkinsRandomSource mRandSource;
         SimpleVector<char*> mWordList;
         
-        TextButton mSeedButton;
+        TextButton mSpecificButton;
         TextButton mRandomButton;
         DropdownList mSpawnSeed;
         TextButton mSpawnSeedLockButton;
+        TextField mTargetFamily;
+        RadioButtonSet *mSeedOrFamilyButtonSet;
         
         TextButton mBackToAccountTabButton;
         TextButton mLoginButton;

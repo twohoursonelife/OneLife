@@ -95,6 +95,7 @@ extern char usingCustomServer;
 extern char *serverIP;
 extern int serverPort;
 
+extern char useTargetFamily;
 extern char useSpawnSeed;
 extern char *userEmail;
 extern char *userTwinCode;
@@ -11015,7 +11016,15 @@ void LivingLifePage::step() {
             }
         else {
             setWaiting( false );
-            setSignal( "loginFailed" );
+            // Judge if the failed login is due to bad targetFamily base on loginSuccess
+            // and whether we are trying to specify a targetFamily in the first place
+            // since we are not creating a new message type just for this case at least for now...
+            if( useTargetFamily && SettingsManager::getIntSetting( "loginSuccess", 0 ) ) {
+                setSignal( "targetFamilyFailed" );
+                }
+            else {
+                setSignal( "loginFailed" );
+                }
             }
         return;
         }
@@ -12262,24 +12271,38 @@ void LivingLifePage::step() {
             if( strlen( userEmail ) > 0 ) {
                 std::string seededEmail = std::string( userEmail );
 
-				// If user doesn't have a seed in their email field
-				if( seededEmail.find('|') == std::string::npos && useSpawnSeed ) {
-					std::string seedList = SettingsManager::getSettingContents( "spawnSeed", "" );
-					std::string seed = "";
-					if( seedList == "" ) {
-						seed = "";
-					} else if( seedList.find('\n') == std::string::npos ) {
-						seed = seedList;
-					} else if( seedList.find('\n') != std::string::npos ) {
-						seed = seedList.substr( 0, seedList.find('\n') );
-					}
+				// If user doesn't have a seed or targetFamily in their email field
+				if( seededEmail.find('|') == std::string::npos &&
+                    seededEmail.find(':') == std::string::npos ) {
+                    if( useSpawnSeed ) {
+                        std::string seedList = SettingsManager::getSettingContents( "spawnSeed", "" );
+                        std::string seed = "";
+                        if( seedList == "" ) {
+                            seed = "";
+                        } else if( seedList.find('\n') == std::string::npos ) {
+                            seed = seedList;
+                        } else if( seedList.find('\n') != std::string::npos ) {
+                            seed = seedList.substr( 0, seedList.find('\n') );
+                        }
 
-					// And if the user has a seed set in settings
-					if( seed != "" ) {
-						// Add seed delim and then seed
-						seededEmail += '|';
-						seededEmail += seed;
-						}
+                        // And if the user has a seed set in settings
+                        if( seed != "" ) {
+                            // Add seed delim and then seed
+                            seededEmail += '|';
+                            seededEmail += seed;
+                            }
+                        }
+                    // Only if a seed is not specified we'd use a targetFamily
+                    else if( seededEmail.find(':') == std::string::npos && useTargetFamily ) {
+                        char *targetFamilyChars = SettingsManager::getSettingContents( "targetFamily", "" );
+                        std::string targetFamily( targetFamilyChars );
+                        delete [] targetFamilyChars;
+                        
+                        if( targetFamily != "" ) {
+                            seededEmail += ':';
+                            seededEmail += targetFamily;
+                            }
+                        }
 					}
 
                 tempEmail = stringDuplicate( seededEmail.c_str() );

@@ -122,6 +122,7 @@ char *serverIP = NULL;
 int serverPort = 0;
 
 
+char useTargetFamily;
 char useSpawnSeed;
 
 char *userEmail = NULL;
@@ -1995,6 +1996,21 @@ void drawFrame( char inUpdate ) {
 
                 currentGamePage->base_makeActive( true );
                 }
+            else if( livingLifePage->checkSignal( "targetFamilyFailed" ) ) {
+                lastScreenViewCenter.x = 0;
+                lastScreenViewCenter.y = 0;
+
+                setViewCenterPosition( lastScreenViewCenter.x, 
+                                       lastScreenViewCenter.y );
+                
+                currentGamePage = existingAccountPage;
+                
+                existingAccountPage->setStatusDirect( "TARGET FAMILY NOT FOUND##OR HAS NO FERTILES", true );
+
+                existingAccountPage->setStatusPositiion( false );
+
+                currentGamePage->base_makeActive( true );
+                }
             else if( livingLifePage->checkSignal( "noLifeTokens" ) ) {
                 lastScreenViewCenter.x = 0;
                 lastScreenViewCenter.y = 0;
@@ -2188,6 +2204,7 @@ void drawFrame( char inUpdate ) {
                 currentGamePage->base_makeActive( true );
                 }
             else if( rebirthChoicePage->checkSignal( "menu" ) ) {
+                existingAccountPage->setStatus( NULL, false );
                 currentGamePage = existingAccountPage;
                 currentGamePage->base_makeActive( true );
                 }
