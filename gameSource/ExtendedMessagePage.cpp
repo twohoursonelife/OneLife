@@ -27,7 +27,7 @@ ExtendedMessagePage::ExtendedMessagePage()
 
     addComponent( &mOKButton );
     
-    setButtonStyle( &mOKButton );
+    setDarkButtonStyle( &mOKButton );
     
     mOKButton.addActionListener( this );
     }

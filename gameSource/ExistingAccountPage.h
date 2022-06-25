@@ -9,34 +9,8 @@
 #include "minorGems/ui/event/ActionListener.h"
 #include "minorGems/util/random/JenkinsRandomSource.h"
 #include "PageComponent.h"
+#include "Background.h"
 
-
-
-class Background : public PageComponent, public ActionListenerList {
-        
-    public:
-
-        Background( const char *inImageName, float inOpacity = 1.0f, doublePair inPosition = {0, 0} );
-        
-        
-        virtual void setImage( const char *inImageName ) {
-            mImage = loadSprite( inImageName, false );
-            }
-        
-        
-        
-        virtual void draw();
-        
-
-        
-    protected:
-        SpriteHandle mImage;
-
-        float mOpacity;
-
-        doublePair mPosition;
-        
-    };
 
 
 class ExistingAccountPage : public GamePage, public ActionListener {
