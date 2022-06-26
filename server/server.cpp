@@ -109,7 +109,7 @@ double forceDeathAge = 120;
 // UncleGus Custom Variables
 double adultAge = 20;
 double oldAge = 104;
-double fertileAge = 14;
+double fertileAge = 15;
 // End UncleGus Custom Variables
 double minSayGapInSeconds = 1.0;
 
