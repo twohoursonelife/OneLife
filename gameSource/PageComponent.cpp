@@ -158,19 +158,19 @@ void PageComponent::setCursorTip( const char *inTip ) {
 
 
 void PageComponent::base_pointerMove( float inX, float inY ){
+    
+    pointerPos = {inX, inY};
+    
+    // Displaying cursor tips even when mIgnoreEvents is true
     if( mIgnoreEvents && mCursorTip == NULL ) {
         return;
-        }
-    
-    if( mCursorTip != NULL ) {
-        pointerPos = {inX, inY};
         }
     
     inX -= mX;
     inY -= mY;
 
     if( mMouseEventHog != NULL ) {
-        // Displaying cursor tips even when inactive
+        // Need to display cursor tips even when inactive
         if( mMouseEventHog->isVisible() ) {//&& mMouseEventHog->isActive() ) {
             mMouseEventHog->base_pointerMove( inX, inY );
             }
@@ -179,6 +179,7 @@ void PageComponent::base_pointerMove( float inX, float inY ){
         for( int i=0; i<mComponents.size(); i++ ) {
             PageComponent *c = *( mComponents.getElement( i ) );
             
+            // Need to display cursor tips even when inactive
             if( c->isVisible() ) {//&& c->isActive() ) {
                 c->base_pointerMove( inX, inY );
                 }
@@ -186,7 +187,6 @@ void PageComponent::base_pointerMove( float inX, float inY ){
         }
     
     pointerMove( inX, inY );
-    if( mIgnoreEvents && mCursorTip != NULL ) clearState();
     }
 
 

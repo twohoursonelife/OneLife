@@ -123,10 +123,10 @@ void Button::draw() {
 
     if( mDrawBackground ) {
         
-        if( mHover && ! mDragOver ) {    
+        if( mHover && ! mDragOver && mActive ) {    
             setDrawColor( mHoverBorderColor );
             }
-        else if( mDragOver ) {
+        else if( mDragOver && mActive ) {
             setDrawColor( 0.25, 0.25, 0.25, 1 );
             }
         else {
@@ -154,10 +154,10 @@ void Button::draw() {
         }
     
 
-    if( mDragOver ) {    
+    if( mDragOver && mActive ) {    
         setDrawColor( mDragOverColor );
         }
-    else if( mHover ) {
+    else if( mHover && mActive ) {
         setDrawColor( mHoverColor );
         }
     else {
@@ -227,7 +227,7 @@ void Button::pointerMove( float inX, float inY ) {
             }
         }
     else {
-        if( mHover ) {
+        if( mHover && mActive ) {
             // just hovered out
             setToolTip( NULL );
             }
