@@ -314,6 +314,7 @@ ExistingAccountPage::ExistingAccountPage()
 
     
 
+    mSpawnSeed.useClearButton( true );
 
     
     // this section have all buttons with the same width
