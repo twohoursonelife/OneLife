@@ -1798,6 +1798,7 @@ void drawFrame( char inUpdate ) {
                     existingAccountPage->setStatus( NULL, false );
 
                     if ( showingInGameSettings ) {
+                        livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
                         currentGamePage = livingLifePage;
                         currentGamePage->base_makeActive( false );
                         }
@@ -2396,7 +2397,7 @@ void keyDown( unsigned char inASCII ) {if(inASCII==27) return;
                 if ( currentGamePage == livingLifePage ) {
                     //unpáuse, reset fov then show settings
                     pauseGame();
-                    livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+                    livingLifePage->changeFOV( 1.0f );
                     showSettings();
                     }
                 break;
