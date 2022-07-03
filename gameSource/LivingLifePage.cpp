@@ -1723,6 +1723,9 @@ static void fixSingleStepPath( LiveObject *inObject ) {
 
 // should match limit on server
 static int pathFindingD = 32;
+static int maxChunkDimension = 32;
+
+
 
 
 void LivingLifePage::computePathToDest( LiveObject *inObject ) {
@@ -18306,7 +18309,18 @@ void LivingLifePage::step() {
             getObject( o->holdingID )->rideable ) {
             holdingRideable = true;
             }
-            
+        
+
+        if( ! o->outOfRange &&
+            distance( o->currentPos, ourLiveObject->currentPos ) > 
+            maxChunkDimension ) {
+            // mark as out of range, even if we've never heard an official
+            // PO message about them
+            // Maybe they weren't moving when we walked out of range for them
+            // We don't want spurious animation and emote sounds to be played
+            // for them in this case.
+            o->outOfRange = true;
+            }
         
         if( o->curAnim != moving || !holdingRideable ) {
             // don't play player moving sound if riding something
@@ -18404,7 +18418,7 @@ void LivingLifePage::step() {
             o->heldFrozenRotFrameCount += animSpeed / BASE_SPEED;
             }
         
-        if( o->holdingID > 0 ) {
+        if( o->holdingID > 0 && ! o->outOfRange ) {
             handleAnimSound( o->holdingID, 0, o->curHeldAnim,
                              oldFrameCount, o->heldAnimationFrameCount,
                              o->currentPos.x,
