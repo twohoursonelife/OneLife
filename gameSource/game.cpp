@@ -1801,6 +1801,7 @@ void drawFrame( char inUpdate ) {
                         livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
                         currentGamePage = livingLifePage;
                         currentGamePage->base_makeActive( false );
+                        showingInGameSettings = false;
                         }
                     else {
                         currentGamePage = existingAccountPage;
