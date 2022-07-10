@@ -528,24 +528,26 @@ void ExistingAccountPage::updatefieldsAndLockButtons() {
         mEmailField.getRightEdgeX() + mEmailLockButton.getWidth() / 2 + 4, 
         mEmailField.getPosition().y );
     mEmailLockButton.setPadding( 8, 4 );
-    mEmailLockButton.setVisible( emailFieldLockedMode != 0 && !disableCredentialLocks );
+    mEmailLockButton.setVisible( mEmailField.isVisible() && emailFieldLockedMode != 0 && !disableCredentialLocks );
     mEmailField.setContentsHidden( emailFieldLockedMode != 2 && !disableCredentialLocks );
     mEmailField.setIgnoreEvents( emailFieldLockedMode != 2 && !disableCredentialLocks );
-    // mEmailField.unfocus();
     
     mPasteEmailButton.setPosition( 
-        mEmailField.getRightEdgeX() + 4 + mEmailLockButton.getWidth() + 
+        mEmailField.getRightEdgeX() + 4 + 
+        (mEmailLockButton.isVisible() ? mEmailLockButton.getWidth() : 0) + 
         12 + mPasteEmailButton.getWidth() / 2, 
         mEmailField.getPosition().y );
     mPasteEmailButton.setPadding( 8, 4 );
-    mPasteEmailButton.setVisible( isClipboardSupported() && emailFieldLockedMode == 2 );
+    mPasteEmailButton.setVisible( mEmailField.isVisible() && isClipboardSupported() && (emailFieldLockedMode == 2 || disableCredentialLocks) );
 
     mAtSignButton.setPosition( 
-        mEmailField.getRightEdgeX() + 4 + mEmailLockButton.getWidth() + 4 + mPasteEmailButton.getWidth() + 
+        mEmailField.getRightEdgeX() + 4 + 
+        (mEmailLockButton.isVisible() ? mEmailLockButton.getWidth() : 0) + 4 + 
+        mPasteEmailButton.getWidth() + 
         16 + mAtSignButton.getWidth() / 2, 
         mEmailField.getPosition().y );
     mAtSignButton.setPadding( 8, 4 );
-    mAtSignButton.setVisible( isClipboardSupported() && emailFieldLockedMode == 2 && useSteamUpdate );
+    mAtSignButton.setVisible( mEmailField.isVisible() && isClipboardSupported() && (emailFieldLockedMode == 2 || disableCredentialLocks) && useSteamUpdate );
     
     mKeyLockButton.setLabelText( keyFieldLockedMode == 2 ? "OK" : "!" );
     mKeyLockButton.setCursorTip( keyFieldLockedMode == 2 ? "LOCK FIELD" : "UNLOCK FIELD" );
@@ -553,17 +555,17 @@ void ExistingAccountPage::updatefieldsAndLockButtons() {
         mKeyField.getRightEdgeX() + mKeyLockButton.getWidth() / 2 + 4, 
         mKeyField.getPosition().y );
     mKeyLockButton.setPadding( 8, 4 );
-    mKeyLockButton.setVisible( keyFieldLockedMode != 0 && !disableCredentialLocks );
+    mKeyLockButton.setVisible( mKeyField.isVisible() && keyFieldLockedMode != 0 && !disableCredentialLocks );
     mKeyField.setContentsHidden( keyFieldLockedMode != 2 && !disableCredentialLocks );
     mKeyField.setIgnoreEvents( keyFieldLockedMode != 2 && !disableCredentialLocks );
-    // mKeyField.unfocus();
     
     mPasteButton.setPosition( 
-        mKeyField.getRightEdgeX() + 4 + mKeyLockButton.getWidth() + 
+        mKeyField.getRightEdgeX() + 4 + 
+        (mKeyLockButton.isVisible() ? mKeyLockButton.getWidth() : 0) + 
         12 + mPasteButton.getWidth() / 2, 
         mKeyField.getPosition().y );
     mPasteButton.setPadding( 8, 4 );
-    mPasteButton.setVisible( isClipboardSupported() && keyFieldLockedMode == 2 );
+    mPasteButton.setVisible( mKeyField.isVisible() && isClipboardSupported() && (keyFieldLockedMode == 2 || disableCredentialLocks) );
     
     mSpawnSeedLockButton.setLabelText( seedFieldLockedMode == 2 ? "OK" : "!" );
     mSpawnSeedLockButton.setCursorTip( seedFieldLockedMode == 2 ? "LOCK FIELD" : "UNLOCK FIELD" );
@@ -571,10 +573,9 @@ void ExistingAccountPage::updatefieldsAndLockButtons() {
         mSpawnSeed.getRightEdgeX() + mSpawnSeedLockButton.getWidth() / 2 + 4, 
         mSpawnSeed.getPosition().y );
     mSpawnSeedLockButton.setPadding( 8, 4 );
-    mSpawnSeedLockButton.setVisible( seedFieldLockedMode != 0 );
+    mSpawnSeedLockButton.setVisible( mSpawnSeed.isVisible() && seedFieldLockedMode != 0 );
     mSpawnSeed.setContentsHidden( seedFieldLockedMode != 2 );
     mSpawnSeed.setIgnoreEvents( seedFieldLockedMode != 2 );
-    // mSpawnSeed.unfocus();
     
     }
     
@@ -585,7 +586,6 @@ void ExistingAccountPage::updateLeftPane() {
         leftPanePage = 0;
         mTutorialButton.setSize( 360, 60 );
         mTutorialButton.setPosition( mEmailField.getRightEdgeX() - ( mNextToGameTabButton.getWidth()/2 ), -272 );
-        mNextToGameTabButton.setVisible( false );
         }
     else {
         mTutorialButton.setSize( 175, 60 );
@@ -614,20 +614,63 @@ void ExistingAccountPage::updateLeftPane() {
     mSeedOrFamilyButtonSet->setVisible( leftPanePage == 1 && specifySpawn != 0 && !useSteamUpdate );
     
     mBackToAccountTabButton.setVisible( leftPanePage == 1 );
-    mLoginButton.setVisible( leftPanePage == 1 );
+    mLoginButton.setVisible( leftPanePage == 1 && tutorialDone );
         
 }
 
 
 void ExistingAccountPage::makeActive( char inFresh ) {
     
+    
+    int pastSuccess = SettingsManager::getIntSetting( "loginSuccess", 0 );
+
+    char *emailText = mEmailField.getText();
+    char *keyText = mKeyField.getText();
+
+    // don't hide field contents unless there is something to hide
+    if( ! pastSuccess || 
+        ( strcmp( emailText, "" ) == 0 
+          &&
+          strcmp( keyText, "" ) == 0 ) ) {
+        disableCredentialLocks = true;
+        leftPanePage = 0;
+        }
+    else {
+        disableCredentialLocks = false;
+        leftPanePage = 1;
+        }
+    
+    delete [] emailText;
+    delete [] keyText;
+    
+    
+    tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 ) != 0;
+    
+    useSteamUpdate = SettingsManager::getIntSetting( "useSteamUpdate", 0 ) != 0;
+    
+    
     if( !mFPSMeasureDone || mRetryButton.isVisible() ) {
+        
+        updateLeftPane();
+        
+        emailFieldLockedMode = 0;
+        keyFieldLockedMode = 0;
+        seedFieldLockedMode = 0;
+        mEmailField.unfocus();
+        mKeyField.unfocus();
+        mSpawnSeed.unfocus();
+        updatefieldsAndLockButtons();
         
         mBackground.setVisible( false );
         mGameLogo.setVisible( false );
         
         mEmailField.setVisible( false );
+        mPasteEmailButton.setVisible( false );
+        mAtSignButton.setVisible( false );
+        
         mKeyField.setVisible( false );
+        mPasteButton.setVisible( false );
+        
         mNextToGameTabButton.setVisible( false );
         
         mFriendsButton.setVisible( false );
@@ -668,14 +711,17 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         mCancelButton.setVisible( true );
         
         updateLeftPane();
+        
+        emailFieldLockedMode = 0;
+        keyFieldLockedMode = 0;
+        seedFieldLockedMode = 0;
+        mEmailField.unfocus();
+        mKeyField.unfocus();
+        mSpawnSeed.unfocus();
+        updatefieldsAndLockButtons();
+        
         }
 
-
-
-    
-    
-
-    
 
     char *seed = 
         SettingsManager::getSettingContents( "spawnSeed", "" );
@@ -702,9 +748,7 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         mSeedOrFamilyButtonSet->setSelectedItem( 0 );
         }
     
-    tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 ) != 0;
-    
-    useSteamUpdate = SettingsManager::getIntSetting( "useSteamUpdate", 0 ) != 0;
+
 
 
     mFramesCounted = 0;
@@ -737,38 +781,6 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         mRedetectButton.setVisible( false );
         mFPSMeasureDone = false;
         }
-    
-
-    int pastSuccess = SettingsManager::getIntSetting( "loginSuccess", 0 );
-
-    char *emailText = mEmailField.getText();
-    char *keyText = mKeyField.getText();
-
-    // don't hide field contents unless there is something to hide
-    if( ! pastSuccess || 
-        ( strcmp( emailText, "" ) == 0 
-          &&
-          strcmp( keyText, "" ) == 0 ) ) {
-
-        disableCredentialLocks = true;
-        updatefieldsAndLockButtons();
-
-        mEmailField.focus();
-        }
-    else {
-        emailFieldLockedMode = 0;
-        keyFieldLockedMode = 0;
-        seedFieldLockedMode = 0;
-        mEmailField.unfocus();
-        mKeyField.unfocus();
-        mSpawnSeed.unfocus();
-        updatefieldsAndLockButtons();
-        
-        leftPanePage = 1;
-        }
-    
-    delete [] emailText;
-    delete [] keyText;
     
 
 
@@ -1304,19 +1316,10 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         seedUIElementsClicked = true;
         }
         
-    else if( inTarget == &mNextToGameTabButton ) {
-        emailFieldLockedMode = 0;
-        keyFieldLockedMode = 0;
-        seedFieldLockedMode = 0;
-        mEmailField.unfocus();
-        mKeyField.unfocus();
-        mSpawnSeed.unfocus();
-        updatefieldsAndLockButtons();
-        
+    else if( inTarget == &mNextToGameTabButton ) {        
         leftPanePage = 1;
         updateLeftPane();
-        }
-    else if( inTarget == &mBackToAccountTabButton ) {
+        
         emailFieldLockedMode = 0;
         keyFieldLockedMode = 0;
         seedFieldLockedMode = 0;
@@ -1324,9 +1327,18 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         mKeyField.unfocus();
         mSpawnSeed.unfocus();
         updatefieldsAndLockButtons();
-        
+        }
+    else if( inTarget == &mBackToAccountTabButton ) {
         leftPanePage = 0;
         updateLeftPane();
+        
+        emailFieldLockedMode = 0;
+        keyFieldLockedMode = 0;
+        seedFieldLockedMode = 0;
+        mEmailField.unfocus();
+        mKeyField.unfocus();
+        mSpawnSeed.unfocus();
+        updatefieldsAndLockButtons();
         }
         
     }
