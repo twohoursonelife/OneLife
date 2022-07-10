@@ -621,23 +621,60 @@ void ExistingAccountPage::updateLeftPane() {
 
 void ExistingAccountPage::makeActive( char inFresh ) {
     
-    mBackground.setVisible( true );
-    mGameLogo.setVisible( true );
-    mSettingsButton.setVisible( true );
-    mTutorialButton.setVisible( true );
-    mCancelButton.setVisible( true );
+    if( !mFPSMeasureDone || mRetryButton.isVisible() ) {
+        
+        mBackground.setVisible( false );
+        mGameLogo.setVisible( false );
+        
+        mEmailField.setVisible( false );
+        mKeyField.setVisible( false );
+        mNextToGameTabButton.setVisible( false );
+        
+        mFriendsButton.setVisible( false );
+        mSoloButton.setVisible( false );
+        mTwinCodeField.setVisible( false );
+        mSpecificButton.setVisible( false );
+        mRandomButton.setVisible( false );
+        mSpawnSeed.setVisible( false );
+        mTargetFamily.setVisible( false );
+        mBackToAccountTabButton.setVisible( false );
+        mLoginButton.setVisible( false );
+        
+        mSettingsButton.setVisible( false );
+        mTutorialButton.setVisible( false );
+        mFamilyTreesButton.setVisible( false );
+        mTechTreeButton.setVisible( false );
+        mCancelButton.setVisible( false );
+        
+        mGenesButton.setVisible( false );
+
+        }
+    else {
+        mBackground.setVisible( true );
+        mGameLogo.setVisible( true );
+        
+        mSettingsButton.setVisible( true );
+        mTutorialButton.setVisible( true );
+        
+        char *lineageServerURL = SettingsManager::getStringSetting( "lineageServerURL", "" );
+        char show = ( strcmp( lineageServerURL, "" ) != 0 ) && isURLLaunchSupported();
+        mFamilyTreesButton.setVisible( show );
+        delete [] lineageServerURL;
+        
+        char *techTreeURL = SettingsManager::getStringSetting( "techTreeURL", "" );
+        mTechTreeButton.setVisible( strcmp( techTreeURL, "" ) != 0 );
+        delete [] techTreeURL;
+        
+        mCancelButton.setVisible( true );
+        
+        updateLeftPane();
+        }
 
 
-    char *lineageServerURL = SettingsManager::getStringSetting( "lineageServerURL", "" );
 
-    char show = ( strcmp( lineageServerURL, "" ) != 0 ) && isURLLaunchSupported();
-    mFamilyTreesButton.setVisible( show );
-    delete [] lineageServerURL;
     
     
-    char *techTreeURL = SettingsManager::getStringSetting( "techTreeURL", "" );
-    mTechTreeButton.setVisible( strcmp( techTreeURL, "" ) != 0 );
-    delete [] techTreeURL;
+
     
 
     char *seed = 
@@ -677,11 +714,6 @@ void ExistingAccountPage::makeActive( char inFresh ) {
     // it slows the player down too much
     // re-measure only at first-startup
     //mFPSMeasureDone = false;
-    
-    mLoginButton.setVisible( false );
-    mSpecificButton.setVisible( false );
-    mFriendsButton.setVisible( false );
-    mGenesButton.setVisible( false );
     
     
     int skipFPSMeasure = SettingsManager::getIntSetting( "skipFPSMeasure", 0 );
@@ -806,7 +838,6 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         mHideAccount = false;
         }
     
-    updateLeftPane();
     }
 
 
@@ -1382,23 +1413,6 @@ void ExistingAccountPage::draw( doublePair inViewCenter,
                                 double inViewSize ) {
     
     
-    if( !mFPSMeasureDone || mRetryButton.isVisible() ) {
-        
-        leftPanePage = 0;
-        updateLeftPane();
-        mBackground.setVisible( false );
-        mGameLogo.setVisible( false );
-        mEmailField.setVisible( false );
-        mKeyField.setVisible( false );
-        mSettingsButton.setVisible( false );
-        mTutorialButton.setVisible( false );
-        mFamilyTreesButton.setVisible( false );
-        mTechTreeButton.setVisible( false );
-        mNextToGameTabButton.setVisible( false );
-
-        }
-        
-    if( !mFPSMeasureDone ) mCancelButton.setVisible( false );
     
     if( !mFPSMeasureDone ) {
         double timePassed = game_getCurrentTime() - mPageActiveStartTime;
@@ -1549,14 +1563,14 @@ void ExistingAccountPage::draw( doublePair inViewCenter,
             pos.x = mEmailField.getLeftEdgeX() + mainFont->getFontHeight() * 0.25 * 0.5;
             pos.y += 30 + 16;
             setDrawColor( 1, 1, 1, 1.0 );
-            mainFont->drawString( "WHERE TO SPAWN?", pos, alignLeft );
+            if( mSpecificButton.isVisible() ) mainFont->drawString( "WHERE TO SPAWN?", pos, alignLeft );
             }
         
         pos = mFriendsButton.getPosition();
         pos.x = mEmailField.getLeftEdgeX() + mainFont->getFontHeight() * 0.25 * 0.5;
         pos.y += 30 + 16;
         setDrawColor( 1, 1, 1, 1.0 );
-        mainFont->drawString( "PLAY WITH FRIENDS?", pos, alignLeft );        
+        if( mFriendsButton.isVisible() ) mainFont->drawString( "PLAY WITH FRIENDS?", pos, alignLeft );        
         }
 
 
