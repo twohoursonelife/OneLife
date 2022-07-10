@@ -109,7 +109,7 @@ ExistingAccountPage::ExistingAccountPage()
                                      " " ),
           
           mBackToAccountTabButton( mainFont, 0, 0, "BACK" ),
-          mLoginButton( mainFont, 0, 0, "START" ),
+          mLoginButton( mainFont, 0, 0, "PLAY" ),
           
           // Right Pane
           mSettingsButton( mainFont, 360, -80, translate( "settingsButton" ) ),
@@ -584,11 +584,17 @@ void ExistingAccountPage::updateLeftPane() {
     
     if( !tutorialDone ) {
         leftPanePage = 0;
+        
+        mTutorialButton.setLabelText( "START THE GAME" );
+        mTutorialButton.setCursorTip( "PLAY" );
         mTutorialButton.setSize( 360, 60 );
         mTutorialButton.setPosition( mEmailField.getRightEdgeX() - ( mNextToGameTabButton.getWidth()/2 ), -272 );
         }
     else {
+        mTutorialButton.setLabelText( translate( "tutorial" ) );
+        mTutorialButton.setCursorTip( "START THE TUTORIAL" );
         mTutorialButton.setSize( 175, 60 );
+        // setPosition in this case is done elsewhere with the right pane buttons
         }
     
     
