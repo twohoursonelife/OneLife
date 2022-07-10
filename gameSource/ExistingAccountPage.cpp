@@ -682,10 +682,15 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         mFriendsButton.setVisible( false );
         mSoloButton.setVisible( false );
         mTwinCodeField.setVisible( false );
+        mGenerateButton.setVisible( false );
+        mTwinCodeCopyButton.setVisible( false );
+        mTwinCodePasteButton.setVisible( false );
+        mPlayerCountRadioButtonSet->setVisible( false );
         mSpecificButton.setVisible( false );
         mRandomButton.setVisible( false );
         mSpawnSeed.setVisible( false );
         mTargetFamily.setVisible( false );
+        mSeedOrFamilyButtonSet->setVisible( false );
         mBackToAccountTabButton.setVisible( false );
         mLoginButton.setVisible( false );
         
@@ -878,7 +883,7 @@ void ExistingAccountPage::step() {
     mTwinCodeCopyButton.setVisible( leftPanePage == 1 && useTwinCode == 1 && mTwinCodeField.isFocused() );
     mTwinCodePasteButton.setVisible( leftPanePage == 1 && useTwinCode == 1 && mTwinCodeField.isFocused() );
     mPlayerCountRadioButtonSet->setVisible( leftPanePage == 1 && useTwinCode == 1 && mTwinCodeField.isFocused() );
-    mSeedOrFamilyButtonSet->setVisible( leftPanePage == 1 && specifySpawn != 0 );
+    mSeedOrFamilyButtonSet->setVisible( mSpecificButton.isVisible() && leftPanePage == 1 && specifySpawn != 0 );
     
     int blockClicks = false;
     if ( mSpawnSeed.isFocused() ) { blockClicks = true; }
