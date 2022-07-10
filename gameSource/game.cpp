@@ -377,6 +377,8 @@ Font *smallFont;
 
 Font *titleFont;
 
+SpriteHandle sheetSprites[9] = {nullptr};
+
 
 char *shutdownMessage = NULL;
 
@@ -883,6 +885,11 @@ static void drawFrameNoUpdate( char inUpdate );
 
 
 
+doublePair lastCursorPos = {0, 0};
+bool hoveringResumeButton = false;
+bool hoveringSettingsButton = false;
+bool hoveringQuitButton = false;
+
 
 static void drawPauseScreen() {
     
@@ -890,96 +897,315 @@ static void drawPauseScreen() {
         pauseGame();
         return;
         }
-
-    double viewHeight = viewHeightFraction * viewWidth;
-
-    setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-    drawSquare( lastScreenViewCenter, 1.05 * ( viewHeight / 3 ) );
-        
-
-    setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-        
-    drawSquare( lastScreenViewCenter, viewHeight / 3 );
-        
-
-    setDrawColor( 1, 1, 1, pauseScreenFade );
-
+    
+    
     doublePair messagePos = lastScreenViewCenter;
+    if( currentGamePage != livingLifePage ) {
+        double viewHeight = viewHeightFraction * viewWidth;
 
-    messagePos.y += 4.5  * (viewHeight / 15);
+        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
+            
+        drawSquare( lastScreenViewCenter, 1.05 * ( viewHeight / 3 ) );
+            
 
-    oldMainFont->drawString( translate( "pauseMessage1" ), 
-                           messagePos, alignCenter );
-        
-    messagePos.y -= 1.25 * (viewHeight / 15);
-    oldMainFont->drawString( translate( "pauseMessage2" ), 
-                           messagePos, alignCenter );
+        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
+            
+        drawSquare( lastScreenViewCenter, viewHeight / 3 );
+            
+
+        setDrawColor( 1, 1, 1, pauseScreenFade );
+
+        messagePos = lastScreenViewCenter;
+
+        messagePos.y += 4.5  * (viewHeight / 15);
+
+        oldMainFont->drawString( translate( "pauseMessage1" ), 
+                               messagePos, alignCenter );
+            
+        messagePos.y -= 1.25 * (viewHeight / 15);
+        oldMainFont->drawString( translate( "pauseMessage2" ), 
+                               messagePos, alignCenter );
+        }
 
 
+    // Drawing the Pause screen
     if( currentGamePage == livingLifePage ) {
         
-        doublePair drawPos = { -9, 0 };
+        int columnWidth = 450 * gui_fov_scale;
+        int columnHeight = 600 * gui_fov_scale;
+        int columnOffset = 300 * gui_fov_scale;
+        int columnNumber = 0;
         
-        drawPos = add( drawPos, lastScreenViewCenter );
-
-        drawSprite( instructionsSprite, drawPos, gui_fov_scale );
-
-        TextAlignment a = getMessageAlign();
-
-
-
-        drawPos = lastScreenViewCenter;
+        int lastDrawnColumn = 0;
+        int lineHeight = 40 * gui_fov_scale;
         
-        drawPos.x -= 600 * gui_fov_scale;
-        drawPos.y += 320 * gui_fov_scale;
+        int columnStartX = -600 * gui_fov_scale;
+        int columnStartY = -100 * gui_fov_scale;
         
-
-        doublePair rectPos = drawPos;
-        rectPos.x += 155 * gui_fov_scale;
-        rectPos.y -= 320 * gui_fov_scale;
+        int temp;
         
-        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
         
-        drawRect( rectPos, 182 * gui_fov_scale, 362 * gui_fov_scale );
-
-        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-
-        drawRect( rectPos, 170 * gui_fov_scale, 350 * gui_fov_scale  );
-
+        doublePair writePos;
+        writePos.x = lastScreenViewCenter.x + columnStartX;
+        writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight / 2;
         
-        setMessageAlign( alignLeft );
-        drawMessage( translate( "commandHintsA" ), drawPos, false, 
-                     pauseScreenFade );
-
-
-
-        drawPos = lastScreenViewCenter;
+            
+        bool backgroundDrawn = false;
         
-        drawPos.x += 285 * gui_fov_scale;
-        drawPos.y += 320 * gui_fov_scale;
-        
+        // 2 passes for the stencil
+        // This is to draw a background matching the color of sheet1 and sheet2
+        for(int p=0;p<2;p++) 
+        for(int c=1;c<3;c++) {
+            
+            if( p == 1 && !backgroundDrawn ) {
+                startDrawingThroughStencil( true );
+                setDrawColor( 0.91f, 0.82f, 0.66f, 0.8*pauseScreenFade ); // This is the color of sheet1 and 2
+                drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+                stopStencil();
+                
+                backgroundDrawn = true;
+                }
+            
+            doublePair backgroundWritePos = writePos;
+            
+            if ( c == 2 ) {
+                int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( c - 1 );
+                backgroundWritePos.x = lastScreenViewCenter.x + current_columnX;
+                }
+                
+            if( p == 0 ) startAddingToStencil( false, true );
+            
+            setDrawColor( 1, 1, 1, 0.8f*pauseScreenFade );
+                                        
+            if ( sheetSprites[c] == nullptr ) {
+                char columnName[11] = "sheet";
+                char n[6];
+                sprintf( n, "%d.tga", c );
+                strcat( columnName, n );
+                sheetSprites[c] = loadSprite( columnName, false );
+                }
+                
+            doublePair drawPos;
+            drawPos.x = backgroundWritePos.x + columnWidth/2;
+            drawPos.y = lastScreenViewCenter.y; // + columnStartY;
 
-        rectPos = drawPos;
-        rectPos.x += 160 * gui_fov_scale;
-        rectPos.y -= 320 * gui_fov_scale;
+            drawSprite( sheetSprites[c], drawPos, gui_fov_scale );
         
-        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
+            }
+            
+        // This is the complementary color of that of sheet 1 and 2
+        // This makes the Pause screen white-ish instead of yellow-ish as in sheet 1 and 2
+        setDrawColor( 0.01f, 0.18f, 0.34f, 0.2*pauseScreenFade );
+        drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
         
-        drawRect( rectPos, 187 * gui_fov_scale, 362 * gui_fov_scale );
+        // Darkening the whole background a bit
+        setDrawColor( 1.0f, 1.0f, 1.0f, 0.1*pauseScreenFade );
+        drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+        
+        
+        File languagesDir( NULL, "languages" );
+        if ( languagesDir.exists() && languagesDir.isDirectory() ) {
+            File *helpFile = languagesDir.getChildFile( "help_English.txt" );
+            char *helpFileContents = helpFile->readFileContents();
+            
+            if( helpFileContents != NULL ) {
+                int numLines;
+                char **lines = split( helpFileContents, "\n", &numLines );
+                char *subString;
 
-        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-
-        drawRect( rectPos, 175 * gui_fov_scale, 350 * gui_fov_scale  );
-
-        
-        setMessageAlign( alignLeft );
-        drawMessage( translate( "commandHintsB" ), drawPos, false, 
-                     pauseScreenFade );
-        
-        setMessageAlign( a );
+                for( int i=0; i<numLines; i++ ) {
+                    bool isTitle = false;
+                    bool isSub = false;
+                    bool isComment = false;
+                    bool isSheet = false;
+                    if ( (lines[i][0] == '\0') || (lines[i][0] == '\r') ) {
+                        //continue;
+                        }
+                    else if ( strstr( lines[i], "#sheet" ) != NULL ) {
+                        sscanf( lines[i], "#sheet%d", &( columnNumber ) );
+                        writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2; //reset lineHeight additions
+                        isSheet = true;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@COLUMN_W" ) != NULL ) {
+                        sscanf( lines[i], "@COLUMN_W=%d", &( temp ) );
+                        columnWidth = gui_fov_scale * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@COLUMN_H" ) != NULL ) {
+                        sscanf( lines[i], "@COLUMN_H=%d", &( temp ) );
+                        columnHeight = gui_fov_scale * temp;
+                        writePos.y = lastScreenViewCenter.y + columnHeight/2;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@COLUMN_O=" ) != NULL ) {
+                        sscanf( lines[i], "@COLUMN_O=%d", &( temp ) );
+                        columnOffset = gui_fov_scale * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@START_X" ) != NULL ) {
+                        sscanf( lines[i], "@START_X=%d", &( temp ) );
+                        columnStartX = gui_fov_scale * temp;
+                        writePos.x = lastScreenViewCenter.x + columnStartX;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@START_Y" ) != NULL ) {
+                        sscanf( lines[i], "@START_Y=%d", &( temp ) );
+                        columnStartY = gui_fov_scale * temp;
+                        writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@LINEHEIGHT" ) != NULL ) {
+                        sscanf( lines[i], "@LINEHEIGHT=%d", &( temp ) );
+                        lineHeight = gui_fov_scale * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "warning$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        lines[i] = holder[1];
+                        isComment = true;
+                        }
+                    else if ( strstr( lines[i], "title$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        lines[i] = holder[1];
+                        isTitle = true;
+                        }
+                    else if ( strstr( lines[i], "sub$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        lines[i] = holder[1];
+                        subString = holder[2];
+                        isSub = true;
+                        }
+                    else if ( strstr( lines[i], "space$" ) != NULL ) {
+                        float lineScale;
+                        sscanf( lines[i], "space$%f", &( lineScale ) );
+                        writePos.y -= lineHeight * lineScale;
+                        continue;
+                        }
+                        
+					if ( columnNumber > 1 ) {
+						int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
+						writePos.x = lastScreenViewCenter.x + current_columnX;
+						}
+                        
+                    if ( isComment ) {
+                        // closeMessage = lines[i];
+                        }
+                    else if ( isTitle ) {
+                        setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
+                        int titleSize = titleFont->measureString( lines[i] );
+                        // titleFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
+                        titleFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
+                        writePos.y -= lineHeight * 0.75f*3;
+                        }
+                    else if ( isSub ) {
+                        setDrawColor( 0.2f, 0.4f, 0.6f, 1*pauseScreenFade );
+                        handwritingFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
+                        int subSize = handwritingFont->measureString( lines[i] );
+                        setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
+                        pencilFont->drawString( subString, { writePos.x + subSize + 60 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
+                        writePos.y -= lineHeight;
+                        }
+                    else {
+                        setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
+                        pencilFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
+                        writePos.y -= lineHeight;
+                        }
+                    }
+                delete [] lines;
+                }
+            }
         }
-    
+
+    // Drawing the Pause screen "buttons"
+    // Can't use the usual textButtons here because they don't work when game is paused
+    // So have to draw and make them work "mannually"
+    if( currentGamePage == livingLifePage ) {
+        
+        doublePair resumeButtonPos = { 460*gui_fov_scale, -112*gui_fov_scale };
+        doublePair settingsButtonPos = { 460*gui_fov_scale, -192*gui_fov_scale };
+        doublePair quitButtonPos = { 460*gui_fov_scale, -272*gui_fov_scale };
+        
+
+        if( 1 ) { // Resume button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + resumeButtonPos.x, 
+                lastScreenViewCenter.y + resumeButtonPos.y
+                };
+                
+            char *buttonText = "[RESUME GAME]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringResumeButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringResumeButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }        
+        if( 1 ) { // Settings button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + settingsButtonPos.x, 
+                lastScreenViewCenter.y + settingsButtonPos.y
+                };
+                
+            char *buttonText = "[SETTINGS]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringSettingsButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringSettingsButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+        if( 1 ) { // Quit button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + quitButtonPos.x, 
+                lastScreenViewCenter.y + quitButtonPos.y
+                };
+                
+            char *buttonText = "[QUIT GAME]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringQuitButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringQuitButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+        
+        }
+        
+
 
     if( currentUserTypedMessage != NULL ) {
             
@@ -1178,33 +1404,33 @@ static void drawPauseScreen() {
         }
         
         
+    if( currentGamePage != livingLifePage ) {
+        setDrawColor( 1, 1, 1, pauseScreenFade );
 
-    setDrawColor( 1, 1, 1, pauseScreenFade );
+        messagePos = lastScreenViewCenter;
 
-    messagePos = lastScreenViewCenter;
+        //messagePos.y -= 3.75 * ( viewHeight / 15 );
+        //mainFont->drawString( translate( "pauseMessage3" ), 
+        //                      messagePos, alignCenter );
 
-    //messagePos.y -= 3.75 * ( viewHeight / 15 );
-    //mainFont->drawString( translate( "pauseMessage3" ), 
-    //                      messagePos, alignCenter );
+        messagePos.y -= 3.75 * ( viewHeight / 15 );
+        
+        if ( currentGamePage == livingLifePage ) {
+            mainFont->drawString( translate( "pauseMessage5" ), 
+                                  messagePos, alignCenter );
+            }
 
-    messagePos.y -= 3.75 * ( viewHeight / 15 );
-    
-    if ( currentGamePage == livingLifePage ) {
-        mainFont->drawString( translate( "pauseMessage5" ), 
+        messagePos.y -= 0.625 * (viewHeight / 15);
+
+        const char* quitMessageKey = "pauseMessage3";
+        
+        if( isQuittingBlocked() ) {
+            quitMessageKey = "pauseMessage3b";
+            }
+
+        oldMainFont->drawString( translate( quitMessageKey ), 
                               messagePos, alignCenter );
         }
-
-    messagePos.y -= 0.625 * (viewHeight / 15);
-
-    const char* quitMessageKey = "pauseMessage3";
-    
-    if( isQuittingBlocked() ) {
-        quitMessageKey = "pauseMessage3b";
-        }
-
-    oldMainFont->drawString( translate( quitMessageKey ), 
-                          messagePos, alignCenter );
-
     }
 
 
@@ -1406,7 +1632,10 @@ void drawFrame( char inUpdate ) {
 
         // fade in pause screen
         if( pauseScreenFade < 1 ) {
-            pauseScreenFade += ( 1.0 / 30 ) * frameRateFactor;
+            
+            // pauseScreenFade = 1;
+            
+            pauseScreenFade += ( 1.0 / 15 ) * frameRateFactor;
         
             if( pauseScreenFade > 1 ) {
                 pauseScreenFade = 1;
@@ -2303,8 +2532,9 @@ float lastBufferedMouseValue = 0;
 float mouseDataBuffer[ MOUSE_DATA_BUFFER_SIZE ];
 
 
-
 void pointerMove( float inX, float inY ) {
+    
+    lastCursorPos = { inX, inY };
 
     // save all mouse movement data for key generation
     float bufferValue = inX + inY;
@@ -2360,6 +2590,19 @@ void pointerDrag( float inX, float inY ) {
 
 
 void pointerUp( float inX, float inY ) {
+    
+    // "Buttons" in the Pause screen in-game
+    if( currentGamePage == livingLifePage && isPaused() ) {
+        if( hoveringResumeButton ) pauseGame();
+        if( hoveringQuitButton ) quitGame();
+        if( hoveringSettingsButton ) {
+            pauseGame();
+            pauseScreenFade = 0;
+            livingLifePage->changeFOV( 1.0f );
+            showSettings();
+            }
+        }
+    
     if( isPaused() ) {
         return;
         }
@@ -2469,11 +2712,10 @@ void keyUp( unsigned char inASCII ) {
         holdDeleteKeySteps = -1;
         }
 
-    if( ! isPaused() ) {
+    if( isPaused() ) return;
 
-        if( currentGamePage != NULL ) {
-            currentGamePage->base_keyUp( inASCII );
-            }
+    if( currentGamePage != NULL ) {
+        currentGamePage->base_keyUp( inASCII );
         }
 
     }

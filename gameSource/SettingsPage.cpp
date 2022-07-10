@@ -148,7 +148,7 @@ SettingsPage::SettingsPage()
     mControlButton.setCursorTip( "CONTROL SETTINGS" );
     mScreenButton.setCursorTip( "SCREEN SETTINGS" );
     mSoundButton.setCursorTip( "SOUND SETTINGS" );
-    mBackButton.setCursorTip( "BACK TO LOGIN PAGE" );
+    mBackButton.setCursorTip( "GO BACK" );
     
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
     mEnableCenterCameraBox.setCursorTip( "ALWAYS CENTER THE CAMERA VIEW ON YOUR CHARACTER" );
