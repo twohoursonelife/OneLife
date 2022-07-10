@@ -18,17 +18,23 @@ Button::Button( double inX, double inY,
           mBracketCoverLength( -1.0 ),
           mDrawBackground( true ) {
     
-    
-    setDragOverColor( 0.828, 0.647, 0.212, 1 ); 
-    
-    setHoverColor( 0.886, 0.764, 0.475, 1 );
-    
+    // Text Color
     setNoHoverColor( 1, 1, 1, 1 );
+    setHoverColor( 0.886, 0.764, 0.475, 1 );
+    setDragOverColor( 0.828, 0.647, 0.212, 1 ); 
+    setInactiveColor( 0.5, 0.5, 0.5, 1 );
     
+    // Fill Color
     setFillColor( 0.25, 0.25, 0.25, 1 );
+    setHoverFillColor( 0.25, 0.25, 0.25, 1 );
     setDragOverFillColor( 0.1, 0.1, 0.1, 1 );
+    setInactiveFillColor( 0.125, 0.125, 0.125, 1 );
 
+    // Border Color
+    setBorderColor( 0.5, 0.5, 0.5, 1 );
     setHoverBorderColor( 0.75, 0.75, 0.75, 1 );
+    setDragOverBorderColor( 0.25, 0.25, 0.25, 1 );
+    setInactiveBorderColor( 0.25, 0.25, 0.25, 1 );
 
     mContentsShift.x = 0;
     mContentsShift.y = 0;
@@ -123,20 +129,29 @@ void Button::draw() {
 
     if( mDrawBackground ) {
         
-        if( mHover && ! mDragOver && mActive ) {    
+        if( !mActive ) {    
+            setDrawColor( mInactiveBorderColor );
+            }
+        else if( mHover && ! mDragOver ) {    
             setDrawColor( mHoverBorderColor );
             }
-        else if( mDragOver && mActive ) {
-            setDrawColor( 0.25, 0.25, 0.25, 1 );
+        else if( mDragOver ) {
+            setDrawColor( mDragOverBorderColor );
             }
         else {
-            setDrawColor( 0.5, 0.5, 0.5, 1 );
+            setDrawColor( mBorderColor );
             }
     
         drawBorder();
     
 
-        if( mDragOver ) {
+        if( !mActive ) {    
+            setDrawColor( mInactiveFillColor );
+            }
+        else if( mHover && ! mDragOver ) {    
+            setDrawColor( mHoverFillColor );
+            }
+        else if( mDragOver ) {
             setDrawColor( mDragOverFillColor );
             }
         else {
@@ -154,11 +169,14 @@ void Button::draw() {
         }
     
 
-    if( mDragOver && mActive ) {    
-        setDrawColor( mDragOverColor );
+    if( !mActive ) {    
+        setDrawColor( mInactiveColor );
         }
-    else if( mHover && mActive ) {
+    else if( mHover && ! mDragOver ) {    
         setDrawColor( mHoverColor );
+        }
+    else if( mDragOver ) {
+        setDrawColor( mDragOverColor );
         }
     else {
         setDrawColor( mNoHoverColor );
@@ -175,12 +193,6 @@ void Button::draw() {
     setViewCenterPosition( oldViewCenter.x, oldViewCenter.y );
     
 
-    if( ! mActive ) {
-        // dark overlay
-        setDrawColor( 0, 0, 0, 0.5 );
-        drawRect( - mWide / 2, - mHigh / 2, 
-                  mWide / 2, mHigh / 2 );
-        }
     }
 
 
@@ -282,15 +294,6 @@ void Button::pointerUp( float inX, float inY ) {
 
 
 
-void Button::setDragOverColor( float r, float g, float b, float a ) {
-    mDragOverColor.r = r;
-    mDragOverColor.g = g;
-    mDragOverColor.b = b;
-    mDragOverColor.a = a;
-    }
-
-
-
 void Button::setNoHoverColor( float r, float g, float b, float a ) {
     mNoHoverColor.r = r;
     mNoHoverColor.g = g;
@@ -309,11 +312,38 @@ void Button::setHoverColor( float r, float g, float b, float a ) {
 
 
 
+void Button::setDragOverColor( float r, float g, float b, float a ) {
+    mDragOverColor.r = r;
+    mDragOverColor.g = g;
+    mDragOverColor.b = b;
+    mDragOverColor.a = a;
+    }
+
+
+
+void Button::setInactiveColor( float r, float g, float b, float a ) {
+    mInactiveColor.r = r;
+    mInactiveColor.g = g;
+    mInactiveColor.b = b;
+    mInactiveColor.a = a;
+    }
+
+
+
 void Button::setFillColor( float r, float g, float b, float a ) {
     mFillColor.r = r;
     mFillColor.g = g;
     mFillColor.b = b;
     mFillColor.a = a;
+    }
+
+
+
+void Button::setHoverFillColor( float r, float g, float b, float a ) {
+    mHoverFillColor.r = r;
+    mHoverFillColor.g = g;
+    mHoverFillColor.b = b;
+    mHoverFillColor.a = a;
     }
 
 
@@ -327,11 +357,47 @@ void Button::setDragOverFillColor( float r, float g, float b, float a ) {
 
 
 
+void Button::setInactiveFillColor( float r, float g, float b, float a ) {
+    mInactiveFillColor.r = r;
+    mInactiveFillColor.g = g;
+    mInactiveFillColor.b = b;
+    mInactiveFillColor.a = a;
+    }
+
+
+
+void Button::setBorderColor( float r, float g, float b, float a ) {
+    mBorderColor.r = r;
+    mBorderColor.g = g;
+    mBorderColor.b = b;
+    mBorderColor.a = a;
+    }
+
+
+
 void Button::setHoverBorderColor( float r, float g, float b, float a ) {
     mHoverBorderColor.r = r;
     mHoverBorderColor.g = g;
     mHoverBorderColor.b = b;
     mHoverBorderColor.a = a;
+    }
+
+
+
+void Button::setDragOverBorderColor( float r, float g, float b, float a ) {
+    mDragOverBorderColor.r = r;
+    mDragOverBorderColor.g = g;
+    mDragOverBorderColor.b = b;
+    mDragOverBorderColor.a = a;
+    }
+
+
+
+void Button::setInactiveBorderColor( float r, float g, float b, float a ) {
+    mInactiveBorderColor.r = r;
+    mInactiveBorderColor.g = g;
+    mInactiveBorderColor.b = b;
+    mInactiveBorderColor.a = a;
     }
 
 

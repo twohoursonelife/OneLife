@@ -9,7 +9,7 @@
 #include "minorGems/util/stringUtils.h"
 
 
-extern Font *mainFont;
+extern Font *oldMainFont;
 
 
 extern char *userEmail;
@@ -20,7 +20,8 @@ extern char *accountKey;
 
 
 ExtendedMessagePage::ExtendedMessagePage()
-        : mOKButton( mainFont, 0, -128, 
+          // using the old font here for the black background
+        : mOKButton( oldMainFont, 0, -128, 
                      translate( "okay" ) ),
           mMessageKey( "" ),
           mSubMessage( NULL ) {
