@@ -65,7 +65,30 @@ SettingsPage::SettingsPage()
                             
 
     
+    // Adding components below in reverse order so cursor tip is drawn on top
+    
     addComponent( &mBackground );
+    
+    
+    // Sound
+    addComponent( &mSoundEffectsLoudnessSlider );
+    mSoundEffectsLoudnessSlider.addActionListener( this );
+    addComponent( &mMusicLoudnessSlider );
+    mMusicLoudnessSlider.addActionListener( this );
+    
+    // Screen
+    addComponent( &mBorderlessBox );
+    mBorderlessBox.addActionListener( this );
+    addComponent( &mFullscreenBox );
+    mFullscreenBox.addActionListener( this );
+    setButtonStyle( &mRedetectButton );
+    addComponent( &mRedetectButton );
+    mRedetectButton.addActionListener( this );
+    
+    // Control
+    addComponent( &mCursorScaleSlider );
+    mCursorScaleSlider.addActionListener( this );
+    mCursorScaleSlider.toggleField( false );
     
     const char *choiceList[3] = { translate( "system" ),
                                   translate( "drawn" ),
@@ -77,70 +100,58 @@ SettingsPage::SettingsPage()
                             false, 4 );
     addComponent( mCursorModeSet );
     mCursorModeSet->addActionListener( this );
-
-    addComponent( &mCursorScaleSlider );
-    mCursorScaleSlider.addActionListener( this );
-
-    mCursorScaleSlider.toggleField( false );
-
-    setButtonStyle( &mGameplayButton );
-    mGameplayButton.setSize( 175, 60 );
-    addComponent( &mGameplayButton );
-    mGameplayButton.addActionListener( this );
     
-    setButtonStyle( &mControlButton );
-    mControlButton.setSize( 175, 60 );
-    addComponent( &mControlButton );
-    mControlButton.addActionListener( this );
+	addComponent( &mEnableKActionsBox );
+    mEnableKActionsBox.addActionListener( this );
+    
+    // Gameplay
+    addComponent( &mEnableNudeBox );
+    mEnableNudeBox.addActionListener( this );
+	addComponent( &mEnableCenterCameraBox );
+    mEnableCenterCameraBox.addActionListener( this );
+	addComponent( &mEnableFOVBox );
+    mEnableFOVBox.addActionListener( this );
+    
+    // Left pane
+    setButtonStyle( &mBackButton );
+    mBackButton.setSize( 175, 60 );
+    addComponent( &mBackButton );
+    mBackButton.addActionListener( this );
+    
+    setButtonStyle( &mSoundButton );
+    mSoundButton.setSize( 175, 60 );
+    addComponent( &mSoundButton );
+    mSoundButton.addActionListener( this );
     
     setButtonStyle( &mScreenButton );
     mScreenButton.setSize( 175, 60 );
     addComponent( &mScreenButton );
     mScreenButton.addActionListener( this );
     
-    setButtonStyle( &mSoundButton );
-    mSoundButton.setSize( 175, 60 );
-    addComponent( &mSoundButton );
-    mSoundButton.addActionListener( this );
-        
-    setButtonStyle( &mBackButton );
-    mBackButton.setSize( 175, 60 );
-    addComponent( &mBackButton );
-    mBackButton.addActionListener( this );
-
+    setButtonStyle( &mControlButton );
+    mControlButton.setSize( 175, 60 );
+    addComponent( &mControlButton );
+    mControlButton.addActionListener( this );
+    
+    setButtonStyle( &mGameplayButton );
+    mGameplayButton.setSize( 175, 60 );
+    addComponent( &mGameplayButton );
+    mGameplayButton.addActionListener( this );
+    
+    
     setButtonStyle( &mRestartButton );
     mRestartButton.setSize( 175, 60 );
     addComponent( &mRestartButton );
     mRestartButton.addActionListener( this );
     mRestartButton.setVisible( false );
 
-    setButtonStyle( &mRedetectButton );
-    addComponent( &mRedetectButton );
-    mRedetectButton.addActionListener( this );
     
+
+    // Not in use
     setButtonStyle( &mEditAccountButton );
     // addComponent( &mEditAccountButton );
     mEditAccountButton.addActionListener( this );
 
-    addComponent( &mFullscreenBox );
-    mFullscreenBox.addActionListener( this );
-
-    addComponent( &mBorderlessBox );
-    mBorderlessBox.addActionListener( this );
-
-    addComponent( &mEnableNudeBox );
-    mEnableNudeBox.addActionListener( this );
-	
-	addComponent( &mEnableFOVBox );
-    mEnableFOVBox.addActionListener( this );
-	
-	addComponent( &mEnableKActionsBox );
-    mEnableKActionsBox.addActionListener( this );
-	
-	addComponent( &mEnableCenterCameraBox );
-    mEnableCenterCameraBox.addActionListener( this );
-    
-    
     
     mRestartButton.setCursorTip( "RESTART THE GAME" );
     
@@ -202,11 +213,8 @@ SettingsPage::SettingsPage()
     mPage = 0;
     
 
-    addComponent( &mMusicLoudnessSlider );
-    addComponent( &mSoundEffectsLoudnessSlider );
-    
-    mMusicLoudnessSlider.addActionListener( this );
-    mSoundEffectsLoudnessSlider.addActionListener( this );
+
+
 
     }
 
