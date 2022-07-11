@@ -585,8 +585,8 @@ void ExistingAccountPage::updateLeftPane() {
     if( !tutorialDone ) {
         leftPanePage = 0;
         
-        mTutorialButton.setLabelText( "START THE GAME" );
-        mTutorialButton.setCursorTip( "PLAY" );
+        mTutorialButton.setLabelText( "PLAY" );
+        mTutorialButton.setCursorTip( "START THE GAME" );
         mTutorialButton.setSize( 360, 60 );
         mTutorialButton.setPosition( mEmailField.getRightEdgeX() - ( mNextToGameTabButton.getWidth()/2 ), -272 );
         }
