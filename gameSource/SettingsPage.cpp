@@ -461,7 +461,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "ALWAYS CENTER CAMERA", pos, alignRight );
+        mainFont->drawString( "CENTER CAMERA", pos, alignRight );
         }
 
 
