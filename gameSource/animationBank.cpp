@@ -26,6 +26,7 @@ static int mapSize;
 // sparse, so some entries are NULL
 static AnimationRecord * **idMap;
 
+//this is defined here, but is a extern variable in objectBank
 int NudeToggle;
 
 // maps IDs to arbitrary number of extra animation records 

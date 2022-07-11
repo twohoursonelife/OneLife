@@ -188,7 +188,7 @@ void getLifeTokenTime( int *outHours, int *outMinutes, int *outSeconds ) {
 
 
 
-void drawTokenMessage( doublePair inPos ) {
+char *drawTokenMessage( doublePair inPos, bool returnMessage ) {
     int numTokens = getNumLifeTokens();
 
     if( numTokens != -1 ) {
@@ -196,28 +196,42 @@ void drawTokenMessage( doublePair inPos ) {
         if( numTokens > 0 ) {
             char *message = getLifeTokenString();
             
-            drawMessage( message, inPos );
-            
-            delete [] message;
+            if( !returnMessage ) {
+                drawMessage( message, inPos );
+                
+                delete [] message;
+                }
+            else {
+                return message;
+                }
             }
         else if( numTokens == 0 ) {
             int h, m, s;
             
             getLifeTokenTime( &h, &m, &s );
 
-            setDrawColor( 1, 1, 1, 1.0 );
-            mainFont->drawString( translate( "tokenTimeMessage" ), 
-                                  inPos, alignRight );
+            if( !returnMessage ) {
+                setDrawColor( 1, 1, 1, 1.0 );
+                mainFont->drawString( translate( "tokenTimeMessage" ), 
+                                      inPos, alignRight );
 
-            char *timeString = autoSprintf( "%d:%02d:%02d", h, m, s );
-            
-            numbersFontFixed->drawString( timeString, 
-                                          inPos, alignLeft );
+                char *timeString = autoSprintf( "%d:%02d:%02d", h, m, s );
+                
+                mainFont->drawString( timeString, 
+                                              inPos, alignLeft );
 
-            delete [] timeString;
+                delete [] timeString;
+                }
+            else {
+                
+                char *message = autoSprintf( "%s %d:%02d:%02d", translate( "tokenTimeMessage" ), h, m, s );
+                
+                return message;
+                
+                }
             }
         }
-    
+    return NULL;
     }
 
 

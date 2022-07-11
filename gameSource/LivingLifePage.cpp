@@ -67,13 +67,13 @@ extern int dataVersionNumber;
 extern double frameRateFactor;
 
 extern Font *mainFont;
+extern Font *oldMainFont;
 extern Font *numbersFontFixed;
 extern Font *mainFontReview;
 extern Font *handwritingFont;
 extern Font *pencilFont;
 extern Font *pencilErasedFont;
 
-extern Font *titleFont;
 
 // to make all erased pencil fonts lighter
 static float pencilErasedFontExtraFade = 0.75;
@@ -94,6 +94,7 @@ extern char usingCustomServer;
 extern char *serverIP;
 extern int serverPort;
 
+extern char useTargetFamily;
 extern char useSpawnSeed;
 extern char *userEmail;
 extern char *userTwinCode;
@@ -237,10 +238,6 @@ static SimpleVector<GridPos> ownerRequestPos;
 
 
 static char showPing = false;
-static char showHelp = false;
-
-static char *closeMessage = NULL;
-
 static double pingSentTime = -1;
 static double pongDeltaTime = -1;
 static double pingDisplayStartTime = -1;
@@ -5281,7 +5278,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             doublePair conPos = pos;
             conPos.y += 128;
-            drawMessage( "connecting", conPos, false, connectionMessageFade );
+            drawMessage( "connecting", conPos, false, connectionMessageFade, true );
             }
 
         
@@ -5296,7 +5293,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             doublePair custPos = pos;
             custPos.y += 192;
-            drawMessage( message, custPos );
+            drawMessage( message, custPos, false, 1.0, true );
             
             delete [] message;
             }
@@ -5306,17 +5303,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
         if( ! serverSocketConnected ) {
             // don't draw waiting message, not connected yet
             if( userReconnect ) {
-                drawMessage( "waitingReconnect", pos );
+                drawMessage( "waitingReconnect", pos, false, 1.0, true );
                 }
             }
         else if( userReconnect ) {
-            drawMessage( "waitingReconnect", pos );
+            drawMessage( "waitingReconnect", pos, false, 1.0, true );
             }
         else if( mPlayerInFlight ) {
-            drawMessage( "waitingArrival", pos );
+            drawMessage( "waitingArrival", pos, false, 1.0, true );
             }
         else if( userTwinCode == NULL ) {
-            drawMessage( "waitingBirth", pos );
+            drawMessage( "waitingBirth", pos, false, 1.0, true );
             }
         else {
             const char *sizeString = translate( "twins" );
@@ -5330,14 +5327,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
             char *message = autoSprintf( translate( "waitingBirthFriends" ),
                                          sizeString );
 
-            drawMessage( message, pos );
+            drawMessage( message, pos, false, 1.0, true );
             delete [] message;
 
             if( !mStartedLoadingFirstObjectSet ) {
                 doublePair tipPos = pos;
                 tipPos.y -= 200;
                 
-                drawMessage( translate( "cancelWaitingFriends" ), tipPos );
+                drawMessage( translate( "cancelWaitingFriends" ), tipPos, false, 1.0, true );
                 }
             }
         
@@ -7673,7 +7670,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         else if( photoSig != NULL ) {
             float currentFOV = gui_fov_scale;
-            changeFOV( 1.0 );
+            changeFOV( 1.0f );
 
             doublePair pos;
             
@@ -7942,160 +7939,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
     
-	if( showHelp ) {
-		
-		int columnNumber = 0;
-		int columnWidth = 450 * gui_fov_scale;
-		int columnHeight = 600 * gui_fov_scale;
-		int columnOffset = 300 * gui_fov_scale;
-		
-		int lastDrawnColumn = 0;
-		int lineHeight = 40 * gui_fov_scale;
-		
-		int columnStartX = -600 * gui_fov_scale;
-		int columnStartY = -100 * gui_fov_scale;
-		
-		int temp;
-		
-		doublePair writePos;
-		writePos.x = lastScreenViewCenter.x + columnStartX;
-		writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight / 2;
-		
-		File languagesDir( NULL, "languages" );
-		if ( languagesDir.exists() && languagesDir.isDirectory() ) {
-			File *helpFile = languagesDir.getChildFile( "help_English.txt" );
-			char *helpFileContents = helpFile->readFileContents();
-			if( helpFileContents != NULL ) {
-				int numLines;
-				char **lines = split( helpFileContents, "\n", &numLines );
-				char *subString;
-				for( int i=0; i<numLines; i++ ) {
-					bool isTitle = false;
-					bool isSub = false;
-					bool isCloseMessage = false;
-					if ( (lines[i][0] == '\0') || (lines[i][0] == '\r') ) {
-						//continue;
-						}
-					else if ( strstr( lines[i], "@COLUMN_W" ) != NULL ) {
-						sscanf( lines[i], "@COLUMN_W=%d", &( temp ) );
-						columnWidth = gui_fov_scale * temp;
-						continue;
-						}
-					else if ( strstr( lines[i], "@COLUMN_H" ) != NULL ) {
-						sscanf( lines[i], "@COLUMN_H=%d", &( temp ) );
-						columnHeight = gui_fov_scale * temp;
-						writePos.y = lastScreenViewCenter.y + columnHeight/2;
-						continue;
-						}
-					else if ( strstr( lines[i], "@COLUMN_O=" ) != NULL ) {
-						sscanf( lines[i], "@COLUMN_O=%d", &( temp ) );
-						columnOffset = gui_fov_scale * temp;
-						continue;
-						}
-					else if ( strstr( lines[i], "@START_X" ) != NULL ) {
-						sscanf( lines[i], "@START_X=%d", &( temp ) );
-						columnStartX = gui_fov_scale * temp;
-						writePos.x = lastScreenViewCenter.x + columnStartX;
-						continue;
-						}
-					else if ( strstr( lines[i], "@START_Y" ) != NULL ) {
-						sscanf( lines[i], "@START_Y=%d", &( temp ) );
-						columnStartY = gui_fov_scale * temp;
-						writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2;
-						continue;
-						}
-					else if ( strstr( lines[i], "@LINEHEIGHT" ) != NULL ) {
-						sscanf( lines[i], "@LINEHEIGHT=%d", &( temp ) );
-						lineHeight = gui_fov_scale * temp;
-						continue;
-						}					
-					else if ( strstr( lines[i], "#sheet" ) != NULL ) {
-						sscanf( lines[i], "#sheet%d", &( columnNumber ) );
-						writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2; //reset lineHeight additions
-						continue;
-						}
-					else if ( strstr( lines[i], "warning$" ) != NULL ) {
-						int hNumLines;
-						char **holder;
-						holder = split( lines[i], "$", &hNumLines);
-						lines[i] = holder[1];
-						isCloseMessage = true;
-						}
-					else if ( strstr( lines[i], "title$" ) != NULL ) {
-						int hNumLines;
-						char **holder;
-						holder = split( lines[i], "$", &hNumLines);
-						lines[i] = holder[1];
-						isTitle = true;
-						}
-					else if ( strstr( lines[i], "sub$" ) != NULL ) {
-						int hNumLines;
-						char **holder;
-						holder = split( lines[i], "$", &hNumLines);
-						lines[i] = holder[1];
-						subString = holder[2];
-						isSub = true;
-						}
-					else if ( strstr( lines[i], "space$" ) != NULL ) {
-						float lineScale;
-						sscanf( lines[i], "space$%f", &( lineScale ) );
-						writePos.y -= lineHeight * lineScale;
-						continue;
-						}
-					
-					if ( columnNumber == 0 ) {
-						continue;
-						}
-					else if ( columnNumber > 1 ) {
-						int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
-						writePos.x = lastScreenViewCenter.x + current_columnX;
-						}
-					
-					setDrawColor( 1, 1, 1, 0.85f );
-					if ( lastDrawnColumn != columnNumber ) {											
-						if ( sheetSprites[columnNumber] == nullptr ) {
-							char columnName[11] = "sheet";
-							char n[6];
-							sprintf( n, "%d.tga", columnNumber );
-							strcat( columnName, n );
-							sheetSprites[columnNumber] = loadSprite( columnName, false );
-							}
-							
-						doublePair drawPos;
-						drawPos.x = writePos.x + columnWidth/2;
-						drawPos.y = lastScreenViewCenter.y + columnStartY;
-						drawSprite( sheetSprites[columnNumber], drawPos, gui_fov_scale );
-						lastDrawnColumn = columnNumber;
-						}
-						
-					if ( isCloseMessage ) {
-						closeMessage = lines[i];
-						}
-					else if ( isTitle ) {
-						setDrawColor( 0.1f, 0.1f, 0.1f, 1 );
-						int titleSize = titleFont->measureString( lines[i] );
-						titleFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft );
-						writePos.y -= lineHeight * 1.5f;
-						}
-					else if ( isSub ) {
-						setDrawColor( 0.2f, 0.4f, 0.6f, 1 );
-						handwritingFont->drawString( lines[i], { writePos.x + 60 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
-						int subSize = handwritingFont->measureString( lines[i] );
-						setDrawColor( 0.1f, 0.1f, 0.1f, 1 );
-						pencilFont->drawString( subString, { writePos.x + subSize + 80 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
-						writePos.y -= lineHeight * 0.75;
-						}
-					else {
-						setDrawColor( 0.1f, 0.1f, 0.1f, 1 );
-						pencilFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
-						writePos.y -= lineHeight;
-						}
-					}
-				delete [] lines;
-				}
-			}
-		}
-
 
 
     doublePair slipPos = add( mult( recalcOffset( mHomeSlipPosOffset ), gui_fov_scale ), lastScreenViewCenter );
@@ -8560,9 +8403,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 }
             
-			if ( showHelp ) {
-				setDrawColor( 1, 1, 1, 0.2f );
-				}
 
             slipPos.y += lrint( highestCravingYOffset / 1.75 ) * gui_fov_scale_hud;
 
@@ -8877,11 +8717,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
 	panelPos.x = lastScreenViewCenter.x;
-    
-    if ( showHelp && closeMessage != NULL ) {
-    	setDrawColor( 0.4f, 0.1f, 0.1f, 1 );
-		handwritingFont->drawString( closeMessage, { lastScreenViewCenter.x - 0.5 * handwritingFont->measureString( closeMessage ), lastScreenViewCenter.y - 285 * gui_fov_scale }, alignLeft );
-    }
 
     if( ourLiveObject != NULL &&
         ourLiveObject->dying  &&
@@ -11017,7 +10852,15 @@ void LivingLifePage::step() {
             }
         else {
             setWaiting( false );
-            setSignal( "loginFailed" );
+            // Judge if the failed login is due to bad targetFamily base on loginSuccess
+            // and whether we are trying to specify a targetFamily in the first place
+            // since we are not creating a new message type just for this case at least for now...
+            if( useTargetFamily && SettingsManager::getIntSetting( "loginSuccess", 0 ) ) {
+                setSignal( "targetFamilyFailed" );
+                }
+            else {
+                setSignal( "loginFailed" );
+                }
             }
         return;
         }
@@ -12264,24 +12107,38 @@ void LivingLifePage::step() {
             if( strlen( userEmail ) > 0 ) {
                 std::string seededEmail = std::string( userEmail );
 
-				// If user doesn't have a seed in their email field
-				if( seededEmail.find('|') == std::string::npos && useSpawnSeed ) {
-					std::string seedList = SettingsManager::getSettingContents( "spawnSeed", "" );
-					std::string seed = "";
-					if( seedList == "" ) {
-						seed = "";
-					} else if( seedList.find('\n') == std::string::npos ) {
-						seed = seedList;
-					} else if( seedList.find('\n') != std::string::npos ) {
-						seed = seedList.substr( 0, seedList.find('\n') );
-					}
+				// If user doesn't have a seed or targetFamily in their email field
+				if( seededEmail.find('|') == std::string::npos &&
+                    seededEmail.find(':') == std::string::npos ) {
+                    if( useSpawnSeed ) {
+                        std::string seedList = SettingsManager::getSettingContents( "spawnSeed", "" );
+                        std::string seed = "";
+                        if( seedList == "" ) {
+                            seed = "";
+                        } else if( seedList.find('\n') == std::string::npos ) {
+                            seed = seedList;
+                        } else if( seedList.find('\n') != std::string::npos ) {
+                            seed = seedList.substr( 0, seedList.find('\n') );
+                        }
 
-					// And if the user has a seed set in settings
-					if( seed != "" ) {
-						// Add seed delim and then seed
-						seededEmail += '|';
-						seededEmail += seed;
-						}
+                        // And if the user has a seed set in settings
+                        if( seed != "" ) {
+                            // Add seed delim and then seed
+                            seededEmail += '|';
+                            seededEmail += seed;
+                            }
+                        }
+                    // Only if a seed is not specified we'd use a targetFamily
+                    else if( seededEmail.find(':') == std::string::npos && useTargetFamily ) {
+                        char *targetFamilyChars = SettingsManager::getSettingContents( "targetFamily", "" );
+                        std::string targetFamily( targetFamilyChars );
+                        delete [] targetFamilyChars;
+                        
+                        if( targetFamily != "" ) {
+                            seededEmail += ':';
+                            seededEmail += targetFamily;
+                            }
+                        }
 					}
 
                 tempEmail = stringDuplicate( seededEmail.c_str() );
@@ -19320,6 +19177,20 @@ void LivingLifePage::makeActive( char inFresh ) {
     
 
     if( !inFresh ) {
+    
+    //set fov to default if opening again
+    if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
+      changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+      }
+      
+		//reset camera if LivingLifePage is made active again
+		LiveObject *ourLiveObject = getOurLiveObject();
+		if ( ourLiveObject != NULL )
+		
+		lastScreenViewCenter.x = ourLiveObject->currentPos.x * CELL_D;
+		lastScreenViewCenter.y = ourLiveObject->currentPos.y * CELL_D;
+		setViewCenterPosition( lastScreenViewCenter.x,
+							   lastScreenViewCenter.y );
         return;
         }
 
@@ -19358,7 +19229,6 @@ void LivingLifePage::makeActive( char inFresh ) {
     showFPS = false;
     showNet = false;
     showPing = false;
-	showHelp = false;
     
     waitForFrameMessages = false;
 
@@ -22353,12 +22223,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 mEKeyDown = true;
                 }
             break;
-        case 'h':
-        case 'H':
-            if( ! mSayField.isFocused() && ! vogMode ) {
-                showHelp = ! showHelp;
-                }
-            break;
         case 'z':
         case 'Z':
             if( mUsingSteam && ! mSayField.isFocused() ) {
@@ -22542,11 +22406,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                              translate( "disconnectCommand" ) ) 
                                      == typedText ) {
                                 forceDisconnect = true;
-                                }
-                            else if( strstr( typedText,
-                                             translate( "helpCommand" ) ) 
-                                     == typedText ) {
-                                showHelp = ! showHelp;
                                 }
                             else {
                                 // filter hints
@@ -23001,7 +22860,6 @@ void LivingLifePage::changeFOV( float newScale ) {
 	calcFontScale( newScale, pencilErasedFont );
 	
 	calcFontScale( newScale, mainFont );
-	calcFontScale( newScale, titleFont );
 	
 	gui_fov_scale = newScale;
 	gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;

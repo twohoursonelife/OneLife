@@ -17,7 +17,7 @@ char isFitnessScoreReady();
 
 // These draw nothing if latest data (after last trigger) not ready yet
 
-void drawFitnessScore( doublePair inPos, char inMoreDigits = false );
+char * drawFitnessScore( doublePair inPos, char inMoreDigits = false, bool returnMessage = false );
 
 
 // inSkip controls paging through list 

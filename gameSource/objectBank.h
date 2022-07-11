@@ -15,6 +15,8 @@
 
 void setDrawColor( FloatRGB inColor );
 
+//defined in animationBank
+extern int NudeToggle;
 
 
 // tracks when creation of an object taps out nearby objects on a grid
