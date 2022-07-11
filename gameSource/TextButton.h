@@ -27,6 +27,9 @@ class TextButton : public Button {
         // default padding based on text width
         void setPadding( double inHorizontalPadding, double inVerticalPadding );
         
+        
+        void setFont( Font *inFont );
+        
 
     protected:
         Font *mFont;

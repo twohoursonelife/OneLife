@@ -6,6 +6,7 @@
 
 
 #include "TextButton.h"
+#include "Background.h"
 
 
 class RebirthChoicePage : public GamePage, public ActionListener {
@@ -25,6 +26,8 @@ class RebirthChoicePage : public GamePage, public ActionListener {
         virtual void makeActive( char inFresh );
         
     protected:
+    
+        Background mBackground;
         
         TextButton mQuitButton;
         TextButton mReviewButton;
@@ -32,6 +35,7 @@ class RebirthChoicePage : public GamePage, public ActionListener {
         TextButton mGenesButton;
         
         TextButton mTutorialButton;
+        TextButton mSettingsButton;
         TextButton mMenuButton;
 
     };

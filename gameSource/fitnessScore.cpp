@@ -403,9 +403,9 @@ const char *getRankSuffix() {
 
 // These draw nothing if latest data (after last trigger) not ready yet
 
-void drawFitnessScore( doublePair inPos, char inMoreDigits ) {
+char *drawFitnessScore( doublePair inPos, char inMoreDigits, bool returnMessage ) {
     if( !useFitnessServer ) {
-        return;
+        return NULL;
         }
 
     if( score != -1 ) {        
@@ -437,13 +437,19 @@ void drawFitnessScore( doublePair inPos, char inMoreDigits ) {
         
         delete [] scoreString;
 
-        drawMessage( message, inPos );
+        if( !returnMessage ) {
+            drawMessage( message, inPos );
 
-        delete [] message;
+            delete [] message;
+            }
+        else {
+            return message;
+            }
         }
     else {
         stepActiveRequest();
         }
+    return NULL;
     }
 
 

@@ -8,6 +8,8 @@
 
 #include "minorGems/game/doublePair.h"
 
+#include "minorGems/game/Font.h"
+
 
 class PageComponent : public GUIComponent {
     public:
@@ -37,6 +39,11 @@ class PageComponent : public GUIComponent {
         virtual char isActive() {
             return true;
             }
+            
+            
+        virtual char isMouseOver() {
+            return false;
+            }
         
         
         virtual void base_step();
@@ -54,6 +61,8 @@ class PageComponent : public GUIComponent {
         // down states that were invoked before the ignore started
         // do not get stuck)
         void setIgnoreEvents( char inIgnoreEvents );
+        
+        void setCursorTip( const char *inTip );
         
 
         void base_pointerMove( float inX, float inY );
@@ -177,6 +186,8 @@ class PageComponent : public GUIComponent {
         char mIgnoreEvents;
 
         PageComponent *mMouseEventHog;
+        
+        const char *mCursorTip;
 
     };
 

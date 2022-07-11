@@ -663,8 +663,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         SpriteHandle mHomeSlipSprite;
         SpriteHandle mHomeArrowSprites[ NUM_HOME_ARROWS ];
         SpriteHandle mHomeArrowErasedSprites[ NUM_HOME_ARROWS ];
-		
-		SpriteHandle sheetSprites[9] = {nullptr};
         
         HomeArrow mHomeArrowStates[ NUM_HOME_ARROWS ];
 
@@ -1006,10 +1004,12 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         
         //FOV
+		public:
         void changeHUDFOV( float newScale = 1.0f );
         void changeFOV( float newScale = 1.0f );
         void calcOffsetHUD();
         void calcFontScale( float newScale, Font* font );
+		protected:
 
         char mPlayerInFlight;
 

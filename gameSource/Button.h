@@ -39,32 +39,20 @@ class Button : public PageComponent, public ActionListenerList {
 
         virtual void setSize( double inWide, double inHigh );
 
-
-        // defaults to
-        // ( 0.828, 0.647, 0.212, 1 ) for drag-over
-        // ( 0.886, 0.764, 0.475, 1 ) for hover and
-        // white for non-hover
-        virtual void setDragOverColor( float r, float g, float b, float a );
-
         virtual void setNoHoverColor( float r, float g, float b, float a );
-        
         virtual void setHoverColor( float r, float g, float b, float a );
+        virtual void setDragOverColor( float r, float g, float b, float a );
+        virtual void setInactiveColor( float r, float g, float b, float a );
 
-
-        // defaults to
-        // ( 0.25, 0.25, 0.25, 1 );
         virtual void setFillColor( float r, float g, float b, float a );
+        virtual void setHoverFillColor( float r, float g, float b, float a );
+        virtual void setDragOverFillColor( float r, float g, float b, float a );
+        virtual void setInactiveFillColor( float r, float g, float b, float a );
      
-        // defaults to
-        // ( 0.1, 0.1, 0.1, 1 );
-        virtual void setDragOverFillColor( 
-            float r, float g, float b, float a );
-
-        
-        // defaults to
-        // ( 0.75, 0.75, 0.75, 1 );
-        virtual void setHoverBorderColor(
-            float r, float g, float b, float a );
+        virtual void setBorderColor( float r, float g, float b, float a );
+        virtual void setHoverBorderColor( float r, float g, float b, float a );
+        virtual void setDragOverBorderColor( float r, float g, float b, float a );
+        virtual void setInactiveBorderColor( float r, float g, float b, float a );
         
 
         // if we think about the button border as being
@@ -138,14 +126,20 @@ class Button : public PageComponent, public ActionListenerList {
         virtual void drawBorder();
         
 
-        FloatColor mDragOverColor;
-        FloatColor mHoverColor;
         FloatColor mNoHoverColor;
+        FloatColor mHoverColor;
+        FloatColor mDragOverColor;
+        FloatColor mInactiveColor;
         
         FloatColor mFillColor;
+        FloatColor mHoverFillColor;
         FloatColor mDragOverFillColor;
+        FloatColor mInactiveFillColor;
         
+        FloatColor mBorderColor;
         FloatColor mHoverBorderColor;
+        FloatColor mDragOverBorderColor;
+        FloatColor mInactiveBorderColor;
 
         double mBracketCoverLength;
 
