@@ -121,14 +121,14 @@ cancel "CANCEL"
 
 backButton "BACK"
 restartButton "RESTART"
-fullscreen "FULLSCREEN:"
-borderless "BORDERLESS:"
-musicLoudness "MUSIC LOUDNESS:"
-soundLoudness "SOUND LOUDNESS:"
+fullscreen "FULLSCREEN"
+borderless "BORDERLESS"
+musicLoudness "MUSIC LOUDNESS"
+soundLoudness "SOUND LOUDNESS"
 
-currentFPS "CURRENT FRAME RATE:"
-targetFPS "TARGET FRAME RATE:"
-vsyncOn "USING VSYNC:"
+currentFPS "CURRENT FRAME RATE"
+targetFPS "TARGET FRAME RATE"
+vsyncOn "USING VSYNC"
 vsyncYes "YES"
 vsyncNo "NO"
 retryButton "RETRY"
@@ -141,12 +141,12 @@ system "NATIVE"
 drawn "DRAWN"
 both "BOTH"
 
-scale "SCALE:"
+scale "DRAWN CURSOR SIZE"
 
 
-useCustomServer "USE CUSTOM SERVER:"
-address "ADDRESS:"
-port "PORT:"
+useCustomServer "USE CUSTOM SERVER"
+address "ADDRESS"
+port "PORT"
 spawnSeed "SPAWN SEED:"
 
 

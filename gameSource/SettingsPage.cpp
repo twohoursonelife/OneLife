@@ -553,14 +553,14 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "USE CUSTOM SERVER", pos, alignRight );
+        mainFont->drawString( translate( "useCustomServer" ), pos, alignRight );
         
         if( mUseCustomServerBox.getToggled() ) {
             pos.y += 2;
             pos.y -= 52 + 52/4;
-            mainFont->drawString( "ADDRESS", pos, alignRight );
+            mainFont->drawString( translate( "address" ), pos, alignRight );
             pos.y -= 52 + 52/4;
-            mainFont->drawString( "PORT", pos, alignRight );
+            mainFont->drawString( translate( "port" ), pos, alignRight );
             }
         }
 	
@@ -579,7 +579,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "KEYBOARD ACTIONS:", pos, alignRight );
+        mainFont->drawString( "KEYBOARD ACTIONS", pos, alignRight );
         }
 	
     if( mEnableCenterCameraBox.isVisible() ) {
@@ -610,7 +610,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x = xPos;
             pos.y -= 2;
             
-            mainFont->drawString( "DRAWN CURSOR SIZE:", pos, alignRight );
+            mainFont->drawString( translate( "scale"), pos, alignRight );
             }
         }
     
