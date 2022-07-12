@@ -69,6 +69,12 @@ class SettingsPage : public GamePage, public ActionListener {
 		CheckboxButton mEnableCenterCameraBox;
 		CheckboxButton mEnableNudeBox;
         
+        CheckboxButton mUseCustomServerBox;
+        TextField mCustomServerAddressField;
+        TextField mCustomServerPortField;
+        TextButton mCopyButton;
+        TextButton mPasteButton;
+        
         // Control
 		CheckboxButton mEnableKActionsBox;
         RadioButtonSet *mCursorModeSet;

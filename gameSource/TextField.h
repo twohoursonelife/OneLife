@@ -99,6 +99,7 @@ class TextField : public PageComponent, public ActionListenerList {
         
         double getWidth();
         double setWidth( double inWide );
+        double setHigh( double inHigh );
         
 
         // defaults to false
