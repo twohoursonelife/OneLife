@@ -97,7 +97,7 @@ void setButtonStyle( Button *inButton ) {
     // Fill Color
     inButton->setFillColor( 1, 0.75, 0.2, 1 );
     inButton->setHoverFillColor( 1, 0.75, 0.2, 1 );
-    inButton->setDragOverFillColor( 1, 0.75, 0.2, 1 );
+    inButton->setDragOverFillColor( 0.8, 0.6, 0.15, 1 );
     inButton->setInactiveFillColor( 1, 0.75, 0.2, 1 );
     
     // Border Color
