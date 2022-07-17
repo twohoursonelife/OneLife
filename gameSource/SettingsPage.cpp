@@ -118,10 +118,10 @@ SettingsPage::SettingsPage()
     
     // Gameplay
     
-    set2HOLOldButtonStyle( &mPasteButton ); //using old style since the button doesn't give feedback when clicked otherwise
+    setButtonStyle( &mPasteButton );
     addComponent( &mPasteButton );
     mPasteButton.addActionListener( this );
-    set2HOLOldButtonStyle( &mCopyButton ); //using old style since the button doesn't give feedback when clicked otherwise
+    setButtonStyle( &mCopyButton );
     addComponent( &mCopyButton );
     mCopyButton.addActionListener( this );
     addComponent( &mCustomServerPortField );
