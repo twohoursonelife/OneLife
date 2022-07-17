@@ -843,6 +843,12 @@ double TextField::setWidth( double inWide ) {
     
     mWide = inWide;
     }
+    
+    
+double TextField::setHigh( double inHigh ) {
+    
+    mHigh = inHigh;
+    }
 
 
 

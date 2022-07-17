@@ -44,6 +44,18 @@ SettingsPage::SettingsPage()
 		  mEnableCenterCameraBox( 561, 52, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
           
+          mUseCustomServerBox( -168, -148, 4 ),
+          mCustomServerAddressField( mainFont, 306, -150, 14, false, 
+                                     "",
+                                     NULL,
+                                     // forbid spaces
+                                     " " ),
+          mCustomServerPortField( mainFont, 84, -208, 4, false, 
+                                  "",
+                                  "0123456789", NULL ),
+          mCopyButton( mainFont, 381, -216, translate( "copy" ) ),
+          mPasteButton( mainFont, 518, -216, translate( "paste" ) ),
+          
           // Control
 		  mEnableKActionsBox( 561, 90, 4 ),
           mCursorScaleSlider( mainFont, 297, 155, 4, 200, 30,
@@ -65,7 +77,30 @@ SettingsPage::SettingsPage()
                             
 
     
+    // Adding components below in reverse order so cursor tip is drawn on top
+    
     addComponent( &mBackground );
+    
+    
+    // Sound
+    addComponent( &mSoundEffectsLoudnessSlider );
+    mSoundEffectsLoudnessSlider.addActionListener( this );
+    addComponent( &mMusicLoudnessSlider );
+    mMusicLoudnessSlider.addActionListener( this );
+    
+    // Screen
+    addComponent( &mBorderlessBox );
+    mBorderlessBox.addActionListener( this );
+    addComponent( &mFullscreenBox );
+    mFullscreenBox.addActionListener( this );
+    setButtonStyle( &mRedetectButton );
+    addComponent( &mRedetectButton );
+    mRedetectButton.addActionListener( this );
+    
+    // Control
+    addComponent( &mCursorScaleSlider );
+    mCursorScaleSlider.addActionListener( this );
+    mCursorScaleSlider.toggleField( false );
     
     const char *choiceList[3] = { translate( "system" ),
                                   translate( "drawn" ),
@@ -77,70 +112,74 @@ SettingsPage::SettingsPage()
                             false, 4 );
     addComponent( mCursorModeSet );
     mCursorModeSet->addActionListener( this );
-
-    addComponent( &mCursorScaleSlider );
-    mCursorScaleSlider.addActionListener( this );
-
-    mCursorScaleSlider.toggleField( false );
-
-    setButtonStyle( &mGameplayButton );
-    mGameplayButton.setSize( 175, 60 );
-    addComponent( &mGameplayButton );
-    mGameplayButton.addActionListener( this );
     
-    setButtonStyle( &mControlButton );
-    mControlButton.setSize( 175, 60 );
-    addComponent( &mControlButton );
-    mControlButton.addActionListener( this );
+	addComponent( &mEnableKActionsBox );
+    mEnableKActionsBox.addActionListener( this );
+    
+    // Gameplay
+    
+    setButtonStyle( &mPasteButton );
+    addComponent( &mPasteButton );
+    mPasteButton.addActionListener( this );
+    setButtonStyle( &mCopyButton );
+    addComponent( &mCopyButton );
+    mCopyButton.addActionListener( this );
+    addComponent( &mCustomServerPortField );
+    mCustomServerPortField.setWidth( 360 );
+    mCustomServerPortField.setHigh( 40 );
+    addComponent( &mCustomServerAddressField );    
+    mCustomServerAddressField.setWidth( 360 );
+    mCustomServerAddressField.setHigh( 40 );
+    addComponent( &mUseCustomServerBox );
+    mUseCustomServerBox.addActionListener( this );
+    
+    addComponent( &mEnableNudeBox );
+    mEnableNudeBox.addActionListener( this );
+	addComponent( &mEnableCenterCameraBox );
+    mEnableCenterCameraBox.addActionListener( this );
+	addComponent( &mEnableFOVBox );
+    mEnableFOVBox.addActionListener( this );
+    
+    // Left pane
+    setButtonStyle( &mBackButton );
+    mBackButton.setSize( 175, 60 );
+    addComponent( &mBackButton );
+    mBackButton.addActionListener( this );
+    
+    setButtonStyle( &mSoundButton );
+    mSoundButton.setSize( 175, 60 );
+    addComponent( &mSoundButton );
+    mSoundButton.addActionListener( this );
     
     setButtonStyle( &mScreenButton );
     mScreenButton.setSize( 175, 60 );
     addComponent( &mScreenButton );
     mScreenButton.addActionListener( this );
     
-    setButtonStyle( &mSoundButton );
-    mSoundButton.setSize( 175, 60 );
-    addComponent( &mSoundButton );
-    mSoundButton.addActionListener( this );
-        
-    setButtonStyle( &mBackButton );
-    mBackButton.setSize( 175, 60 );
-    addComponent( &mBackButton );
-    mBackButton.addActionListener( this );
-
+    setButtonStyle( &mControlButton );
+    mControlButton.setSize( 175, 60 );
+    addComponent( &mControlButton );
+    mControlButton.addActionListener( this );
+    
+    setButtonStyle( &mGameplayButton );
+    mGameplayButton.setSize( 175, 60 );
+    addComponent( &mGameplayButton );
+    mGameplayButton.addActionListener( this );
+    
+    
     setButtonStyle( &mRestartButton );
     mRestartButton.setSize( 175, 60 );
     addComponent( &mRestartButton );
     mRestartButton.addActionListener( this );
     mRestartButton.setVisible( false );
 
-    setButtonStyle( &mRedetectButton );
-    addComponent( &mRedetectButton );
-    mRedetectButton.addActionListener( this );
     
+
+    // Not in use
     setButtonStyle( &mEditAccountButton );
     // addComponent( &mEditAccountButton );
     mEditAccountButton.addActionListener( this );
 
-    addComponent( &mFullscreenBox );
-    mFullscreenBox.addActionListener( this );
-
-    addComponent( &mBorderlessBox );
-    mBorderlessBox.addActionListener( this );
-
-    addComponent( &mEnableNudeBox );
-    mEnableNudeBox.addActionListener( this );
-	
-	addComponent( &mEnableFOVBox );
-    mEnableFOVBox.addActionListener( this );
-	
-	addComponent( &mEnableKActionsBox );
-    mEnableKActionsBox.addActionListener( this );
-	
-	addComponent( &mEnableCenterCameraBox );
-    mEnableCenterCameraBox.addActionListener( this );
-    
-    
     
     mRestartButton.setCursorTip( "RESTART THE GAME" );
     
@@ -153,6 +192,10 @@ SettingsPage::SettingsPage()
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
     mEnableCenterCameraBox.setCursorTip( "ALWAYS CENTER THE CAMERA VIEW ON YOUR CHARACTER" );
     mEnableNudeBox.setCursorTip( "ENABLE NUDITY" );
+    
+    mUseCustomServerBox.setCursorTip( "CONNECT TO A CUSTOM SERVER" );
+    mCustomServerAddressField.setCursorTip( "CUSTOM SERVER ADDRESS" );
+    mCustomServerPortField.setCursorTip( "CUSTOM SERVER PORT" );
     
     mEnableKActionsBox.setCursorTip( "ENABLE WASD MOVEMENT AND ACTION" );
     mCursorModeSet->setCursorTip( "USE DRAWN CURSOR FOR ULTRAWIDE SCREEN" );
@@ -202,11 +245,8 @@ SettingsPage::SettingsPage()
     mPage = 0;
     
 
-    addComponent( &mMusicLoudnessSlider );
-    addComponent( &mSoundEffectsLoudnessSlider );
-    
-    mMusicLoudnessSlider.addActionListener( this );
-    mSoundEffectsLoudnessSlider.addActionListener( this );
+
+
 
     }
 
@@ -223,6 +263,21 @@ SettingsPage::~SettingsPage() {
 
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     if( inTarget == &mBackButton ) {
+        
+        int useCustomServer = 0;
+        if( mUseCustomServerBox.getToggled() ) {
+            useCustomServer = 1;
+            }
+        
+        SettingsManager::setSetting( "useCustomServer", useCustomServer );
+        char *address = mCustomServerAddressField.getText();
+        
+        SettingsManager::setSetting( "customServerAddress", address );
+        delete [] address;
+        
+        SettingsManager::setSetting( "customServerPort",
+                                     mCustomServerPortField.getInt() );
+        
         setSignal( "back" );
         setMusicLoudness( 0 );
         }
@@ -250,6 +305,10 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         //start ignoring the nudity sprites every times it draws a new object
         //mRestartButton.setVisible( mEnableNudeSetting != newSetting );
         NudeToggle = newSetting;
+        }
+	else if( inTarget == &mUseCustomServerBox ) {
+        mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
+        mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         }
 	else if( inTarget == &mEnableFOVBox ) {
         int newSetting = mEnableFOVBox.getToggled();
@@ -323,6 +382,65 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         else {
             setMusicLoudness( mMusicLoudnessSlider.getValue(), true );
             }
+        }
+    else if( inTarget == &mCopyButton ) {
+        char *address = mCustomServerAddressField.getText();
+        
+        char *fullAddress = autoSprintf( "%s:%d", address,
+                                         mCustomServerPortField.getInt() );
+        delete [] address;
+        
+        setClipboardText( fullAddress );
+        
+        delete [] fullAddress;
+        }
+    else if( inTarget == &mPasteButton ) {
+        char *text = getClipboardText();
+
+        char *trimmed = trimWhitespace( text );
+        
+        delete [] text;
+        
+
+        char setWithPort = false;
+        
+        if( strstr( trimmed, ":" ) != NULL ) {
+            char addressBuff[100];
+            int port = 0;
+            
+            int numRead = sscanf( trimmed, "%99[^:]:%d", addressBuff, &port );
+            
+            if( numRead == 2 ) {
+                setWithPort = true;
+                
+                char *trimmedAddr = trimWhitespace( addressBuff );
+                
+                // terminate at first space, if any
+                char *spacePos = strstr( trimmedAddr, " " );
+                if( spacePos != NULL ) {
+                    spacePos[0] = '\0';
+                    }
+
+                mCustomServerAddressField.setText( trimmedAddr );
+
+                delete [] trimmedAddr;
+                
+                mCustomServerPortField.setInt( port );
+                }
+            }
+        
+        if( ! setWithPort ) {
+            // treat the whole thing as an address
+            
+            // terminate at first space, if any
+            char *spacePos = strstr( trimmed, " " );
+            
+            if( spacePos != NULL ) {
+                spacePos[0] = '\0';
+                }
+            mCustomServerAddressField.setText( trimmed );
+            }
+        delete [] trimmed;
         }
     else if( inTarget == mCursorModeSet ) {
         setCursorMode( mCursorModeSet->getSelectedItem() );
@@ -428,6 +546,23 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString( "ENABLE NUDITY", pos, alignRight );
         }
+        
+    if( mUseCustomServerBox.isVisible() ) {
+        doublePair pos = mUseCustomServerBox.getPosition();
+        
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString( translate( "useCustomServer" ), pos, alignRight );
+        
+        if( mUseCustomServerBox.getToggled() ) {
+            pos.y += 2;
+            pos.y -= 52 + 52/4;
+            mainFont->drawString( translate( "address" ), pos, alignRight );
+            pos.y -= 52 + 52/4;
+            mainFont->drawString( translate( "port" ), pos, alignRight );
+            }
+        }
 	
     if( mEnableFOVBox.isVisible() ) {
         doublePair pos = mEnableFOVBox.getPosition();
@@ -444,7 +579,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "KEYBOARD ACTIONS:", pos, alignRight );
+        mainFont->drawString( "KEYBOARD ACTIONS", pos, alignRight );
         }
 	
     if( mEnableCenterCameraBox.isVisible() ) {
@@ -453,7 +588,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "ALWAYS CENTER CAMERA", pos, alignRight );
+        mainFont->drawString( "CENTER CAMERA", pos, alignRight );
         }
 
 
@@ -475,7 +610,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x = xPos;
             pos.y -= 2;
             
-            mainFont->drawString( "DRAWN CURSOR SIZE:", pos, alignRight );
+            mainFont->drawString( translate( "scale"), pos, alignRight );
             }
         }
     
@@ -502,6 +637,24 @@ void SettingsPage::makeActive( char inFresh ) {
         mCursorModeSet->setSelectedItem( mode );
         
         mCursorScaleSlider.setValue( getEmulatedCursorScale() );
+
+
+        int useCustomServer = 
+            SettingsManager::getIntSetting( "useCustomServer", 0 );
+        
+        mUseCustomServerBox.setToggled( useCustomServer );
+        
+
+        char *address = 
+            SettingsManager::getStringSetting( "customServerAddress",
+                                               "localhost" );
+        
+        int port = SettingsManager::getIntSetting( "customServerPort", 8005 );
+        
+        mCustomServerAddressField.setText( address );
+        mCustomServerPortField.setInt( port );
+        
+        delete [] address;
         
 
 
@@ -552,9 +705,22 @@ void SettingsPage::updatePage() {
     doublePair pos = { 0, 0 };
     double lineSpacing = 52;
     
-    mEnableFOVBox.setPosition( 0, lineSpacing );
-    mEnableCenterCameraBox.setPosition( 0, 0 );
-    mEnableNudeBox.setPosition( 0, -lineSpacing );
+    mEnableFOVBox.setPosition( 0, lineSpacing * 3 );
+    mEnableCenterCameraBox.setPosition( 0, lineSpacing * 2 );
+    mEnableNudeBox.setPosition( 0, lineSpacing );
+    mUseCustomServerBox.setPosition( 0, -lineSpacing );
+    mCustomServerAddressField.setPosition( 180 - 16, -lineSpacing * 2 - lineSpacing/4 );
+    mCustomServerPortField.setPosition( 180 - 16, -lineSpacing * 3  - lineSpacing/2 );
+    mCopyButton.setPadding( 8, 4 );
+    mCopyButton.setPosition( 
+        mCustomServerAddressField.getRightEdgeX() + mCopyButton.getWidth() / 2 + 12, 
+        mCustomServerAddressField.getPosition().y );
+    mPasteButton.setPadding( 8, 4 );
+    mPasteButton.setPosition(
+        mCustomServerAddressField.getRightEdgeX() + 12 + 
+        mCopyButton.getWidth() + 
+        12 + mPasteButton.getWidth() / 2, 
+        mCustomServerAddressField.getPosition().y );
     
     mEnableKActionsBox.setPosition( 0, lineSpacing * 2 );
     mCursorModeSet->setPosition( 0, 0 );
@@ -571,6 +737,11 @@ void SettingsPage::updatePage() {
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
     mEnableNudeBox.setVisible( mPage == 0 );
+    mUseCustomServerBox.setVisible( mPage == 0 );
+    mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
+    mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
+    mCopyButton.setVisible( isClipboardSupported() && mPage == 0 && mUseCustomServerBox.getToggled() );
+    mPasteButton.setVisible( isClipboardSupported() && mPage == 0 && mUseCustomServerBox.getToggled() );
 
     mEnableKActionsBox.setVisible( mPage == 1 );
     mCursorModeSet->setVisible( mPage == 1 );
