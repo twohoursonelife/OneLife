@@ -1741,7 +1741,7 @@ void minitech::livingLifeDraw(float mX, float mY) {
 	
 	for ( int i=twotechMouseListeners.size() - 1; i>=0; i-- ) {
 		mouseListener* listener = twotechMouseListeners[i];
-		if ( posWithinArea(mousePosScreenAdj, listener->posTL, listener->posBR) ) {
+		if ( posWithinArea(mousePosScreenAdj, listener->posTL, listener->posBR) && !isPaused() ) {
 			listener->mouseHover = true;
 			continue;
 		}

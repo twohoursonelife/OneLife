@@ -96,6 +96,10 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
         
         double getRightEdgeX();
+        double getLeftEdgeX();
+        
+        double getWidth();
+        double setWidth( double inWide );
         
 
         // defaults to false
@@ -114,6 +118,9 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
         // defaults to off
         void usePasteShortcut( char inShortcutOn );
+		
+        // defaults to off
+        void useClearButton( char inClearButtonOn );
         
 
         
@@ -135,6 +142,9 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
         virtual void specialKeyDown( int inKeyCode );
         virtual void specialKeyUp( int inKeyCode );
+        
+        
+        virtual char isMouseOver();
         
 
         // makes this text field the only focused field.
@@ -181,6 +191,7 @@ class DropdownList : public PageComponent, public ActionListenerList {
         char *mAllowedChars;
         char *mForbiddenChars;
 
+        char mHover;
         
         double mWide, mHigh;
         
@@ -199,6 +210,8 @@ class DropdownList : public PageComponent, public ActionListenerList {
 		char isInsideTextBox( float inX, float inY );
 		bool nearRightEdge;
 		char isNearRightEdge( float inX, float inY );
+		bool mUseClearButton;
+		bool onClearButton;
         
         
         char mFocused;

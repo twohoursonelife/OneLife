@@ -24,4 +24,4 @@ void getLifeTokenTime( int *outHours, int *outMinutes, int *outSeconds );
 
 
 
-void drawTokenMessage( doublePair inPos );
+char *drawTokenMessage( doublePair inPos, bool returnMessage = false );

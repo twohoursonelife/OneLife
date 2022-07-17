@@ -6,6 +6,7 @@
 #include "ValueSlider.h"
 #include "SoundUsage.h"
 #include "DropdownList.h"
+#include "Background.h"
 
 
 #include "minorGems/ui/event/ActionListener.h"
@@ -31,6 +32,8 @@ class SettingsPage : public GamePage, public ActionListener {
         
         virtual void makeActive( char inFresh );
         virtual void makeNotActive();
+		virtual void updatePage();
+        virtual bool checkRestartRequired();
 
     protected:
         
@@ -41,33 +44,50 @@ class SettingsPage : public GamePage, public ActionListener {
         int mEnableKActionsSetting;
         int mEnableCenterCameraSetting;
         
+        int mPage;
+        
         SoundUsage mTestSound;
 
         double mMusicStartTime;
 
 
-        TextButton mInfoSeeds;
-        TextButton mBackButton;
-        TextButton mEditAccountButton;
-        TextButton mRestartButton;
-        TextButton mRedetectButton;
+        Background mBackground;
 
+        // Left Pane
+        TextButton mRestartButton;
+        
+        TextButton mGameplayButton;
+        TextButton mControlButton;
+        TextButton mScreenButton;
+        TextButton mSoundButton;
+        TextButton mBackButton;
+        
+        TextButton mEditAccountButton;
+
+        // Gameplay
+		CheckboxButton mEnableFOVBox;
+		CheckboxButton mEnableCenterCameraBox;
+		CheckboxButton mEnableNudeBox;
+        
+        CheckboxButton mUseCustomServerBox;
+        TextField mCustomServerAddressField;
+        TextField mCustomServerPortField;
+        TextButton mCopyButton;
+        TextButton mPasteButton;
+        
+        // Control
+		CheckboxButton mEnableKActionsBox;
+        RadioButtonSet *mCursorModeSet;
+        ValueSlider mCursorScaleSlider;
+
+        // Screen
+        TextButton mRedetectButton;
         CheckboxButton mFullscreenBox;
         CheckboxButton mBorderlessBox;
         
-		CheckboxButton mEnableNudeBox;
-		CheckboxButton mEnableFOVBox;
-		CheckboxButton mEnableKActionsBox;
-		CheckboxButton mEnableCenterCameraBox;
-
+        // Sound
         ValueSlider mMusicLoudnessSlider;
         ValueSlider mSoundEffectsLoudnessSlider;
 
-
-        DropdownList mSpawnSeed;
-
-        RadioButtonSet *mCursorModeSet;
-        
-        ValueSlider mCursorScaleSlider;
 
     };

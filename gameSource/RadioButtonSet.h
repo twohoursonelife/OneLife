@@ -28,6 +28,9 @@ class RadioButtonSet : public PageComponent, public ActionListenerList,
 
 
         virtual void setActive( char inActive );
+        
+        
+        virtual char isMouseOver();
 
         virtual char isActive();
         
@@ -37,6 +40,10 @@ class RadioButtonSet : public PageComponent, public ActionListenerList,
         virtual void actionPerformed( GUIComponent *inTarget );
 
         virtual void draw();
+
+        virtual void pointerMove( float inX, float inY );
+        
+        char mHover;
         
 
         Font *mDisplayFont;

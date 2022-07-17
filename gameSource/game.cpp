@@ -59,6 +59,8 @@ CustomRandomSource randSource( 34957197 );
 #include "minorGems/game/drawUtils.h"
 #include "minorGems/game/diffBundle/client/diffBundleClient.h"
 
+#include "minorGems/graphics/RGBAImage.h"
+
 
 
 
@@ -120,6 +122,7 @@ char *serverIP = NULL;
 int serverPort = 0;
 
 
+char useTargetFamily;
 char useSpawnSeed;
 
 char *userEmail = NULL;
@@ -127,6 +130,8 @@ char *accountKey = NULL;
 char *userTwinCode = NULL;
 int userTwinCount = 0;
 char userReconnect = false;
+
+char showingInGameSettings = false;
 
 
 // these are needed by ServerActionPage, but we don't use them
@@ -322,6 +327,18 @@ const char *getLinuxAppName() {
 
 
 const char *getFontTGAFileName() {
+    return "font_32_64.tga";
+    }
+    
+bool newFontExist() {
+    bool exist = false;
+    Image *spriteImage = readTGAFile( "newfont_32_64.tga" );
+    if( spriteImage != NULL ) exist = true;
+    delete spriteImage;
+    return exist;
+    }
+    
+const char *getNewFontTGAFileName() {
     return "newfont_32_64.tga";
     }
 
@@ -346,17 +363,21 @@ char gamePlayingBack = false;
 
 
 Font *mainFont;
+Font *oldMainFont;
 Font *mainFontFixed;
 // closer spacing
 Font *mainFontReview;
 Font *numbersFontFixed;
 Font *handwritingFont;
+Font *tinyHandwritingFont;
 Font *pencilFont;
 Font *pencilErasedFont;
 
 Font *smallFont;
 
 Font *titleFont;
+
+SpriteHandle sheetSprites[9] = {nullptr};
 
 
 char *shutdownMessage = NULL;
@@ -465,8 +486,19 @@ void initDrawString( int inWidth, int inHeight ) {
     toggleMipMapMinFilter( true );
     toggleTransparentCropping( true );
     
-    //mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
-    mainFont = new Font( getFontTGAFileName(), 3, 6, false, 16 );
+    mainFont = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
+    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
+    mainFont->setMinimumPositionPrecision( 1 );
+    oldMainFont = new Font( getFontTGAFileName(), 6, 6, false, 16 );
+    oldMainFont->setMinimumPositionPrecision( 1 );
+    
+    if( newFontExist() ) {
+        mainFont = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
+        }
+    else {
+        mainFont = new Font( "font_32_64.tga", 3, 6, false, 12 );
+        }
+    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
     mainFont->setMinimumPositionPrecision( 1 );
 
     setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
@@ -487,6 +519,7 @@ void initDrawString( int inWidth, int inHeight ) {
 
 void freeDrawString() {
     delete mainFont;
+    delete oldMainFont;
     }
 
 
@@ -581,6 +614,9 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
         new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     handwritingFont->setMinimumPositionPrecision( 1 );
+    
+	tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+	tinyHandwritingFont->setMinimumPositionPrecision( 1 );
 
     pencilFont = 
         new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
@@ -748,6 +784,7 @@ void freeFrameDrawer() {
     delete numbersFontFixed;
     
     delete handwritingFont;
+    delete tinyHandwritingFont;
     delete pencilFont;
     delete pencilErasedFont;
     
@@ -848,98 +885,327 @@ static void drawFrameNoUpdate( char inUpdate );
 
 
 
+doublePair lastCursorPos = {0, 0};
+bool hoveringResumeButton = false;
+bool hoveringSettingsButton = false;
+bool hoveringQuitButton = false;
+
 
 static void drawPauseScreen() {
-
-    double viewHeight = viewHeightFraction * viewWidth;
-
-    setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-    drawSquare( lastScreenViewCenter, 1.05 * ( viewHeight / 3 ) );
-        
-
-    setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-        
-    drawSquare( lastScreenViewCenter, viewHeight / 3 );
-        
-
-    setDrawColor( 1, 1, 1, pauseScreenFade );
-
-    doublePair messagePos = lastScreenViewCenter;
-
-    messagePos.y += 4.5  * (viewHeight / 15);
-
-    mainFont->drawString( translate( "pauseMessage1" ), 
-                           messagePos, alignCenter );
-        
-    messagePos.y -= 1.25 * (viewHeight / 15);
-    mainFont->drawString( translate( "pauseMessage2" ), 
-                           messagePos, alignCenter );
-
-
-    if( currentGamePage == livingLifePage ) {
-        
-        doublePair drawPos = { -9, 0 };
-        
-        drawPos = add( drawPos, lastScreenViewCenter );
-
-        drawSprite( instructionsSprite, drawPos, gui_fov_scale );
-
-        TextAlignment a = getMessageAlign();
-
-
-
-        drawPos = lastScreenViewCenter;
-        
-        drawPos.x -= 600 * gui_fov_scale;
-        drawPos.y += 320 * gui_fov_scale;
-        
-
-        doublePair rectPos = drawPos;
-        rectPos.x += 155 * gui_fov_scale;
-        rectPos.y -= 320 * gui_fov_scale;
-        
-        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-        drawRect( rectPos, 182 * gui_fov_scale, 362 * gui_fov_scale );
-
-        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-
-        drawRect( rectPos, 170 * gui_fov_scale, 350 * gui_fov_scale  );
-
-        
-        setMessageAlign( alignLeft );
-        drawMessage( translate( "commandHintsA" ), drawPos, false, 
-                     pauseScreenFade );
-
-
-
-        drawPos = lastScreenViewCenter;
-        
-        drawPos.x += 285 * gui_fov_scale;
-        drawPos.y += 320 * gui_fov_scale;
-        
-
-        rectPos = drawPos;
-        rectPos.x += 160 * gui_fov_scale;
-        rectPos.y -= 320 * gui_fov_scale;
-        
-        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
-        
-        drawRect( rectPos, 187 * gui_fov_scale, 362 * gui_fov_scale );
-
-        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
-
-        drawRect( rectPos, 175 * gui_fov_scale, 350 * gui_fov_scale  );
-
-        
-        setMessageAlign( alignLeft );
-        drawMessage( translate( "commandHintsB" ), drawPos, false, 
-                     pauseScreenFade );
-        
-        setMessageAlign( a );
+    
+    if( currentGamePage == existingAccountPage && isPaused() ) {
+        pauseGame();
+        return;
         }
     
+    
+    doublePair messagePos = lastScreenViewCenter;
+    if( currentGamePage != livingLifePage ) {
+        double viewHeight = viewHeightFraction * viewWidth;
+
+        setDrawColor( 1, 1, 1, 0.5 * pauseScreenFade );
+            
+        drawSquare( lastScreenViewCenter, 1.05 * ( viewHeight / 3 ) );
+            
+
+        setDrawColor( 0.2, 0.2, 0.2, 0.85 * pauseScreenFade  );
+            
+        drawSquare( lastScreenViewCenter, viewHeight / 3 );
+            
+
+        setDrawColor( 1, 1, 1, pauseScreenFade );
+
+        messagePos = lastScreenViewCenter;
+
+        messagePos.y += 4.5  * (viewHeight / 15);
+
+        oldMainFont->drawString( translate( "pauseMessage1" ), 
+                               messagePos, alignCenter );
+            
+        messagePos.y -= 1.25 * (viewHeight / 15);
+        oldMainFont->drawString( translate( "pauseMessage2" ), 
+                               messagePos, alignCenter );
+        }
+
+
+    // Drawing the Pause screen
+    if( currentGamePage == livingLifePage ) {
+        
+        int columnWidth = 450 * gui_fov_scale;
+        int columnHeight = 600 * gui_fov_scale;
+        int columnOffset = 300 * gui_fov_scale;
+        int columnNumber = 0;
+        
+        int lastDrawnColumn = 0;
+        int lineHeight = 40 * gui_fov_scale;
+        
+        int columnStartX = -600 * gui_fov_scale;
+        int columnStartY = -100 * gui_fov_scale;
+        
+        int temp;
+        
+        
+        doublePair writePos;
+        writePos.x = lastScreenViewCenter.x + columnStartX;
+        writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight / 2;
+        
+            
+        bool backgroundDrawn = false;
+        
+        // 2 passes for the stencil
+        // This is to draw a background matching the color of sheet1 and sheet2
+        for(int p=0;p<2;p++) 
+        for(int c=1;c<3;c++) {
+            
+            if( p == 1 && !backgroundDrawn ) {
+                startDrawingThroughStencil( true );
+                setDrawColor( 0.91f, 0.82f, 0.66f, 0.8*pauseScreenFade ); // This is the color of sheet1 and 2
+                drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+                stopStencil();
+                
+                backgroundDrawn = true;
+                }
+            
+            doublePair backgroundWritePos = writePos;
+            
+            if ( c == 2 ) {
+                int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( c - 1 );
+                backgroundWritePos.x = lastScreenViewCenter.x + current_columnX;
+                }
+                
+            if( p == 0 ) startAddingToStencil( false, true );
+            
+            setDrawColor( 1, 1, 1, 0.8f*pauseScreenFade );
+                                        
+            if ( sheetSprites[c] == nullptr ) {
+                char columnName[11] = "sheet";
+                char n[6];
+                sprintf( n, "%d.tga", c );
+                strcat( columnName, n );
+                sheetSprites[c] = loadSprite( columnName, false );
+                }
+                
+            doublePair drawPos;
+            drawPos.x = backgroundWritePos.x + columnWidth/2;
+            drawPos.y = lastScreenViewCenter.y; // + columnStartY;
+
+            drawSprite( sheetSprites[c], drawPos, gui_fov_scale );
+        
+            }
+            
+        // This is the complementary color of that of sheet 1 and 2
+        // This makes the Pause screen white-ish instead of yellow-ish as in sheet 1 and 2
+        setDrawColor( 0.01f, 0.18f, 0.34f, 0.2*pauseScreenFade );
+        drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+        
+        // Darkening the whole background a bit
+        setDrawColor( 1.0f, 1.0f, 1.0f, 0.1*pauseScreenFade );
+        drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+        
+        
+        File languagesDir( NULL, "languages" );
+        if ( languagesDir.exists() && languagesDir.isDirectory() ) {
+            File *helpFile = languagesDir.getChildFile( "help_English.txt" );
+            char *helpFileContents = helpFile->readFileContents();
+            
+            if( helpFileContents != NULL ) {
+                int numLines;
+                char **lines = split( helpFileContents, "\n", &numLines );
+                char *subString;
+
+                for( int i=0; i<numLines; i++ ) {
+                    bool isTitle = false;
+                    bool isSub = false;
+                    bool isComment = false;
+                    bool isSheet = false;
+                    if ( (lines[i][0] == '\0') || (lines[i][0] == '\r') ) {
+                        //continue;
+                        }
+                    else if ( strstr( lines[i], "#sheet" ) != NULL ) {
+                        sscanf( lines[i], "#sheet%d", &( columnNumber ) );
+                        writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2; //reset lineHeight additions
+                        isSheet = true;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@COLUMN_W" ) != NULL ) {
+                        sscanf( lines[i], "@COLUMN_W=%d", &( temp ) );
+                        columnWidth = gui_fov_scale * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@COLUMN_H" ) != NULL ) {
+                        sscanf( lines[i], "@COLUMN_H=%d", &( temp ) );
+                        columnHeight = gui_fov_scale * temp;
+                        writePos.y = lastScreenViewCenter.y + columnHeight/2;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@COLUMN_O=" ) != NULL ) {
+                        sscanf( lines[i], "@COLUMN_O=%d", &( temp ) );
+                        columnOffset = gui_fov_scale * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@START_X" ) != NULL ) {
+                        sscanf( lines[i], "@START_X=%d", &( temp ) );
+                        columnStartX = gui_fov_scale * temp;
+                        writePos.x = lastScreenViewCenter.x + columnStartX;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@START_Y" ) != NULL ) {
+                        sscanf( lines[i], "@START_Y=%d", &( temp ) );
+                        columnStartY = gui_fov_scale * temp;
+                        writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@LINEHEIGHT" ) != NULL ) {
+                        sscanf( lines[i], "@LINEHEIGHT=%d", &( temp ) );
+                        lineHeight = gui_fov_scale * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "warning$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        lines[i] = holder[1];
+                        isComment = true;
+                        }
+                    else if ( strstr( lines[i], "title$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        lines[i] = holder[1];
+                        isTitle = true;
+                        }
+                    else if ( strstr( lines[i], "sub$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        lines[i] = holder[1];
+                        subString = holder[2];
+                        isSub = true;
+                        }
+                    else if ( strstr( lines[i], "space$" ) != NULL ) {
+                        float lineScale;
+                        sscanf( lines[i], "space$%f", &( lineScale ) );
+                        writePos.y -= lineHeight * lineScale;
+                        continue;
+                        }
+                        
+					if ( columnNumber > 1 ) {
+						int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
+						writePos.x = lastScreenViewCenter.x + current_columnX;
+						}
+                        
+                    if ( isComment ) {
+                        // closeMessage = lines[i];
+                        }
+                    else if ( isTitle ) {
+                        setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
+                        int titleSize = titleFont->measureString( lines[i] );
+                        // titleFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
+                        titleFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
+                        writePos.y -= lineHeight * 0.75f*3;
+                        }
+                    else if ( isSub ) {
+                        setDrawColor( 0.2f, 0.4f, 0.6f, 1*pauseScreenFade );
+                        handwritingFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
+                        int subSize = handwritingFont->measureString( lines[i] );
+                        setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
+                        pencilFont->drawString( subString, { writePos.x + subSize + 60 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
+                        writePos.y -= lineHeight;
+                        }
+                    else {
+                        setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
+                        pencilFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
+                        writePos.y -= lineHeight;
+                        }
+                    }
+                delete [] lines;
+                }
+            }
+        }
+
+    // Drawing the Pause screen "buttons"
+    // Can't use the usual textButtons here because they don't work when game is paused
+    // So have to draw and make them work "mannually"
+    if( currentGamePage == livingLifePage ) {
+        
+        doublePair resumeButtonPos = { 460*gui_fov_scale, -112*gui_fov_scale };
+        doublePair settingsButtonPos = { 460*gui_fov_scale, -192*gui_fov_scale };
+        doublePair quitButtonPos = { 460*gui_fov_scale, -272*gui_fov_scale };
+        
+
+        if( 1 ) { // Resume button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + resumeButtonPos.x, 
+                lastScreenViewCenter.y + resumeButtonPos.y
+                };
+                
+            char *buttonText = "[RESUME GAME]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringResumeButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringResumeButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }        
+        if( 1 ) { // Settings button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + settingsButtonPos.x, 
+                lastScreenViewCenter.y + settingsButtonPos.y
+                };
+                
+            char *buttonText = "[SETTINGS]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringSettingsButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringSettingsButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+        if( 1 ) { // Quit button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + quitButtonPos.x, 
+                lastScreenViewCenter.y + quitButtonPos.y
+                };
+                
+            char *buttonText = "[QUIT GAME]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringQuitButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringQuitButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+        
+        }
+        
+
 
     if( currentUserTypedMessage != NULL ) {
             
@@ -1138,26 +1404,33 @@ static void drawPauseScreen() {
         }
         
         
+    if( currentGamePage != livingLifePage ) {
+        setDrawColor( 1, 1, 1, pauseScreenFade );
 
-    setDrawColor( 1, 1, 1, pauseScreenFade );
+        messagePos = lastScreenViewCenter;
 
-    messagePos = lastScreenViewCenter;
+        //messagePos.y -= 3.75 * ( viewHeight / 15 );
+        //mainFont->drawString( translate( "pauseMessage3" ), 
+        //                      messagePos, alignCenter );
 
-    messagePos.y -= 3.75 * ( viewHeight / 15 );
-    //mainFont->drawString( translate( "pauseMessage3" ), 
-    //                      messagePos, alignCenter );
+        messagePos.y -= 3.75 * ( viewHeight / 15 );
+        
+        if ( currentGamePage == livingLifePage ) {
+            mainFont->drawString( translate( "pauseMessage5" ), 
+                                  messagePos, alignCenter );
+            }
 
-    messagePos.y -= 0.625 * (viewHeight / 15);
+        messagePos.y -= 0.625 * (viewHeight / 15);
 
-    const char* quitMessageKey = "pauseMessage3";
-    
-    if( isQuittingBlocked() ) {
-        quitMessageKey = "pauseMessage3b";
+        const char* quitMessageKey = "pauseMessage3";
+        
+        if( isQuittingBlocked() ) {
+            quitMessageKey = "pauseMessage3b";
+            }
+
+        oldMainFont->drawString( translate( quitMessageKey ), 
+                              messagePos, alignCenter );
         }
-
-    mainFont->drawString( translate( quitMessageKey ), 
-                          messagePos, alignCenter );
-
     }
 
 
@@ -1237,6 +1510,20 @@ static void startConnecting() {
     }
 
 
+
+void showSettings() {
+    showingInGameSettings = true;
+	
+    lastScreenViewCenter.x = 0;
+    lastScreenViewCenter.y = 0;
+    
+    setViewCenterPosition( lastScreenViewCenter.x, 
+                           lastScreenViewCenter.y );
+    
+    currentGamePage = settingsPage;
+    
+    currentGamePage->base_makeActive( true );
+    }
 
 void showDiedPage() {
     userReconnect = false;
@@ -1345,7 +1632,10 @@ void drawFrame( char inUpdate ) {
 
         // fade in pause screen
         if( pauseScreenFade < 1 ) {
-            pauseScreenFade += ( 1.0 / 30 ) * frameRateFactor;
+            
+            // pauseScreenFade = 1;
+            
+            pauseScreenFade += ( 1.0 / 15 ) * frameRateFactor;
         
             if( pauseScreenFade > 1 ) {
                 pauseScreenFade = 1;
@@ -1737,17 +2027,26 @@ void drawFrame( char inUpdate ) {
                     currentGamePage->base_makeActive( true );
                 }
             }
-        else if( currentGamePage == settingsPage ) {
-            if( settingsPage->checkSignal( "back" ) ) {
-                existingAccountPage->setStatus( NULL, false );
-                currentGamePage = existingAccountPage;
-                currentGamePage->base_makeActive( true );
+            else if( currentGamePage == settingsPage ) {
+                if( settingsPage->checkSignal( "back" ) ) {
+                    existingAccountPage->setStatus( NULL, false );
+
+                    if ( showingInGameSettings ) {
+                        livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+                        currentGamePage = livingLifePage;
+                        currentGamePage->base_makeActive( false );
+                        showingInGameSettings = false;
+                        }
+                    else {
+                        currentGamePage = existingAccountPage;
+                        currentGamePage->base_makeActive( true );
+                        }
                 }
             else if( settingsPage->checkSignal( "editAccount" ) ) {
                 loginEditOverride = true;
                 
                 existingAccountPage->setStatus( "editAccountWarning", false );
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
                 
                 currentGamePage = existingAccountPage;
                 currentGamePage->base_makeActive( true );
@@ -1810,13 +2109,6 @@ void drawFrame( char inUpdate ) {
                 // or one time for autoLogInMode
                 mapPullMode = false;
                 autoLogIn = false;
-                
-                // login button clears twin status
-                // they have to login from twin page to play as twin
-                if( userTwinCode != NULL ) {
-                    delete [] userTwinCode;
-                    userTwinCode = NULL;
-                    }
 
                 startConnecting();
                 }
@@ -1825,10 +2117,10 @@ void drawFrame( char inUpdate ) {
 
                 // tutorial button clears twin status
                 // they have to login from twin page to play as twin
-                if( userTwinCode != NULL ) {
-                    delete [] userTwinCode;
-                    userTwinCode = NULL;
-                    }
+                // if( userTwinCode != NULL ) {
+                    // delete [] userTwinCode;
+                    // userTwinCode = NULL;
+                    // }
 
                 startConnecting();
                 }
@@ -1966,7 +2258,22 @@ void drawFrame( char inUpdate ) {
                 
                 existingAccountPage->setStatus( "loginFailed", true );
 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
+
+                currentGamePage->base_makeActive( true );
+                }
+            else if( livingLifePage->checkSignal( "targetFamilyFailed" ) ) {
+                lastScreenViewCenter.x = 0;
+                lastScreenViewCenter.y = 0;
+
+                setViewCenterPosition( lastScreenViewCenter.x, 
+                                       lastScreenViewCenter.y );
+                
+                currentGamePage = existingAccountPage;
+                
+                existingAccountPage->setStatusDirect( "TARGET FAMILY NOT FOUND##OR HAS NO FERTILES", true );
+
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -1981,7 +2288,7 @@ void drawFrame( char inUpdate ) {
                 
                 existingAccountPage->setStatus( "noLifeTokens", true );
 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -1996,7 +2303,7 @@ void drawFrame( char inUpdate ) {
                 
                 existingAccountPage->setStatus( "connectionFailed", true );
 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -2023,7 +2330,7 @@ void drawFrame( char inUpdate ) {
                 
                 delete [] message;
                 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -2052,7 +2359,7 @@ void drawFrame( char inUpdate ) {
                 
                 existingAccountPage->setStatus( "serverShutdown", true );
 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -2067,7 +2374,7 @@ void drawFrame( char inUpdate ) {
                 
                 existingAccountPage->setStatus( "serverUpdate", true );
 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -2082,7 +2389,7 @@ void drawFrame( char inUpdate ) {
                 
                 existingAccountPage->setStatus( "serverFull", true );
 
-                existingAccountPage->setStatusPositiion( true );
+                existingAccountPage->setStatusPositiion( false );
 
                 currentGamePage->base_makeActive( true );
                 }
@@ -2158,11 +2465,16 @@ void drawFrame( char inUpdate ) {
                 // heck, allow twins in tutorial too, for now, it's funny
                 startConnecting();
                 }
+            else if( rebirthChoicePage->checkSignal( "settings" ) ) {
+                currentGamePage = settingsPage;
+                currentGamePage->base_makeActive( true );
+                }
             else if( rebirthChoicePage->checkSignal( "review" ) ) {
                 currentGamePage = reviewPage;
                 currentGamePage->base_makeActive( true );
                 }
             else if( rebirthChoicePage->checkSignal( "menu" ) ) {
+                existingAccountPage->setStatus( NULL, false );
                 currentGamePage = existingAccountPage;
                 currentGamePage->base_makeActive( true );
                 }
@@ -2220,8 +2532,9 @@ float lastBufferedMouseValue = 0;
 float mouseDataBuffer[ MOUSE_DATA_BUFFER_SIZE ];
 
 
-
 void pointerMove( float inX, float inY ) {
+    
+    lastCursorPos = { inX, inY };
 
     // save all mouse movement data for key generation
     float bufferValue = inX + inY;
@@ -2277,6 +2590,19 @@ void pointerDrag( float inX, float inY ) {
 
 
 void pointerUp( float inX, float inY ) {
+    
+    // "Buttons" in the Pause screen in-game
+    if( currentGamePage == livingLifePage && isPaused() ) {
+        if( hoveringResumeButton ) pauseGame();
+        if( hoveringQuitButton ) quitGame();
+        if( hoveringSettingsButton ) {
+            pauseGame();
+            pauseScreenFade = 0;
+            livingLifePage->changeFOV( 1.0f );
+            showSettings();
+            }
+        }
+    
     if( isPaused() ) {
         return;
         }
@@ -2291,7 +2617,7 @@ void pointerUp( float inX, float inY ) {
 
 
 
-void keyDown( unsigned char inASCII ) {
+void keyDown( unsigned char inASCII ) {if(inASCII==27) return;
 
     // taking screen shot is ALWAYS possible
     if( inASCII == '=' ) {    
@@ -2315,6 +2641,14 @@ void keyDown( unsigned char inASCII ) {
             case 13:  // enter
                 // unpause
                 pauseGame();
+                break;
+            case 35: // hash
+                if ( currentGamePage == livingLifePage ) {
+                    //unpáuse, reset fov then show settings
+                    pauseGame();
+                    livingLifePage->changeFOV( 1.0f );
+                    showSettings();
+                    }
                 break;
             }
         
@@ -2378,11 +2712,10 @@ void keyUp( unsigned char inASCII ) {
         holdDeleteKeySteps = -1;
         }
 
-    if( ! isPaused() ) {
+    if( isPaused() ) return;
 
-        if( currentGamePage != NULL ) {
-            currentGamePage->base_keyUp( inASCII );
-            }
+    if( currentGamePage != NULL ) {
+        currentGamePage->base_keyUp( inASCII );
         }
 
     }
@@ -2471,7 +2804,7 @@ void drawString( const char *inString, char inForceCenter ) {
     for( int i=0; i<numLines; i++ ) {
         
 
-        mainFont->drawString( lines[i], messagePos, align );
+        oldMainFont->drawString( lines[i], messagePos, align );
         messagePos.y -= 32;
         
         delete [] lines[i];

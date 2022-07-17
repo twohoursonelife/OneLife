@@ -109,7 +109,7 @@ double forceDeathAge = 120;
 // UncleGus Custom Variables
 double adultAge = 20;
 double oldAge = 104;
-double fertileAge = 14;
+double fertileAge = 15;
 // End UncleGus Custom Variables
 double minSayGapInSeconds = 1.0;
 
@@ -427,6 +427,7 @@ typedef struct FreshConnection {
 
         char *email;
         uint32_t hashedSpawnSeed;
+        char *famTarget = NULL;
         
         int tutorialNumber;
         CurseStatus curseStatus;
@@ -1604,6 +1605,13 @@ void quitCleanup() {
         if( nextPlayer->lastSay != NULL ) {
             delete [] nextPlayer->lastSay;
             }
+        
+        if( nextPlayer->saidPassword != NULL) {
+            delete [] nextPlayer->saidPassword;
+        }
+        if( nextPlayer->assignedPassword != NULL) {
+            delete [] nextPlayer->assignedPassword;
+        }
         
         if( nextPlayer->email != NULL  ) {
             delete [] nextPlayer->email;
@@ -4797,6 +4805,9 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             sayingPassword = isPasswordInvokingSay( inToSay );
             if( sayingPassword != NULL ) {
                 // AppLog::infoF( "2HOL DEBUG: Player says password. New password assigned to a player." );
+                if( inPlayer->saidPassword != NULL) {
+                    delete [] inPlayer->saidPassword;
+                }
                 inPlayer->saidPassword = stringDuplicate( sayingPassword );
                 // AppLog::infoF( "2HOL DEBUG: Player's password is %s", inPlayer->saidPassword );
 				//if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
@@ -4809,8 +4820,16 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
         assigningPassword = isPasswordSettingSay( inToSay );
         if( assigningPassword != NULL ) {
             // AppLog::infoF( "2HOL DEBUG: Player sets new password for future assignment." );
+            if( inPlayer->assignedPassword != NULL) {
+                delete [] inPlayer->assignedPassword;
+            }
             inPlayer->assignedPassword = stringDuplicate( assigningPassword );
-            if ( !passwordInvocationAndSettingAreSeparated ) { inPlayer->saidPassword = stringDuplicate( assigningPassword ); }
+            if ( !passwordInvocationAndSettingAreSeparated ) {
+                if( inPlayer->saidPassword != NULL) {
+                    delete [] inPlayer->saidPassword;
+                }
+                inPlayer->saidPassword = stringDuplicate( assigningPassword );
+            }
             // AppLog::infoF( "2HOL DEBUG: Password for future assignment password is %s", inPlayer->assignedPassword );
             //if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
             if( passwordSilent ) { return; }
@@ -6468,7 +6487,8 @@ int processLoggedInPlayer( char inAllowReconnect,
                            Socket *inSock,
                            SimpleVector<char> *inSockBuffer,
                            char *inEmail,
-                           uint32_t hashedSpawnSeed,
+                           //passing the whole thing for the seed and famTarget
+                           FreshConnection *connection,
                            int inTutorialNumber,
                            CurseStatus inCurseStatus,
 						   float inFitnessScore,
@@ -6817,6 +6837,19 @@ int processLoggedInPlayer( char inAllowReconnect,
 		    if( player->declaredInfertile ) {
 				continue;
 				}
+                
+            //we specified a family we wanna be born into, skip others
+            if( connection->famTarget != NULL ) {
+                if( player->familyName != NULL ) {
+                    std::string famTarget( connection->famTarget );
+                    std::string familyName( player->familyName );
+                    if( familyName != famTarget ) continue;
+                    }
+                else {
+                    continue;
+                    }
+                }
+            
 
             //GridPos motherPos = getPlayerPos( player );
                 
@@ -6947,11 +6980,16 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     
+    if( connection->famTarget != NULL && parentChoices.size() == 0 ) {
+        // -2 means failure to be born due to famTarget restriction
+        return -2;
+        }
+    
     if( SettingsManager::getIntSetting( "forceAllPlayersEve", 0 ) ) {
         parentChoices.deleteAll();
         }
 		
-    if( hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) ) {
+    if( connection->hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) ) {
         parentChoices.deleteAll();
         }
 
@@ -7443,7 +7481,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         uint32_t tempHashedSpawnSeed;
         int useSeedList = SettingsManager::getIntSetting( "useSeedList", 0 );
         //pick a random seed from a list to be the default spawn
-        if ( useSeedList && hashedSpawnSeed == 0 ) {
+        if ( useSeedList && connection->hashedSpawnSeed == 0 ) {
             
             //parse the seeds
             SimpleVector<char *> *list = 
@@ -7464,6 +7502,9 @@ int processLoggedInPlayer( char inAllowReconnect,
                 
             std::string seed( choseSeed );
             
+            list->deallocateStringElements();
+            delete list;
+            
             //convert and apply seed hash (copy pasted code)
             //make this a separate method in the future to prevent redundancy
             
@@ -7482,14 +7523,17 @@ int processLoggedInPlayer( char inAllowReconnect,
             };
             
             // Get the substr from one after the seed delim
-            std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
+            char *sSeed = SettingsManager::getStringSetting("seedSalt", "default salt");
+            std::string seedSalt { sSeed };
             
             tempHashedSpawnSeed =
                 hashStr(seed, hashStr(seedSalt));
+            
+            delete [] sSeed;
           }
         else {
             //use defalt seed configuration
-            tempHashedSpawnSeed = hashedSpawnSeed;
+            tempHashedSpawnSeed = connection->hashedSpawnSeed;
         }
 
         if( tempHashedSpawnSeed != 0 ) {
@@ -7522,7 +7566,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
-        ObjectRecord *randomObject;
+        ObjectRecord *randomObject = NULL;
         while ( randomObject == NULL ) {
             randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
             }
@@ -7958,11 +8002,6 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
             strcmp( inConnection.twinCode, nextConnection->twinCode ) == 0 
             &&
             inConnection.twinCount == nextConnection->twinCount ) {
-            
-            if( strcmp( inConnection.email, nextConnection->email ) == 0 ) {
-                // don't count this connection itself
-                continue;
-                }
 
             if( nextConnection->curseStatus.curseLevel > 
                 anyTwinCurseLevel.curseLevel ) {
@@ -7974,14 +8013,43 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
         }
 
     
-    if( twinConnections.size() + 1 >= inConnection.twinCount ) {
+    if( twinConnections.size() >= inConnection.twinCount ) {
         // everyone connected and ready in twin party
 
         AppLog::infoF( "Found %d other people waiting for twin party of %s, "
                        "ready", 
                        twinConnections.size(), inConnection.email );
+                       
+                       
+        // see if player was previously disconnected
+        for( int i=0; i<players.size(); i++ ) {
+            LiveObject *o = players.getElement( i );
+            
+            if( ! o->error && ! o->connected &&
+                strcmp( o->email, inConnection.email ) == 0 ) {
+                       
+                // take them out of waiting list too
+                for( int i=0; i<waitingForTwinConnections.size(); i++ ) {
+                    if( waitingForTwinConnections.getElement( i )->sock ==
+                        inConnection.sock ) {
+                        // found
+                        
+                        waitingForTwinConnections.deleteElement( i );
+                        break;
+                        }
+                    }
+
+                if( inConnection.twinCode != NULL ) {
+                    delete [] inConnection.twinCode;
+                    inConnection.twinCode = NULL;
+                    }
+                nextLogInTwin = false;
+                return;
+                }
+            }
+            
         
-        char *emailCopy = stringDuplicate( inConnection.email );
+        nextLogInTwin = true;
         
         // set up twin emails for lineage ban
         for( int i=0; i<twinConnections.size(); i++ ) {
@@ -7990,137 +8058,161 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
         
             tempTwinEmails.push_back( nextConnection->email );
             }
-        
-        nextLogInTwin = true;
-        firstTwinID = -1;
-        
-        int newID = processLoggedInPlayer( false,
-                                           inConnection.sock,
-                                           inConnection.sockBuffer,
-                                           inConnection.email,
-                                           inConnection.hashedSpawnSeed,
-                                           inConnection.tutorialNumber,
-                                           anyTwinCurseLevel,
-                                           inConnection.fitnessScore );
-        tempTwinEmails.deleteAll();
-        
-        if( newID == -1 ) {
-            AppLog::infoF( "%s reconnected to existing life, not triggering "
-                           "fellow twins to spawn now.",
-                           emailCopy );
-
-            // take them out of waiting list too
-            for( int i=0; i<waitingForTwinConnections.size(); i++ ) {
-                if( waitingForTwinConnections.getElement( i )->sock ==
-                    inConnection.sock ) {
-                    // found
-                    
-                    waitingForTwinConnections.deleteElement( i );
-                    break;
-                    }
-                }
-
-            delete [] emailCopy;
-
-            if( inConnection.twinCode != NULL ) {
-                delete [] inConnection.twinCode;
-                inConnection.twinCode = NULL;
-                }
-            nextLogInTwin = false;
-            return;
-            }
-
-        delete [] emailCopy;
-        
-        firstTwinID = newID;
-        
-        LiveObject *newPlayer = NULL;
-
-        if( inConnection.tutorialNumber == 0 ) {
-            newPlayer = getLiveObject( newID );
-            }
-        else {
-            newPlayer = tutorialLoadingPlayers.getElement(
-                tutorialLoadingPlayers.size() - 1 );
-            }
-
-
-        int parent = newPlayer->parentID;
-        int displayID = newPlayer->displayID;
-        GridPos playerPos = { newPlayer->xd, newPlayer->yd };
-        
-        GridPos *forcedEvePos = NULL;
-        
-        if( parent == -1 ) {
-            // first twin placed was Eve
-            // others are identical Eves
-            forcedEvePos = &playerPos;
-            // trigger forced Eve placement
-            parent = -2;
-            }
-
 
         char usePersonalCurses = 
             SettingsManager::getIntSetting( "usePersonalCurses", 0 );
-    
 
 
+        int newID = -1;
+        LiveObject *newPlayer = NULL;
+        
+        int parent = 0;
+        int displayID = 0;
+        GridPos playerPos;
+        GridPos *forcedEvePos = NULL;
+        
         // save these out here, because newPlayer points into 
         // tutorialLoadingPlayers, which may expand during this loop,
         // invalidating that pointer
-        char isTutorial = newPlayer->isTutorial;
-        TutorialLoadProgress sharedTutorialLoad = newPlayer->tutorialLoad;
+        char isTutorial = false;
+        TutorialLoadProgress sharedTutorialLoad;
+
+
 
         for( int i=0; i<twinConnections.size(); i++ ) {
             FreshConnection *nextConnection = 
                 twinConnections.getElementDirect( i );
-            
-            processLoggedInPlayer( false, 
-                                   nextConnection->sock,
-                                   nextConnection->sockBuffer,
-                                   nextConnection->email,
-                                   nextConnection->hashedSpawnSeed,
-                                   // ignore tutorial number of all but
-                                   // first player
-                                   0,
-                                   anyTwinCurseLevel,
-                                   nextConnection->fitnessScore,
-                                   parent,
-                                   displayID,
-                                   forcedEvePos );
-            
-            // just added is always last object in list
-            
-            if( usePersonalCurses ) {
-                // curse level not known until after first twin logs in
-                // their curse level is set based on blockage caused
-                // by any of the other twins in the party
-                // pass it on.
-                LiveObject *newTwinPlayer = 
-                    players.getElement( players.size() - 1 );
-                newTwinPlayer->curseStatus = newPlayer->curseStatus;
-                }
-
-
-
-            LiveObject newTwinPlayer = 
-                players.getElementDirect( players.size() - 1 );
-
-            if( isTutorial ) {
-                // force this one to wait for same tutorial map load
-                newTwinPlayer.tutorialLoad = sharedTutorialLoad;
-
-                // flag them as a tutorial player too, so they can't have
-                // babies in the tutorial, and they won't be remembered
-                // as a long-lineage position at shutdown
-                newTwinPlayer.isTutorial = true;
-
-                players.deleteElement( players.size() - 1 );
                 
-                tutorialLoadingPlayers.push_back( newTwinPlayer );
+            if( i == 0 ) {
+            
+                newID = processLoggedInPlayer( false, 
+                                               nextConnection->sock,
+                                               nextConnection->sockBuffer,
+                                               nextConnection->email,
+                                               nextConnection,
+                                               nextConnection->tutorialNumber,
+                                               anyTwinCurseLevel,
+                                               nextConnection->fitnessScore );
+                tempTwinEmails.deleteAll();
+                                                   
+                if( newID == -1 ) {
+                    char *emailCopy = stringDuplicate( inConnection.email );
+                    
+                    AppLog::infoF( "%s reconnected to existing life, not triggering "
+                                   "fellow twins to spawn now.",
+                                   emailCopy );
+                                   
+                    delete [] emailCopy;
+
+                    if( inConnection.twinCode != NULL ) {
+                        delete [] inConnection.twinCode;
+                        inConnection.twinCode = NULL;
+                        }
+                    nextLogInTwin = false;
+                    return;
+                    }
+                else if( newID == -2 ) {
+                    
+                    for( int j=0; j<twinConnections.size(); j++ ) {
+                        FreshConnection *nextConnectionToReject = 
+                            twinConnections.getElementDirect( j );
+                    
+                        nextConnectionToReject->error = true;
+                        nextConnectionToReject->errorCauseString =
+                            "Target family is not found or does not have fertiles";
+                            
+                        if( nextConnectionToReject->twinCode != NULL ) {
+                            delete [] nextConnectionToReject->twinCode;
+                            nextConnectionToReject->twinCode = NULL;
+                            }
+                        }
+                    
+                    nextLogInTwin = false;
+                    // Do not remove the connection from waitingForTwinConnections
+                    // we need to notify them about the famTarget failure
+                    return;
+                    }
+                    
+                firstTwinID = newID;
+                    
+                if( nextConnection->tutorialNumber == 0 ) {
+                    newPlayer = getLiveObject( newID );
+                    }
+                else {
+                    newPlayer = tutorialLoadingPlayers.getElement(
+                        tutorialLoadingPlayers.size() - 1 );
+                    }
+                    
+                parent = newPlayer->parentID;
+                displayID = newPlayer->displayID;
+                playerPos = { newPlayer->xd, newPlayer->yd };
+                forcedEvePos = NULL;
+                
+                if( parent == -1 ) {
+                    // first twin placed was Eve
+                    // others are identical Eves
+                    forcedEvePos = &playerPos;
+                    // trigger forced Eve placement
+                    parent = -2;
+                    }
+                    
+                isTutorial = newPlayer->isTutorial;
+                sharedTutorialLoad = newPlayer->tutorialLoad;
+                    
+                                                   
                 }
+            else {
+                
+                processLoggedInPlayer( false, 
+                                       nextConnection->sock,
+                                       nextConnection->sockBuffer,
+                                       nextConnection->email,
+                                       nextConnection,
+                                       // ignore tutorial number of all but
+                                       // first player
+                                       0,
+                                       anyTwinCurseLevel,
+                                       nextConnection->fitnessScore,
+                                       parent,
+                                       displayID,
+                                       forcedEvePos );
+                                       
+                // just added is always last object in list
+                
+                if( usePersonalCurses ) {
+                    // curse level not known until after first twin logs in
+                    // their curse level is set based on blockage caused
+                    // by any of the other twins in the party
+                    // pass it on.
+                    LiveObject *newTwinPlayer = 
+                        players.getElement( players.size() - 1 );
+                    newTwinPlayer->curseStatus = newPlayer->curseStatus;
+                    }
+
+
+
+                LiveObject newTwinPlayer = 
+                    players.getElementDirect( players.size() - 1 );
+
+                if( isTutorial ) {
+                    // force this one to wait for same tutorial map load
+                    newTwinPlayer.tutorialLoad = sharedTutorialLoad;
+
+                    // flag them as a tutorial player too, so they can't have
+                    // babies in the tutorial, and they won't be remembered
+                    // as a long-lineage position at shutdown
+                    newTwinPlayer.isTutorial = true;
+
+                    players.deleteElement( players.size() - 1 );
+                    
+                    tutorialLoadingPlayers.push_back( newTwinPlayer );
+                    }
+                                       
+                }
+                                       
             }
-        
+
+                
         firstTwinID = -1;
 
         char *twinCode = stringDuplicate( inConnection.twinCode );
@@ -8150,7 +8242,6 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
         nextLogInTwin = false;
         }
     }
-
 
 
 // doesn't check whether dest itself is blocked
@@ -12073,6 +12164,8 @@ int main() {
 	std::string strFertilitySuffix(fertilitySuffix);
 	strInfertilitySuffix = " " + strInfertilitySuffix;
 	strFertilitySuffix = " " + strFertilitySuffix;
+    delete [] infertilitySuffix;
+    delete [] fertilitySuffix;
 	infertilitySuffix = strdup( strInfertilitySuffix.c_str() );
 	fertilitySuffix = strdup( strFertilitySuffix.c_str() );
     
@@ -13033,9 +13126,13 @@ int main() {
                     delete [] nextConnection->sequenceNumberString;
                     nextConnection->sequenceNumberString = NULL;
                             
+                    bool removeConnectionFromList = true;
+                    
                     if( nextConnection->twinCode != NULL
                         && 
                         nextConnection->twinCount > 0 ) {
+                        // Failed connection due to famTarget will be notified elsewhere
+                        // we can remove their connection from the list here
                         processWaitingTwinConnection( *nextConnection );
                         }
                     else {
@@ -13044,19 +13141,30 @@ int main() {
                             nextConnection->twinCode = NULL;
                             }
                                 
-                        processLoggedInPlayer( 
+                        int newID = processLoggedInPlayer( 
                             true,
                             nextConnection->sock,
                             nextConnection->sockBuffer,
                             nextConnection->email,
-                            nextConnection->hashedSpawnSeed,
+                            nextConnection,
                             nextConnection->tutorialNumber,
                             nextConnection->curseStatus,
                             nextConnection->fitnessScore );
+                            
+                        if( newID == -2 ) {
+                            nextConnection->error = true;
+                            nextConnection->errorCauseString =
+                                "Target family is not found or does not have fertiles";
+                            // Do not remove this connection
+                            // we need to notify them about the famTarget failure
+                            removeConnectionFromList = false;
+                            }
                         }
                                                         
-                    newConnections.deleteElement( i );
-                    i--;
+                    if( removeConnectionFromList ) {
+                        newConnections.deleteElement( i );
+                        i--;
+                        }
                     }
                 }
             else if( nextConnection->ticketServerRequest == NULL ) {
@@ -13142,10 +13250,13 @@ int main() {
 
                                     // Get the substr from one after the seed delim
                                     std::string seed { emailAndSeed.substr( seedDelimPos + 1 ) };
-                                    std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
-
+                                    char *sSeed = SettingsManager::getStringSetting("seedSalt", "default salt");
+                                    std::string seedSalt { sSeed };
+                                    
                                     nextConnection->hashedSpawnSeed =
                                         hashStr(seed, hashStr(seedSalt));
+                                    
+                                    delete [] sSeed;
                                 }
 
                                 // Remove seed from email
@@ -13160,6 +13271,36 @@ int main() {
                                 }
                             } else {
                                 nextConnection->hashedSpawnSeed = 0;
+                                
+                                // Check for famTarget as well only if seed isn't present in email
+                                const char famTargetDelim = ':';
+
+
+                                std::string emailAndFamTarget { nextConnection->email };
+
+                                const size_t famTargetDelimPos = emailAndFamTarget.find( famTargetDelim );
+
+                                if( famTargetDelimPos != std::string::npos ) {
+
+                                    // Get the substr from one after the famTarget delim
+                                    std::string famTarget { emailAndFamTarget.substr( famTargetDelimPos + 1 ) };
+
+                                    nextConnection->famTarget =
+                                        stringDuplicate( famTarget.c_str() );
+
+                                    // Remove famTarget from email
+                                    if( famTargetDelimPos == 0 ) {
+                                        // There was only a famTarget not email
+                                        nextConnection->email = stringDuplicate( "blank_email" );
+                                    } else {
+                                        std::string onlyEmail { emailAndFamTarget.substr( 0, famTargetDelimPos ) };
+
+                                        delete[] nextConnection->email;
+                                        nextConnection->email = stringDuplicate( onlyEmail.c_str() );
+                                    }
+                                } else {
+                                    nextConnection->famTarget = NULL;
+                                }
                             }
 
                             char *pwHash = tokens->getElementDirect( 2 );
@@ -13282,9 +13423,13 @@ int main() {
                                     nextConnection->sequenceNumberString = NULL;
 
 
+                                    bool removeConnectionFromList = true;
+                                    
                                     if( nextConnection->twinCode != NULL
                                         && 
                                         nextConnection->twinCount > 0 ) {
+                                        // Failed connection due to famTarget will be notified elsewhere
+                                        // we can remove their connection from the list here                        
                                         processWaitingTwinConnection(
                                             *nextConnection );
                                         }
@@ -13293,19 +13438,30 @@ int main() {
                                             delete [] nextConnection->twinCode;
                                             nextConnection->twinCode = NULL;
                                             }
-                                        processLoggedInPlayer(
+                                        int newID = processLoggedInPlayer( 
                                             true,
                                             nextConnection->sock,
                                             nextConnection->sockBuffer,
                                             nextConnection->email,
-                                            nextConnection->hashedSpawnSeed,
+                                            nextConnection,
                                             nextConnection->tutorialNumber,
                                             nextConnection->curseStatus,
                                             nextConnection->fitnessScore );
+                                            
+                                        if( newID == -2 ) {
+                                            nextConnection->error = true;
+                                            nextConnection->errorCauseString =
+                                                "Target family is not found or does not have fertiles";
+                                            // Do not remove this connection
+                                            // we need to notify them about the famTarget failure
+                                            removeConnectionFromList = false;
+                                            }
                                         }
                                                                         
-                                    newConnections.deleteElement( i );
-                                    i--;
+                                    if( removeConnectionFromList ) {
+                                        newConnections.deleteElement( i );
+                                        i--;
+                                        }
                                     }
                                 }
                             }
@@ -16431,7 +16587,10 @@ int main() {
                                                 file.close();
  
                                                 //erasing player's password after each successful transition
-                                                nextPlayer->assignedPassword = NULL;
+                                                if( nextPlayer->assignedPassword != NULL) {
+                                                    delete [] nextPlayer->assignedPassword;
+                                                    nextPlayer->assignedPassword = NULL;
+                                                }
                                                 
                                                                                               // AppLog::infoF( "2HOL DEBUG: saved password-protected position, x = %i", getObject( r->newTarget )->IndX.getElementDirect(getObject( r->newTarget )->IndX.size()-1));
                                                 // AppLog::infoF( "2HOL DEBUG: saved password-protected position, y = %i", getObject( r->newTarget )->IndY.getElementDirect(getObject( r->newTarget )->IndY.size()-1));
@@ -22950,6 +23109,13 @@ int main() {
                 if( nextPlayer->lastSay != NULL ) {
                     delete [] nextPlayer->lastSay;
                     }
+                
+                if( nextPlayer->saidPassword != NULL) {
+                    delete [] nextPlayer->saidPassword;
+                }
+                if( nextPlayer->assignedPassword != NULL) {
+                    delete [] nextPlayer->assignedPassword;
+                }
                 
                 freePlayerContainedArrays( nextPlayer );
                 

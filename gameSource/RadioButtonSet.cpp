@@ -12,6 +12,7 @@ RadioButtonSet::RadioButtonSet( Font *inDisplayFont, double inX, double inY,
                                 char inRightLabels,
                                 double inDrawScale )
         : PageComponent( inX, inY ),
+          mHover( false ), 
           mDisplayFont( inDisplayFont ),
           mNumItems( inNumItems ),
           mItemNames( new char *[ inNumItems ] ),
@@ -129,4 +130,17 @@ void RadioButtonSet::draw() {
         
         mDisplayFont->drawString( mItemNames[i], pos, a );
         }
+    }
+
+
+void RadioButtonSet::pointerMove( float inX, float inY ) {
+    mHover = false;
+    for( int i=0; i<mNumItems; i++ ) {
+        if( mCheckboxes[i]->isMouseOver() ) mHover = true;
+        }
+    }
+
+
+char RadioButtonSet::isMouseOver() {
+    return mHover;
     }

@@ -19,6 +19,7 @@ class TextField : public PageComponent, public ActionListenerList {
         
         // text field width based on widest allowed 
         // (or non-forbidden) character
+        // or explicitly set using setWidth
 
         // label text and char maps copied internally
         TextField( Font *inDisplayFont, 
@@ -29,6 +30,11 @@ class TextField : public PageComponent, public ActionListenerList {
                    const char *inForbiddenChars = NULL );
 
         virtual ~TextField();
+        
+        
+        // copied internally
+        void setLabelText( const char *inLabelText );
+        
 
         // automatically becomes non-hidden when focused
         void setContentsHidden( char inHidden );
@@ -92,6 +98,8 @@ class TextField : public PageComponent, public ActionListenerList {
         double getLeftEdgeX();
         
         double getWidth();
+        double setWidth( double inWide );
+        double setHigh( double inHigh );
         
 
         // defaults to false
@@ -120,6 +128,10 @@ class TextField : public PageComponent, public ActionListenerList {
         // defaults to side
         void setLabelTop( char inLabelOnTop );
         
+        
+        // defaults to off
+        void usePasteShortcut( char inShortcutOn );
+        
 
         
         virtual void setActive( char inActive );
@@ -131,6 +143,8 @@ class TextField : public PageComponent, public ActionListenerList {
         
         virtual void draw();
 
+        virtual void pointerMove( float inX, float inY );
+        
         virtual void pointerUp( float inX, float inY );
 
         virtual void keyDown( unsigned char inASCII );
@@ -138,6 +152,9 @@ class TextField : public PageComponent, public ActionListenerList {
         
         virtual void specialKeyDown( int inKeyCode );
         virtual void specialKeyUp( int inKeyCode );
+        
+        
+        virtual char isMouseOver();
         
 
         // makes this text field the only focused field.
@@ -184,8 +201,13 @@ class TextField : public PageComponent, public ActionListenerList {
         char *mAllowedChars;
         char *mForbiddenChars;
 
+        char mHover;
         
         double mWide, mHigh;
+        
+        
+        char isInside( float inX, float inY );
+        
         
         double mBorderWide;
         
@@ -232,6 +254,7 @@ class TextField : public PageComponent, public ActionListenerList {
         
         int mCursorFlashSteps;
         
+        char mUsePasteShortcut;
         
         void fixSelectionStartEnd();
 

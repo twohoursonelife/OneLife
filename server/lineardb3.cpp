@@ -581,6 +581,7 @@ int LINEARDB3_open(
                 }
             
             if( fseeko( inDB->file, 0, SEEK_SET ) ) {
+                fclose( tempFile );
                 return 1;
                 }
             
@@ -592,6 +593,7 @@ int LINEARDB3_open(
             if( numRead != 1 ) {
                 printf( "Failed to read header from lineardb3 file %s\n",
                         inPath );
+                fclose( tempFile );
                 return 1;
                 }
             int numWritten = fwrite( headerBuffer, 
@@ -600,6 +602,7 @@ int LINEARDB3_open(
             if( numWritten != 1 ) {
                 printf( "Failed to write header to temp lineardb3 "
                         "truncation file %s\n", tempPath );
+                fclose( tempFile );
                 return 1;
                 }
                 
@@ -611,6 +614,7 @@ int LINEARDB3_open(
                 if( numRead != 1 ) {
                     printf( "Failed to read record from lineardb3 file %s\n",
                             inPath );
+                    fclose( tempFile );
                     return 1;
                     }
                 
@@ -620,6 +624,7 @@ int LINEARDB3_open(
                 if( numWritten != 1 ) {
                     printf( "Failed to record to temp lineardb3 "
                             "truncation file %s\n", tempPath );
+                    fclose( tempFile );
                     return 1;
                     }
                 }

@@ -64,3 +64,9 @@ void TextButton::drawContents() {
     mFont->drawString( mLabelText, textPos, alignCenter );
     }
 
+
+
+void TextButton::setFont( Font *inFont ) {
+    mFont = inFont;
+    }
+
