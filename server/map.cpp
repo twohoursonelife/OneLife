@@ -5336,6 +5336,25 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     }
                
  
+                if( destTrans != NULL ) {
+                    // make sure something else isn't moving out of
+                    // destination
+                    
+                    int numMoving = liveMovements.size();
+                    
+                    for( int i=0; i<numMoving; i++ ) {
+                        MovementRecord *m = liveMovements.getElement( i );
+                        
+                        if( m->sourceX == newX &&
+                            m->sourceY == newY ) {
+                            // found something leaving where we're landing
+                            // wait for it to finish
+                            setEtaDecay( inX, inY, MAP_TIMESEC + 1, t );
+                            return inID;
+                            }
+                        }
+                    }
+ 
  
                 if( newX == inX && newY == inY &&
                     (t->move <= 3 || t->move == 8) ) {
