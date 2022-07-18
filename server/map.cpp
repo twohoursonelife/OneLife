@@ -462,7 +462,11 @@ static CoordinateTimeTracking lookTimeTracking;
 // about whether arrival has happened or not
 typedef struct MovementRecord {
         int x, y;
+        int sourceX, sourceY;
+        int id;
+        char deadly;
         double etaTime;
+        double totalTime;
     } MovementRecord;
  
  
@@ -5530,23 +5534,28 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                             (newY - inY) * (newY - inY) );
                    
                     double speed = 4.0f;
-                   
-                   
+                    
+                    char deadly = false;
                     if( newID > 0 ) {
                         ObjectRecord *newObj = getObject( newID );
                        
                         if( newObj != NULL ) {
                             speed *= newObj->speedMult;
+                            
+                            deadly = ( newObj->deadlyDistance > 0 );
                             }
                         }
                    
                     double moveTime = moveDist / speed;
                    
                     double etaTime = Time::getCurrentTime() + moveTime;
-                   
-                    MovementRecord moveRec = { newX, newY, etaTime };
-                   
-                    liveMovementEtaTimes.insert( newX, newY, 0, 0, etaTime );
+                    
+                    MovementRecord moveRec = { newX, newY, inX, inY, 
+                                               newID,
+                                               deadly, 
+                                               etaTime,
+                                               moveTime };
+                    
                    
                     liveMovements.insert( moveRec, etaTime );
                    
