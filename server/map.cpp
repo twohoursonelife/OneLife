@@ -5036,8 +5036,12 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     }
                 else if( t->move == 8 ) {
                 
-                    // prioritize picking the direction with
-                    // transition-able object on the path
+                    // prioritize picking the tile with a transition-able object
+                    // a tile is picked here instead of a direction
+                    
+                    // code after this part is ignored for this move type
+                    // if such a atile is found
+                    // otherwise it reverts to a non-biome-locking Random move
                     
                     int startDirX = randSource.getRandomBoundedInt( -1, 1 );
                     int startDirY = randSource.getRandomBoundedInt( -1, 1 );
@@ -5114,7 +5118,8 @@ int checkDecayObject( int inX, int inY, int inID ) {
                 if( dir.x == 0 && dir.y == 0 ) {
                     // random instead
                    
-                    stayInBiome = true;
+                    // a failed Find move is not biome-locking
+                    if( t->move != 8 ) stayInBiome = true;
                    
                     dir.x = 1;
                     dir.y = 0;
@@ -5291,8 +5296,8 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
  
                 if( newX == inX && newY == inY &&
-                    t->move <= 3 ) {
-                    // can't move where we want to go in flee/chase/random
+                    (t->move <= 3 || t->move == 8) ) {
+                    // can't move where we want to go in flee/chase/random/find
  
                     // pick some random spot to go instead
  
