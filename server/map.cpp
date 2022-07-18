@@ -5081,13 +5081,27 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                             }
                                         }
                                         
+                                    char blockedByFloor = false;
+                                    
+                                    if( oID == 0 &&
+                                        avoidFloor ) {
+                                        int floorID = getMapFloor( testX, testY );
+                                    
+                                        if( floorID > 0 ) {
+                                            blockedByFloor = true;
+                                            }
+                                        }
+
+                                        
                                     if( i >= tryDist && trans != NULL ) {
-                                        dir.x = (double)newDirX;
-                                        dir.y = (double)newDirY;
-                                        newX = testX;
-                                        newY = testY;
-                                        destTrans = trans;
-                                        break;
+                                        if( ! blockedByFloor ) {
+                                            dir.x = (double)newDirX;
+                                            dir.y = (double)newDirY;
+                                            newX = testX;
+                                            newY = testY;
+                                            destTrans = trans;
+                                            break;
+                                            }
                                         }
                                     else if( oID > 0 && getObject( oID ) != NULL &&
                                              getObject( oID )->blocksMoving ) {
