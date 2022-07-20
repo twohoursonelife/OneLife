@@ -462,7 +462,11 @@ static CoordinateTimeTracking lookTimeTracking;
 // about whether arrival has happened or not
 typedef struct MovementRecord {
         int x, y;
+        int sourceX, sourceY;
+        int id;
+        char deadly;
         double etaTime;
+        double totalTime;
     } MovementRecord;
  
  
@@ -5033,11 +5037,39 @@ int checkDecayObject( int inX, int inY, int inID ) {
                             dir.x = -1;
                             break;
                         }
+
+
+                    if( desiredMoveDist == 1 ) {
+                        // make sure something else isn't moving out of
+                        // destination
+                        int destPosX = inX + dir.x;
+                        int destPosY = inY + dir.y ;
+                        
+                        
+                        int numMoving = liveMovements.size();
+                        
+                        for( int i=0; i<numMoving; i++ ) {
+                            MovementRecord *m = liveMovements.getElement( i );
+                            
+                            if( m->sourceX == destPosX &&
+                                m->sourceY == destPosY ) {
+                                // found something leaving where we're landing
+                                // wait for it to finish
+                                setEtaDecay( inX, inY, MAP_TIMESEC + 1, t );
+                                return inID;
+                                }
+                            }
+                        }
+
                     }
                 else if( t->move == 8 ) {
                 
-                    // prioritize picking the direction with
-                    // transition-able object on the path
+                    // prioritize picking the tile with a transition-able object
+                    // a tile is picked here instead of a direction
+                    
+                    // code after this part is ignored for this move type
+                    // if such a atile is found
+                    // otherwise it reverts to a non-biome-locking Random move
                     
                     int startDirX = randSource.getRandomBoundedInt( -1, 1 );
                     int startDirY = randSource.getRandomBoundedInt( -1, 1 );
@@ -5077,13 +5109,27 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                             }
                                         }
                                         
+                                    char blockedByFloor = false;
+                                    
+                                    if( oID == 0 &&
+                                        avoidFloor ) {
+                                        int floorID = getMapFloor( testX, testY );
+                                    
+                                        if( floorID > 0 ) {
+                                            blockedByFloor = true;
+                                            }
+                                        }
+
+                                        
                                     if( i >= tryDist && trans != NULL ) {
-                                        dir.x = (double)newDirX;
-                                        dir.y = (double)newDirY;
-                                        newX = testX;
-                                        newY = testY;
-                                        destTrans = trans;
-                                        break;
+                                        if( ! blockedByFloor ) {
+                                            dir.x = (double)newDirX;
+                                            dir.y = (double)newDirY;
+                                            newX = testX;
+                                            newY = testY;
+                                            destTrans = trans;
+                                            break;
+                                            }
                                         }
                                     else if( oID > 0 && getObject( oID ) != NULL &&
                                              getObject( oID )->blocksMoving ) {
@@ -5114,7 +5160,8 @@ int checkDecayObject( int inX, int inY, int inID ) {
                 if( dir.x == 0 && dir.y == 0 ) {
                     // random instead
                    
-                    stayInBiome = true;
+                    // a failed Find move is not biome-locking
+                    if( t->move != 8 ) stayInBiome = true;
                    
                     dir.x = 1;
                     dir.y = 0;
@@ -5124,6 +5171,26 @@ int checkDecayObject( int inX, int inY, int inID ) {
                         dir,
                         2 * M_PI *
                         randSource.getRandomBoundedInt( 0, 7 ) / 8.0 );
+
+                    // clean up rounding errors
+                    if( fabs( dir.x ) < 0.1 ) {
+                        dir.x = 0;
+                        }
+                    if( fabs( dir.y ) < 0.1 ) {
+                        dir.y = 0;
+                        }
+                    if( dir.x > 0.9 ) {
+                        dir.x = 1;
+                        }
+                    if( dir.x < - 0.9 ) {
+                        dir.x = -1;
+                        }
+                    if( dir.y > 0.9 ) {
+                        dir.y = 1;
+                        }
+                    if( dir.y < - 0.9 ) {
+                        dir.y = -1;
+                        }
                     }
                
                 if( dir.x != 0 && dir.y != 0 ) {
@@ -5269,10 +5336,29 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     }
                
  
+                if( destTrans != NULL ) {
+                    // make sure something else isn't moving out of
+                    // destination
+                    
+                    int numMoving = liveMovements.size();
+                    
+                    for( int i=0; i<numMoving; i++ ) {
+                        MovementRecord *m = liveMovements.getElement( i );
+                        
+                        if( m->sourceX == newX &&
+                            m->sourceY == newY ) {
+                            // found something leaving where we're landing
+                            // wait for it to finish
+                            setEtaDecay( inX, inY, MAP_TIMESEC + 1, t );
+                            return inID;
+                            }
+                        }
+                    }
+ 
  
                 if( newX == inX && newY == inY &&
-                    t->move <= 3 ) {
-                    // can't move where we want to go in flee/chase/random
+                    (t->move <= 3 || t->move == 8) ) {
+                    // can't move where we want to go in flee/chase/random/find
  
                     // pick some random spot to go instead
  
@@ -5491,23 +5577,28 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                             (newY - inY) * (newY - inY) );
                    
                     double speed = 4.0f;
-                   
-                   
+                    
+                    char deadly = false;
                     if( newID > 0 ) {
                         ObjectRecord *newObj = getObject( newID );
                        
                         if( newObj != NULL ) {
                             speed *= newObj->speedMult;
+                            
+                            deadly = ( newObj->deadlyDistance > 0 );
                             }
                         }
                    
                     double moveTime = moveDist / speed;
                    
                     double etaTime = Time::getCurrentTime() + moveTime;
-                   
-                    MovementRecord moveRec = { newX, newY, etaTime };
-                   
-                    liveMovementEtaTimes.insert( newX, newY, 0, 0, etaTime );
+                    
+                    MovementRecord moveRec = { newX, newY, inX, inY, 
+                                               newID,
+                                               deadly, 
+                                               etaTime,
+                                               moveTime };
+                    
                    
                     liveMovements.insert( moveRec, etaTime );
                    
