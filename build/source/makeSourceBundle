@@ -6,7 +6,7 @@ if [ $# -lt 1 ] ; then
 fi
 
 
-bundleDir="OneLife_$1_UnixSource"
+bundleDir="2HOL_$1_UnixSource"
 
 rm -rf $bundleDir $bundleDir.tar.gz
 

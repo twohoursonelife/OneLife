@@ -7,9 +7,9 @@ fi
 
 
 
-sourceBundleDir="OneLife_$1_UnixSource"
+sourceBundleDir="2HOL_$1_UnixSource"
 
-sourceWorkingDir="OneLife_$1_UnixSource_build"
+sourceWorkingDir="2HOL_$1_UnixSource_build"
 
 rm -rf $sourceWorkingDir
 
@@ -25,8 +25,8 @@ sh makeRegenerateCaches
 cd ../../..
 
 
-buildDir="OneLife_$1"
-finalTarball="OneLife_$1_Linux.tar.gz"
+buildDir="2HOL_$1"
+finalTarball="2HOL_$1_Linux.tar.gz"
 
 rm -rf $buildDir $buildDir_Linux.tar.gz
 
