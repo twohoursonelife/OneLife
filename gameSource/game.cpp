@@ -307,12 +307,12 @@ char isNonIntegerScalingAllowed() {
 
 
 const char *getWindowTitle() {
-    return "OneLife";
+    return "2HOL";
     }
 
 
 const char *getAppName() {
-    return "OneLife";
+    return "2HOL";
     }
 
 int getAppVersion() {
@@ -321,7 +321,7 @@ int getAppVersion() {
 
 const char *getLinuxAppName() {
     // no dir-name conflict here because we're using all caps for app name
-    return "OneLifeApp";
+    return "2HOLApp";
     }
 
 
