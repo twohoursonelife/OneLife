@@ -10,6 +10,8 @@
 #include "minorGems/util/SimpleVector.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 
+#include <string>
+
 
 
 // start:  none focused
@@ -668,20 +670,20 @@ void TextField::pointerUp( float inX, float inY ) {
 
 unsigned char TextField::processCharacter( unsigned char inASCII ) {
 
-    unsigned char processedChar = inASCII;
-        
-    if( mForceCaps ) {
-        processedChar = toupper( inASCII );
-        }
-
     if( mForbiddenChars != NULL ) {
         int num = strlen( mForbiddenChars );
             
         for( int i=0; i<num; i++ ) {
-            if( mForbiddenChars[i] == processedChar ) {
+            if( mForbiddenChars[i] == inASCII ) {
                 return 0;
                 }
             }
+        }
+
+    unsigned char processedChar = inASCII;
+        
+    if( mForceCaps ) {
+        processedChar = toupper( inASCII );
         }
         
 
@@ -1179,6 +1181,20 @@ void TextField::specialKeyUp( int inKeyCode ) {
         mHoldArrowSteps[1] = -1;
         mFirstArrowRepeatDone[1] = false;
         }
+    }
+
+
+
+void TextField::setIgnoredKey( unsigned char inASCII ) {
+    
+    std::string newChars( mForbiddenChars );
+    newChars.push_back( inASCII );
+    if( mForbiddenChars != NULL ) {
+        delete [] mForbiddenChars;
+        mForbiddenChars = NULL;
+        }
+    mForbiddenChars = strdup( newChars.c_str() );
+    
     }
 
 

@@ -2493,6 +2493,12 @@ LivingLifePage::LivingLifePage()
     // drawn under world at (0,1000), don't allow click to focus
     mSayField.setIgnoreMouse( true );
     
+    // these are vog controls
+    mObjectPicker.setIgnoredKey( 'V' );
+    mObjectPicker.setIgnoredKey( 'I' );
+    mObjectPicker.setIgnoredKey( 'M' );
+    mObjectPicker.setIgnoredKey( 'N' );
+    
     initLiveTriggers();
 
     for( int i=0; i<4; i++ ) {

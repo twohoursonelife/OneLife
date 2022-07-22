@@ -36,7 +36,7 @@ Picker::Picker( Pickable *inPickable, double inX, double inY )
           mDelConfirmButton( smallFont, -15, -290, "!" ), 
           mSearchField( mainFont, 
                         0,  100, 4,
-                        false,
+                        true,
                         "", NULL, "" ),
           mSelectionIndex( -1 ),
           mSelectionRightClicked( false ),
@@ -357,6 +357,14 @@ void Picker::specialKeyDown( int inKeyCode ) {
                  }
              break;
          }
+    }
+
+
+
+void Picker::setIgnoredKey( unsigned char inASCII ) {
+    
+    mSearchField.setIgnoredKey( inASCII );
+    
     }
 
 
