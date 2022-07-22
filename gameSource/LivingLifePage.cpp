@@ -21951,7 +21951,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 	bool shiftKey = isShiftKeyDown();
 
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
-		if (! mSayField.isFocused()) {
+		if (! mSayField.isFocused() && !vogMode) {
 			if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
 				upKeyDown = false;
 				leftKeyDown = false;
