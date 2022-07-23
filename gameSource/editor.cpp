@@ -236,9 +236,11 @@ char gamePlayingBack = false;
 
 
 Font *mainFont;
+Font *oldMainFont;
 Font *smallFont;
 Font *mainFontFixed;
 Font *numbersFontFixed;
+Font *tinyHandwritingFont;
 
 char *shutdownMessage = NULL;
 
@@ -325,6 +327,10 @@ void initDrawString( int inWidth, int inHeight ) {
 
     mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
     mainFont->setMinimumPositionPrecision( 1 );
+    oldMainFont = new Font( getFontTGAFileName(), 6, 6, false, 16 );
+    oldMainFont->setMinimumPositionPrecision( 1 );
+	tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+	tinyHandwritingFont->setMinimumPositionPrecision( 1 );
 
     setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
 
