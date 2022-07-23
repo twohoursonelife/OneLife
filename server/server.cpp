@@ -15864,6 +15864,18 @@ int main() {
                         }
                     else if( m.type == USE ) {
 
+                        int target = getMapObject( m.x, m.y );
+
+                        // Log for moderation
+                        AppLog::infoF( "modLog id:%d %d %d USE x:%d y:%d h:%d t:%d",
+                            nextPlayer->id,
+                            nextPlayer->birthPos.x,
+                            nextPlayer->birthPos.y,
+                            m.x,
+                            m.y,
+                            nextPlayer->holdingID,
+                            target
+                            );
                         
                         // send update even if action fails (to let them
                         // know that action is over)
@@ -15932,7 +15944,6 @@ int main() {
                             // no diags
                             
 
-                            int target = getMapObject( m.x, m.y );
                             
                             int oldHolding = nextPlayer->holdingID;
                             
@@ -17615,6 +17626,24 @@ int main() {
 
                         if( targetPlayer != NULL ) {
                             
+                            ObjectRecord **clothingSlot = 
+                                getClothingSlot( targetPlayer, m.i );
+                                
+                            int targetClothingID = 0;
+                            if( clothingSlot != NULL ) targetClothingID = ( *clothingSlot )->id;
+                            
+                            // Log for moderation - cases other than this main one is not logged
+                            AppLog::infoF( "modLog id:%d %d %d SELF x:%d y:%d h:%d t:%d %d",
+                                nextPlayer->id,
+                                nextPlayer->birthPos.x,
+                                nextPlayer->birthPos.y,
+                                m.x,
+                                m.y,
+                                nextPlayer->holdingID,
+                                targetClothingID,
+                                m.i
+                                );
+                            
                             // use on self/baby
                             nextPlayer->actionAttempt = 1;
                             nextPlayer->actionTarget.x = m.x;
@@ -18303,6 +18332,17 @@ int main() {
                             }
 							
                         int target = getMapObject( m.x, m.y );
+
+                        // Log for moderation
+                        AppLog::infoF( "modLog id:%d %d %d DROP x:%d y:%d h:%d t:%d",
+                            nextPlayer->id,
+                            nextPlayer->birthPos.x,
+                            nextPlayer->birthPos.y,
+                            m.x,
+                            m.y,
+                            nextPlayer->holdingID,
+                            target
+                            );
                         
                         
                         char accessBlocked = 
@@ -18686,14 +18726,25 @@ int main() {
                         // know that action is over)
                         playerIndicesToSendUpdatesAbout.push_back( i );
                         
+                        int target = getMapObject( m.x, m.y );
+
+                        // Log for moderation
+                        AppLog::infoF( "modLog id:%d %d %d REMV x:%d y:%d h:%d t:%d",
+                            nextPlayer->id,
+                            nextPlayer->birthPos.x,
+                            nextPlayer->birthPos.y,
+                            m.x,
+                            m.y,
+                            nextPlayer->holdingID,
+                            target
+                            );
+                        
                         if( isGridAdjacent( m.x, m.y, 
                                             nextPlayer->xd, 
                                             nextPlayer->yd ) 
                             ||
                             ( m.x == nextPlayer->xd &&
                               m.y == nextPlayer->yd ) ) {
-							
-                            int target = getMapObject( m.x, m.y );
 							
 							//2HOL mechanics to read written objects
 							if( target > 0 ) {
