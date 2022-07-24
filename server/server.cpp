@@ -12036,7 +12036,26 @@ int main() {
     // make backup and delete old backup every day
     AppLog::setLog( new FileLog( "log.txt", 86400 ) );
 
-    AppLog::setLoggingLevel( Log::DETAIL_LEVEL );
+    // Log::INFO_LEVEL = 4
+    // Log::DETAIL_LEVEL = 5
+    // Log::TRACE_LEVEL = 6
+    int logLevel = SettingsManager::getIntSetting( "logLevel", 4 );
+    
+    switch(logLevel) {
+        case 4:
+            logLevel = Log::INFO_LEVEL;
+            break;
+        case 5:
+            logLevel = Log::DETAIL_LEVEL;
+            break;
+        case 6:
+            logLevel = Log::TRACE_LEVEL;
+            break;
+        default:
+            logLevel = Log::INFO_LEVEL;
+        }
+
+    AppLog::setLoggingLevel( logLevel );
     AppLog::printAllMessages( true );
 
     printf( "\n" );
@@ -12446,6 +12465,24 @@ int main() {
             shutdownMode = SettingsManager::getIntSetting( "shutdownMode", 0 );
             forceShutdownMode = 
                 SettingsManager::getIntSetting( "forceShutdownMode", 0 );
+
+            int logLevel = SettingsManager::getIntSetting( "logLevel", 4 );
+            
+            switch(logLevel) {
+                case 4:
+                    logLevel = Log::INFO_LEVEL;
+                    break;
+                case 5:
+                    logLevel = Log::DETAIL_LEVEL;
+                    break;
+                case 6:
+                    logLevel = Log::TRACE_LEVEL;
+                    break;
+                default:
+                    logLevel = Log::INFO_LEVEL;
+                }
+
+            AppLog::setLoggingLevel( logLevel );
             
             if( checkReadOnly() ) {
                 // read-only file system causes all kinds of weird 
@@ -15827,6 +15864,18 @@ int main() {
                         }
                     else if( m.type == USE ) {
 
+                        int target = getMapObject( m.x, m.y );
+
+                        // Log for moderation
+                        AppLog::infoF( "modLog id:%d %d %d USE x:%d y:%d h:%d t:%d",
+                            nextPlayer->id,
+                            nextPlayer->birthPos.x,
+                            nextPlayer->birthPos.y,
+                            m.x,
+                            m.y,
+                            nextPlayer->holdingID,
+                            target
+                            );
                         
                         // send update even if action fails (to let them
                         // know that action is over)
@@ -15895,7 +15944,6 @@ int main() {
                             // no diags
                             
 
-                            int target = getMapObject( m.x, m.y );
                             
                             int oldHolding = nextPlayer->holdingID;
                             
@@ -17578,6 +17626,24 @@ int main() {
 
                         if( targetPlayer != NULL ) {
                             
+                            ObjectRecord **clothingSlot = 
+                                getClothingSlot( targetPlayer, m.i );
+                                
+                            int targetClothingID = 0;
+                            if( clothingSlot != NULL ) targetClothingID = ( *clothingSlot )->id;
+                            
+                            // Log for moderation - cases other than this main one is not logged
+                            AppLog::infoF( "modLog id:%d %d %d SELF x:%d y:%d h:%d t:%d %d",
+                                nextPlayer->id,
+                                nextPlayer->birthPos.x,
+                                nextPlayer->birthPos.y,
+                                m.x,
+                                m.y,
+                                nextPlayer->holdingID,
+                                targetClothingID,
+                                m.i
+                                );
+                            
                             // use on self/baby
                             nextPlayer->actionAttempt = 1;
                             nextPlayer->actionTarget.x = m.x;
@@ -18266,6 +18332,17 @@ int main() {
                             }
 							
                         int target = getMapObject( m.x, m.y );
+
+                        // Log for moderation
+                        AppLog::infoF( "modLog id:%d %d %d DROP x:%d y:%d h:%d t:%d",
+                            nextPlayer->id,
+                            nextPlayer->birthPos.x,
+                            nextPlayer->birthPos.y,
+                            m.x,
+                            m.y,
+                            nextPlayer->holdingID,
+                            target
+                            );
                         
                         
                         char accessBlocked = 
@@ -18649,14 +18726,25 @@ int main() {
                         // know that action is over)
                         playerIndicesToSendUpdatesAbout.push_back( i );
                         
+                        int target = getMapObject( m.x, m.y );
+
+                        // Log for moderation
+                        AppLog::infoF( "modLog id:%d %d %d REMV x:%d y:%d h:%d t:%d",
+                            nextPlayer->id,
+                            nextPlayer->birthPos.x,
+                            nextPlayer->birthPos.y,
+                            m.x,
+                            m.y,
+                            nextPlayer->holdingID,
+                            target
+                            );
+                        
                         if( isGridAdjacent( m.x, m.y, 
                                             nextPlayer->xd, 
                                             nextPlayer->yd ) 
                             ||
                             ( m.x == nextPlayer->xd &&
                               m.y == nextPlayer->yd ) ) {
-							
-                            int target = getMapObject( m.x, m.y );
 							
 							//2HOL mechanics to read written objects
 							if( target > 0 ) {
@@ -20504,7 +20592,7 @@ int main() {
             
             char *updateListString = updateList.getElementString();
             
-            AppLog::infoF( "Need to send updates about these %d players: %s",
+            AppLog::detailF( "Need to send updates about these %d players: %s",
                           playerIndicesToSendUpdatesAbout.size(),
                           updateListString );
             delete [] updateListString;
@@ -20792,7 +20880,7 @@ int main() {
             
             char *updateListString = trueUpdateList.getElementString();
             
-            AppLog::infoF( "Sending updates about these %d players: %s",
+            AppLog::detailF( "Sending updates about these %d players: %s",
                           newUpdatePlayerIDs.size(),
                           updateListString );
             delete [] updateListString;
@@ -22965,7 +23053,7 @@ int main() {
             
             char *playerListString = playerList.getElementString();
 
-            AppLog::infoF( "%d/%d players were sent part of a %d-line PU: %s",
+            AppLog::detailF( "%d/%d players were sent part of a %d-line PU: %s",
                           playersReceivingPlayerUpdate.size(),
                           numLive, newUpdates.size(),
                           playerListString );
