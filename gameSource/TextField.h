@@ -153,6 +153,8 @@ class TextField : public PageComponent, public ActionListenerList {
         virtual void specialKeyDown( int inKeyCode );
         virtual void specialKeyUp( int inKeyCode );
         
+        virtual void setIgnoredKey( unsigned char inASCII );
+        
         
         virtual char isMouseOver();
         

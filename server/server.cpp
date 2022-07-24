@@ -14372,15 +14372,18 @@ int main() {
                     if( nextPlayer->vogMode ) {
                         nextPlayer->vogMode = false;
                         
-                        GridPos p = nextPlayer->preVogPos;
-                        
-                        nextPlayer->xd = p.x;
-                        nextPlayer->yd = p.y;
-                        
-                        nextPlayer->xs = p.x;
-                        nextPlayer->ys = p.y;
-                        
-                        nextPlayer->birthPos = nextPlayer->preVogBirthPos;
+                        // If they send VOGX with coords other than (0, 0), teleport them
+                        if( m.x - nextPlayer->birthPos.x == 0 && m.y - nextPlayer->birthPos.y == 0 ) {
+                            GridPos p = nextPlayer->preVogPos;
+                            
+                            nextPlayer->xd = p.x;
+                            nextPlayer->yd = p.y;
+                            
+                            nextPlayer->xs = p.x;
+                            nextPlayer->ys = p.y;
+                            
+                            nextPlayer->birthPos = nextPlayer->preVogBirthPos;
+                            }
 
                         // send them one last VU message to move them 
                         // back instantly

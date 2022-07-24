@@ -45,6 +45,8 @@ class Picker : public PageComponent, ActionListener,
         virtual void actionPerformed( GUIComponent *inTarget );
 
         virtual void specialKeyDown( int inKeyCode );
+        
+        virtual void setIgnoredKey( unsigned char inASCII );
 
         
     protected:
