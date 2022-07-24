@@ -45,7 +45,7 @@ mkdir -p groundTileCache
 
 
 echo "Copying items from build into directories"
-cp OneLife/gameSource/OneLife ./OneLifeApp
+cp OneLife/gameSource/OneLife ./2HOLApp
 cp OneLife/documentation/Readme.txt .
 cp OneLife/no_copyright.txt .
 cp OneLife/gameSource/graphics/* ./graphics
@@ -58,7 +58,7 @@ cp OneLife/gameSource/reverbImpulseResponse.aiff ./
 cp OneLife/gameSource/wordList.txt ./
 
 
-echo "Run OneLifeApp to play."
+echo "Run 2HOLApp to play."
 
 
 
