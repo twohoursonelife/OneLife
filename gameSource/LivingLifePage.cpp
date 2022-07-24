@@ -2498,6 +2498,7 @@ LivingLifePage::LivingLifePage()
     mObjectPicker.setIgnoredKey( 'I' );
     mObjectPicker.setIgnoredKey( 'M' );
     mObjectPicker.setIgnoredKey( 'N' );
+    mObjectPicker.setIgnoredKey( 'T' );
     
     initLiveTriggers();
 
@@ -22112,6 +22113,40 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         mObjectPicker.removeActionListener( this );
                         }
                     vogPickerOn = false;
+                    }
+                }
+            break;
+        case 'T':
+            if( ! mSayField.isFocused() &&
+                serverSocketConnected &&
+                SettingsManager::getIntSetting( "vogModeOn", 0 ) ) {
+                
+                if( vogMode ) {
+                    
+                    // Send coords different than (0, 0) to teleport
+                    // Coords relative to the vog birth pos
+                    char *message = autoSprintf( "VOGX %d %d#",
+                                                 lrint( vogPos.x ), 
+                                                 lrint( vogPos.y ) );
+                    
+                    sendToServerSocket( message );
+                    
+                    delete [] message;
+                    
+                    vogMode = false;
+                    if( vogPickerOn ) {
+                        removeComponent( &mObjectPicker );
+                        mObjectPicker.removeActionListener( this );
+                        }
+                    vogPickerOn = false;
+                    
+                    // Grave info is no longer valid as we will teleport
+                    for( int i=0; i<mGraveInfo.size(); i++ ) {
+                        delete [] mGraveInfo.getElement(i)->relationName;
+                        }
+                    mGraveInfo.deleteAll();
+                    
+                    graveRequestPos.deleteAll();
                     }
                 }
             break;
