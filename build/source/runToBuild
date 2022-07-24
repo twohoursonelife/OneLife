@@ -45,7 +45,7 @@ mkdir -p groundTileCache
 
 
 echo "Copying items from build into directories"
-cp OneLife/gameSource/OneLife ./2HOLApp
+cp OneLife/gameSource/2HOL ./2HOLApp
 cp OneLife/documentation/Readme.txt .
 cp OneLife/no_copyright.txt .
 cp OneLife/gameSource/graphics/* ./graphics
