@@ -4789,12 +4789,6 @@ char *isPasswordSettingSay( char *inSaidString );
 char *isPasswordInvokingSay( char *inSaidString );
 
 static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate = false ) {    
-                        
-    if( inPlayer->lastSay != NULL ) {
-        delete [] inPlayer->lastSay;
-        inPlayer->lastSay = NULL;
-        }
-    inPlayer->lastSay = stringDuplicate( inToSay );
 
     //2HOL additions for: password-protected objects
     char *sayingPassword = NULL;
@@ -4835,6 +4829,15 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             if( passwordSilent ) { return; }
             }
 
+        }
+        
+                        
+    if( sayingPassword == NULL && assigningPassword == NULL ) {
+        if( inPlayer->lastSay != NULL ) {
+            delete [] inPlayer->lastSay;
+            inPlayer->lastSay = NULL;
+            }
+        inPlayer->lastSay = stringDuplicate( inToSay );
         }
 
     char isCurse = false;
