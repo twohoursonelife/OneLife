@@ -7481,7 +7481,7 @@ int processLoggedInPlayer( char inAllowReconnect,
                 SettingsManager::getIntSetting( "forceEveLocationY", 0 );
             }
         
-        uint32_t tempHashedSpawnSeed;
+        uint64_t tempHashedSpawnSeed;
         int useSeedList = SettingsManager::getIntSetting( "useSeedList", 0 );
         //pick a random seed from a list to be the default spawn
         if ( useSeedList && connection->hashedSpawnSeed == 0 ) {
@@ -7512,11 +7512,10 @@ int processLoggedInPlayer( char inAllowReconnect,
             //make this a separate method in the future to prevent redundancy
             
             // FNV-1a Hashing algorithm
-            auto hashStr = [](std::string &s, const uint32_t FNV_init = 2166136261u){
-                const size_t FNV_prime = 111337;
+            auto hashStr = [](std::string &s, const uint64_t FNV_init = 0xcbf29ce484222325u) -> uint64_t {
+                const uint64_t FNV_prime = 0x00000100000001b3u;
 
-                // Hash seed to 4 byte int
-                uint32_t hash = FNV_init;
+                uint64_t hash = FNV_init;
                 for( auto c : s ) {
                     hash ^= c;
                     hash *= FNV_prime;
@@ -13290,11 +13289,11 @@ int main() {
 
                                     // Get the substr from one after the seed delim
                                     std::string seed { emailAndSeed.substr( seedDelimPos + 1 ) };
-                                    char *sSeed = SettingsManager::getStringSetting("seedSalt", "default salt");
-                                    std::string seedSalt { sSeed };
+                                    char *sSeed = SettingsManager::getStringSetting("seedPepper", "default pepper");
+                                    std::string seedPepper { sSeed };
                                     
                                     nextConnection->hashedSpawnSeed =
-                                        hashStr(seed, hashStr(seedSalt));
+                                        hashStr(seed, hashStr(seedPepper));
                                     
                                     delete [] sSeed;
                                 }
