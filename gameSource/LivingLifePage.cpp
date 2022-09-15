@@ -20290,7 +20290,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 	
 	int mouseButton = getLastMouseButton();
 	bool scaling = false;
-	if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
+    if( !mForceGroundClick ) {
+        if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
+        }
 	if ( blockMouseScaling ) { scaling = false; }
 	
     if( vogMode ) {
