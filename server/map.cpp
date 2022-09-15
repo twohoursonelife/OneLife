@@ -6042,6 +6042,13 @@ int getTweakedBaseMap( int inX, int inY ) {
     char wasGridPlacement = false;
        
     int result = getBaseMap( inX, inY, &wasGridPlacement );
+    
+    int secondPlace;
+    double secondPlaceGap;
+
+    int pickedBiome = getMapBiomeIndex( inX, inY, &secondPlace, &secondPlaceGap );
+    if( biomes[pickedBiome] == 7 ) return result;
+    
  
     if( result > 0 ) {
         ObjectRecord *o = getObject( result );
