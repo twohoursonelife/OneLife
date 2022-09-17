@@ -3082,7 +3082,7 @@ static void initOutputMap() {
                 delete outputMapFileRaw;
                 outputMapFileRaw = NULL;
                 }
-            char *name = autoSprintf( "%s_%d.txt", tutorialDone ? "Auto" : "Tutorial", outputMapID );
+            char *name = autoSprintf( "%s_%02d.txt", tutorialDone ? "Auto" : "Tutorial", outputMapID );
             outputMapFileRaw = sceneDir.getChildFile( name );
             outputMapID++;
             delete [] name;
