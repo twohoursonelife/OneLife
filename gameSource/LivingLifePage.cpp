@@ -20274,7 +20274,7 @@ char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
 
 
 void LivingLifePage::pointerDown( float inX, float inY ) {
-	if (minitech::livingLifePageMouseDown( inX, inY )) return;
+	if (!mForceGroundClick && minitech::livingLifePageMouseDown( inX, inY )) return;
 	
     lastMouseX = inX;
     lastMouseY = inY;
