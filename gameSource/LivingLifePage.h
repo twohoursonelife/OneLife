@@ -999,6 +999,10 @@ class LivingLifePage : public GamePage, public ActionListener {
         // in the map at its destination.
         // inExtraIndex is its index in the mMapExtraMovingObjects vectors
         void endExtraObjectMove( int inExtraIndex );
+
+
+        // where player is standing or held
+        doublePair getPlayerPos( LiveObject *inPlayer );
         
 
         char mUsingSteam;

@@ -5724,6 +5724,8 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                                moveTime };
                     
                    
+                    liveMovementEtaTimes.insert( newX, newY, 0, 0, etaTime );
+                    
                     liveMovements.insert( moveRec, etaTime );
                    
  
