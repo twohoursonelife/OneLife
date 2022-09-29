@@ -1606,13 +1606,6 @@ void quitCleanup() {
             delete [] nextPlayer->lastSay;
             }
         
-        if( nextPlayer->saidPassword != NULL) {
-            delete [] nextPlayer->saidPassword;
-        }
-        if( nextPlayer->assignedPassword != NULL) {
-            delete [] nextPlayer->assignedPassword;
-        }
-        
         if( nextPlayer->email != NULL  ) {
             delete [] nextPlayer->email;
             }
@@ -4799,9 +4792,6 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             sayingPassword = isPasswordInvokingSay( inToSay );
             if( sayingPassword != NULL ) {
                 // AppLog::infoF( "2HOL DEBUG: Player says password. New password assigned to a player." );
-                if( inPlayer->saidPassword != NULL) {
-                    delete [] inPlayer->saidPassword;
-                }
                 inPlayer->saidPassword = stringDuplicate( sayingPassword );
                 // AppLog::infoF( "2HOL DEBUG: Player's password is %s", inPlayer->saidPassword );
 				//if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
@@ -4814,16 +4804,8 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
         assigningPassword = isPasswordSettingSay( inToSay );
         if( assigningPassword != NULL ) {
             // AppLog::infoF( "2HOL DEBUG: Player sets new password for future assignment." );
-            if( inPlayer->assignedPassword != NULL) {
-                delete [] inPlayer->assignedPassword;
-            }
             inPlayer->assignedPassword = stringDuplicate( assigningPassword );
-            if ( !passwordInvocationAndSettingAreSeparated ) {
-                if( inPlayer->saidPassword != NULL) {
-                    delete [] inPlayer->saidPassword;
-                }
-                inPlayer->saidPassword = stringDuplicate( assigningPassword );
-            }
+            if ( !passwordInvocationAndSettingAreSeparated ) { inPlayer->saidPassword = stringDuplicate( assigningPassword ); }
             // AppLog::infoF( "2HOL DEBUG: Password for future assignment password is %s", inPlayer->assignedPassword );
             //if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
             if( passwordSilent ) { return; }
@@ -7505,9 +7487,6 @@ int processLoggedInPlayer( char inAllowReconnect,
                 
             std::string seed( choseSeed );
             
-            list->deallocateStringElements();
-            delete list;
-            
             //convert and apply seed hash (copy pasted code)
             //make this a separate method in the future to prevent redundancy
             
@@ -7525,13 +7504,10 @@ int processLoggedInPlayer( char inAllowReconnect,
             };
             
             // Get the substr from one after the seed delim
-            char *sSeed = SettingsManager::getStringSetting("seedSalt", "default salt");
-            std::string seedSalt { sSeed };
+            std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
             
             tempHashedSpawnSeed =
                 hashStr(seed, hashStr(seedSalt));
-            
-            delete [] sSeed;
           }
         else {
             //use defalt seed configuration
@@ -7568,7 +7544,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
-        ObjectRecord *randomObject = NULL;
+        ObjectRecord *randomObject;
         while ( randomObject == NULL ) {
             randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
             }
@@ -12185,8 +12161,6 @@ int main() {
 	std::string strFertilitySuffix(fertilitySuffix);
 	strInfertilitySuffix = " " + strInfertilitySuffix;
 	strFertilitySuffix = " " + strFertilitySuffix;
-    delete [] infertilitySuffix;
-    delete [] fertilitySuffix;
 	infertilitySuffix = strdup( strInfertilitySuffix.c_str() );
 	fertilitySuffix = strdup( strFertilitySuffix.c_str() );
     
@@ -16640,10 +16614,7 @@ int main() {
                                                 file.close();
  
                                                 //erasing player's password after each successful transition
-                                                if( nextPlayer->assignedPassword != NULL) {
-                                                    delete [] nextPlayer->assignedPassword;
-                                                    nextPlayer->assignedPassword = NULL;
-                                                }
+                                                nextPlayer->assignedPassword = NULL;
                                                 
                                                                                               // AppLog::infoF( "2HOL DEBUG: saved password-protected position, x = %i", getObject( r->newTarget )->IndX.getElementDirect(getObject( r->newTarget )->IndX.size()-1));
                                                 // AppLog::infoF( "2HOL DEBUG: saved password-protected position, y = %i", getObject( r->newTarget )->IndY.getElementDirect(getObject( r->newTarget )->IndY.size()-1));
@@ -23202,13 +23173,6 @@ int main() {
                 if( nextPlayer->lastSay != NULL ) {
                     delete [] nextPlayer->lastSay;
                     }
-                
-                if( nextPlayer->saidPassword != NULL) {
-                    delete [] nextPlayer->saidPassword;
-                }
-                if( nextPlayer->assignedPassword != NULL) {
-                    delete [] nextPlayer->assignedPassword;
-                }
                 
                 freePlayerContainedArrays( nextPlayer );
                 
