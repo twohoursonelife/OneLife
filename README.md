@@ -23,7 +23,7 @@ As has always been, the core difference was the double in life length, mixed wit
 
 Fast forward to today, modern 2HOL last branched off in August 2019 and has since independently developed key features and content whilst continuing to cherry-pick whole and parts of features and bug fixes from the original project.
 
-2HOL now features, among the core offering since inception, stringent moderation, systems to allow recurring spawning at fixed locations,
+2HOL now features, among the core offering since inception, moderation, recurring spawning at fixed locations, community events, extended content (and more coming!) and importantly, the option to play freely, however you would like.
 
 Playing 2HOL is entirely managed via our Discord guild, the home base of our community. Players can access their login credentials here by interacting with our Dictator bot.
 ### Structure
