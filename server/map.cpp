@@ -5588,7 +5588,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                         newID = destTrans->newTarget;
                         }
                    
-                    dbPut( newX, newY, 0, newID );
+                    setMapObjectRaw( newX, newY, newID );
                    
  
                     // update old spot
@@ -5620,7 +5620,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                        
                         leftBehindID = destTrans->newActor;
                        
-                        dbPut( inX, inY, 0, leftBehindID );
+                        setMapObjectRaw( inX, inY, leftBehindID );
                        
  
                        
