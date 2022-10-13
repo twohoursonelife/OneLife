@@ -260,6 +260,24 @@ void Picker::redoSearch( char inClearPageSkip ) {
     }
 
 
+void Picker::focusSearchField() {
+    mSearchField.focus();
+    }
+    
+void Picker::clearSearchField() {
+    mSearchField.setText( "" );
+    }
+    
+void Picker::setSearchField( const char *inText ) {
+    mSearchField.setText( inText );
+    redoSearch( true );
+    }
+    
+void Picker::usePickable( int id ) {
+    mPickable->usePickable( id );
+    }
+
+
 
 void Picker::addSearchToStack() {
     char *search = mSearchField.getText();
@@ -286,9 +304,9 @@ void Picker::addSearchToStack() {
 void Picker::actionPerformed( GUIComponent *inTarget ) {
     int skipAmount = PER_PAGE;
     
-    if( isCommandKeyDown() ) {
-        skipAmount *= 5;
-        }
+    // if( isCommandKeyDown() ) {
+        // skipAmount *= 5;
+        // }
     
     if( inTarget == &mNextButton ) {
         mSkip += skipAmount;
@@ -460,6 +478,59 @@ void Picker::pointerDown( float inX, float inY ) {
         inY < 75 && inY > -245 ) {
         mPressStartedHere = true;
         }
+    }
+    
+    
+    
+void Picker::select( int index ) {
+    if( index < mNumResults && index >= 0 &&
+        mResultsUnclickable[ index ] ) {
+        return;
+        }
+    
+    if( index >= mNumResults || index < 0 ) {
+        return;
+        }
+    
+    mSelectionIndex = index;
+    }
+    
+void Picker::selectUp() {
+    int index = mSelectionIndex - 1;
+    
+    if( index < mNumResults && index >= 0 &&
+        mResultsUnclickable[ index ] ) {
+        return;
+        }
+    
+    if( index >= mNumResults || index < 0 ) {
+        return;
+        }
+    
+    mSelectionIndex = index;
+    }
+    
+void Picker::selectDown() {
+    int index = mSelectionIndex + 1;
+    
+    if( index < mNumResults && index >= 0 &&
+        mResultsUnclickable[ index ] ) {
+        return;
+        }
+    
+    if( index >= mNumResults || index < 0 ) {
+        return;
+        }
+    
+    mSelectionIndex = index;
+    }
+    
+void Picker::nextPage() {
+    if( mNextButton.isVisible() ) actionPerformed( &mNextButton );
+    }
+    
+void Picker::prevPage() {
+    if( mPrevButton.isVisible() ) actionPerformed( &mPrevButton );
     }
 
         

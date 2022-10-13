@@ -5246,12 +5246,48 @@ static int *deleteFromIntArray( int *inArray, int inOldLength,
     }
 
 
+extern char upKey;
+extern char leftKey;
+extern char downKey;
+extern char rightKey;
 
 void EditorObjectPage::keyDown( unsigned char inASCII ) {
     if( mSaveFaces ) {
         // ignore events
         return;
         }
+        
+    //Picker keybinds
+    bool commandKey = isCommandKeyDown();
+    if( !commandKey && inASCII == 9 ) { // TAB
+        if( TextField::isAnyFocused() ) {
+            TextField::unfocusAll();
+        } else {
+            mObjectPicker.clearSearchField();
+            mObjectPicker.focusSearchField();
+        }
+        return;
+    } else if( commandKey && inASCII == 9 ) { // ctrl + TAB
+        mObjectPicker.setSearchField( "." );
+        TextField::unfocusAll();
+        return;
+    } else if( !TextField::isAnyFocused() && commandKey ) {
+        if( inASCII + 64 == toupper(upKey) ) {
+            mObjectPicker.selectUp();
+        } else if( inASCII + 64 == toupper(downKey) ) {
+            mObjectPicker.selectDown();
+            return;
+        }  else if( inASCII + 64 == toupper(rightKey) ) {
+            mObjectPicker.nextPage();
+        }  else if( inASCII + 64 == toupper(leftKey) ) {
+            mObjectPicker.prevPage();
+        }
+    } else if( !TextField::isAnyFocused() && inASCII == 13 ) {
+        actionPerformed( &mObjectPicker );
+    } else if( TextField::isAnyFocused() && inASCII == 13 ) {
+        TextField::unfocusAll();
+    }
+       
     
     if( TextField::isAnyFocused() || mSetHeldPos ) {
         return;
