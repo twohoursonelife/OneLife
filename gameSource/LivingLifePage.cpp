@@ -20994,11 +20994,19 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         }
     
 
-    if( destID != 0 &&
+    bool useOnEmptyGroundAtADistance = false;
+    useOnEmptyGroundAtADistance = 
+        ourLiveObject->holdingID > 0 &&
+        getObject( ourLiveObject->holdingID )->useDistance > 1 &&
+        destID == 0 && modClick && 
+        getTrans( ourLiveObject->holdingID, -1 ) != NULL;
+    
+    if( (destID != 0 &&
         ! modClick &&
         ourLiveObject->holdingID > 0 &&
         getObject( ourLiveObject->holdingID )->useDistance > 1 &&
-        getTrans( ourLiveObject->holdingID, destID ) != NULL ) {
+        getTrans( ourLiveObject->holdingID, destID ) != NULL ) 
+        || useOnEmptyGroundAtADistance ) {
         // check if we're close enough to use this from here 
         
         double d = sqrt( ( clickDestX - ourLiveObject->xd ) * 
