@@ -434,6 +434,13 @@ typedef struct ExtraMapObject {
         
 
 
+typedef struct OldHintArrow {
+        doublePair pos;
+        double bounce;
+        float fade;
+    } OldHintArrow;
+
+
 
 class LivingLifePage : public GamePage, public ActionListener {
         
@@ -461,6 +468,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         virtual void draw( doublePair inViewCenter, 
                            double inViewSize );
         
+        virtual void displayMessage();
         virtual void step();
   
         virtual void makeActive( char inFresh );
@@ -661,6 +669,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         SpriteHandle mCellBorderSprite;
         SpriteHandle mCellFillSprite;
         
+        SpriteHandle mHintArrowSprite;
+        
 
         SpriteHandle mHomeSlipSprite;
         SpriteHandle mHomeArrowSprites[ NUM_HOME_ARROWS ];
@@ -748,6 +758,20 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         int mNextHintObjectID;
         int mNextHintIndex;
+
+        int mCurrentHintTargetObject[2];
+
+        double mCurrentHintTargetPointerBounce[2];
+        float mCurrentHintTargetPointerFade[2];
+        doublePair mLastHintTargetPos[2];
+
+        SimpleVector<OldHintArrow> mOldHintArrows;
+        
+        bool drawTipsArrow;
+        doublePair tipsArrowPos;
+        void startTipsArrow( doublePair pos );
+        void stopTipsArrow();
+
 
         SimpleVector<TransRecord *> mLastHintSortedList;
         int mLastHintSortedSourceID;
@@ -1020,6 +1044,12 @@ class LivingLifePage : public GamePage, public ActionListener {
         char mPlayerInFlight;
 
         Picker mObjectPicker;
+        
+        
+        void pushOldHintArrow( int inIndex );
+
+
+        char isHintFilterStringInvalid();
 
     };
 

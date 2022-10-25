@@ -66,6 +66,15 @@ vector<minitech::mouseListener*> minitech::twotechMouseListeners;
 minitech::mouseListener* minitech::prevListener = NULL;
 minitech::mouseListener* minitech::nextListener = NULL;
 
+// pos for newbieTips use
+doublePair minitech::makeUseTogglePos;
+doublePair minitech::maxButtonPos;
+bool minitech::showBar = false;
+doublePair minitech::topBarPos;
+doublePair minitech::sharpyRecipePos;
+doublePair minitech::hatchetRecipePos;
+
+
 const char *biomeNames[] = {"GRASSLANDS",
 							"SWAMP",
 							"YELLOW PRAIRIES",
@@ -991,6 +1000,7 @@ void minitech::updateDrawTwoTech() {
 		doublePair posBR = {posLT.x + recWidth, posLT.y - recHeight};
 		setDrawColor( 0, 0, 0, 0.8 );
 		drawRect( posCenter, recWidth/2, recHeight/2);
+        maxButtonPos = posCenter;
 		
 		drawStr("[+] CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
 		mouseListener* maxListener = getMouseListenerByArea(
@@ -1008,6 +1018,10 @@ void minitech::updateDrawTwoTech() {
 	}
 	
 	int transSize = currentHintTrans.size();
+    
+    // pos for newbieTips use
+    sharpyRecipePos = {9999, 9999};
+    hatchetRecipePos = {9999, 9999};
 		
 	if (transSize == 0) {
 		
@@ -1033,6 +1047,7 @@ void minitech::updateDrawTwoTech() {
 		vector<TransRecord*> transToShow(currentHintTrans.begin() + startIndex, currentHintTrans.begin() + endIndex);
 		
 		int numOfLines = endIndex - startIndex;
+        
 		
 		if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
 		
@@ -1192,6 +1207,10 @@ void minitech::updateDrawTwoTech() {
 				if (compareObjUse(trans->actor, trans->newActor) == -1) currentHintObjId = getDummyParent(trans->actor);
 				if (compareObjUse(trans->actor, trans->newActor) == 1) currentHintObjId = getDummyLastUse(trans->actor);
 			}
+            
+            
+            // pos for newbieTips use
+            if( trans->actor == 33 && trans->target == 32 ) sharpyRecipePos = pos;
 
 			
 			pos.x += iconSize;
@@ -1273,6 +1292,9 @@ void minitech::updateDrawTwoTech() {
 				if (compareObjUse(trans->target, trans->newTarget) == -1) currentHintObjId = getDummyParent(trans->target);
 				if (compareObjUse(trans->target, trans->newTarget) == 1) currentHintObjId = getDummyLastUse(trans->target);
 			}
+            
+            // pos for newbieTips use
+            if( trans->actor == 34 && trans->target == 70 ) hatchetRecipePos = pos;
 			
 			
 			pos.x += iconSize;
@@ -1499,7 +1521,7 @@ void minitech::updateDrawTwoTech() {
 	float barWidth = recWidth;
 	float barHeight = 0;
 	float barOffsetY = 0;
-	bool showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
+	showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
 	
 	if (true) {
 		barHeight = tinyLineHeight;
@@ -1524,6 +1546,7 @@ void minitech::updateDrawTwoTech() {
 	doublePair firstLineBR = {firstLine.x + textWidth/2 + paddingX/2, firstLine.y - tinyLineHeight/2 - paddingY/2};
 	doublePair secondLineLT = {secondLine.x - textWidth/2 - paddingX/2, secondLine.y + tinyLineHeight/2 + paddingY/2};
 	doublePair secondLineBR = {secondLine.x + textWidth/2 + paddingX/2, secondLine.y - tinyLineHeight/2 - paddingY/2};
+    makeUseTogglePos = textCen;
 
 	setDrawColor( 1, 1, 1, 0.3 );
 	if (useOrMake == 0) {
@@ -1586,6 +1609,7 @@ void minitech::updateDrawTwoTech() {
 		}
 	}
 	
+    topBarPos = {9999, 9999};
 	if (showBar) {
 		string searchStr;
 		if (lastHintStr != "") {
@@ -1601,6 +1625,8 @@ void minitech::updateDrawTwoTech() {
 		
 		doublePair barCen = {headerLT.x + barWidth / 2, headerLT.y - barHeight / 2 - paddingY/2};
 		drawStr(searchStr, barCen, "tinyHandwritten", false);
+        
+        topBarPos = barCen;
 	}
 	
 	doublePair headerRT = {headerLT.x + headerWidth, headerLT.y};

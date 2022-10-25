@@ -119,8 +119,14 @@ public:
 	static void inputHintStrToSearch(std::string hintStr);
     static void changeCurrentHintObjId(int objID);
 
-	
-
+	// pos for newbieTips use
+    static doublePair makeUseTogglePos;
+    static doublePair maxButtonPos;
+    static bool showBar;
+    static doublePair topBarPos;
+    static doublePair sharpyRecipePos;
+    static doublePair hatchetRecipePos;
+    
 	
 };
 
