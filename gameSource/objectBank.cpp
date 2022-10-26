@@ -3080,7 +3080,7 @@ int addObject( const char *inDescription,
                                       inNumSlots, inSlotTimeStretch ) );
         lines.push_back( autoSprintf( "slotSize=%f", inSlotSize ) );
         lines.push_back( autoSprintf( "slotsLocked=%d", (int)inSlotsLocked ) );
-        lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
+        if( inSlotsNoSwap ) lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
 
         for( int i=0; i<inNumSlots; i++ ) {
             lines.push_back( autoSprintf( "slotPos=%f,%f,vert=%d,parent=%d", 
