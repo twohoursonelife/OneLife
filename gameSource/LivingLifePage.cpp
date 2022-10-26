@@ -20689,7 +20689,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             
             int id = mMap[mapI];
             
-            if( id == 0 || ! getObject( id )->permanent ) {
+            if( id == 0 || (id > 0 && getObject( id ) != NULL && !getObject( id )->permanent) ) {
                 
                 // empty cell, or something we can swap held with
                 
