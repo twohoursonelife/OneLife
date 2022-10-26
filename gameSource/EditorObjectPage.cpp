@@ -156,12 +156,16 @@ EditorObjectPage::EditorObjectPage()
           mMaleCheckbox( 290, -190, 2 ),
           mDeathMarkerCheckbox( 290, -190, 2 ),
           mHomeMarkerCheckbox( 100, -120, 2 ),
-          mFloorCheckbox( 290, -150, 2 ),
+          mFloorCheckbox( 635, -210, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
           mRideableCheckbox( 290, 16, 2 ),
           mBlocksWalkingCheckbox( 290, -4, 2 ),
-          mDrawBehindPlayerCheckbox( 290, -90, 2 ),
-          mFloorHuggingCheckbox( 290, -110, 2 ),
+          
+          mDrawBehindPlayerCheckbox( 635, -90, 2 ),
+          mFloorHuggingCheckbox( 635, -130, 2 ),
+          mWallLayerCheckbox( 635, -150, 2 ),
+          mFrontWallCheckbox( 635, -170, 2 ),
+          
           mLeftBlockingRadiusField( smallFont, 
                                     290,  -30, 2,
                                     false,
@@ -633,6 +637,14 @@ EditorObjectPage::EditorObjectPage()
     addComponent( &mFloorHuggingCheckbox );
     mFloorHuggingCheckbox.setVisible( false );
     mFloorHuggingCheckbox.addActionListener( this );
+    
+    addComponent( &mWallLayerCheckbox );
+    mWallLayerCheckbox.setVisible( false );
+    mWallLayerCheckbox.addActionListener( this );
+    
+    addComponent( &mFrontWallCheckbox );
+    mFrontWallCheckbox.setVisible( false );
+    mFrontWallCheckbox.addActionListener( this );
 
     addComponent( &mLeftBlockingRadiusField );
     mLeftBlockingRadiusField.setVisible( false );
@@ -1467,6 +1479,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mHomeMarkerCheckbox.getToggled(),
                    mFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
+                   mWallLayerCheckbox.getToggled(),
+                   mFrontWallCheckbox.getToggled(),
                    mFoodValueField.getInt(),
                    mSpeedMultField.getFloat(),
                    mCurrentObject.heldOffset,
@@ -1617,6 +1631,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mHomeMarkerCheckbox.getToggled(),
                    mFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
+                   mWallLayerCheckbox.getToggled(),
+                   mFrontWallCheckbox.getToggled(),
                    mFoodValueField.getInt(),
                    mSpeedMultField.getFloat(),
                    mCurrentObject.heldOffset,
@@ -2235,6 +2251,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mRightBlockingRadiusField.setInt( 0 );
             mDrawBehindPlayerCheckbox.setToggled( false );
             mFloorHuggingCheckbox.setToggled( false );
+            mWallLayerCheckbox.setToggled( false );
+            mFrontWallCheckbox.setToggled( false );
             } 
         }
     else if( inTarget == &mBlocksWalkingCheckbox ) {
@@ -2263,6 +2281,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
 
         mFloorHuggingCheckbox.setToggled( false );
         mFloorHuggingCheckbox.setVisible( false );
+        
+        mWallLayerCheckbox.setToggled( false );
+        mWallLayerCheckbox.setVisible( false );
+        
+        mFrontWallCheckbox.setToggled( false );
+        mFrontWallCheckbox.setVisible( false );
 
         if( ! mCheckboxes[1]->getToggled() ) {
             if( !mSetHeldPos ) {
@@ -2278,6 +2302,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             
             mFloorHuggingCheckbox.setVisible( false );
             mFloorHuggingCheckbox.setToggled( false );
+            
+            mWallLayerCheckbox.setVisible( false );
+            mWallLayerCheckbox.setToggled( false );
+        
+            mFrontWallCheckbox.setVisible( false );
+            mFrontWallCheckbox.setToggled( false );
             }
         else {
             if( mSetHeldPos ) {
@@ -2287,6 +2317,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mMinPickupAgeField.setVisible( false );
             mDrawBehindPlayerCheckbox.setVisible( true );
             mFloorHuggingCheckbox.setVisible( true );
+            mWallLayerCheckbox.setVisible( true );
+            mFrontWallCheckbox.setVisible( true );
             }
         
         
@@ -2315,6 +2347,23 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mCheckboxes[0]->setToggled( false );
                 actionPerformed( mCheckboxes[0] );
                 }
+            }
+        }
+    else if( inTarget == &mFloorHuggingCheckbox ) {
+        if( mFloorHuggingCheckbox.getToggled() ) {
+            mWallLayerCheckbox.setToggled( true );
+            }
+        }
+    else if( inTarget == &mWallLayerCheckbox ) {
+        if( !mWallLayerCheckbox.getToggled() ) {
+            mFloorHuggingCheckbox.setToggled( false );
+            mFrontWallCheckbox.setToggled( false );
+            }
+        }
+    else if( inTarget == &mFrontWallCheckbox ) {
+        if( mFrontWallCheckbox.getToggled() ) {
+            mFloorHuggingCheckbox.setToggled( true );
+            mWallLayerCheckbox.setToggled( true );
             }
         }
     else if( inTarget == &mAgingLayerCheckbox ) {
@@ -3052,10 +3101,22 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                                 
                 mFloorHuggingCheckbox.setVisible( true );
                 mFloorHuggingCheckbox.setToggled( pickedRecord->floorHugging );
+                
+                mWallLayerCheckbox.setVisible( true );
+                mWallLayerCheckbox.setToggled( pickedRecord->wallLayer );
+                
+                mFrontWallCheckbox.setVisible( true );
+                mFrontWallCheckbox.setToggled( pickedRecord->frontWall );
                 }
             else {
                 mFloorHuggingCheckbox.setToggled( false );
                 mFloorHuggingCheckbox.setVisible( false );
+                
+                mWallLayerCheckbox.setToggled( false );
+                mWallLayerCheckbox.setVisible( false );
+                
+                mFrontWallCheckbox.setToggled( false );
+                mFrontWallCheckbox.setVisible( false );
                 }
             
             if( mRideableCheckbox.getToggled() ) {
@@ -4123,8 +4184,8 @@ void EditorObjectPage::draw( doublePair inViewCenter,
 
     if( mFloorCheckbox.isVisible() ) {
         pos = mFloorCheckbox.getPosition();
-        pos.y += checkboxSep + 5;
-        smallFont->drawString( "Floor", pos, alignCenter );
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Floor", pos, alignRight );
         }
 
     if( mHeldInHandCheckbox.isVisible() ) {
@@ -4154,6 +4215,18 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         pos = mFloorHuggingCheckbox.getPosition();
         pos.x -= checkboxSep;
         smallFont->drawString( "Hug Floor", pos, alignRight );
+        }
+        
+    if( mWallLayerCheckbox.isVisible() ) {
+        pos = mWallLayerCheckbox.getPosition();
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Wall Layer", pos, alignRight );
+        }
+        
+    if( mFrontWallCheckbox.isVisible() ) {
+        pos = mFrontWallCheckbox.getPosition();
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Front Wall", pos, alignRight );
         }
     
 

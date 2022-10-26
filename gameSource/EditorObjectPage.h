@@ -166,6 +166,8 @@ class EditorObjectPage : public GamePage, public ActionListener {
         CheckboxButton mBlocksWalkingCheckbox;
         CheckboxButton mDrawBehindPlayerCheckbox;
         CheckboxButton mFloorHuggingCheckbox;
+        CheckboxButton mWallLayerCheckbox;
+        CheckboxButton mFrontWallCheckbox;
         
 
         TextField mLeftBlockingRadiusField;
