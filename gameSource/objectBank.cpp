@@ -656,15 +656,23 @@ static void setupMaxPickupAge( ObjectRecord *inR ) {
 
 
 static void setupWall( ObjectRecord *inR ) {
-    inR->wallLayer = inR->floorHugging;
+    
+    // True if either tag or the raw object file is true
+    inR->wallLayer = inR->wallLayer || inR->floorHugging;
+    // inR->frontWall = false;
+
+    if( ! inR->wallLayer ) {    
+        char *wallPos = strstr( inR->description, "+wall" );
+        if( wallPos != NULL ) {
+            inR->wallLayer = true;
+            }
+        }
     
     if( inR->wallLayer ) {
-        return;
-        }
-
-    char *wallPos = strstr( inR->description, "+wall" );
-    if( wallPos != NULL ) {
-        inR->wallLayer = true;
+        char *frontWallPos = strstr( inR->description, "+frontWall" );
+        if( frontWallPos != NULL ) {
+            inR->frontWall = true;
+            }
         }
     }
 
@@ -1085,6 +1093,33 @@ float initObjectBankStep() {
                     sscanf( lines[next], "floorHugging=%d", &( hugRead ) );
                     
                     r->floorHugging = hugRead;
+                    
+                    next++;
+                    }
+                    
+                    
+                r->wallLayer = false;
+                
+                if( strstr( lines[next], "wallLayer=" ) != NULL ) {
+                    // floorHugging flag present
+                    
+                    int wallLayerRead = 0;
+                    sscanf( lines[next], "wallLayer=%d", &( wallLayerRead ) );
+                    
+                    r->wallLayer = wallLayerRead;
+                    
+                    next++;
+                    }
+                    
+                r->frontWall = false;
+                
+                if( strstr( lines[next], "frontWall=" ) != NULL ) {
+                    // floorHugging flag present
+                    
+                    int frontWallRead = 0;
+                    sscanf( lines[next], "frontWall=%d", &( frontWallRead ) );
+                    
+                    r->frontWall = frontWallRead;
                     
                     next++;
                     }
@@ -2531,6 +2566,8 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->homeMarker,
                         inObject->floor,
                         inObject->floorHugging,
+                        inObject->wallLayer,
+                        inObject->frontWall,
                         inObject->foodValue,
                         inObject->speedMult,
                         inObject->heldOffset,
@@ -2808,6 +2845,8 @@ int addObject( const char *inDescription,
                char inHomeMarker,
                char inFloor,
                char inFloorHugging,
+               char inWallLayer,
+               char inFrontWall,
                int inFoodValue,
                float inSpeedMult,
                doublePair inHeldOffset,
@@ -2994,6 +3033,8 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "floor=%d", (int)inFloor ) );
         lines.push_back( autoSprintf( "floorHugging=%d", 
                                       (int)inFloorHugging ) );
+        if( inWallLayer ) lines.push_back( autoSprintf( "wallLayer=%d", (int)inWallLayer ) );
+        if( inFrontWall ) lines.push_back( autoSprintf( "frontWall=%d", (int)inFrontWall ) );
 
         lines.push_back( autoSprintf( "foodValue=%d", inFoodValue ) );
         
@@ -3039,7 +3080,7 @@ int addObject( const char *inDescription,
                                       inNumSlots, inSlotTimeStretch ) );
         lines.push_back( autoSprintf( "slotSize=%f", inSlotSize ) );
         lines.push_back( autoSprintf( "slotsLocked=%d", (int)inSlotsLocked ) );
-        lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
+        if( inSlotsNoSwap ) lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
 
         for( int i=0; i<inNumSlots; i++ ) {
             lines.push_back( autoSprintf( "slotPos=%f,%f,vert=%d,parent=%d", 
@@ -3309,6 +3350,8 @@ int addObject( const char *inDescription,
     r->homeMarker = inHomeMarker;
     r->floor = inFloor;
     r->floorHugging = inFloorHugging;
+    r->wallLayer = inWallLayer;
+    r->frontWall = inFrontWall;
     r->foodValue = inFoodValue;
 
     

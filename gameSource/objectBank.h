@@ -166,6 +166,10 @@ typedef struct ObjectRecord {
         // floorHugging objects automatically get wallLayer set to true
         char wallLayer;
         
+        // true if in wall layer, but drawn in front of other walls
+        char frontWall;
+        
+
         
         int foodValue;
         
@@ -562,6 +566,8 @@ int addObject( const char *inDescription,
                char inHomeMarker,
                char inFloor,
                char inFloorHugging,
+               char inWallLayer,
+               char inFrontWall,
                int inFoodValue,
                float inSpeedMult,
                doublePair inHeldOffset,

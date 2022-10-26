@@ -6750,7 +6750,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         // OVER the player objects in this row (so that pick up and set down
         // looks correct, and so players are behind all same-row objects)
 
-        // we determine what counts as a wall through floorHugging
+        // we determine what counts as a wall through wallLayer flag
 
         // first permanent, non-wall objects
         for( int x=xStart; x<=xEnd; x++ ) {
@@ -6767,7 +6767,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    ! o->floorHugging &&
+                    ! o->wallLayer &&
                     o->permanent &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
                     
@@ -6803,7 +6803,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    ! o->floorHugging &&
+                    ! o->wallLayer &&
                     ! o->permanent &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
                     
@@ -6847,9 +6847,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    o->floorHugging &&
+                    o->wallLayer &&
                     o->permanent &&
-                    o->numSlots == 0 &&
+                    ! o->frontWall &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
                 
                     if( o->anySpritesBehindPlayer ) {
@@ -6883,9 +6883,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
                 if( ! o->drawBehindPlayer &&
-                    o->floorHugging &&
+                    o->wallLayer &&
                     o->permanent &&
-                    o->numSlots > 0 &&
+                    o->frontWall &&
                     mMapMoveSpeeds[ mapI ] == 0 ) {
                 
                     if( o->anySpritesBehindPlayer ) {
@@ -20689,7 +20689,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             
             int id = mMap[mapI];
             
-            if( id == 0 || ! getObject( id )->permanent ) {
+            if( id == 0 || (id > 0 && getObject( id ) != NULL && !getObject( id )->permanent) ) {
                 
                 // empty cell, or something we can swap held with
                 
@@ -20994,11 +20994,19 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         }
     
 
-    if( destID != 0 &&
+    bool useOnEmptyGroundAtADistance = false;
+    useOnEmptyGroundAtADistance = 
+        ourLiveObject->holdingID > 0 &&
+        getObject( ourLiveObject->holdingID )->useDistance > 1 &&
+        destID == 0 && modClick && 
+        getTrans( ourLiveObject->holdingID, -1 ) != NULL;
+    
+    if( (destID != 0 &&
         ! modClick &&
         ourLiveObject->holdingID > 0 &&
         getObject( ourLiveObject->holdingID )->useDistance > 1 &&
-        getTrans( ourLiveObject->holdingID, destID ) != NULL ) {
+        getTrans( ourLiveObject->holdingID, destID ) != NULL ) 
+        || useOnEmptyGroundAtADistance ) {
         // check if we're close enough to use this from here 
         
         double d = sqrt( ( clickDestX - ourLiveObject->xd ) * 
