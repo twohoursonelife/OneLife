@@ -1766,7 +1766,7 @@ void minitech::livingLifeDraw(float mX, float mY) {
 	
 	// currentHintObjId = getDummyParent(currentHintObjId);
 	
-	if ( lastHintObjId == 0 && currentHintObjId != 0 ) minitechMinimized = false;
+	// if ( lastHintObjId == 0 && currentHintObjId != 0 ) minitechMinimized = false;
 	
 	if ( (lastHintObjId != currentHintObjId || lastUseOrMake != useOrMake) && !minitechMinimized ) {
 		lastHintObjId = currentHintObjId;
