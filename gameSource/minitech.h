@@ -40,7 +40,9 @@ public:
 		int inmMapD,
 		int inPathFindingD,
 		SimpleVector<int> *inmMapContainedStacks,
-		SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks
+		SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
+		SpriteHandle inmCellFillSprite,
+		SpriteHandle inmCellBorderSprite
 		);
 	static LivingLifePage *livingLifePage;
 	static LiveObject *ourLiveObject;

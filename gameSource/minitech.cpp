@@ -87,6 +87,8 @@ const char *biomeNames[] = {"GRASSLANDS",
                             };
 static int numBiomes = 9;
 
+static SpriteHandle mCellFillSprite;
+static SpriteHandle mCellBorderSprite;
 
 
 void minitech::setLivingLifePage(
@@ -95,7 +97,9 @@ void minitech::setLivingLifePage(
 	int inmMapD, 
 	int inPathFindingD,
 	SimpleVector<int> *inmMapContainedStacks,
-	SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks
+	SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
+	SpriteHandle inmCellFillSprite,
+	SpriteHandle inmCellBorderSprite
 	) {
 	
 	maxObjects = getMaxObjectID() + 1;
@@ -112,6 +116,9 @@ void minitech::setLivingLifePage(
 	delete [] minimizeKeyFromSetting;
     
     showUncraftables = SettingsManager::getIntSetting( "minitechShowUncraftables", 0 );
+    
+    mCellFillSprite = inmCellFillSprite;
+    mCellBorderSprite = inmCellBorderSprite;
 }
 
 void minitech::initOnBirth() { 
@@ -661,7 +668,11 @@ void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
 	if (color == "red") setDrawColor( 1, 0, 0, alpha );
 	if (color == "green") setDrawColor( 0, 1, 0, alpha );
 	if (color == "blue") setDrawColor( 0, 0, 1, alpha );
-	drawRect( startPos, CELL_D/2, CELL_D/2 );
+	// drawRect( startPos, CELL_D/2, CELL_D/2 );
+	drawSprite( mCellFillSprite, startPos );
+    
+	setDrawColor( 0, 0, 0, 0.75 * 0.5 );
+	drawSprite( mCellBorderSprite, startPos );
 }
 
 void minitech::drawBox(doublePair posCen, float height, float width, float lineWidth) {

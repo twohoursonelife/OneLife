@@ -2847,7 +2847,10 @@ LivingLifePage::LivingLifePage()
 		mMapD, 
 		pathFindingD, 
 		mMapContainedStacks, 
-		mMapSubContainedStacks);
+		mMapSubContainedStacks,
+		mCellFillSprite,
+		mCellBorderSprite
+        );
     newbieTips::init(
 		this,
 		&gameObjects,
