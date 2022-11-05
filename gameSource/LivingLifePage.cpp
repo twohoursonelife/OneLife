@@ -23310,6 +23310,7 @@ void LivingLifePage::dropTileRelativeToMe( int x, int y ) {
 //KEYBOARD MOVEMENT
 void LivingLifePage::movementStep() {
 	LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject == NULL ) return;
 	
 	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
 
