@@ -894,7 +894,13 @@ void ExistingAccountPage::step() {
     }
     
     
-static bool insideTextField( float inX, float inY, auto *targetField ) {
+static bool insideTextField( float inX, float inY, DropdownList *targetField ) {
+    doublePair pos = targetField->getPosition();
+    return fabs( inX - pos.x ) < targetField->getWidth() / 2 &&
+        fabs( inY - pos.y ) < 48 / 2;
+    }
+    
+static bool insideTextField( float inX, float inY, TextField *targetField ) {
     doublePair pos = targetField->getPosition();
     return fabs( inX - pos.x ) < targetField->getWidth() / 2 &&
         fabs( inY - pos.y ) < 48 / 2;

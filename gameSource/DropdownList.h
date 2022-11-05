@@ -99,7 +99,7 @@ class DropdownList : public PageComponent, public ActionListenerList {
         double getLeftEdgeX();
         
         double getWidth();
-        double setWidth( double inWide );
+        void setWidth( double inWide );
         
 
         // defaults to false

@@ -936,7 +936,7 @@ static void drawPauseScreen() {
         int columnOffset = 300 * gui_fov_scale;
         int columnNumber = 0;
         
-        int lastDrawnColumn = 0;
+        // int lastDrawnColumn = 0;
         int lineHeight = 40 * gui_fov_scale;
         
         int columnStartX = -600 * gui_fov_scale;
@@ -1017,14 +1017,14 @@ static void drawPauseScreen() {
                     bool isTitle = false;
                     bool isSub = false;
                     bool isComment = false;
-                    bool isSheet = false;
+                    // bool isSheet = false;
                     if ( (lines[i][0] == '\0') || (lines[i][0] == '\r') ) {
                         //continue;
                         }
                     else if ( strstr( lines[i], "#sheet" ) != NULL ) {
                         sscanf( lines[i], "#sheet%d", &( columnNumber ) );
                         writePos.y = lastScreenViewCenter.y + columnStartY + columnHeight/2; //reset lineHeight additions
-                        isSheet = true;
+                        // isSheet = true;
                         continue;
                         }
                     else if ( strstr( lines[i], "@COLUMN_W" ) != NULL ) {
@@ -1099,7 +1099,7 @@ static void drawPauseScreen() {
                         }
                     else if ( isTitle ) {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
-                        int titleSize = titleFont->measureString( lines[i] );
+                        // int titleSize = titleFont->measureString( lines[i] );
                         // titleFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
                         titleFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
                         writePos.y -= lineHeight * 0.75f*3;
@@ -1139,7 +1139,7 @@ static void drawPauseScreen() {
                 lastScreenViewCenter.y + resumeButtonPos.y
                 };
                 
-            char *buttonText = "[RESUME GAME]";
+            char *buttonText = (char*)"[RESUME GAME]";
             
             int subSize = handwritingFont->measureString( buttonText );
                 
@@ -1162,7 +1162,7 @@ static void drawPauseScreen() {
                 lastScreenViewCenter.y + settingsButtonPos.y
                 };
                 
-            char *buttonText = "[SETTINGS]";
+            char *buttonText = (char*)"[SETTINGS]";
             
             int subSize = handwritingFont->measureString( buttonText );
                 
@@ -1185,7 +1185,7 @@ static void drawPauseScreen() {
                 lastScreenViewCenter.y + quitButtonPos.y
                 };
                 
-            char *buttonText = "[QUIT GAME]";
+            char *buttonText = (char*)"[QUIT GAME]";
             
             int subSize = handwritingFont->measureString( buttonText );
                 

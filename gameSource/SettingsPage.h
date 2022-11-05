@@ -33,7 +33,7 @@ class SettingsPage : public GamePage, public ActionListener {
         virtual void makeActive( char inFresh );
         virtual void makeNotActive();
 		virtual void updatePage();
-        virtual bool checkRestartRequired();
+        virtual void checkRestartRequired();
 
     protected:
         

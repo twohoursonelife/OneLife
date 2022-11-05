@@ -31,8 +31,9 @@ DropdownList::DropdownList( Font *inDisplayFont,
                       const char *inAllowedChars,
                       const char *inForbiddenChars )
         : PageComponent( inX, inY ),
-          mActive( true ), mHover( false ), 
+          mActive( true ),
           mContentsHidden( false ),
+           
           mHiddenSprite( loadSprite( "hiddenFieldTexture.tga", false ) ),
           mFont( inDisplayFont ), 
           mCharsWide( inCharsWide ),
@@ -42,6 +43,8 @@ DropdownList::DropdownList( Font *inDisplayFont,
           mForceCaps( inForceCaps ),
           mLabelText( NULL ),
           mAllowedChars( NULL ), mForbiddenChars( NULL ),
+          
+          mHover( false ),
 		  
 		  mRawText( new char[1] ),
 		  hoverIndex( -1 ),
@@ -1072,7 +1075,7 @@ double DropdownList::getWidth() {
 
 
 
-double DropdownList::setWidth( double inWide ) {
+void DropdownList::setWidth( double inWide ) {
     
     mWide = inWide;
     }
