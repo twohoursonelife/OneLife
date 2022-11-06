@@ -581,8 +581,10 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
 	if( maxD > maxSize ) zoom = maxSize / maxD;
 	zoom = zoom * guiScale;
 	doublePair posAfterOffset = sub (posCen, mult( getObjectCenterOffset( obj ), zoom ));
+    setDrawnObjectContained( true );
 	drawObject( obj, 2, posAfterOffset, 0, false, false, 20, 0, false, false,
 				getEmptyClothingSet(), zoom );
+    setDrawnObjectContained( false );
 }
 
 void minitech::drawStr(
