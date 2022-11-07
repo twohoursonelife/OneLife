@@ -1280,6 +1280,20 @@ float initObjectBankStep() {
                             
                 next++;
 
+                r->slotStyle = 0;
+                if( strstr( lines[next], 
+                            "slotStyle=" ) != NULL ) {
+                    // flag present
+                    
+                    int flagRead = 0;                            
+                    sscanf( lines[next], "slotStyle=%d", 
+                            &( flagRead ) );
+                    
+                    r->slotStyle = flagRead;
+                            
+                    next++;
+                    }
+
                 r->slotsLocked = 0;
                 if( strstr( lines[next], 
                             "slotsLocked=" ) != NULL ) {
@@ -2584,6 +2598,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->numSlots, 
                         inObject->slotSize, 
                         inObject->slotPos,
+                        inObject->slotStyle,
                         inObject->slotVert,
                         inObject->slotParent,
                         inObject->slotTimeStretch,
@@ -2861,6 +2876,7 @@ int addObject( const char *inDescription,
                char inCreationSoundInitialOnly,
                char inCreationSoundForce,
                int inNumSlots, float inSlotSize, doublePair *inSlotPos,
+               int inSlotStyle,
                char *inSlotVert,
                int *inSlotParent,
                float inSlotTimeStretch,
@@ -3079,6 +3095,7 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "numSlots=%d#timeStretch=%f", 
                                       inNumSlots, inSlotTimeStretch ) );
         lines.push_back( autoSprintf( "slotSize=%f", inSlotSize ) );
+        if( inSlotStyle != 0 ) lines.push_back( autoSprintf( "slotStyle=%d", (int)inSlotStyle ) );
         lines.push_back( autoSprintf( "slotsLocked=%d", (int)inSlotsLocked ) );
         if( inSlotsNoSwap ) lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
 
@@ -3390,6 +3407,7 @@ int addObject( const char *inDescription,
     memcpy( r->slotParent, inSlotParent, inNumSlots * sizeof( int ) );
     
     r->slotTimeStretch = inSlotTimeStretch;
+    r->slotStyle = inSlotStyle;
     r->slotsLocked = inSlotsLocked;
     r->slotsNoSwap = inSlotsNoSwap;
 
@@ -4064,13 +4082,13 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
                 inHeldNotInPlaceYet,
                 inClothing );
 
-    char allBehind = true;
-    for( int i=0; i< inObject->numSprites; i++ ) {
-        if( ! inObject->spriteBehindSlots[i] ) {
-            allBehind = false;
-            break;
-            }
-        }
+    // char allBehind = true;
+    // for( int i=0; i< inObject->numSprites; i++ ) {
+        // if( ! inObject->spriteBehindSlots[i] ) {
+            // allBehind = false;
+            // break;
+            // }
+        // }
 
     setDrawnObjectContained( true );
     
@@ -4087,11 +4105,14 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
 
         doublePair centerOffset;
 
-        if( allBehind ) {
+        if( inObject->slotStyle == 0 ) {
+            centerOffset = getObjectCenterOffset( contained );
+            }
+        else if( inObject->slotStyle == 1 ) {
             centerOffset = getObjectBottomCenterOffset( contained );
             }
-        else {
-            centerOffset = getObjectCenterOffset( contained );
+        else if( inObject->slotStyle == 2 ) {
+            centerOffset = {0, 0};
             }
 
         double rot = inRot;

@@ -628,6 +628,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        0,
                        0,
                        0, 0, slotPos,
+                       0,
                        slotVert,
                        slotParent,
                        1,

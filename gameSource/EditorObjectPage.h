@@ -91,6 +91,9 @@ class EditorObjectPage : public GamePage, public ActionListener {
         TextField mSlotSizeField;
         
         TextField mSlotTimeStretchField;
+        CheckboxButton mSlotsBoxCheckbox;
+        CheckboxButton mSlotsTableCheckbox;
+        CheckboxButton mSlotsGroundCheckbox;
         CheckboxButton mSlotsLockedCheckbox;
         CheckboxButton mSlotsNoSwapCheckbox;
         
