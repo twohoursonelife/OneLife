@@ -101,10 +101,9 @@ int getEmotionIndex( const char *inSpeech ) {
     
     for( int i=0; i<emotions.size(); i++ ) {
         
-        if( strstr( upperSpeech, emotions.getElement(i)->triggerWord ) ==
-            upperSpeech ) {
+        if( !strcmp( upperSpeech, emotions.getElement(i)->triggerWord ) ) {
             
-            // starts with trigger
+            // equals trigger word
             delete [] upperSpeech;
             return i;
             }

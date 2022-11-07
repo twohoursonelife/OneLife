@@ -22447,9 +22447,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 sendToServerSocket( message );
                                 delete [] message;
                                 }
-                            else if( strstr( typedText,
-                                             translate( "dieCommand" ) ) 
-                                     == typedText ) {
+                            else if( !strcmp( typedText,
+                                             translate( "dieCommand" ) ) ) {
                                 // die command issued from baby
                                 char *message = 
                                     autoSprintf( "DIE 0 0#" );
@@ -22457,17 +22456,15 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 sendToServerSocket( message );
                                 delete [] message;
                                 }
-                            else if( strstr( typedText,
-                                             translate( "fpsCommand" ) ) 
-                                     == typedText ) {
+                            else if( !strcmp( typedText,
+                                             translate( "fpsCommand" ) ) ) {
                                 showFPS = !showFPS;
                                 frameBatchMeasureStartTime = -1;
                                 framesInBatch = 0;
                                 fpsToDraw = -1;
                                 }
-                            else if( strstr( typedText,
-                                             translate( "netCommand" ) ) 
-                                     == typedText ) {
+                            else if( !strcmp( typedText,
+                                             translate( "netCommand" ) ) ) {
                                 showNet = !showNet;
                                 netBatchMeasureStartTime = -1;
                                 messagesInPerSec = -1;
@@ -22479,9 +22476,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 bytesInCount = 0;
                                 bytesOutCount = 0;
                                 }
-                            else if( strstr( typedText,
-                                             translate( "pingCommand" ) ) 
-                                     == typedText ) {
+                            else if( !strcmp( typedText,
+                                             translate( "pingCommand" ) ) ) {
 
                                 waitingForPong = true;
                                 lastPingSent ++;
@@ -22496,9 +22492,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 pongDeltaTime = -1;
                                 pingDisplayStartTime = -1;
                                 }
-                            else if( strstr( typedText,
-                                             translate( "disconnectCommand" ) ) 
-                                     == typedText ) {
+                            else if( !strcmp( typedText,
+                                             translate( "disconnectCommand" ) ) ) {
                                 forceDisconnect = true;
                                 }
                             else {
