@@ -710,7 +710,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         SoundSpriteHandle mHungerSound;
         char mPulseHungerSound;
 
-        SoundSpriteHandle mTutorialSound;
+        SoundSpriteHandle mChimeSound;
+        SoundSpriteHandle mNotepaperSound;
         SoundSpriteHandle mCurseSound;
 
         
