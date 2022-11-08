@@ -8453,7 +8453,7 @@ static char isContainmentWithMatchedTags( int inContainerID, int inContainedID )
 
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
-static char containmentPermitted( int inContainerID, int inContainedID ) {
+char containmentPermitted( int inContainerID, int inContainedID ) {
     
     // Use the container's and object's dummy parents to judge
     // So use objects also inherit the cont tag

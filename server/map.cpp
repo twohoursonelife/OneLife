@@ -167,6 +167,7 @@ timeSec_t slowTime() {
  
 extern GridPos getClosestPlayerPos( int inX, int inY );
  
+extern char containmentPermitted( int inContainerID, int inContainedID );
  
  
 // track recent placements to determine camp where
@@ -5881,13 +5882,19 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
  
 void checkDecayContained( int inX, int inY, int inSubCont ) {
-   
-    if( getNumContained( inX, inY, inSubCont ) == 0 ) {
+    
+    int numContained = getNumContained( inX, inY, inSubCont );
+    
+    if( numContained == 0 ) {
         return;
         }
    
-    int numContained;
     int *contained = getContainedRaw( inX, inY, &numContained, inSubCont );
+        
+    int containerID = getMapObjectRaw( inX, inY );
+    int numSlots = 0;
+    ObjectRecord *container = getObject( containerID );
+    if( container != NULL ) numSlots = container->numSlots;
    
     SimpleVector<int> newContained;
     SimpleVector<timeSec_t> newDecayEta;
@@ -5984,6 +5991,168 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                         mapETA = 0;
                         }
                     }
+                    
+                if( change ) {
+                
+                    // Check for containment transitions
+                    
+                    int inOrout = -1;
+                    
+                    int containedID = newID;
+                    
+                    TransRecord *contTrans = NULL;
+                    
+                    // in-transitions
+                    if( i == 0 ) {
+                        contTrans = getPTrans( newID, containerID, false, false, 1 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 1 );
+                    } else if( i == numSlots - 1 ) {
+                        contTrans = getPTrans( newID, containerID, false, false, 2 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 2 );
+                    }
+                    
+                    if( contTrans == NULL ) {
+                        contTrans = getPTrans( newID, containerID, false, false, 3 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 3 );
+                    }
+                    
+                    if( contTrans == NULL ) {
+                        contTrans = getPTrans( newID, containerID, false, false, 4 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 4 );
+                    }
+                    
+                    if( contTrans != NULL ) {
+                        
+                        // Check that the new container can contain all the objects
+                        
+                        int newNumSlots = getNumContainerSlots( contTrans->newTarget );
+                        
+                        int slotNumber = numContained - 1;
+                        
+                        if( i == slotNumber ) slotNumber--;
+                        
+                        int contID = getContained( 
+                            inX, inY,
+                            slotNumber );
+                            
+                        if( contID < 0 ) contID *= -1;
+
+                    
+                        while( slotNumber >= 0 &&
+                               containmentPermitted( contTrans->newTarget, contID ) )  {
+                    
+                            slotNumber--;
+                            
+                            if( i == slotNumber ) slotNumber--;
+                            
+                            if( slotNumber < 0 ) break;
+                            
+                            contID = getContained( 
+                                inX, inY,
+                                slotNumber );
+                        
+                            if( contID < 0 ) {
+                                contID *= -1;
+                            }
+                        }
+                            
+                        if( slotNumber >= 0 ) {
+                            contTrans = NULL;
+                        }
+                        
+                    }
+                    
+                    if( contTrans != NULL ) inOrout = 0;
+                    
+                    // out-transitions
+                    if( contTrans == NULL ) {
+                        if( i == 0 ) {
+                            contTrans = getPTrans( containerID, oldID, false, false, 2 );
+                            if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 2 );
+                        } else if( i == numSlots - 1 ) {
+                            contTrans = getPTrans( containerID, oldID, false, false, 1 );
+                            if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 1 );
+                        }
+                    }
+                    
+                    if( contTrans == NULL ) {
+                        contTrans = getPTrans( containerID, oldID, false, false, 3 );
+                        if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 3 );
+                    }
+                    
+                    if( contTrans == NULL ) {
+                        contTrans = getPTrans( containerID, oldID, false, false, 4 );
+                        if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 4 );
+                    }
+                    
+                    
+                    if( contTrans != NULL ) {
+                        
+                        // Check that the new container can contain all the objects
+                        
+                        int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                        
+                        int slotNumber = numContained - 1;
+                        
+                        if( i == slotNumber ) slotNumber--;
+                        
+                        int contID = getContained( 
+                            inX, inY,
+                            slotNumber );
+                            
+                        if( contID < 0 ) contID *= -1;
+
+                    
+                        while( slotNumber >= 0 &&
+                               containmentPermitted( contTrans->newActor, contID ) )  {
+                    
+                            slotNumber--;
+                            
+                            if( i == slotNumber ) slotNumber--;
+                            
+                            if( slotNumber < 0 ) break;
+                            
+                            contID = getContained( 
+                                inX, inY,
+                                slotNumber );
+                        
+                            if( contID < 0 ) {
+                                contID *= -1;
+                            }
+                        }
+                            
+                        if( slotNumber >= 0 ) {
+                            contTrans = NULL;
+                        }
+                        
+                    }
+                    
+                    
+                    if( contTrans != NULL && inOrout == -1 ) inOrout = 1;
+                    
+                    if( contTrans != NULL ) {
+                        
+                        // Execute containment transitions
+                        
+                        int newContainer = 0;
+                        // Don't change the newID here to simplify things...
+                        // So the containment transition only applies to the container
+                        // Otherwise what about the next step
+                        // to check for transition between newID and the container?
+                        if( inOrout == 0 ) {
+                            newContainer = contTrans->newTarget;
+                            // newID = contTrans->newActor;
+                        } else if( inOrout == 1 ) {
+                            newContainer = contTrans->newActor;
+                            // newID = contTrans->newTarget;
+                        }
+                        
+                        setMapObject( inX, inY, newContainer );
+                            
+                    }
+                }
+
+                    
                 }
             }
        
