@@ -66,6 +66,15 @@ vector<minitech::mouseListener*> minitech::twotechMouseListeners;
 minitech::mouseListener* minitech::prevListener = NULL;
 minitech::mouseListener* minitech::nextListener = NULL;
 
+// pos for newbieTips use
+doublePair minitech::makeUseTogglePos;
+doublePair minitech::maxButtonPos;
+bool minitech::showBar = false;
+doublePair minitech::topBarPos;
+doublePair minitech::sharpyRecipePos;
+doublePair minitech::hatchetRecipePos;
+
+
 const char *biomeNames[] = {"GRASSLANDS",
 							"SWAMP",
 							"YELLOW PRAIRIES",
@@ -78,6 +87,8 @@ const char *biomeNames[] = {"GRASSLANDS",
                             };
 static int numBiomes = 9;
 
+static SpriteHandle mCellFillSprite;
+static SpriteHandle mCellBorderSprite;
 
 
 void minitech::setLivingLifePage(
@@ -86,7 +97,9 @@ void minitech::setLivingLifePage(
 	int inmMapD, 
 	int inPathFindingD,
 	SimpleVector<int> *inmMapContainedStacks,
-	SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks
+	SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
+	SpriteHandle inmCellFillSprite,
+	SpriteHandle inmCellBorderSprite
 	) {
 	
 	maxObjects = getMaxObjectID() + 1;
@@ -103,6 +116,9 @@ void minitech::setLivingLifePage(
 	delete [] minimizeKeyFromSetting;
     
     showUncraftables = SettingsManager::getIntSetting( "minitechShowUncraftables", 0 );
+    
+    mCellFillSprite = inmCellFillSprite;
+    mCellBorderSprite = inmCellBorderSprite;
 }
 
 void minitech::initOnBirth() { 
@@ -565,8 +581,10 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
 	if( maxD > maxSize ) zoom = maxSize / maxD;
 	zoom = zoom * guiScale;
 	doublePair posAfterOffset = sub (posCen, mult( getObjectCenterOffset( obj ), zoom ));
+    setDrawnObjectContained( true );
 	drawObject( obj, 2, posAfterOffset, 0, false, false, 20, 0, false, false,
 				getEmptyClothingSet(), zoom );
+    setDrawnObjectContained( false );
 }
 
 void minitech::drawStr(
@@ -652,7 +670,11 @@ void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
 	if (color == "red") setDrawColor( 1, 0, 0, alpha );
 	if (color == "green") setDrawColor( 0, 1, 0, alpha );
 	if (color == "blue") setDrawColor( 0, 0, 1, alpha );
-	drawRect( startPos, CELL_D/2, CELL_D/2 );
+	// drawRect( startPos, CELL_D/2, CELL_D/2 );
+	drawSprite( mCellFillSprite, startPos );
+    
+	setDrawColor( 0, 0, 0, 0.75 * 0.5 );
+	drawSprite( mCellBorderSprite, startPos );
 }
 
 void minitech::drawBox(doublePair posCen, float height, float width, float lineWidth) {
@@ -991,6 +1013,7 @@ void minitech::updateDrawTwoTech() {
 		doublePair posBR = {posLT.x + recWidth, posLT.y - recHeight};
 		setDrawColor( 0, 0, 0, 0.8 );
 		drawRect( posCenter, recWidth/2, recHeight/2);
+        maxButtonPos = posCenter;
 		
 		drawStr("[+] CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
 		mouseListener* maxListener = getMouseListenerByArea(
@@ -1008,6 +1031,10 @@ void minitech::updateDrawTwoTech() {
 	}
 	
 	int transSize = currentHintTrans.size();
+    
+    // pos for newbieTips use
+    sharpyRecipePos = {9999, 9999};
+    hatchetRecipePos = {9999, 9999};
 		
 	if (transSize == 0) {
 		
@@ -1033,6 +1060,7 @@ void minitech::updateDrawTwoTech() {
 		vector<TransRecord*> transToShow(currentHintTrans.begin() + startIndex, currentHintTrans.begin() + endIndex);
 		
 		int numOfLines = endIndex - startIndex;
+        
 		
 		if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
 		
@@ -1192,6 +1220,10 @@ void minitech::updateDrawTwoTech() {
 				if (compareObjUse(trans->actor, trans->newActor) == -1) currentHintObjId = getDummyParent(trans->actor);
 				if (compareObjUse(trans->actor, trans->newActor) == 1) currentHintObjId = getDummyLastUse(trans->actor);
 			}
+            
+            
+            // pos for newbieTips use
+            if( trans->actor == 33 && trans->target == 32 ) sharpyRecipePos = pos;
 
 			
 			pos.x += iconSize;
@@ -1273,6 +1305,9 @@ void minitech::updateDrawTwoTech() {
 				if (compareObjUse(trans->target, trans->newTarget) == -1) currentHintObjId = getDummyParent(trans->target);
 				if (compareObjUse(trans->target, trans->newTarget) == 1) currentHintObjId = getDummyLastUse(trans->target);
 			}
+            
+            // pos for newbieTips use
+            if( trans->actor == 34 && trans->target == 70 ) hatchetRecipePos = pos;
 			
 			
 			pos.x += iconSize;
@@ -1499,7 +1534,7 @@ void minitech::updateDrawTwoTech() {
 	float barWidth = recWidth;
 	float barHeight = 0;
 	float barOffsetY = 0;
-	bool showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
+	showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
 	
 	if (true) {
 		barHeight = tinyLineHeight;
@@ -1524,6 +1559,7 @@ void minitech::updateDrawTwoTech() {
 	doublePair firstLineBR = {firstLine.x + textWidth/2 + paddingX/2, firstLine.y - tinyLineHeight/2 - paddingY/2};
 	doublePair secondLineLT = {secondLine.x - textWidth/2 - paddingX/2, secondLine.y + tinyLineHeight/2 + paddingY/2};
 	doublePair secondLineBR = {secondLine.x + textWidth/2 + paddingX/2, secondLine.y - tinyLineHeight/2 - paddingY/2};
+    makeUseTogglePos = textCen;
 
 	setDrawColor( 1, 1, 1, 0.3 );
 	if (useOrMake == 0) {
@@ -1586,6 +1622,7 @@ void minitech::updateDrawTwoTech() {
 		}
 	}
 	
+    topBarPos = {9999, 9999};
 	if (showBar) {
 		string searchStr;
 		if (lastHintStr != "") {
@@ -1601,6 +1638,8 @@ void minitech::updateDrawTwoTech() {
 		
 		doublePair barCen = {headerLT.x + barWidth / 2, headerLT.y - barHeight / 2 - paddingY/2};
 		drawStr(searchStr, barCen, "tinyHandwritten", false);
+        
+        topBarPos = barCen;
 	}
 	
 	doublePair headerRT = {headerLT.x + headerWidth, headerLT.y};
@@ -1766,7 +1805,7 @@ void minitech::livingLifeDraw(float mX, float mY) {
 	
 	// currentHintObjId = getDummyParent(currentHintObjId);
 	
-	if ( lastHintObjId == 0 && currentHintObjId != 0 ) minitechMinimized = false;
+	// if ( lastHintObjId == 0 && currentHintObjId != 0 ) minitechMinimized = false;
 	
 	if ( (lastHintObjId != currentHintObjId || lastUseOrMake != useOrMake) && !minitechMinimized ) {
 		lastHintObjId = currentHintObjId;

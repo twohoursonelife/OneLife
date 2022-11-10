@@ -98,8 +98,8 @@ class TextField : public PageComponent, public ActionListenerList {
         double getLeftEdgeX();
         
         double getWidth();
-        double setWidth( double inWide );
-        double setHigh( double inHigh );
+        void setWidth( double inWide );
+        void setHigh( double inHigh );
         
 
         // defaults to false

@@ -57,6 +57,7 @@
 static ObjectPickable objectPickable;
 
 #include "minitech.h"
+#include "newbieTips.h"
 
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
@@ -2460,6 +2461,7 @@ LivingLifePage::LivingLifePage()
           mFloorSplitSprite( loadSprite( "floorSplit.tga", false ) ),
           mCellBorderSprite( loadWhiteSprite( "cellBorder.tga" ) ),
           mCellFillSprite( loadWhiteSprite( "cellFill.tga" ) ),
+          mHintArrowSprite( loadSprite( "hintArrow.tga" ) ),
           mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
           mLastMouseOverID( 0 ),
           mCurMouseOverID( 0 ),
@@ -2537,10 +2539,16 @@ LivingLifePage::LivingLifePage()
         }
 
 
-    mTutorialSound = loadSoundSprite( "otherSounds", "tutorialChime.aiff" );
+    mChimeSound = loadSoundSprite( "otherSounds", "chime.aiff" );
 
-    if( mTutorialSound != NULL ) {
-        toggleVariance( mTutorialSound, true );
+    if( mChimeSound != NULL ) {
+        toggleVariance( mChimeSound, true );
+        }
+        
+    mNotepaperSound = loadSoundSprite( "otherSounds", "notepaper.aiff" );
+
+    if( mNotepaperSound != NULL ) {
+        toggleVariance( mNotepaperSound, true );
         }
 
     mCurseSound = loadSoundSprite( "otherSounds", "curseChime.aiff" );
@@ -2845,7 +2853,16 @@ LivingLifePage::LivingLifePage()
 		mMapD, 
 		pathFindingD, 
 		mMapContainedStacks, 
-		mMapSubContainedStacks);
+		mMapSubContainedStacks,
+		mCellFillSprite,
+		mCellBorderSprite
+        );
+    newbieTips::init(
+		this,
+		&gameObjects,
+		mMapD,
+		pathFindingD
+        );
     }
 
 
@@ -2987,8 +3004,12 @@ LivingLifePage::~LivingLifePage() {
         freeSoundSprite( mHungerSound );
         }
 
-    if( mTutorialSound != NULL ) {    
-        freeSoundSprite( mTutorialSound );
+    if( mChimeSound != NULL ) {    
+        freeSoundSprite( mChimeSound );
+        }
+        
+    if( mNotepaperSound != NULL ) {    
+        freeSoundSprite( mNotepaperSound );
         }
 
     if( mCurseSound != NULL ) {    
@@ -3015,6 +3036,7 @@ LivingLifePage::~LivingLifePage() {
     
     freeSprite( mCellBorderSprite );
     freeSprite( mCellFillSprite );
+    freeSprite( mHintArrowSprite );
     
     freeSprite( mNotePaperSprite );
     freeSprite( mChalkBlotSprite );
@@ -5212,6 +5234,7 @@ typedef struct DrawOrderRecord {
         
 
 
+
 char drawAdd = true;
 char drawMult = true;
 
@@ -6938,6 +6961,122 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
     
+
+    char pointerDrawn[2] = { false, false };
+    doublePair hintArrowPos = {9999, 9999};
+
+    for( int i=0; i<1; i++ ) {
+        
+        if( ! takingPhoto ) {
+            // draw arrow for newbie tips 
+
+            if( newbieTips::drawTipsArrow ) {
+                
+                doublePair targetPos = newbieTips::calcTipsArrowPos();
+                
+                if( false )
+                if( !equal( targetPos, mLastHintTargetPos[i] ) ) {
+                    // reset bounce when target changes
+                    pushOldHintArrow( i );
+                    mCurrentHintTargetPointerBounce[i] = 0;
+                    mCurrentHintTargetPointerFade[i] = 0;
+                    mLastHintTargetPos[i] = targetPos;        
+                    }
+            
+                if( mCurrentHintTargetPointerFade[i] == 0 ) {
+                    // invisible
+                    // take this opportunity to hard-sync with the other
+                    // arrow
+                    if( i == 0 ) {
+                        mCurrentHintTargetPointerBounce[i] =
+                            mCurrentHintTargetPointerBounce[1] +
+                            M_PI / 2;
+                        }
+                    else {
+                        mCurrentHintTargetPointerBounce[i] =
+                            mCurrentHintTargetPointerBounce[0] +
+                            M_PI / 2;
+                        }
+                    }
+                
+            
+                targetPos.y += 16 * cos( mCurrentHintTargetPointerBounce[i] ) * newbieTips::arrowScale();
+            
+                double deltaRate = 6 * frameRateFactor / 60.0; 
+
+                mCurrentHintTargetPointerBounce[i] += deltaRate;
+                
+                if( mCurrentHintTargetPointerFade[i] < 1 ) {
+                    mCurrentHintTargetPointerFade[i] += deltaRate;
+                    
+                    if( mCurrentHintTargetPointerFade[i] > 1 ) {
+                        mCurrentHintTargetPointerFade[i] = 1;
+                        }
+                    }
+                    
+                setDrawColor( 1, 1, 1, mCurrentHintTargetPointerFade[i] );
+
+                if( newbieTips::screenOrTile == 1 ) {
+                    drawSprite( mHintArrowSprite, targetPos, newbieTips::arrowScale() );
+                    }
+                else {
+                    hintArrowPos = targetPos;
+                    }
+            
+                pointerDrawn[i] = true;
+                }
+            }
+
+        if( ! pointerDrawn[i] ) {
+            // reset bounce
+            pushOldHintArrow( i );
+            mCurrentHintTargetPointerBounce[i] = 0;
+            mCurrentHintTargetPointerFade[i] = 0;
+            mLastHintTargetPos[i].x = 0;
+            mLastHintTargetPos[i].y = 0;
+            }
+        }
+    
+    if( !takingPhoto ) {
+        for( int i=0; i<mOldHintArrows.size(); i++ ) {
+            OldHintArrow *h = mOldHintArrows.getElement( i );
+
+            // make sure it hasn't been blocked by reposition of real hint arrow
+            if( ( equal( h->pos, mLastHintTargetPos[0] ) )
+                ||
+                ( equal( h->pos, mLastHintTargetPos[1] ) ) ) {
+                
+                mOldHintArrows.deleteElement( i );
+                i--;
+                continue;
+                }
+            doublePair targetPos = h->pos;
+            
+            targetPos.y += 16 * cos( h->bounce );
+            
+            // twice as fast as fade-in
+            double deltaRate = 2 * 6 * frameRateFactor / 60.0; 
+
+            h->bounce += deltaRate;
+            
+            if( h->fade > 0 ) {
+                h->fade -= deltaRate;
+                }
+            
+            if( h->fade <= 0 ) {
+                mOldHintArrows.deleteElement( i );
+                i--;
+                continue;
+                }
+            
+            setDrawColor( 1, 1, 1, h->fade );
+
+            drawSprite( mHintArrowSprite, targetPos );
+            }
+        }
+        
+
+
     
     if( ! takingPhoto )
     for( int i=0; i<speakers.size(); i++ ) {
@@ -8423,7 +8562,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
-
+    newbieTips::yumSlipShowing = false;
 
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 
@@ -8457,6 +8596,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 else {
                     word = translate( "yum" );
                     }
+                newbieTips::yumSlipShowing = true;
 
                 handwritingFont->drawString( word, messagePos, alignCenter );
                 }
@@ -9447,6 +9587,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 				   &worldMouseX,
 				   &worldMouseY );
 	minitech::livingLifeDraw(worldMouseX, worldMouseY);
+    
+    
+    if( newbieTips::screenOrTile == 0 ) 
+        drawSprite( mHintArrowSprite, hintArrowPos, newbieTips::arrowScale() );
+    
     
     if( vogMode ) {
         // draw again, so we can see picker
@@ -10760,6 +10905,43 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     
     mCravingExtraOffset[ mLiveCravingSheetIndex ].x = longestLine;
     }
+    
+
+void LivingLifePage::displayMessage() {
+    
+    newbieTips::shouldDisplayMessage = false;
+    if( mGlobalMessageShowing ) return;
+    
+    mGlobalMessageShowing = true;
+    mGlobalMessageStartTime = game_getCurrentTime();
+    
+    if( mLiveTutorialSheetIndex >= 0 ) {
+        mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
+        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
+        }
+    mLiveTutorialSheetIndex ++;
+    
+    if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
+        mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
+        }
+    mTutorialMessage[ mLiveTutorialSheetIndex ] = stringDuplicate( newbieTips::messageToDisplay );
+    
+    // other tutorial messages don't need to be destroyed
+    mGlobalMessagesToDestroy.push_back( 
+        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
+    
+    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
+        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
+    
+    mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
+    
+    double longestLine = getLongestLine( 
+        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
+
+    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+    
+}
+
 
         
 void LivingLifePage::step() {
@@ -11512,7 +11694,6 @@ void LivingLifePage::step() {
                 }
 
             mLiveTutorialTriggerNumber = closestNumber;
-            
 
             char *transString;
 
@@ -11563,7 +11744,11 @@ void LivingLifePage::step() {
             }
         }
     
-
+    newbieTips::livingLifeStep(
+        mTutorialNumber,
+        mLiveTutorialTriggerNumber
+        );
+    if( newbieTips::shouldDisplayMessage ) displayMessage();
 
 
     // pos for tutorial sheets
@@ -11618,9 +11803,9 @@ void LivingLifePage::step() {
                     stereoPos = 0.75;
                     }
                 
-                if( mTutorialSound != NULL ) {
-                        playSoundSprite( mTutorialSound, 
-                                         0.18 * getSoundEffectsLoudness(), 
+                if( mNotepaperSound != NULL ) {
+                        playSoundSprite( mNotepaperSound, 
+                                         0.03 * getSoundEffectsLoudness(), 
                                          stereoPos );
                     }
                 }
@@ -17408,10 +17593,10 @@ void LivingLifePage::step() {
 									//when we are just reconnected
 									//instead of a real name change
 									ourLiveObject->foodCapacity > 0 && 
-									mTutorialSound != NULL ) {
+									mChimeSound != NULL ) {
 									playSound( 
-										mTutorialSound,
-										0.18 * getSoundEffectsLoudness(), 
+										mChimeSound,
+										0.03 * getSoundEffectsLoudness(), 
 										getVectorFromCamera( 
 											ourLiveObject->currentPos.x, 
 											ourLiveObject->currentPos.y ) );
@@ -17833,6 +18018,7 @@ void LivingLifePage::step() {
                     else {
                         mHungerSlipVisible = -1;
                         }
+                    newbieTips::hungerSlipShowing = mHungerSlipVisible;
 
                     if( ourLiveObject->foodStore + mYumBonus > 4 ||
                         computeCurrentAge( ourLiveObject ) >= 57 ) {
@@ -19241,6 +19427,8 @@ void LivingLifePage::makeActive( char inFresh ) {
 							   lastScreenViewCenter.y );
         return;
         }
+
+    mOldHintArrows.deleteAll();
 
     mGlobalMessageShowing = false;
     mGlobalMessageStartTime = 0;
@@ -20933,7 +21121,17 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
    
     
-    
+    if( p.hitOtherPerson &&
+        modClick && ourLiveObject->holdingID > 0 &&
+        isShiftKeyDown() ) {
+        // shift-right click!
+        // trying to KILL with the held object
+        newbieTips::justTriedToKill = true;
+        }
+        
+    if( destID > 0 && p.hitAnObject ) {
+        newbieTips::justUsedOnObjectID = destID;
+        }
 
 
     if( destID == 0 &&
@@ -22913,6 +23111,18 @@ void LivingLifePage::putInMap( int inMapI, ExtraMapObject *inObj ) {
 
 
 
+void LivingLifePage::pushOldHintArrow( int inIndex ) {
+    int i = inIndex;
+    if( mCurrentHintTargetPointerFade[i] > 0 ) {
+        OldHintArrow h = { mLastHintTargetPos[i],
+                           mCurrentHintTargetPointerBounce[i],
+                           mCurrentHintTargetPointerFade[i] };
+        mOldHintArrows.push_back( h );
+        }
+    }
+
+
+
 //FIELD OF VIEW
 void LivingLifePage::calcFontScale( float newScale, Font *font ) {
 	float scale = font->getScaleFactor();
@@ -23110,6 +23320,7 @@ void LivingLifePage::dropTileRelativeToMe( int x, int y ) {
 //KEYBOARD MOVEMENT
 void LivingLifePage::movementStep() {
 	LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject == NULL ) return;
 	
 	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
 

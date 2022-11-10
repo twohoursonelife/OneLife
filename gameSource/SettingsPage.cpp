@@ -702,7 +702,6 @@ void SettingsPage::makeNotActive() {
 
 void SettingsPage::updatePage() {
 
-    doublePair pos = { 0, 0 };
     double lineSpacing = 52;
     
     mEnableFOVBox.setPosition( 0, lineSpacing * 3 );
@@ -765,7 +764,7 @@ void SettingsPage::updatePage() {
 
 }
 
-bool SettingsPage::checkRestartRequired() {
+void SettingsPage::checkRestartRequired() {
     if( mOldFullscreenSetting != mFullscreenBox.getToggled() ||
         mOldBorderlessSetting != mBorderlessBox.getToggled()
         ) {

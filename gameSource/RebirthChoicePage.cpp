@@ -20,9 +20,6 @@ extern char *userEmail;
 extern char *accountKey;
 
 
-static doublePair tutorialButtonPos = { 522, 300 };
-
-
 
 RebirthChoicePage::RebirthChoicePage()
         : mBackground( "background.tga", 0.75f ),

@@ -40,7 +40,9 @@ public:
 		int inmMapD,
 		int inPathFindingD,
 		SimpleVector<int> *inmMapContainedStacks,
-		SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks
+		SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
+		SpriteHandle inmCellFillSprite,
+		SpriteHandle inmCellBorderSprite
 		);
 	static LivingLifePage *livingLifePage;
 	static LiveObject *ourLiveObject;
@@ -119,8 +121,14 @@ public:
 	static void inputHintStrToSearch(std::string hintStr);
     static void changeCurrentHintObjId(int objID);
 
-	
-
+	// pos for newbieTips use
+    static doublePair makeUseTogglePos;
+    static doublePair maxButtonPos;
+    static bool showBar;
+    static doublePair topBarPos;
+    static doublePair sharpyRecipePos;
+    static doublePair hatchetRecipePos;
+    
 	
 };
 

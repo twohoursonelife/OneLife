@@ -32,7 +32,7 @@ TextField::TextField( Font *inDisplayFont,
                       const char *inAllowedChars,
                       const char *inForbiddenChars )
         : PageComponent( inX, inY ),
-          mActive( true ), mHover( false ), 
+          mActive( true ),
           mContentsHidden( false ),
           mHiddenSprite( loadSprite( "hiddenFieldTexture.tga", false ) ),
           mFont( inDisplayFont ), 
@@ -43,6 +43,7 @@ TextField::TextField( Font *inDisplayFont,
           mForceCaps( inForceCaps ),
           mLabelText( NULL ),
           mAllowedChars( NULL ), mForbiddenChars( NULL ),
+          mHover( false ),
           mFocused( false ), mText( new char[1] ),
           mTextLen( 0 ),
           mCursorPosition( 0 ),
@@ -841,13 +842,13 @@ double TextField::getWidth() {
 
 
 
-double TextField::setWidth( double inWide ) {
+void TextField::setWidth( double inWide ) {
     
     mWide = inWide;
     }
     
     
-double TextField::setHigh( double inHigh ) {
+void TextField::setHigh( double inHigh ) {
     
     mHigh = inHigh;
     }
