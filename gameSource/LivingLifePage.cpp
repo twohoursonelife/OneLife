@@ -1566,7 +1566,7 @@ double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
             }
         int thisFloor = mMapFloors[ mapI ];
     
-        if( floor != thisFloor ) {
+        if( ! sameRoadClass( floor, thisFloor ) ) {
             return 1;
             }
         }
@@ -18779,7 +18779,8 @@ void LivingLifePage::step() {
                     if( mapIF != -1 && mapIP != -1 ) {
                         int floor = mMapFloors[ mapIF ];
                         
-                        if( floor > 0 && mMapFloors[ mapIP ] == floor && 
+                        if( floor > 0 && 
+                            sameRoadClass( mMapFloors[ mapIP ], floor ) && 
                             getObject( floor )->rideable ) {
                             
                             // rideable floor is a road!
@@ -18793,12 +18794,12 @@ void LivingLifePage::step() {
                             
                             int len = 0;
 
-                            if( isSameFloor( floor, finalStep, xDir, yDir ) ) {
+                            if( isSameRoad( floor, finalStep, xDir, yDir ) ) {
                                 // floor continues in same direction
                                 // go as far as possible in that direction
                                 // with next click
-                                while( len < 5 && isSameFloor( floor, nextStep,
-                                                               xDir, yDir ) ) {
+                                while( len < 5 && isSameRoad( floor, nextStep,
+                                                              xDir, yDir ) ) {
                                     nextStep.x += xDir;
                                     nextStep.y += yDir;
                                     len ++;
@@ -18887,7 +18888,7 @@ void LivingLifePage::step() {
                                     xDir = d.x;
                                     yDir = d.y;
                                     
-                                    if( isSameFloor( floor, finalStep, xDir,
+                                    if( isSameRoad( floor, finalStep, xDir,
                                                      yDir ) ) {
                                         foundBranch = true;
                                         }
@@ -18898,7 +18899,7 @@ void LivingLifePage::step() {
                                     nextStep.y += yDir;
                                     
                                     while( len < 5 &&
-                                           isSameFloor( floor, nextStep,
+                                           isSameRoad( floor, nextStep,
                                                         xDir, yDir ) ) {
                                         nextStep.x += xDir;
                                         nextStep.y += yDir;
@@ -19403,8 +19404,46 @@ static void dummyFunctionA() {
 
 
 
-char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos, 
-                                  int inDX, int inDY ) {    
+
+bool LivingLifePage::sameRoadClass( int inFloorA, int inFloorB ) {
+    if( inFloorA <= 0 || inFloorB <= 0 ) {
+        return false;
+        }
+    
+    if( inFloorA == inFloorB ) {
+        return true;
+        }
+    
+    // the 2 floors are in the same class if they are in the same cateogory which name contains +road tag
+    ReverseCategoryRecord *floorARecord = getReverseCategory( inFloorA );
+    ReverseCategoryRecord *floorBRecord = getReverseCategory( inFloorB );
+    
+    if( floorARecord != NULL && floorBRecord != NULL ) {
+        for( int i=0; i< floorARecord->categoryIDSet.size(); i++ ) {
+            int floorACID = floorARecord->categoryIDSet.getElementDirect( i );
+            
+            for( int j=0; j< floorBRecord->categoryIDSet.size(); j++ ) {
+                int floorBCID = floorBRecord->categoryIDSet.getElementDirect( j );
+                
+                if( floorACID == floorBCID ) {
+                    CategoryRecord *floorCategory = getCategory( floorACID );
+                    if( floorCategory == NULL ) continue;
+                    int categoryID = floorCategory->parentID;
+                    ObjectRecord *categoryObj = getObject( categoryID );
+                    if( categoryObj == NULL ) continue;
+                    if( strstr( categoryObj->description, "+road" ) != NULL ) return true;
+                    }
+                }
+            }
+        }
+
+    return false;
+    }
+
+
+
+char LivingLifePage::isSameRoad( int inFloor, GridPos inFloorPos, 
+                                 int inDX, int inDY ) {     
     GridPos nextStep = inFloorPos;
     nextStep.x += inDX;
     nextStep.y += inDY;
@@ -19415,7 +19454,7 @@ char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos,
   
     if( nextMapI != -1 
         &&
-        mMapFloors[ nextMapI ] == inFloor 
+        sameRoadClass( mMapFloors[ nextMapI ], inFloor )
         && 
         ! getCellBlocksWalking( nextMap.x, nextMap.y ) ) {
         return true;
