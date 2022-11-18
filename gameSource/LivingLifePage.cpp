@@ -104,8 +104,6 @@ extern int userTwinCount;
 extern char userReconnect;
 
 static char vogMode = false;
-static char vogModeActuallyOn = false;
-
 static doublePair vogPos = { 0, 0 };
 
 static char vogPickerOn = false;
@@ -10851,19 +10849,6 @@ void LivingLifePage::endExtraObjectMove( int inExtraIndex ) {
 
 
 
-doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
-    if( inPlayer->heldByAdultID != -1 ) {
-        LiveObject *adult = getLiveObject( inPlayer->heldByAdultID );
-        
-        if( adult != NULL ) {
-            return adult->currentPos;
-            }
-        }
-    return inPlayer->currentPos;
-    }
-
-
-
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     char *foodDescription = 
         stringToUpperCase( getObject( inFoodID )->description );
@@ -12874,8 +12859,6 @@ void LivingLifePage::step() {
             int numRead = sscanf( message, "VU\n%d %d",
                                   &posX, &posY );
             if( numRead == 2 ) {
-                vogModeActuallyOn = true;
-                
                 vogPos.x = posX;
                 vogPos.y = posY;
 
@@ -17350,9 +17333,6 @@ void LivingLifePage::step() {
                             if( newEmotPlaySound != NULL ) {
                                 doublePair playerPos = existing->currentPos;
                                 
-                                // play sounds for this emotion, but only
-                                // if in range
-                                if( !existing->outOfRange ) 
                                 for( int i=0; 
                                      i<getEmotionNumObjectSlots(); i++ ) {
                                     
@@ -18309,14 +18289,7 @@ void LivingLifePage::step() {
 
         }
     
-
-    doublePair ourPos = { 0, 0 };
-
-    if( ourLiveObject != NULL ) {
-        ourPos = getPlayerPos( ourLiveObject );
-        }
     
-            
     // update all positions for moving objects
     if( !mapPullMode )
     for( int i=0; i<gameObjects.size(); i++ ) {
@@ -18401,9 +18374,8 @@ void LivingLifePage::step() {
             }
         
 
-        if( ! vogModeActuallyOn &&
-            ! o->outOfRange &&
-            distance( getPlayerPos( o ), ourPos ) > 
+        if( ! o->outOfRange &&
+            distance( o->currentPos, ourLiveObject->currentPos ) > 
             maxChunkDimension ) {
             // mark as out of range, even if we've never heard an official
             // PO message about them
@@ -18413,53 +18385,50 @@ void LivingLifePage::step() {
             o->outOfRange = true;
             }
         
-        // no anim sounds if out of range
-        if( ! o->outOfRange ) {
+        if( o->curAnim != moving || !holdingRideable ) {
+            // don't play player moving sound if riding something
+
             AnimType t = o->curAnim;
             doublePair pos = o->currentPos;
+            
+            if( o->heldByAdultID != -1 ) {
+                t = held;
                 
-            if( o->curAnim != moving || !holdingRideable ) {
-                // don't play player moving sound if riding something
 
-                
-                if( o->heldByAdultID != -1 ) {
-                    t = held;
+                for( int j=0; j<gameObjects.size(); j++ ) {
                     
-
-                    for( int j=0; j<gameObjects.size(); j++ ) {
+                    LiveObject *parent = gameObjects.getElement( j );
+                    
+                    if( parent->id == o->heldByAdultID ) {
                         
-                        LiveObject *parent = gameObjects.getElement( j );
-                        
-                        if( parent->id == o->heldByAdultID ) {
-                            
-                            pos = parent->currentPos;
-                            }
+                        pos = parent->currentPos;
                         }
                     }
-                
-                handleAnimSound( o->displayID,
-                                 computeCurrentAge( o ),
-                                 t,
-                                 oldFrameCount, o->animationFrameCount,
-                                 pos.x,
-                                 pos.y );
-                }                                 
+                }
+            
+            
+            handleAnimSound( o->displayID,
+                             computeCurrentAge( o ),
+                             t,
+                             oldFrameCount, o->animationFrameCount,
+                             pos.x,
+                             pos.y );    
 
-                if( o->currentEmot != NULL ) {
-                    int numSlots = getEmotionNumObjectSlots();
+            if( o->currentEmot != NULL ) {
+                int numSlots = getEmotionNumObjectSlots();
+                
+                for( int e=0; e<numSlots; e++ ) {
+                    int oID =
+                        getEmotionObjectByIndex( o->currentEmot, e );
                     
-                    for( int e=0; e<numSlots; e++ ) {
-                        int oID =
-                            getEmotionObjectByIndex( o->currentEmot, e );
+                    if( oID != 0 ) {
                         
-                        if( oID != 0 ) {
-                            
-                            handleAnimSound( oID,
-                                             0,
-                                             t,
-                                             oldFrameCount, o->animationFrameCount,
-                                             pos.x,
-                                             pos.y ); 
+                        handleAnimSound( oID,
+                                         0,
+                                         t,
+                                         oldFrameCount, o->animationFrameCount,
+                                         pos.x,
+                                         pos.y ); 
                         }
                     }
                 }
@@ -22507,8 +22476,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 if( ! vogMode ) {
                     sendToServerSocket( (char*)"VOGS 0 0#" );
                     vogMode = true;
-                    vogModeActuallyOn = false;
-
                     vogPos = getOurLiveObject()->currentPos;
                     vogPickerOn = false;
                     mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
