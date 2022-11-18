@@ -99,7 +99,7 @@ doublePair newbieTips::calcTipsArrowPos() {
     return targetPos;
 }
 
-doublePair newbieTips::converationFromMinitechPos( doublePair pos ) {
+doublePair newbieTips::conversionFromMinitechPos( doublePair pos ) {
     pos.x -= lastScreenViewCenter.x;
     pos.y -= lastScreenViewCenter.y;
     pos.x -= viewWidth/2;
@@ -148,29 +148,33 @@ void newbieTips::livingLifeStep(
         } else if( mLiveTutorialTriggerNumber == 5001 ) { // Crafting guide - make/use mode
             if( !minitech::minitechMinimized ) {
                 doublePair pos = minitech::makeUseTogglePos;
-                pos = converationFromMinitechPos( pos );
+                pos = conversionFromMinitechPos( pos );
                 startTipsArrow( pos, false );
             } else {
                 doublePair pos = minitech::maxButtonPos;
-                pos = converationFromMinitechPos( pos );
+                pos = conversionFromMinitechPos( pos );
                 startTipsArrow( pos, false );
             }
         } else if( mLiveTutorialTriggerNumber == 7 ) { // Crafting guide - how to make sharp stone
             if( !minitech::minitechMinimized ) {
                 doublePair pos = minitech::sharpyRecipePos;
                 if( minitech::useOrMake == 0 && !(pos.x == 9999 && pos.y == 9999) ) {
-                    pos = converationFromMinitechPos( pos );
+                    pos = conversionFromMinitechPos( pos );
                     startTipsArrow( pos, false );
                 }
             } else {
                 doublePair pos = minitech::maxButtonPos;
-                pos = converationFromMinitechPos( pos );
+                pos = conversionFromMinitechPos( pos );
                 startTipsArrow( pos, false );
             }
-        } else if( mLiveTutorialTriggerNumber == 10 ) { // Yum slip
+        } else if( mLiveTutorialTriggerNumber == 10 || mLiveTutorialTriggerNumber == 1010 ) { // Yum slip
             if( yumSlipShowing ) startTipsArrow( {-viewWidth / minitech::guiScale + 450, 62}, false );
         } else if( mLiveTutorialTriggerNumber == 11 ) { // Tule reeds
-            startTipsArrow( {118, 1}, true );
+            if( getObjId(118, 1) == 121 ) { //Tule Reeds
+                startTipsArrow( {118, 1}, true );
+            } else if( getObjId(120, 1) == 121 ) { //Tule Reeds
+                startTipsArrow( {120, 1}, true );
+            }
         } else if( mLiveTutorialTriggerNumber == 1101 ) { // Vertical door
             startTipsArrow( {125, 0}, true );
         } else if( mLiveTutorialTriggerNumber == 13 ) { // Temp meter
@@ -182,12 +186,12 @@ void newbieTips::livingLifeStep(
             if( !minitech::minitechMinimized ) {
                 doublePair pos = minitech::topBarPos;
                 if( minitech::showBar && !(pos.x == 9999 && pos.y == 9999) ) {
-                    pos = converationFromMinitechPos( pos );
+                    pos = conversionFromMinitechPos( pos );
                     startTipsArrow( pos, false );
                 }
             } else {
                 doublePair pos = minitech::maxButtonPos;
-                pos = converationFromMinitechPos( pos );
+                pos = conversionFromMinitechPos( pos );
                 startTipsArrow( pos, false );
             }
             
@@ -200,12 +204,12 @@ void newbieTips::livingLifeStep(
                     pos = minitech::hatchetRecipePos;
                 }
                 if( !(pos.x == 9999 && pos.y == 9999) ) {
-                    pos = converationFromMinitechPos( pos );
+                    pos = conversionFromMinitechPos( pos );
                     startTipsArrow( pos, false );
                 }
             } else {
                 doublePair pos = minitech::maxButtonPos;
-                pos = converationFromMinitechPos( pos );
+                pos = conversionFromMinitechPos( pos );
                 startTipsArrow( pos, false );
             }
         }
@@ -399,6 +403,18 @@ doublePair newbieTips::getClosestFood() {
 	
 	return foundPos;
 }
+
+int newbieTips::getObjId( int tileX, int tileY ) {
+    int *mMap = livingLifePage->mMap;
+	int mMapOffsetX = livingLifePage->mMapOffsetX;
+	int mMapOffsetY = livingLifePage->mMapOffsetY;
+	int mapX = tileX - mMapOffsetX + mMapD / 2;
+	int mapY = tileY - mMapOffsetY + mMapD / 2;
+	int i = mapY * mMapD + mapX;
+	if (i < 0 || i >= mMapD*mMapD) return -1;
+	return mMap[i];
+}
+
 
 bool newbieTips::isEasyFood( int id ) {
 	if (id < 0 || id >= getMaxObjectID() + 1) return false;
