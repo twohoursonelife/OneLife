@@ -437,6 +437,9 @@ typedef struct ObjectRecord {
         SimpleVector<char*> IndPass;
 
         int alcohol;
+        
+        // for floor objects that don't completely cover ground
+        char noCover;
 
     } ObjectRecord;
 
@@ -570,6 +573,7 @@ int addObject( const char *inDescription,
                char inDeathMarker,
                char inHomeMarker,
                char inFloor,
+               char inPartialFloor,
                char inFloorHugging,
                char inWallLayer,
                char inFrontWall,

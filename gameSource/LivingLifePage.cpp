@@ -5263,6 +5263,21 @@ static void drawHUDBarPart( double x, double y, double width, double height ) {
         };
     drawSprite( guiPanelTileSprite, barPos, barTexCoords );
     }
+    
+    
+char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
+    int i = inTileIndex;
+
+    int fID = mMapFloors[ i ];
+
+    if( fID > 0 && 
+        ! getObject( fID )->noCover ) {
+        return true;
+        }
+    return false;
+    }
+
+
 
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
@@ -5674,19 +5689,19 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         diagB = mMapBiomes[ mapI + mMapD + 1 ];
                         }
                     
-                    char floorAt = mMapFloors[ mapI ] > 0;
+                    char floorAt = isCoveredByFloor( mapI );
                     char floorR = false;
                     char floorB = false;
                     char floorBR = false;
                     
                     if( isInBounds( x +1, y, mMapD ) ) {    
-                        floorR = mMapFloors[ mapI + 1 ] > 0;
+                        floorR = isCoveredByFloor( mapI + 1 );
                         }
                     if( isInBounds( x, y - 1, mMapD ) ) {    
-                        floorB = mMapFloors[ mapI - mMapD ] > 0;
+                        floorB = isCoveredByFloor( mapI - mMapD );
                         }
                     if( isInBounds( x +1, y - 1, mMapD ) ) {    
-                        floorBR = mMapFloors[ mapI - mMapD + 1 ] > 0;
+                        floorBR = isCoveredByFloor( mapI - mMapD + 1 );
                         }
 
 
@@ -5719,19 +5734,19 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         char floorBL = false;
                     
                         if( isInBounds( x -1, y, mMapD ) ) {    
-                            floorL = mMapFloors[ mapI - 1 ] > 0;
+                            floorL = isCoveredByFloor( mapI - 1 );
                             }
                         if( isInBounds( x, y+1, mMapD ) ) {    
-                            floorA = mMapFloors[ mapI + mMapD ] > 0;
+                            floorA = isCoveredByFloor( mapI + mMapD );
                             }
                         if( isInBounds( x-1, y+1, mMapD ) ) {    
-                            floorAL = mMapFloors[ mapI + mMapD - 1 ] > 0;
+                            floorAL = isCoveredByFloor( mapI + mMapD - 1 );
                             }
                         if( isInBounds( x+1, y+1, mMapD ) ) {    
-                            floorAR = mMapFloors[ mapI + mMapD + 1 ] > 0;
+                            floorAR = isCoveredByFloor( mapI + mMapD + 1 );
                             }
                         if( isInBounds( x-1, y-1, mMapD ) ) {    
-                            floorBL = mMapFloors[ mapI - mMapD - 1 ] > 0;
+                            floorBL = isCoveredByFloor( mapI - mMapD - 1 );
                             }
 
                         if( !( floorAt && floorR && floorB && floorBR &&

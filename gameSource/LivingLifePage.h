@@ -1054,6 +1054,13 @@ class LivingLifePage : public GamePage, public ActionListener {
         // where player is standing or held
         doublePair getPlayerPos( LiveObject *inPlayer );
 
+
+
+        // true if tile index is covered by a floor tile that doesn't
+        // have a +noCover tag
+        char isCoveredByFloor( int inTileIndex );
+
+
     };
 
 

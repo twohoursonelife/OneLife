@@ -1082,6 +1082,19 @@ float initObjectBankStep() {
                     
                     next++;
                     }
+                    
+                r->noCover = false;
+                
+                if( strstr( lines[next], "partialFloor=" ) != NULL ) {
+                    // partialFloor flag present
+                    
+                    int read = 0;
+                    sscanf( lines[next], "partialFloor=%d", &( read ) );
+                    
+                    r->noCover = read;
+                    
+                    next++;
+                    }
 
 
                 r->floorHugging = false;
@@ -2579,6 +2592,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->deathMarker,
                         inObject->homeMarker,
                         inObject->floor,
+                        inObject->noCover,
                         inObject->floorHugging,
                         inObject->wallLayer,
                         inObject->frontWall,
@@ -2859,6 +2873,7 @@ int addObject( const char *inDescription,
                char inDeathMarker,
                char inHomeMarker,
                char inFloor,
+               char inPartialFloor,
                char inFloorHugging,
                char inWallLayer,
                char inFrontWall,
@@ -3047,6 +3062,7 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "homeMarker=%d", (int)inHomeMarker ) );
         
         lines.push_back( autoSprintf( "floor=%d", (int)inFloor ) );
+        if( inPartialFloor ) lines.push_back( autoSprintf( "partialFloor=%d", (int)inPartialFloor ) );
         lines.push_back( autoSprintf( "floorHugging=%d", 
                                       (int)inFloorHugging ) );
         if( inWallLayer ) lines.push_back( autoSprintf( "wallLayer=%d", (int)inWallLayer ) );
@@ -3366,6 +3382,7 @@ int addObject( const char *inDescription,
     
     r->homeMarker = inHomeMarker;
     r->floor = inFloor;
+    r->noCover = inPartialFloor;
     r->floorHugging = inFloorHugging;
     r->wallLayer = inWallLayer;
     r->frontWall = inFrontWall;

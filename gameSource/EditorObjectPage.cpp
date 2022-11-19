@@ -160,6 +160,7 @@ EditorObjectPage::EditorObjectPage()
           mDeathMarkerCheckbox( 290, -190, 2 ),
           mHomeMarkerCheckbox( 100, -120, 2 ),
           mFloorCheckbox( 635, -210, 2 ),
+          mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
           mRideableCheckbox( 290, 16, 2 ),
           mBlocksWalkingCheckbox( 290, -4, 2 ),
@@ -628,6 +629,8 @@ EditorObjectPage::EditorObjectPage()
     addComponent( &mFloorCheckbox );
     mFloorCheckbox.setVisible( true );
     mFloorCheckbox.addActionListener( this );
+    addComponent( &mPartialFloorCheckbox );
+    mPartialFloorCheckbox.setVisible( false );
     
 
     addComponent( &mHeldInHandCheckbox );
@@ -945,6 +948,9 @@ void EditorObjectPage::updateAgingPanel() {
         if( ! mContainSizeField.isVisible() ) {
             mFloorCheckbox.setVisible( true );
             }
+        if( mFloorCheckbox.getToggled() ) {
+            mPartialFloorCheckbox.setVisible( true );
+            }
         
         mHeldInHandCheckbox.setVisible( true );
         mRideableCheckbox.setVisible( true );
@@ -979,6 +985,8 @@ void EditorObjectPage::updateAgingPanel() {
 
         mFloorCheckbox.setToggled( false );
         mFloorCheckbox.setVisible( false );
+        mPartialFloorCheckbox.setToggled( false );
+        mPartialFloorCheckbox.setVisible( false );
         
         mNumUsesField.setInt( 1 );
         mUseChanceField.setFloat( 1, 4, true );
@@ -1492,6 +1500,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mDeathMarkerCheckbox.getToggled(),
                    mHomeMarkerCheckbox.getToggled(),
                    mFloorCheckbox.getToggled(),
+                   mPartialFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
                    mWallLayerCheckbox.getToggled(),
                    mFrontWallCheckbox.getToggled(),
@@ -1645,6 +1654,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mDeathMarkerCheckbox.getToggled(),
                    mHomeMarkerCheckbox.getToggled(),
                    mFloorCheckbox.getToggled(),
+                   mPartialFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
                    mWallLayerCheckbox.getToggled(),
                    mFrontWallCheckbox.getToggled(),
@@ -1770,6 +1780,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         
         mFloorCheckbox.setToggled( false );
         mFloorCheckbox.setVisible( true );
+        mPartialFloorCheckbox.setToggled( false );
+        mPartialFloorCheckbox.setVisible( false );
         
 
         mDeadlyDistanceField.setInt( 0 );
@@ -2289,6 +2301,15 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDemoVertRotButton.setFillColor( 0.5, 0.0, 0.0, 1 );
             mRot45ForwardButton.setVisible( true );
             mRot45BackwardButton.setVisible( true );
+            }
+        }
+    else if( inTarget == &mFloorCheckbox ) {
+        if( mFloorCheckbox.getToggled() ) {
+            mPartialFloorCheckbox.setVisible( true );
+            }
+        else {
+            mPartialFloorCheckbox.setVisible( false );
+            mPartialFloorCheckbox.setToggled( false );
             }
         }
     else if( inTarget == &mHeldInHandCheckbox ) {
@@ -3098,6 +3119,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDeathMarkerCheckbox.setToggled( pickedRecord->deathMarker );
             mHomeMarkerCheckbox.setToggled( pickedRecord->homeMarker );
             mFloorCheckbox.setToggled( pickedRecord->floor );
+            mPartialFloorCheckbox.setToggled( pickedRecord->noCover );
             
             mCreationSoundWidget.setSoundUsage( pickedRecord->creationSound );
             mUsingSoundWidget.setSoundUsage( pickedRecord->usingSound );
@@ -3201,6 +3223,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             pickedLayerChanged();
 
             mFloorCheckbox.setVisible( false );
+            mPartialFloorCheckbox.setVisible( false );
             
             if( ! pickedRecord->containable ) {
                 mContainSizeField.setFloat( 1, 4, true );
@@ -3208,6 +3231,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 
                 if( ! mCheckboxes[2]->getToggled() ) {
                     mFloorCheckbox.setVisible( true );
+                    }
+                if( mFloorCheckbox.getToggled() ) {
+                    mPartialFloorCheckbox.setVisible( true );
                     }
                 }
             else {
@@ -3251,6 +3277,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mContainSizeField.setVisible( true );
             mFloorCheckbox.setToggled( false );
             mFloorCheckbox.setVisible( false );
+            mPartialFloorCheckbox.setToggled( false );
+            mPartialFloorCheckbox.setVisible( false );
             
             mPersonAgeSlider.setVisible( false );
             mCheckboxes[2]->setToggled( false );
@@ -3271,6 +3299,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mContainSizeField.setFloat( 1, 4, true );
             mContainSizeField.setVisible( false );
             mFloorCheckbox.setVisible( true );
+            if( mFloorCheckbox.getToggled() ) {
+                mPartialFloorCheckbox.setVisible( true );
+                }
             mCurrentObject.vertContainRotationOffset = 0;
             hideVertRotButtons();
             }
@@ -3292,6 +3323,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             hideVertRotButtons();
             
             mFloorCheckbox.setVisible( true );
+            if( mFloorCheckbox.getToggled() ) {
+                mPartialFloorCheckbox.setVisible( true );
+                }
 
             mCurrentObject.vertContainRotationOffset = 0;
             
@@ -4276,6 +4310,11 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         pos = mFloorCheckbox.getPosition();
         pos.x -= checkboxSep;
         smallFont->drawString( "Floor", pos, alignRight );
+        }
+    if( mPartialFloorCheckbox.isVisible() ) {
+        pos = mPartialFloorCheckbox.getPosition();
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Partial Floor", pos, alignRight );
         }
 
     if( mHeldInHandCheckbox.isVisible() ) {
