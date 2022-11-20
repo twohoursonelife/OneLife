@@ -179,7 +179,7 @@ void newbieTips::livingLifeStep(
             startTipsArrow( {125, 0}, true );
         } else if( mLiveTutorialTriggerNumber == 13 ) { // Temp meter
             startTipsArrow( {-145, 25}, false );
-        } else if( mLiveTutorialTriggerNumber == 1501 ) { // Box of clothes
+        } else if( mLiveTutorialTriggerNumber == 15 || mLiveTutorialTriggerNumber == 1501 ) { // Box of clothes
             startTipsArrow( {162, 0}, true );
             
         } else if( mLiveTutorialTriggerNumber == 1901 ) { // Crafting guide - search
