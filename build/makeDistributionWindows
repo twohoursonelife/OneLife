@@ -42,7 +42,7 @@ cd ../..
 cp ../gameSource/OneLife.exe windows/OneLife_$1/
 
 cp win32/*.dll windows/2HOL_$1/
-
+cp win32/clearCache.bat windows/2HOL_$1/
 
 g++ -o unix2dos unix2dos.c 
 cp unix2dos windows
