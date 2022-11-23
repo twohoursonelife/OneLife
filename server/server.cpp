@@ -1446,6 +1446,42 @@ static double measurePathLength( int inXS, int inYS,
 
 
 
+bool sameRoadClass( int inFloorA, int inFloorB ) {
+    if( inFloorA <= 0 || inFloorB <= 0 ) {
+        return false;
+        }
+    
+    if( inFloorA == inFloorB ) {
+        return true;
+        }
+    
+    // the 2 floors are in the same class if they are in the same cateogory which name contains +road tag
+    ReverseCategoryRecord *floorARecord = getReverseCategory( inFloorA );
+    ReverseCategoryRecord *floorBRecord = getReverseCategory( inFloorB );
+    
+    if( floorARecord != NULL && floorBRecord != NULL ) {
+        for( int i=0; i< floorARecord->categoryIDSet.size(); i++ ) {
+            int floorACID = floorARecord->categoryIDSet.getElementDirect( i );
+            
+            for( int j=0; j< floorBRecord->categoryIDSet.size(); j++ ) {
+                int floorBCID = floorBRecord->categoryIDSet.getElementDirect( j );
+                
+                if( floorACID == floorBCID ) {
+                    CategoryRecord *floorCategory = getCategory( floorACID );
+                    if( floorCategory == NULL ) continue;
+                    int categoryID = floorCategory->parentID;
+                    ObjectRecord *categoryObj = getObject( categoryID );
+                    if( categoryObj == NULL ) continue;
+                    if( strstr( categoryObj->description, "+road" ) != NULL ) return true;
+                    }
+                }
+            }
+        }
+
+    return false;
+    }
+
+
 
 static double getPathSpeedModifier( GridPos *inPathPos, int inPathLength ) {
     
@@ -1474,7 +1510,7 @@ static double getPathSpeedModifier( GridPos *inPathPos, int inPathLength ) {
         
         int thisFloor = getMapFloor( inPathPos[i].x, inPathPos[i].y );
         
-        if( thisFloor != floor ) {
+        if( ! sameRoadClass( thisFloor, floor ) ) {
             // not same floor whole way
             return 1;
             }
@@ -8453,7 +8489,7 @@ static char isContainmentWithMatchedTags( int inContainerID, int inContainedID )
 
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
-static char containmentPermitted( int inContainerID, int inContainedID ) {
+char containmentPermitted( int inContainerID, int inContainedID ) {
     
     // Use the container's and object's dummy parents to judge
     // So use objects also inherit the cont tag

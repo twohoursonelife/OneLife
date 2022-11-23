@@ -116,10 +116,25 @@ void Picker::redoSearch( char inClearPageSkip ) {
 
         SimpleVector<char*> validTerms;
         
+        // any term that starts with - is a term to avoid
+        SimpleVector<char*> avoidTerms;
+        
         for( int i=0; i<numTerms; i++ ) {
-            if( strlen( terms[i] ) > 0 ) {
+            int termLen = strlen( terms[i] );
+            
+            if( termLen > 0 ) {
                 
-                validTerms.push_back( terms[i] );
+                if( terms[i][0] == '-' ) {
+                    if( termLen > 1 ) {
+                        // skip the - character
+                        avoidTerms.push_back( &( terms[i][1] ) );
+                        }
+                    // ignore single - characters
+                    // user is probably in the middle of typing an avoid-term
+                    }
+                else {
+                    validTerms.push_back( terms[i] );
+                    }
                 }
             }
         
@@ -159,8 +174,21 @@ void Picker::redoSearch( char inClearPageSkip ) {
                         
                         if( strstr( mainNameLower, term ) == NULL ) {
                             matchFailed = true;
+                            break;
                             }
                         }
+
+                    if( ! matchFailed ) {
+                        for( int j=0; j<avoidTerms.size(); j++ ) {
+                            char *term = avoidTerms.getElementDirect( j );
+                        
+                            if( strstr( mainNameLower, term ) != NULL ) {
+                                matchFailed = true;
+                                break;
+                                }
+                            }
+                        }
+                    
                     if( !matchFailed ) {
                         passingResults.push_back( mainResults[i] );
                         }
@@ -260,6 +288,24 @@ void Picker::redoSearch( char inClearPageSkip ) {
     }
 
 
+void Picker::focusSearchField() {
+    mSearchField.focus();
+    }
+    
+void Picker::clearSearchField() {
+    mSearchField.setText( "" );
+    }
+    
+void Picker::setSearchField( const char *inText ) {
+    mSearchField.setText( inText );
+    redoSearch( true );
+    }
+    
+void Picker::usePickable( int id ) {
+    mPickable->usePickable( id );
+    }
+
+
 
 void Picker::addSearchToStack() {
     char *search = mSearchField.getText();
@@ -286,9 +332,9 @@ void Picker::addSearchToStack() {
 void Picker::actionPerformed( GUIComponent *inTarget ) {
     int skipAmount = PER_PAGE;
     
-    if( isCommandKeyDown() ) {
-        skipAmount *= 5;
-        }
+    // if( isCommandKeyDown() ) {
+        // skipAmount *= 5;
+        // }
     
     if( inTarget == &mNextButton ) {
         mSkip += skipAmount;
@@ -397,7 +443,7 @@ void Picker::draw() {
             doublePair textPos = pos;
             textPos.x += 52;
             
-            setDrawColor( 0, 0, 0, 1 );
+            setDrawColor( mPickable->getTextColor( mResults[i] ) );
             
             const char *text = mPickable->getText( mResults[i] );
             
@@ -460,6 +506,59 @@ void Picker::pointerDown( float inX, float inY ) {
         inY < 75 && inY > -245 ) {
         mPressStartedHere = true;
         }
+    }
+    
+    
+    
+void Picker::select( int index ) {
+    if( index < mNumResults && index >= 0 &&
+        mResultsUnclickable[ index ] ) {
+        return;
+        }
+    
+    if( index >= mNumResults || index < 0 ) {
+        return;
+        }
+    
+    mSelectionIndex = index;
+    }
+    
+void Picker::selectUp() {
+    int index = mSelectionIndex - 1;
+    
+    if( index < mNumResults && index >= 0 &&
+        mResultsUnclickable[ index ] ) {
+        return;
+        }
+    
+    if( index >= mNumResults || index < 0 ) {
+        return;
+        }
+    
+    mSelectionIndex = index;
+    }
+    
+void Picker::selectDown() {
+    int index = mSelectionIndex + 1;
+    
+    if( index < mNumResults && index >= 0 &&
+        mResultsUnclickable[ index ] ) {
+        return;
+        }
+    
+    if( index >= mNumResults || index < 0 ) {
+        return;
+        }
+    
+    mSelectionIndex = index;
+    }
+    
+void Picker::nextPage() {
+    if( mNextButton.isVisible() ) actionPerformed( &mNextButton );
+    }
+    
+void Picker::prevPage() {
+    if( mPrevButton.isVisible() ) actionPerformed( &mPrevButton );
     }
 
         

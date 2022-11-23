@@ -91,6 +91,9 @@ class EditorObjectPage : public GamePage, public ActionListener {
         TextField mSlotSizeField;
         
         TextField mSlotTimeStretchField;
+        CheckboxButton mSlotsBoxCheckbox;
+        CheckboxButton mSlotsTableCheckbox;
+        CheckboxButton mSlotsGroundCheckbox;
         CheckboxButton mSlotsLockedCheckbox;
         CheckboxButton mSlotsNoSwapCheckbox;
         
@@ -160,6 +163,7 @@ class EditorObjectPage : public GamePage, public ActionListener {
         CheckboxButton mDeathMarkerCheckbox;
         CheckboxButton mHomeMarkerCheckbox;
         CheckboxButton mFloorCheckbox;
+        CheckboxButton mPartialFloorCheckbox;
 
         CheckboxButton mHeldInHandCheckbox;
         CheckboxButton mRideableCheckbox;
@@ -351,6 +355,11 @@ class EditorObjectPage : public GamePage, public ActionListener {
         KeyLegend mKeyLegendB;
         KeyLegend mKeyLegendC;
         KeyLegend mKeyLegendD;
+
+
+        void moveSpriteLayerDown( int inOffset );
+        
+
     };
 
 

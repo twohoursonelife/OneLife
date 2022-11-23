@@ -23,7 +23,7 @@ public:
     static void stopTipsArrow();
     static float arrowScale();
     static doublePair calcTipsArrowPos();
-    static doublePair converationFromMinitechPos( doublePair pos );
+    static doublePair conversionFromMinitechPos( doublePair pos );
     
     static bool sessionStarted;
     static double sessionStartTime;
@@ -49,6 +49,7 @@ public:
     );
     
     static doublePair getClosestFood();
+    static int getObjId( int tileX, int tileY );
     static bool isEasyFood( int id );
     static LiveObject *getMother();
     static bool haveKids();

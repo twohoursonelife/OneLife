@@ -931,8 +931,10 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         double computePathSpeedMod( LiveObject *inObject, int inPathLength );
         
-        // check if same floor is present when we take a step in x or y
-        char isSameFloor( int inFloor, GridPos inFloorPos, int inDX, int inDY );
+        bool sameRoadClass( int inFloorA, int inFloorB );
+        
+        // check if same road is present when we take a step in x or y
+        char isSameRoad( int inFloor, GridPos inFloorPos, int inDX, int inDY );
         
         // forces next pointerDown call to avoid everything but ground clicks
         char mForceGroundClick;
@@ -1024,10 +1026,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         // in the map at its destination.
         // inExtraIndex is its index in the mMapExtraMovingObjects vectors
         void endExtraObjectMove( int inExtraIndex );
-
-
-        // where player is standing or held
-        doublePair getPlayerPos( LiveObject *inPlayer );
         
 
         char mUsingSteam;
@@ -1051,6 +1049,17 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 
         char isHintFilterStringInvalid();
+
+
+        // where player is standing or held
+        doublePair getPlayerPos( LiveObject *inPlayer );
+
+
+
+        // true if tile index is covered by a floor tile that doesn't
+        // have a +noCover tag
+        char isCoveredByFloor( int inTileIndex );
+
 
     };
 

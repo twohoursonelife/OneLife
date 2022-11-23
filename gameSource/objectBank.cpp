@@ -1082,6 +1082,19 @@ float initObjectBankStep() {
                     
                     next++;
                     }
+                    
+                r->noCover = false;
+                
+                if( strstr( lines[next], "partialFloor=" ) != NULL ) {
+                    // partialFloor flag present
+                    
+                    int read = 0;
+                    sscanf( lines[next], "partialFloor=%d", &( read ) );
+                    
+                    r->noCover = read;
+                    
+                    next++;
+                    }
 
 
                 r->floorHugging = false;
@@ -1279,6 +1292,20 @@ float initObjectBankStep() {
                         &( r->slotSize ) );
                             
                 next++;
+
+                r->slotStyle = 0;
+                if( strstr( lines[next], 
+                            "slotStyle=" ) != NULL ) {
+                    // flag present
+                    
+                    int flagRead = 0;                            
+                    sscanf( lines[next], "slotStyle=%d", 
+                            &( flagRead ) );
+                    
+                    r->slotStyle = flagRead;
+                            
+                    next++;
+                    }
 
                 r->slotsLocked = 0;
                 if( strstr( lines[next], 
@@ -2565,6 +2592,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->deathMarker,
                         inObject->homeMarker,
                         inObject->floor,
+                        inObject->noCover,
                         inObject->floorHugging,
                         inObject->wallLayer,
                         inObject->frontWall,
@@ -2584,6 +2612,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->numSlots, 
                         inObject->slotSize, 
                         inObject->slotPos,
+                        inObject->slotStyle,
                         inObject->slotVert,
                         inObject->slotParent,
                         inObject->slotTimeStretch,
@@ -2844,6 +2873,7 @@ int addObject( const char *inDescription,
                char inDeathMarker,
                char inHomeMarker,
                char inFloor,
+               char inPartialFloor,
                char inFloorHugging,
                char inWallLayer,
                char inFrontWall,
@@ -2861,6 +2891,7 @@ int addObject( const char *inDescription,
                char inCreationSoundInitialOnly,
                char inCreationSoundForce,
                int inNumSlots, float inSlotSize, doublePair *inSlotPos,
+               int inSlotStyle,
                char *inSlotVert,
                int *inSlotParent,
                float inSlotTimeStretch,
@@ -3031,6 +3062,7 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "homeMarker=%d", (int)inHomeMarker ) );
         
         lines.push_back( autoSprintf( "floor=%d", (int)inFloor ) );
+        if( inPartialFloor ) lines.push_back( autoSprintf( "partialFloor=%d", (int)inPartialFloor ) );
         lines.push_back( autoSprintf( "floorHugging=%d", 
                                       (int)inFloorHugging ) );
         if( inWallLayer ) lines.push_back( autoSprintf( "wallLayer=%d", (int)inWallLayer ) );
@@ -3079,6 +3111,7 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "numSlots=%d#timeStretch=%f", 
                                       inNumSlots, inSlotTimeStretch ) );
         lines.push_back( autoSprintf( "slotSize=%f", inSlotSize ) );
+        if( inSlotStyle != 0 ) lines.push_back( autoSprintf( "slotStyle=%d", (int)inSlotStyle ) );
         lines.push_back( autoSprintf( "slotsLocked=%d", (int)inSlotsLocked ) );
         if( inSlotsNoSwap ) lines.push_back( autoSprintf( "slotsNoSwap=%d", (int)inSlotsNoSwap ) );
 
@@ -3349,6 +3382,7 @@ int addObject( const char *inDescription,
     
     r->homeMarker = inHomeMarker;
     r->floor = inFloor;
+    r->noCover = inPartialFloor;
     r->floorHugging = inFloorHugging;
     r->wallLayer = inWallLayer;
     r->frontWall = inFrontWall;
@@ -3390,6 +3424,7 @@ int addObject( const char *inDescription,
     memcpy( r->slotParent, inSlotParent, inNumSlots * sizeof( int ) );
     
     r->slotTimeStretch = inSlotTimeStretch;
+    r->slotStyle = inSlotStyle;
     r->slotsLocked = inSlotsLocked;
     r->slotsNoSwap = inSlotsNoSwap;
 
@@ -4064,13 +4099,13 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
                 inHeldNotInPlaceYet,
                 inClothing );
 
-    char allBehind = true;
-    for( int i=0; i< inObject->numSprites; i++ ) {
-        if( ! inObject->spriteBehindSlots[i] ) {
-            allBehind = false;
-            break;
-            }
-        }
+    // char allBehind = true;
+    // for( int i=0; i< inObject->numSprites; i++ ) {
+        // if( ! inObject->spriteBehindSlots[i] ) {
+            // allBehind = false;
+            // break;
+            // }
+        // }
 
     setDrawnObjectContained( true );
     
@@ -4087,11 +4122,14 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
 
         doublePair centerOffset;
 
-        if( allBehind ) {
+        if( inObject->slotStyle == 0 ) {
+            centerOffset = getObjectCenterOffset( contained );
+            }
+        else if( inObject->slotStyle == 1 ) {
             centerOffset = getObjectBottomCenterOffset( contained );
             }
-        else {
-            centerOffset = getObjectCenterOffset( contained );
+        else if( inObject->slotStyle == 2 ) {
+            centerOffset = {0, 0};
             }
 
         double rot = inRot;

@@ -2075,14 +2075,44 @@ void EditorScenePage::step() {
 
 
 
+extern char upKey;
+extern char leftKey;
+extern char downKey;
+extern char rightKey;
+
 void EditorScenePage::keyDown( unsigned char inASCII ) {
     char skipCheckVisible = false;
     
-    if( inASCII == 13 ) {
-        // enter
-        // return to cursor control
-        TextField::unfocusAll();
+    //Picker keybinds
+    bool commandKey = isCommandKeyDown();
+    if( !commandKey && inASCII == 9 ) { // TAB
+        if( TextField::isAnyFocused() ) {
+            TextField::unfocusAll();
+        } else {
+            mObjectPicker.clearSearchField();
+            mObjectPicker.focusSearchField();
         }
+        return;
+    } else if( commandKey && inASCII == 9 ) { // ctrl + TAB
+        mObjectPicker.setSearchField( "." );
+        TextField::unfocusAll();
+        return;
+    } else if( !TextField::isAnyFocused() && commandKey ) {
+        if( inASCII + 64 == toupper(upKey) ) {
+            mObjectPicker.selectUp();
+        } else if( inASCII + 64 == toupper(downKey) ) {
+            mObjectPicker.selectDown();
+            return;
+        }  else if( inASCII + 64 == toupper(rightKey) ) {
+            mObjectPicker.nextPage();
+        }  else if( inASCII + 64 == toupper(leftKey) ) {
+            mObjectPicker.prevPage();
+        }
+    } else if( !TextField::isAnyFocused() && inASCII == 13 ) {
+        actionPerformed( &mObjectPicker );
+    } else if( TextField::isAnyFocused() && inASCII == 13 ) {
+        TextField::unfocusAll();
+    }
     
 
     if( TextField::isAnyFocused() ) {
@@ -2640,7 +2670,7 @@ void scanClothingLine( char *inLine, ObjectRecord **inSpot,
     int id = -1;
     sscanf( inLine, inFormat, &id );
     
-    if( id == -1 ) {
+    if( id <= 0 ) {
         *inSpot = NULL;
         }
     else {

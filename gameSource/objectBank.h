@@ -243,6 +243,11 @@ typedef struct ObjectRecord {
         // must be larger than 0.0001
         float slotTimeStretch;
         
+        // 0 means box-like, contained objects are y-centered by where the widest width is
+        // 1 means table-like, contained objects' bottom is aligned with the slot's bottom
+        // 2 means ground-like, contained objects use on-ground offsets for its contained offsets
+        int slotStyle;        
+        
         // true if nothing can be added/removed from container
         char slotsLocked;
         
@@ -432,6 +437,9 @@ typedef struct ObjectRecord {
         SimpleVector<char*> IndPass;
 
         int alcohol;
+        
+        // for floor objects that don't completely cover ground
+        char noCover;
 
     } ObjectRecord;
 
@@ -565,6 +573,7 @@ int addObject( const char *inDescription,
                char inDeathMarker,
                char inHomeMarker,
                char inFloor,
+               char inPartialFloor,
                char inFloorHugging,
                char inWallLayer,
                char inFrontWall,
@@ -582,6 +591,7 @@ int addObject( const char *inDescription,
                char inCreationSoundInitialOnly,
                char inCreationSoundForce,
                int inNumSlots, float inSlotSize, doublePair *inSlotPos,
+               int inSlotStyle,
                char *inSlotVert,
                int *inSlotParent,
                float inSlotTimeStretch,
