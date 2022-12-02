@@ -17900,18 +17900,20 @@ int main() {
                                                 clickedClothingTrans = NULL;
                                                 }
 
-                                            int nt = 
-                                                clickedClothingTrans->newTarget;
-                                            
-                                            if( nt > 0 &&
-                                                getObject( nt )->clothing 
-                                                == 'n' ) {
-                                                // don't allow transitions
-                                                // that leave a non-wearable
-                                                // item on your body
-                                                clickedClothingTrans = NULL;
-                                                }
-                                            }
+                                            if( clickedClothingTrans != NULL ) {
+												int nt = 
+													clickedClothingTrans->newTarget;
+												
+												if( nt > 0 &&
+													getObject( nt )->clothing 
+													== 'n' ) {
+													// don't allow transitions
+													// that leave a non-wearable
+													// item on your body
+													clickedClothingTrans = NULL;
+													}
+												}
+											}
                                         }
                                     }
                                 
