@@ -16305,8 +16305,20 @@ int main() {
                                         // check if new actor will contain
                                         // them (reverse containment transfer)
                                         
+										int oldSlots = 
+											getNumContainerSlots( target );
+										int newSlots = 
+											getNumContainerSlots( r->newTarget );
+										
                                         if( r->newActor > 0 &&
-                                            nextPlayer->numContained == 0 ) {
+                                            nextPlayer->numContained == 0 &&
+											( oldSlots > 0 &&
+											newSlots == 0 && 
+											r->actor == 0 &&
+											r->newActor > 0 &&
+											getNumContainerSlots( r->newActor ) == oldSlots &&
+											getObject( r->newActor )->slotSize >= targetObj->slotSize )
+											) {
                                             // old actor empty
                                             
                                             int numSlotsNewActor =
