@@ -5855,13 +5855,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 if( cellOID > 0 && getObject( cellOID )->floorHugging ) {
                     
-                    if( x > 0 && mMapFloors[ mapI - 1 ] > 0 ) {
+                    if( x > 0 && mMapFloors[ mapI - 1 ] > 0 && !getObject( mMapFloors[ mapI - 1 ] )->noCover ) {
                         // floor to our left
                         passIDs[1] = mMapFloors[ mapI - 1 ];
                         drawHuggingFloor = true;
                         }
                     
-                    if( x < mMapD - 1 && mMapFloors[ mapI + 1 ] > 0 ) {
+                    if( x < mMapD - 1 && mMapFloors[ mapI + 1 ] > 0 && !getObject( mMapFloors[ mapI + 1 ] )->noCover ) {
                         // floor to our right
                         passIDs[2] = mMapFloors[ mapI + 1 ];
                         drawHuggingFloor = true;
