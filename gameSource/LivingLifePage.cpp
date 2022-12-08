@@ -207,6 +207,7 @@ static double emotDuration = 10;
 
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
+static int trippingEffectDisabled = 0;
 
 static int historyGraphLength = 100;
 
@@ -2527,6 +2528,9 @@ LivingLifePage::LivingLifePage()
 	
     trippingEmotionIndex =
         SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
+		
+    trippingEffectDisabled =
+        SettingsManager::getIntSetting( "trippingEffectDisabled", 0 );
           
     hideGuiPanel = SettingsManager::getIntSetting( "hideGameUI", 0 );
 
@@ -5498,7 +5502,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
 	
 	// For tripping color effect
-	isTrippingEffectOn = isTripping();
+	isTrippingEffectOn = isTripping() && !trippingEffectDisabled;
     setObjectBankTrippingEffect( isTrippingEffectOn );
 	setAnimationBankTrippingEffect( isTrippingEffectOn );
 	
