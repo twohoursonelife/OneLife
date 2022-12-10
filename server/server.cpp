@@ -14143,7 +14143,7 @@ int main() {
 				for( int dy = -3; dy <= 3; dy++ ) {
 					float dist = sqrt(dx * dx + dy * dy);
 					if( dist > readRange ) continue;
-					int objId = getMapObject( playerPos.x + dx, playerPos.y + dy );
+					int objId = getMapObjectRaw( playerPos.x + dx, playerPos.y + dy );
 					if( objId <= 0 ) continue;
 					ObjectRecord *obj = getObject( objId );
 					if( obj != NULL && obj->written && obj->passToRead ) {
