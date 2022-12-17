@@ -6586,6 +6586,18 @@ static char nextLogInTwin = false;
 
 static int firstTwinID = -1;
 
+// FNV-1a Hashing algorithm
+uint64_t fnv1aHash(std::string &s, const uint64_t FNV_init = 0xcbf29ce484222325u) {
+    const uint64_t FNV_prime = 0x00000100000001b3u;
+
+    uint64_t hash = FNV_init;
+    for (auto c : s) {
+        hash ^= c;
+        hash *= FNV_prime;
+    }
+
+    return hash;
+};
 
 // returns ID of new player,
 // or -1 if this player reconnected to an existing ID
@@ -7611,24 +7623,13 @@ int processLoggedInPlayer( char inAllowReconnect,
             //convert and apply seed hash (copy pasted code)
             //make this a separate method in the future to prevent redundancy
             
-            // FNV-1a Hashing algorithm
-            auto hashStr = [](std::string &s, const uint64_t FNV_init = 0xcbf29ce484222325u) -> uint64_t {
-                const uint64_t FNV_prime = 0x00000100000001b3u;
-
-                uint64_t hash = FNV_init;
-                for( auto c : s ) {
-                    hash ^= c;
-                    hash *= FNV_prime;
-                }
-
-                return hash;
-            };
-            
             // Get the substr from one after the seed delim
-            std::string seedSalt { SettingsManager::getStringSetting("seedSalt", "default salt") };
+            char *sSeed = SettingsManager::getStringSetting("seedPepper", "default pepper");
+            std::string seedPepper { sSeed };
+            delete [] sSeed;
             
             tempHashedSpawnSeed =
-                hashStr(seed, hashStr(seedSalt));
+                fnv1aHash(seed, fnv1aHash(seedPepper));
           }
         else {
             //use defalt seed configuration
@@ -13490,27 +13491,13 @@ int main() {
                                 const size_t seedLen = emailAndSeed.length() - seedDelimPos;
 
                                 if( seedLen > minSeedLen ) {
-                                    // FNV-1a Hashing algorithm
-                                    auto hashStr = [](std::string &s, const uint32_t FNV_init = 2166136261u){
-                                        const size_t FNV_prime = 111337;
-
-                                        // Hash seed to 4 byte int
-                                        uint32_t hash = FNV_init;
-                                        for( auto c : s ) {
-                                            hash ^= c;
-                                            hash *= FNV_prime;
-                                        }
-
-                                        return hash;
-                                    };
-
                                     // Get the substr from one after the seed delim
                                     std::string seed { emailAndSeed.substr( seedDelimPos + 1 ) };
                                     char *sSeed = SettingsManager::getStringSetting("seedPepper", "default pepper");
                                     std::string seedPepper { sSeed };
                                     
                                     nextConnection->hashedSpawnSeed =
-                                        hashStr(seed, hashStr(seedPepper));
+                                        fnv1aHash(seed, fnv1aHash(seedPepper));
                                     
                                     delete [] sSeed;
                                 }
