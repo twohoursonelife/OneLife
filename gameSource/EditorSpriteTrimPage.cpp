@@ -614,6 +614,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        false,
                        false,
                        false,
+                       false,
                        0,
                        1,
                        zeroOffset,
@@ -628,6 +629,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        0,
                        0,
                        0, 0, slotPos,
+                       0,
                        slotVert,
                        slotParent,
                        1,
@@ -958,8 +960,12 @@ void EditorSpriteTrimPage::drawUnderComponents( doublePair inViewCenter,
                           r.xEnd, r.yEnd );
                 }
             
-            
-            setDrawColor( 1, 0, 0, 0.5 );
+            if( isShiftKeyDown() ) {
+                setDrawColor( 1, 1, 1, 1.0 );
+                }
+            else {
+                setDrawColor( 1, 0, 0, 0.5 );
+                }
             drawSprite( mFreehandSelectionSprite, center );
 
             doublePair mouseCenter = { lastMouseX + 1, lastMouseY - 1 };
@@ -983,7 +989,12 @@ void EditorSpriteTrimPage::drawUnderComponents( doublePair inViewCenter,
 
 
                 if( mFreehandSplitMode ) {
-                    setDrawColor( 1, 1, 0, 0.50 );
+                    if( isShiftKeyDown() ) {
+                        setDrawColor( 1, 1, 0, 0.90 );
+                        }
+                    else {
+                        setDrawColor( 1, 1, 0, 0.50 );
+                        }
                     
                     double diam = mBrushSizeSlider.getValue(); 
                     int rA = floor( diam / 2 );

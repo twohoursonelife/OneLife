@@ -5,12 +5,32 @@ http://onehouronelife.com/updateLog.php
 
 Version 290     ???
 
+Version 326     ???
+
+--Editor search boxes now allow -term to avoid objects with term in the name.
+
+--Fixed case where force-drop happens (during death or wounding) when no direct
+  bare-ground transition applies to the permanent held object (example:  cast
+  fishing pole).  In this case, we check for a timed transition first, and then
+  look for a bare-ground transition after that timed transition is applied.
+  Also, in case where bare ground transition leaves something in hand (example:
+  pole with old boot), we toss both things (before, the pole would disappear,
+  leaving only the boot).  Fixes #388
+
+
+
 
 --Added support for +frontWall object tag, to fix glitch with open door behind
   wall shelf.  Don't decide whether a wall should be drawn in front of other
   walls based on whether the wall has slots.  This was the old test put in
   place to detect wall signs, but really, slots isn't the thing... sticking out
   beyond the normal wall boundaries is the thing.
+
+--Fixed so that you can walk to and set down or swap an object on an empty
+  surrounded tile with one click.  Fixes #361
+
+--Auto-walking around all kinds of road branches (diagonals, etc.) now works
+  flawlessly.  Fixes #360
 
 
 

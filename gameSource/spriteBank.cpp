@@ -443,19 +443,25 @@ float initSpriteBankStep() {
 
             if( spriteID > 0 ) {
                 
-                int contSize;
-                unsigned char *contents = getFileContents( binCache, i,
-                                                           fileName, 
-                                                           &contSize );
-                if( contents != NULL ) {
-                    loadSpriteFromRawTGAData( spriteID, contents, contSize );
+                SpriteRecord *r = getSpriteRecord( spriteID );
+                
+                // there might be tga file that we have no .txt file, and thus
+                // no record, for
+                if( r != NULL ) {
+                    int contSize;
+                    unsigned char *contents = getFileContents( binCache, i,
+                                                               fileName, 
+                                                               &contSize );
+                    if( contents != NULL ) {
+                        
+                        loadSpriteFromRawTGAData( 
+                            spriteID, contents, contSize );
                     
-                    SpriteRecord *r = getSpriteRecord( spriteID );
-                    
-                    r->numStepsUnused = 0;
-                    loadedSprites.push_back( spriteID );
-
-                    delete [] contents;
+                        r->numStepsUnused = 0;
+                        loadedSprites.push_back( spriteID );
+                        
+                        delete [] contents;
+                        }
                     }
                 }
             }
@@ -1404,14 +1410,18 @@ int bakeSprite( const char *inTag,
                         }
                     else {
                         // multiplicative blend
-                        // ignore alphas
+                        // ignore alphas, except as hard mask for which
+                        // parts are blended
 
-                        // note that this will NOT work
-                        // if multiplicative sprite hangs out
-                        // beyond border of opaque non-multiplicative
-                        // parts below it.
-                        for( int c=0; c<3; c++ ) {
-                            baseChan[c][baseI] *= chan[c][i];
+                        if( chan[3][i] > 0 ) {
+
+                            // note that this will NOT work
+                            // if multiplicative sprite hangs out
+                            // beyond border of opaque non-multiplicative
+                            // parts below it.
+                            for( int c=0; c<3; c++ ) {
+                                baseChan[c][baseI] *= chan[c][i];
+                                }
                             }
                         }
                     }

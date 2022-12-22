@@ -207,6 +207,7 @@ static double emotDuration = 10;
 
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
+static int trippingEffectDisabled = 0;
 
 static int historyGraphLength = 100;
 
@@ -1566,7 +1567,7 @@ double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
             }
         int thisFloor = mMapFloors[ mapI ];
     
-        if( floor != thisFloor ) {
+        if( ! sameRoadClass( floor, thisFloor ) ) {
             return 1;
             }
         }
@@ -2527,6 +2528,9 @@ LivingLifePage::LivingLifePage()
 	
     trippingEmotionIndex =
         SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
+		
+    trippingEffectDisabled =
+        SettingsManager::getIntSetting( "trippingEffectDisabled", 0 );
           
     hideGuiPanel = SettingsManager::getIntSetting( "hideGameUI", 0 );
 
@@ -5263,6 +5267,21 @@ static void drawHUDBarPart( double x, double y, double width, double height ) {
         };
     drawSprite( guiPanelTileSprite, barPos, barTexCoords );
     }
+    
+    
+char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
+    int i = inTileIndex;
+
+    int fID = mMapFloors[ i ];
+
+    if( fID > 0 && 
+        ! getObject( fID )->noCover ) {
+        return true;
+        }
+    return false;
+    }
+
+
 
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
@@ -5483,7 +5502,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
 	
 	// For tripping color effect
-	isTrippingEffectOn = isTripping();
+	isTrippingEffectOn = isTripping() && !trippingEffectDisabled;
     setObjectBankTrippingEffect( isTrippingEffectOn );
 	setAnimationBankTrippingEffect( isTrippingEffectOn );
 	
@@ -5674,6 +5693,23 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         diagB = mMapBiomes[ mapI + mMapD + 1 ];
                         }
                     
+                    char floorAt = isCoveredByFloor( mapI );
+                    char floorR = false;
+                    char floorB = false;
+                    char floorBR = false;
+                    
+                    if( isInBounds( x +1, y, mMapD ) ) {    
+                        floorR = isCoveredByFloor( mapI + 1 );
+                        }
+                    if( isInBounds( x, y - 1, mMapD ) ) {    
+                        floorB = isCoveredByFloor( mapI - mMapD );
+                        }
+                    if( isInBounds( x +1, y - 1, mMapD ) ) {    
+                        floorBR = isCoveredByFloor( mapI - mMapD + 1 );
+                        }
+
+
+
 					if( isTrippingEffectOn ) setTrippingColor( pos.x, pos.y );
 					
                     if( !isTrippingEffectOn && // All tiles are drawn to change color independently
@@ -5684,10 +5720,44 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         // surrounded by same biome above and to left
                         // AND diagonally to the above-right
                         // draw square tile here to save pixel fill time
-                        drawSprite( s->squareTiles[setY][setX], pos );
+                        
+                        // skip if biome square completely covered by floors
+                        if( !( floorAt && floorR && floorB && floorBR ) ) {
+                            drawSprite( s->squareTiles[setY][setX], pos );
+                            }
                         }
                     else {
-                        drawSprite( s->tiles[setY][setX], pos );
+                        // non-square piece
+                        // avoid drawing if completely overdrawn by floors
+                        // in 3x3 grid around
+                        
+                        char floorL = false;
+                        char floorA = false;
+                        char floorAL = false;
+                        char floorAR = false;
+                        char floorBL = false;
+                    
+                        if( isInBounds( x -1, y, mMapD ) ) {    
+                            floorL = isCoveredByFloor( mapI - 1 );
+                            }
+                        if( isInBounds( x, y+1, mMapD ) ) {    
+                            floorA = isCoveredByFloor( mapI + mMapD );
+                            }
+                        if( isInBounds( x-1, y+1, mMapD ) ) {    
+                            floorAL = isCoveredByFloor( mapI + mMapD - 1 );
+                            }
+                        if( isInBounds( x+1, y+1, mMapD ) ) {    
+                            floorAR = isCoveredByFloor( mapI + mMapD + 1 );
+                            }
+                        if( isInBounds( x-1, y-1, mMapD ) ) {    
+                            floorBL = isCoveredByFloor( mapI - mMapD - 1 );
+                            }
+
+                        if( !( floorAt && floorR && floorB && floorBR &&
+                               floorL && floorA && floorAL && floorAR &&
+                               floorBL ) ) {
+                            drawSprite( s->tiles[setY][setX], pos );
+                            }
                         }
                     if( inBounds ) {
                         mMapCellDrawnFlags[mapI] = true;
@@ -5789,13 +5859,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 if( cellOID > 0 && getObject( cellOID )->floorHugging ) {
                     
-                    if( x > 0 && mMapFloors[ mapI - 1 ] > 0 ) {
+                    if( x > 0 && mMapFloors[ mapI - 1 ] > 0 && !getObject( mMapFloors[ mapI - 1 ] )->noCover ) {
                         // floor to our left
                         passIDs[1] = mMapFloors[ mapI - 1 ];
                         drawHuggingFloor = true;
                         }
                     
-                    if( x < mMapD - 1 && mMapFloors[ mapI + 1 ] > 0 ) {
+                    if( x < mMapD - 1 && mMapFloors[ mapI + 1 ] > 0 && !getObject( mMapFloors[ mapI + 1 ] )->noCover ) {
                         // floor to our right
                         passIDs[2] = mMapFloors[ mapI + 1 ];
                         drawHuggingFloor = true;
@@ -10863,12 +10933,12 @@ doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
     }
 
 
-
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     char *foodDescription = 
         stringToUpperCase( getObject( inFoodID )->description );
                 
     stripDescriptionComment( foodDescription );
+
 
     char *message = 
         autoSprintf( "%s: %s (+%d)", translate( "craving"), 
@@ -16844,8 +16914,11 @@ void LivingLifePage::step() {
                                         // where we are
                                         
                                         printf( "    CUR PATH:  " );
-                                        printPath( oldPath.getElementArray(), 
+                                        GridPos *oldPathArray = 
+                                            oldPath.getElementArray();
+                                        printPath( oldPathArray,
                                                    oldPathLength );
+                                        delete [] oldPathArray;
                                         printf( "    WE AT:  %d (%d,%d)  \n",
                                                 oldCurrentPathIndex,
                                                 oldCurrentPathPos.x,
@@ -17347,9 +17420,6 @@ void LivingLifePage::step() {
                             if( newEmotPlaySound != NULL ) {
                                 doublePair playerPos = existing->currentPos;
                                 
-                                // play sounds for this emotion, but only
-                                // if in range
-                                if( !existing->outOfRange ) 
                                 for( int i=0; 
                                      i<getEmotionNumObjectSlots(); i++ ) {
                                     
@@ -18318,6 +18388,8 @@ void LivingLifePage::step() {
         }
     
 
+    // HomePos *curHomePosRecord = getHomePosRecord();
+
     doublePair ourPos = { 0, 0 };
 
     if( ourLiveObject != NULL ) {
@@ -18421,53 +18493,50 @@ void LivingLifePage::step() {
             o->outOfRange = true;
             }
         
-        // no anim sounds if out of range
-        if( ! o->outOfRange ) {
+        if( o->curAnim != moving || !holdingRideable ) {
+            // don't play player moving sound if riding something
+
             AnimType t = o->curAnim;
             doublePair pos = o->currentPos;
+            
+            if( o->heldByAdultID != -1 ) {
+                t = held;
                 
-            if( o->curAnim != moving || !holdingRideable ) {
-                // don't play player moving sound if riding something
 
-                
-                if( o->heldByAdultID != -1 ) {
-                    t = held;
+                for( int j=0; j<gameObjects.size(); j++ ) {
                     
-
-                    for( int j=0; j<gameObjects.size(); j++ ) {
+                    LiveObject *parent = gameObjects.getElement( j );
+                    
+                    if( parent->id == o->heldByAdultID ) {
                         
-                        LiveObject *parent = gameObjects.getElement( j );
-                        
-                        if( parent->id == o->heldByAdultID ) {
-                            
-                            pos = parent->currentPos;
-                            }
+                        pos = parent->currentPos;
                         }
                     }
-                
-                handleAnimSound( o->displayID,
-                                 computeCurrentAge( o ),
-                                 t,
-                                 oldFrameCount, o->animationFrameCount,
-                                 pos.x,
-                                 pos.y );
-                }                                 
+                }
+            
+            
+            handleAnimSound( o->displayID,
+                             computeCurrentAge( o ),
+                             t,
+                             oldFrameCount, o->animationFrameCount,
+                             pos.x,
+                             pos.y );    
 
-                if( o->currentEmot != NULL ) {
-                    int numSlots = getEmotionNumObjectSlots();
+            if( o->currentEmot != NULL ) {
+                int numSlots = getEmotionNumObjectSlots();
+                
+                for( int e=0; e<numSlots; e++ ) {
+                    int oID =
+                        getEmotionObjectByIndex( o->currentEmot, e );
                     
-                    for( int e=0; e<numSlots; e++ ) {
-                        int oID =
-                            getEmotionObjectByIndex( o->currentEmot, e );
+                    if( oID != 0 ) {
                         
-                        if( oID != 0 ) {
-                            
-                            handleAnimSound( oID,
-                                             0,
-                                             t,
-                                             oldFrameCount, o->animationFrameCount,
-                                             pos.x,
-                                             pos.y ); 
+                        handleAnimSound( oID,
+                                         0,
+                                         t,
+                                         oldFrameCount, o->animationFrameCount,
+                                         pos.x,
+                                         pos.y ); 
                         }
                     }
                 }
@@ -18787,7 +18856,8 @@ void LivingLifePage::step() {
                     if( mapIF != -1 && mapIP != -1 ) {
                         int floor = mMapFloors[ mapIF ];
                         
-                        if( floor > 0 && mMapFloors[ mapIP ] == floor && 
+                        if( floor > 0 && 
+                            sameRoadClass( mMapFloors[ mapIP ], floor ) && 
                             getObject( floor )->rideable ) {
                             
                             // rideable floor is a road!
@@ -18801,12 +18871,12 @@ void LivingLifePage::step() {
                             
                             int len = 0;
 
-                            if( isSameFloor( floor, finalStep, xDir, yDir ) ) {
+                            if( isSameRoad( floor, finalStep, xDir, yDir ) ) {
                                 // floor continues in same direction
                                 // go as far as possible in that direction
                                 // with next click
-                                while( len < 5 && isSameFloor( floor, nextStep,
-                                                               xDir, yDir ) ) {
+                                while( len < 5 && isSameRoad( floor, nextStep,
+                                                              xDir, yDir ) ) {
                                     nextStep.x += xDir;
                                     nextStep.y += yDir;
                                     len ++;
@@ -18814,49 +18884,99 @@ void LivingLifePage::step() {
                                 }
                             else {
                                 nextStep = finalStep;
-                                char foundPerp = false;
+                                char foundBranch = false;
                                 
-                                // first step in same dir goes off floor
-                                // try a perp move instead
-                                if( xDir != 0 && yDir == 0 ) {
-                                    xDir = 0;
-                                    yDir = 1;
-                                    
-                                    if( isSameFloor( floor, finalStep, xDir,
-                                                     yDir ) ) {
-                                        foundPerp = true;
-                                        }
-                                    else {
-                                        yDir = -1;
-                                        if( isSameFloor( floor, finalStep, xDir,
-                                                         yDir ) ) {
-                                            foundPerp = true;
-                                            }
-                                        }
-                                    }
-                                else if( xDir == 0 && yDir != 0 ) {
-                                    xDir = 1;
-                                    yDir = 0;
-                                    
-                                    if( isSameFloor( floor, finalStep, xDir,
-                                                     yDir ) ) {
-                                        foundPerp = true;
-                                        }
-                                    else {
-                                        xDir = -1;
-                                        if( isSameFloor( floor, finalStep, xDir,
-                                                         yDir ) ) {
-                                            foundPerp = true;
-                                            }
-                                        }
-                                    }
 
-                                if( foundPerp ) {
+                                // continuing in same direction goes off road
+                                // try branching off in another
+                                // direction instead
+
+                                int nX[8] = { 1, 1,  1, -1, -1, -1, 0,  0 };
+                                int nY[8] = { 1, 0, -1,  1,  0, -1, 1, -1 };
+                                
+                                SimpleVector<GridPos> allDirs;
+                                // dist of each dir from xDir,yDir
+                                SimpleVector<double> allDist;
+                                
+                                GridPos lastDir = { xDir, yDir };
+                                
+                                SimpleVector<GridPos> sortedDirs;
+                                SimpleVector<double> sortedDist;
+
+                                for( int i=0; i<8; i++ ) {
+                                    GridPos p = { nX[i], nY[i] };
+                                    
+                                    // do not include lastDir
+                                    // or completely opposite dir
+                                    if( equal( p, lastDir ) ) {
+                                        continue;
+                                        }
+                                    if( p.x == lastDir.x * -1 &&
+                                        p.y == lastDir.y * -1 ) {
+                                        continue;
+                                        }
+
+                                    allDirs.push_back( p );
+                                    allDist.push_back( 
+                                        distance2( lastDir, p ) );
+                                    }
+                                
+                                while( allDirs.size() > 0 ) {
+                                    double minDist = 99999;
+                                    int minInd = -1;
+                                    for( int i=0; i<allDirs.size(); i++ ) {
+                                        double d = 
+                                            allDist.getElementDirect( i );
+                                        if( d < minDist ) {
+                                            minDist = d;
+                                            minInd = i;
+                                            }
+                                        }
+                                    sortedDirs.push_back( 
+                                        allDirs.getElementDirect( minInd ) );
+                                    sortedDist.push_back( 
+                                        allDist.getElementDirect( minInd ) );
+                                    allDirs.deleteElement( minInd );
+                                    allDist.deleteElement( minInd );
+                                    }
+                                
+                                printf( "Last dir = %d,%d\n", xDir, yDir );
+                                for( int i=0; i<8; i++ ) {
+                                    printf( 
+                                        "  %d (dist %f):  %d,%d\n",
+                                        i, 
+                                        sortedDist.getElementDirect( i ),
+                                        sortedDirs.getElementDirect( i ).x,
+                                        sortedDirs.getElementDirect( i ).y );
+                                    }
+                                
+                                
+                                // now we have 6 dirs, sorted by 
+                                // how far off they are from lastDir 
+                                // and NOT including lastDir or its
+                                // complete opposite.
+
+                                // find the first one that continues
+                                // on the same road surface
+                                for( int i=0; i<6 && !foundBranch; i++ ) {
+                                    
+                                    GridPos d = 
+                                        sortedDirs.getElementDirect( i );
+                                    xDir = d.x;
+                                    yDir = d.y;
+                                    
+                                    if( isSameRoad( floor, finalStep, xDir,
+                                                     yDir ) ) {
+                                        foundBranch = true;
+                                        }
+                                    }
+                                
+                                if( foundBranch ) {
                                     nextStep.x += xDir;
                                     nextStep.y += yDir;
                                     
                                     while( len < 5 &&
-                                           isSameFloor( floor, nextStep,
+                                           isSameRoad( floor, nextStep,
                                                         xDir, yDir ) ) {
                                         nextStep.x += xDir;
                                         nextStep.y += yDir;
@@ -19260,6 +19380,12 @@ void LivingLifePage::step() {
                         if( markSpriteLive( displayObj->sprites[s] ) ) {
                             numLoaded ++;
                             }
+                        else if( getSpriteRecord( displayObj->sprites[s] )
+                                 == NULL ) {
+                            // object references sprite that doesn't exist
+                            // count as loaded
+                            numLoaded ++;
+                            }
                         }
                     
                     if( numLoaded == displayObj->numSprites ) {
@@ -19361,8 +19487,46 @@ static void dummyFunctionA() {
 
 
 
-char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos, 
-                                  int inDX, int inDY ) {    
+
+bool LivingLifePage::sameRoadClass( int inFloorA, int inFloorB ) {
+    if( inFloorA <= 0 || inFloorB <= 0 ) {
+        return false;
+        }
+    
+    if( inFloorA == inFloorB ) {
+        return true;
+        }
+    
+    // the 2 floors are in the same class if they are in the same cateogory which name contains +road tag
+    ReverseCategoryRecord *floorARecord = getReverseCategory( inFloorA );
+    ReverseCategoryRecord *floorBRecord = getReverseCategory( inFloorB );
+    
+    if( floorARecord != NULL && floorBRecord != NULL ) {
+        for( int i=0; i< floorARecord->categoryIDSet.size(); i++ ) {
+            int floorACID = floorARecord->categoryIDSet.getElementDirect( i );
+            
+            for( int j=0; j< floorBRecord->categoryIDSet.size(); j++ ) {
+                int floorBCID = floorBRecord->categoryIDSet.getElementDirect( j );
+                
+                if( floorACID == floorBCID ) {
+                    CategoryRecord *floorCategory = getCategory( floorACID );
+                    if( floorCategory == NULL ) continue;
+                    int categoryID = floorCategory->parentID;
+                    ObjectRecord *categoryObj = getObject( categoryID );
+                    if( categoryObj == NULL ) continue;
+                    if( strstr( categoryObj->description, "+road" ) != NULL ) return true;
+                    }
+                }
+            }
+        }
+
+    return false;
+    }
+
+
+
+char LivingLifePage::isSameRoad( int inFloor, GridPos inFloorPos, 
+                                 int inDX, int inDY ) {     
     GridPos nextStep = inFloorPos;
     nextStep.x += inDX;
     nextStep.y += inDY;
@@ -19373,7 +19537,7 @@ char LivingLifePage::isSameFloor( int inFloor, GridPos inFloorPos,
   
     if( nextMapI != -1 
         &&
-        mMapFloors[ nextMapI ] == inFloor 
+        sameRoadClass( mMapFloors[ nextMapI ], inFloor )
         && 
         ! getCellBlocksWalking( nextMap.x, nextMap.y ) ) {
         return true;
@@ -21470,6 +21634,31 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // trying to access noBackAccess object from N
                 canExecute = false;
                 }
+
+            if( canExecute && 
+                clickDestX == ourLiveObject->xd && 
+                clickDestY == ourLiveObject->yd ) {
+                // access from where we're standing
+                
+                // make sure result is non-blocking
+                // (else walk to an empty spot before executing action)
+                if( destID > 0 ) {
+                    
+                    int newDestID = 0;
+                    
+                    TransRecord *useTrans = 
+                        getTrans( ourLiveObject->holdingID, destID );
+                    
+                    if( useTrans != NULL ) {
+                        newDestID = useTrans->newTarget;
+                        }
+                    
+                    if( newDestID > 0 && 
+                        getObject( newDestID )->blocksWalking ) {
+                        canExecute = false;
+                        }
+                    }
+                }
             }
 
 
@@ -21591,8 +21780,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( !foundEmpty && 
                 ! sideAccess &&
                 nStart > 0 &&
-                destID > 0 &&
-                ! getObject( destID )->blocksWalking ) {
+                ( destID == 0 ||
+                  ! getObject( destID )->blocksWalking ) ) {
                 
                 // all neighbors blocked
                 // we didn't consider tile itself before
@@ -22201,6 +22390,11 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
     }
 
 
+extern char upKey;
+extern char leftKey;
+extern char downKey;
+extern char rightKey;
+
 void LivingLifePage::keyDown( unsigned char inASCII ) {
     
     registerTriggerKeyCommand( inASCII, this );
@@ -22220,6 +22414,44 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
 	bool commandKey = isCommandKeyDown();
 	bool shiftKey = isShiftKeyDown();
+    
+    if( vogMode && vogPickerOn ) {
+        //Picker keybinds
+        if( !commandKey && inASCII == 9 ) { // TAB
+            if( TextField::isAnyFocused() ) {
+                TextField::unfocusAll();
+            } else {
+                mObjectPicker.clearSearchField();
+                mObjectPicker.focusSearchField();
+            }
+            return;
+        } else if( commandKey && inASCII == 9 ) { // ctrl + TAB
+            mObjectPicker.setSearchField( "." );
+            TextField::unfocusAll();
+            return;
+        } else if( !TextField::isAnyFocused() && commandKey ) {
+            if( inASCII + 64 == toupper(upKey) ) {
+                mObjectPicker.selectUp();
+            } else if( inASCII + 64 == toupper(downKey) ) {
+                mObjectPicker.selectDown();
+                return;
+            }  else if( inASCII + 64 == toupper(rightKey) ) {
+                mObjectPicker.nextPage();
+            }  else if( inASCII + 64 == toupper(leftKey) ) {
+                mObjectPicker.prevPage();
+            }
+        } else if( !TextField::isAnyFocused() && inASCII == 13 ) {
+            actionPerformed( &mObjectPicker );
+            return;
+        } else if( TextField::isAnyFocused() && inASCII == 13 ) {
+            TextField::unfocusAll();
+            return;
+        }
+    } else if( vogMode && !vogPickerOn ) {
+        addComponent( &mObjectPicker );
+        mObjectPicker.addActionListener( this );
+        vogPickerOn = true;
+    }
 
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
 		if (! mSayField.isFocused() && !vogMode) {

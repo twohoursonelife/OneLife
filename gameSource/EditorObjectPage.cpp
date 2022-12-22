@@ -89,15 +89,18 @@ EditorObjectPage::EditorObjectPage()
                              false,
                              "Contain Size", "0123456789.", NULL ),
           mSlotSizeField( smallFont, 
-                          -280,  -230, 4,
+                          -625,  -200, 4,
                           false,
                           "Slot Size", "0123456789.", NULL ),
           mSlotTimeStretchField( smallFont, 
-                                 -155,  -110, 4,
+                                 -625,  -380, 4,
                                  false,
                                  "Tm Strch", "0123456789.", NULL ),
-          mSlotsLockedCheckbox( -260, -200, 2 ),
-          mSlotsNoSwapCheckbox( -160, -200, 2 ),
+          mSlotsBoxCheckbox( -625, -230, 2 ),
+          mSlotsTableCheckbox( -625, -250, 2 ),
+          mSlotsGroundCheckbox( -625, -270, 2 ),
+          mSlotsLockedCheckbox( -625, -330, 2 ),
+          mSlotsNoSwapCheckbox( -625, -350, 2 ),
           mNoFlipCheckbox( 460, -260, 2 ),
           mSideAccessCheckbox( 460, -240, 2 ),
           mDeadlyDistanceField( smallFont, 
@@ -127,8 +130,8 @@ EditorObjectPage::EditorObjectPage()
           mImportEditorButton( mainFont, -210, 260, "Sprites" ),
           mTransEditorButton( mainFont, 210, 260, "Trans" ),
           mAnimEditorButton( mainFont, 330, 260, "Anim" ),
-          mMoreSlotsButton( smallFont, -280, -110, "More" ),
-          mLessSlotsButton( smallFont, -280, -166, "Less" ),
+          mMoreSlotsButton( smallFont, -625, -110, "More" ),
+          mLessSlotsButton( smallFont, -625, -166, "Less" ),
           mAgingLayerCheckbox( 290, -22, 2 ),
           mHeadLayerCheckbox( 290, 104, 2 ),
           mBodyLayerCheckbox( 290, 84, 2 ),
@@ -157,6 +160,7 @@ EditorObjectPage::EditorObjectPage()
           mDeathMarkerCheckbox( 290, -190, 2 ),
           mHomeMarkerCheckbox( 100, -120, 2 ),
           mFloorCheckbox( 635, -210, 2 ),
+          mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
           mRideableCheckbox( 290, 16, 2 ),
           mBlocksWalkingCheckbox( 290, -4, 2 ),
@@ -188,8 +192,8 @@ EditorObjectPage::EditorObjectPage()
           mSimUseSlider( smallFont, 220, 64, 2, 50, 20, 0, 10, "" ),
           mDemoClothesButton( smallFont, 300, 200, "Pos" ),
           mEndClothesDemoButton( smallFont, 300, 160, "XPos" ),
-          mDemoSlotsButton( smallFont, -200, -166, "Demo Slots" ),
-          mClearSlotsDemoButton( smallFont, -200, -166, "End Demo" ),
+          mDemoSlotsButton( smallFont, -625, -70, "Demo Slots" ),
+          mClearSlotsDemoButton( smallFont, -625, -70, "End Demo" ),
           mSetHeldPosButton( smallFont, 250, -32, "Held Pos" ),
           mEndSetHeldPosButton( smallFont, 240, -76, "End Held" ),
           mNextHeldDemoButton( smallFont, 312, -76, ">" ),
@@ -213,7 +217,7 @@ EditorObjectPage::EditorObjectPage()
           mValueSlider( smallFont, -90, -189, 2,
                         75, 20,
                         0, 1, "V" ),
-          mSlotVertCheckbox( -150, -138, 2 ),
+          mSlotVertCheckbox( -625, -310, 2 ),
           mCreationSoundWidget( smallFont, -300, -310 ),
           mUsingSoundWidget( smallFont, -50, -310 ),
           mEatingSoundWidget( smallFont, +200, -310 ),
@@ -243,6 +247,7 @@ EditorObjectPage::EditorObjectPage()
 
     mSetClothesPos = false;
     
+    mDescriptionField.usePasteShortcut( true );
 
     addComponent( &mDescriptionField );
     addComponent( &mMapChanceField );
@@ -255,6 +260,9 @@ EditorObjectPage::EditorObjectPage()
     addComponent( &mContainSizeField );
     addComponent( &mSlotSizeField );
     addComponent( &mSlotTimeStretchField );
+    addComponent( &mSlotsBoxCheckbox );
+    addComponent( &mSlotsTableCheckbox );
+    addComponent( &mSlotsGroundCheckbox );
     addComponent( &mSlotsLockedCheckbox );
     addComponent( &mSlotsNoSwapCheckbox );
     
@@ -278,6 +286,9 @@ EditorObjectPage::EditorObjectPage()
     mContainSizeField.setVisible( false );
     mSlotSizeField.setVisible( false );
     mSlotTimeStretchField.setVisible( false );
+    mSlotsBoxCheckbox.setVisible( false );
+    mSlotsTableCheckbox.setVisible( false );
+    mSlotsGroundCheckbox.setVisible( false );
     mSlotsLockedCheckbox.setVisible( false );
     mSlotsNoSwapCheckbox.setVisible( false );
     
@@ -336,6 +347,10 @@ EditorObjectPage::EditorObjectPage()
     
     mDemoVertRotButton.addActionListener( this );
     mResetVertRotButton.addActionListener( this );
+    
+    mSlotsBoxCheckbox.addActionListener( this );
+    mSlotsTableCheckbox.addActionListener( this );
+    mSlotsGroundCheckbox.addActionListener( this );
     
     mDemoVertRotButton.setVisible( false );
     mResetVertRotButton.setVisible( false );
@@ -511,6 +526,7 @@ EditorObjectPage::EditorObjectPage()
     
     mCurrentObject.numSlots = 0;
     mCurrentObject.slotPos = new doublePair[ 0 ];
+    mCurrentObject.slotStyle = 0;
     mCurrentObject.slotVert = new char[ 0 ];
     mCurrentObject.slotParent = new int[ 0 ];
     
@@ -614,6 +630,8 @@ EditorObjectPage::EditorObjectPage()
     addComponent( &mFloorCheckbox );
     mFloorCheckbox.setVisible( true );
     mFloorCheckbox.addActionListener( this );
+    addComponent( &mPartialFloorCheckbox );
+    mPartialFloorCheckbox.setVisible( false );
     
 
     addComponent( &mHeldInHandCheckbox );
@@ -715,6 +733,7 @@ EditorObjectPage::EditorObjectPage()
     addKeyClassDescription( &mKeyLegend, "arrows", "Move layer" );
     addKeyClassDescription( &mKeyLegend, "Pg Up/Down", "Layer order" );
     addKeyClassDescription( &mKeyLegend, "Ctr/Shft", "Bigger jumps" );
+    addKeyDescription( &mKeyLegend, 'F', "Flip whole object" );
     addKeyDescription( &mKeyLegend, 'r', "Rotate layer" );
     addKeyDescription( &mKeyLegend, 'p', "Ignore parent links" );
     addKeyClassDescription( &mKeyLegend, "c/v", "Copy/paste color" );
@@ -931,6 +950,9 @@ void EditorObjectPage::updateAgingPanel() {
         if( ! mContainSizeField.isVisible() ) {
             mFloorCheckbox.setVisible( true );
             }
+        if( mFloorCheckbox.getToggled() ) {
+            mPartialFloorCheckbox.setVisible( true );
+            }
         
         mHeldInHandCheckbox.setVisible( true );
         mRideableCheckbox.setVisible( true );
@@ -965,6 +987,8 @@ void EditorObjectPage::updateAgingPanel() {
 
         mFloorCheckbox.setToggled( false );
         mFloorCheckbox.setVisible( false );
+        mPartialFloorCheckbox.setToggled( false );
+        mPartialFloorCheckbox.setVisible( false );
         
         mNumUsesField.setInt( 1 );
         mUseChanceField.setFloat( 1, 4, true );
@@ -1478,6 +1502,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mDeathMarkerCheckbox.getToggled(),
                    mHomeMarkerCheckbox.getToggled(),
                    mFloorCheckbox.getToggled(),
+                   mPartialFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
                    mWallLayerCheckbox.getToggled(),
                    mFrontWallCheckbox.getToggled(),
@@ -1497,6 +1522,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mCurrentObject.numSlots,
                    mSlotSizeField.getFloat(),
                    mCurrentObject.slotPos,
+                   mCurrentObject.slotStyle,
                    mCurrentObject.slotVert,
                    mCurrentObject.slotParent,
                    mSlotTimeStretchField.getFloat(),
@@ -1630,6 +1656,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mDeathMarkerCheckbox.getToggled(),
                    mHomeMarkerCheckbox.getToggled(),
                    mFloorCheckbox.getToggled(),
+                   mPartialFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
                    mWallLayerCheckbox.getToggled(),
                    mFrontWallCheckbox.getToggled(),
@@ -1649,6 +1676,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mCurrentObject.numSlots,
                    mSlotSizeField.getFloat(), 
                    mCurrentObject.slotPos,
+                   mCurrentObject.slotStyle,
                    mCurrentObject.slotVert,
                    mCurrentObject.slotParent,
                    mSlotTimeStretchField.getFloat(),
@@ -1737,17 +1765,25 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         mContainSizeField.setFloat( 1, 4, true );
         mSlotSizeField.setFloat( 1, 4, true );
         mSlotTimeStretchField.setText( "1.0" );
+        mSlotsBoxCheckbox.setToggled( false );
+        mSlotsTableCheckbox.setToggled( false );
+        mSlotsGroundCheckbox.setToggled( false );
         mSlotsLockedCheckbox.setToggled( false );
         mSlotsNoSwapCheckbox.setToggled( false );
 
         mContainSizeField.setVisible( false );
         mSlotSizeField.setVisible( false );
         mSlotTimeStretchField.setVisible( false );
+        mSlotsBoxCheckbox.setVisible( false );
+        mSlotsTableCheckbox.setVisible( false );
+        mSlotsGroundCheckbox.setVisible( false );
         mSlotsLockedCheckbox.setVisible( false );
         mSlotsNoSwapCheckbox.setVisible( false );
         
         mFloorCheckbox.setToggled( false );
         mFloorCheckbox.setVisible( true );
+        mPartialFloorCheckbox.setToggled( false );
+        mPartialFloorCheckbox.setVisible( false );
         
 
         mDeadlyDistanceField.setInt( 0 );
@@ -2022,6 +2058,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         
         mSlotSizeField.setVisible( true );
         mSlotTimeStretchField.setVisible( true );
+        mSlotsBoxCheckbox.setVisible( true );
+        mSlotsTableCheckbox.setVisible( true );
+        mSlotsGroundCheckbox.setVisible( true );
         mSlotsLockedCheckbox.setVisible( true );
         mSlotsNoSwapCheckbox.setVisible( true );
         
@@ -2051,7 +2090,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 
                 mSlotTimeStretchField.setText( "1.0" );
                 mSlotTimeStretchField.setVisible( false );
-                
+                mSlotsBoxCheckbox.setToggled( false );
+                mSlotsBoxCheckbox.setVisible( false );
+                mSlotsTableCheckbox.setToggled( false );
+                mSlotsTableCheckbox.setVisible( false );
+                mSlotsGroundCheckbox.setToggled( false );
+                mSlotsGroundCheckbox.setVisible( false );
                 mSlotsLockedCheckbox.setToggled( false );
                 mSlotsLockedCheckbox.setVisible( false );
                 mSlotsNoSwapCheckbox.setToggled( false );
@@ -2063,6 +2107,36 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 
                 mInvisibleWhenContainedCheckbox.setVisible( false );
                 }
+            }
+        }
+    else if( inTarget == &mSlotsBoxCheckbox ) {    
+        if( mSlotsBoxCheckbox.getToggled() ) {
+            mSlotsTableCheckbox.setToggled( false );
+            mSlotsGroundCheckbox.setToggled( false );
+            mCurrentObject.slotStyle = 0;
+            }
+        else {
+            mCurrentObject.slotStyle = 0;
+            }
+        }
+    else if( inTarget == &mSlotsTableCheckbox ) {    
+        if( mSlotsTableCheckbox.getToggled() ) {
+            mSlotsBoxCheckbox.setToggled( false );
+            mSlotsGroundCheckbox.setToggled( false );
+            mCurrentObject.slotStyle = 1;
+            }
+        else {
+            mCurrentObject.slotStyle = 0;
+            }
+        }
+    else if( inTarget == &mSlotsGroundCheckbox ) {    
+        if( mSlotsGroundCheckbox.getToggled() ) {
+            mSlotsBoxCheckbox.setToggled( false );
+            mSlotsTableCheckbox.setToggled( false );
+            mCurrentObject.slotStyle = 2;
+            }
+        else {
+            mCurrentObject.slotStyle = 0;
             }
         }
     else if( inTarget == &mDemoSlotsButton ) {
@@ -2229,6 +2303,15 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDemoVertRotButton.setFillColor( 0.5, 0.0, 0.0, 1 );
             mRot45ForwardButton.setVisible( true );
             mRot45BackwardButton.setVisible( true );
+            }
+        }
+    else if( inTarget == &mFloorCheckbox ) {
+        if( mFloorCheckbox.getToggled() ) {
+            mPartialFloorCheckbox.setVisible( true );
+            }
+        else {
+            mPartialFloorCheckbox.setVisible( false );
+            mPartialFloorCheckbox.setToggled( false );
             }
         }
     else if( inTarget == &mHeldInHandCheckbox ) {
@@ -2634,7 +2717,25 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         
         int objectID = mObjectPicker.getSelectedObject( &rightClick );
 
+        // shift right-click means interleave on insertion
+        char shiftClick = isShiftKeyDown();
         
+        // ctrl-click means insert above current layer
+        char commandClick = isCommandKeyDown();
+
+
+        int oldNumSprites = mCurrentObject.numSprites;
+
+        
+        int insertBelowLayers = 0;
+        
+        if( commandClick ) {
+            insertBelowLayers = 
+                mCurrentObject.numSprites - mPickedObjectLayer - 1;
+            }
+        
+        
+
         // auto-end the held-pos setting if a new object is picked
         // (also, potentially enable the setting button for the first time) 
         if( objectID != -1 && ! mDemoSlots ) {
@@ -2659,8 +2760,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         else if( objectID != -1 && rightClick ) {
             ObjectRecord *pickedRecord = getObject( objectID );
 
-            int oldNumSprites = mCurrentObject.numSprites;
             
+            int jumpPerSprite = 0;
+            
+            if( shiftClick ) {
+                jumpPerSprite = oldNumSprites / pickedRecord->numSprites;
+                }
             for( int i=0; i<pickedRecord->numSprites; i++ ) {
                 
                 addNewSprite( pickedRecord->sprites[i] );
@@ -2701,10 +2806,43 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                     mCurrentObject.spriteParent[i + oldNumSprites] = 
                         pickedRecord->spriteParent[i] + oldNumSprites;
                     }
+                
+                if( pickedRecord->numUses > 0 &&
+                    mNumUsesField.getInt() > 0 ) {
+                    
+                    mCurrentObject.spriteUseVanish[i + oldNumSprites] =
+                        pickedRecord->spriteUseVanish[i];
+                    
+                    mCurrentObject.spriteUseAppear[i + oldNumSprites] =
+                        pickedRecord->spriteUseAppear[i];
+                    }
                 }
+            if( jumpPerSprite > 0 ) {
+                for( int i=0; i<pickedRecord->numSprites; i++ ) {
+                    int thisJumpDown = 
+                        ( pickedRecord->numSprites - i  - 1 ) * jumpPerSprite;
+                    if( thisJumpDown > 0 ) {
+                        mPickedObjectLayer = i + oldNumSprites;
+                        moveSpriteLayerDown( thisJumpDown );
+                        }
+                    }
+                }
+            else if( insertBelowLayers > 0 ) {
+                for( int i=0; i<pickedRecord->numSprites; i++ ) {
+                    mPickedObjectLayer = i + oldNumSprites;
+                    moveSpriteLayerDown( insertBelowLayers );
+                    }
+                }
+            
 
             // make bottom layer of inserted object the active layer
-            mPickedObjectLayer = oldNumSprites;
+            if( commandClick ) {
+                // inserted above old pick
+                mPickedObjectLayer = mPickedObjectLayer + 1;
+                }
+            else {
+                mPickedObjectLayer = oldNumSprites;
+                }
             mPickedSlot = -1;
             
             pickedLayerChanged();
@@ -2765,6 +2903,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mSlotSizeField.setFloat( pickedRecord->slotSize, 4, true );
             mSlotTimeStretchField.setFloat( pickedRecord->slotTimeStretch,
                                             -1, true );
+            mSlotsBoxCheckbox.setToggled( pickedRecord->slotStyle == 0 );
+            mSlotsTableCheckbox.setToggled( pickedRecord->slotStyle == 1 );
+            mSlotsGroundCheckbox.setToggled( pickedRecord->slotStyle == 2 );
             mSlotsLockedCheckbox.setToggled( pickedRecord->slotsLocked );
             mSlotsNoSwapCheckbox.setToggled( pickedRecord->slotsNoSwap );
             
@@ -3035,6 +3176,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDeathMarkerCheckbox.setToggled( pickedRecord->deathMarker );
             mHomeMarkerCheckbox.setToggled( pickedRecord->homeMarker );
             mFloorCheckbox.setToggled( pickedRecord->floor );
+            mPartialFloorCheckbox.setToggled( pickedRecord->noCover );
             
             mCreationSoundWidget.setSoundUsage( pickedRecord->creationSound );
             mUsingSoundWidget.setSoundUsage( pickedRecord->usingSound );
@@ -3138,6 +3280,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             pickedLayerChanged();
 
             mFloorCheckbox.setVisible( false );
+            mPartialFloorCheckbox.setVisible( false );
             
             if( ! pickedRecord->containable ) {
                 mContainSizeField.setFloat( 1, 4, true );
@@ -3145,6 +3288,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 
                 if( ! mCheckboxes[2]->getToggled() ) {
                     mFloorCheckbox.setVisible( true );
+                    }
+                if( mFloorCheckbox.getToggled() ) {
+                    mPartialFloorCheckbox.setVisible( true );
                     }
                 }
             else {
@@ -3158,6 +3304,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mSlotTimeStretchField.setText( "1.0" );
                 mSlotTimeStretchField.setVisible( false );
                 
+                mSlotsBoxCheckbox.setToggled( false );
+                mSlotsBoxCheckbox.setVisible( false );
+                mSlotsTableCheckbox.setToggled( false );
+                mSlotsTableCheckbox.setVisible( false );
+                mSlotsGroundCheckbox.setToggled( false );
+                mSlotsGroundCheckbox.setVisible( false );
                 mSlotsLockedCheckbox.setToggled( false );
                 mSlotsLockedCheckbox.setVisible( false );
                 mSlotsNoSwapCheckbox.setToggled( false );
@@ -3166,6 +3318,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             else {
                 mSlotSizeField.setVisible( true );
                 mSlotTimeStretchField.setVisible( true );
+                mSlotsBoxCheckbox.setVisible( true );
+                mSlotsTableCheckbox.setVisible( true );
+                mSlotsGroundCheckbox.setVisible( true );
                 mSlotsLockedCheckbox.setVisible( true );
                 mSlotsNoSwapCheckbox.setVisible( true );
                 }
@@ -3179,6 +3334,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mContainSizeField.setVisible( true );
             mFloorCheckbox.setToggled( false );
             mFloorCheckbox.setVisible( false );
+            mPartialFloorCheckbox.setToggled( false );
+            mPartialFloorCheckbox.setVisible( false );
             
             mPersonAgeSlider.setVisible( false );
             mCheckboxes[2]->setToggled( false );
@@ -3199,6 +3356,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mContainSizeField.setFloat( 1, 4, true );
             mContainSizeField.setVisible( false );
             mFloorCheckbox.setVisible( true );
+            if( mFloorCheckbox.getToggled() ) {
+                mPartialFloorCheckbox.setVisible( true );
+                }
             mCurrentObject.vertContainRotationOffset = 0;
             hideVertRotButtons();
             }
@@ -3220,6 +3380,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             hideVertRotButtons();
             
             mFloorCheckbox.setVisible( true );
+            if( mFloorCheckbox.getToggled() ) {
+                mPartialFloorCheckbox.setVisible( true );
+                }
 
             mCurrentObject.vertContainRotationOffset = 0;
             
@@ -3228,6 +3391,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mSlotTimeStretchField.setText( "1.0" );
             mSlotTimeStretchField.setVisible( false );
             
+            mSlotsBoxCheckbox.setToggled( false );
+            mSlotsBoxCheckbox.setVisible( false );
+            mSlotsTableCheckbox.setToggled( false );
+            mSlotsTableCheckbox.setVisible( false );
+            mSlotsGroundCheckbox.setToggled( false );
+            mSlotsGroundCheckbox.setVisible( false );
             mSlotsLockedCheckbox.setToggled( false );
             mSlotsLockedCheckbox.setVisible( false );
             mSlotsNoSwapCheckbox.setToggled( false );
@@ -3878,11 +4047,14 @@ void EditorObjectPage::draw( doublePair inViewCenter,
 
                 doublePair centerOffset;
 
-                if( allBehind ) {
+                if( mCurrentObject.slotStyle == 0 ) {
                     centerOffset = getObjectBottomCenterOffset( demoObject );
                     }
-                else {
+                else if( mCurrentObject.slotStyle == 1 ) {
                     centerOffset = getObjectCenterOffset( demoObject );
+                    }
+                else if( mCurrentObject.slotStyle == 2 ) {
+                    centerOffset = {0, 0};
                     }
 
 
@@ -4121,6 +4293,15 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         }
     
 
+    if( mSlotsBoxCheckbox.isVisible() ) {
+        pos = mSlotsBoxCheckbox.getPosition();
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Box-like", pos, alignRight );
+        pos.y -= 20;
+        smallFont->drawString( "Table-like", pos, alignRight );
+        pos.y -= 20;
+        smallFont->drawString( "Ground-like", pos, alignRight );
+        }
     if( mSlotsLockedCheckbox.isVisible() ) {
         pos = mSlotsLockedCheckbox.getPosition();
         pos.x -= checkboxSep;
@@ -4186,6 +4367,11 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         pos = mFloorCheckbox.getPosition();
         pos.x -= checkboxSep;
         smallFont->drawString( "Floor", pos, alignRight );
+        }
+    if( mPartialFloorCheckbox.isVisible() ) {
+        pos = mPartialFloorCheckbox.getPosition();
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Partial Floor", pos, alignRight );
         }
 
     if( mHeldInHandCheckbox.isVisible() ) {
@@ -4331,8 +4517,10 @@ void EditorObjectPage::draw( doublePair inViewCenter,
 
         doublePair spritePos = mCurrentObject.spritePos[ mPickedObjectLayer ];
         
-        char *posString = autoSprintf( "  ( %.0f, %.0f )",
-                                       spritePos.x, spritePos.y );
+        char *posString = autoSprintf( 
+            " - %d  ( %.0f, %.0f )",
+            mCurrentObject.sprites[ mPickedObjectLayer ],
+            spritePos.x, spritePos.y );
         
         smallFont->drawString( tag, pos, alignRight );
         
@@ -4364,7 +4552,7 @@ void EditorObjectPage::draw( doublePair inViewCenter,
     doublePair legendPos = mImportEditorButton.getPosition();
     
     legendPos.x = -100;
-    legendPos.y += 52;
+    legendPos.y += 72;
     
     drawKeyLegend( &mKeyLegend, legendPos );
 
@@ -4505,7 +4693,19 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         badWords.deallocateStringElements();
         }
 
-
+    if( mCurrentObject.id != -1 ) {
+        doublePair pos = mDescriptionField.getPosition();
+            
+        pos.x += 170;
+            
+        setDrawColor( 1, 1, 1, 1 );
+        
+        char *idString = autoSprintf( "%d", mCurrentObject.id );
+        
+        smallFont->drawString( idString, pos, alignLeft );
+        delete [] idString;
+        }
+    
 
 
 
@@ -5246,12 +5446,329 @@ static int *deleteFromIntArray( int *inArray, int inOldLength,
     }
 
 
+extern char upKey;
+extern char leftKey;
+extern char downKey;
+extern char rightKey;
+
+void EditorObjectPage::moveSpriteLayerDown( int inOffset ) {
+    int offset = inOffset;
+    
+    for( int o=0; o<offset; o++ ) {
+                    
+        int layerOffset = 1;
+        if( mPickedObjectLayer - 1 < 0 ) {
+            layerOffset = mPickedObjectLayer;
+            }
+
+        if( mPickedObjectLayer >= layerOffset ) {
+
+            // two indices being swapped
+            int indexA = mPickedObjectLayer;
+            int indexB = mPickedObjectLayer - layerOffset;
+
+
+            LayerSwapRecord swap = { indexA, indexB };
+                        
+            mObjectLayerSwaps.push_back( swap );
+
+
+            int tempSprite = 
+                mCurrentObject.sprites[mPickedObjectLayer - 
+                                       layerOffset];
+            doublePair tempPos = 
+                mCurrentObject.spritePos[mPickedObjectLayer - 
+                                         layerOffset];
+
+            double tempRot = 
+                mCurrentObject.spriteRot[mPickedObjectLayer - 
+                                         layerOffset];
+
+            char tempHFlip = 
+                mCurrentObject.spriteHFlip[mPickedObjectLayer - 
+                                           layerOffset];
+
+            FloatRGB tempColor = 
+                mCurrentObject.spriteColor[mPickedObjectLayer - 
+                                           layerOffset];
+                
+            double tempAgeStart = 
+                mCurrentObject.spriteAgeStart[mPickedObjectLayer - 
+                                              layerOffset];
+            double tempAgeEnd = 
+                mCurrentObject.spriteAgeEnd[mPickedObjectLayer - 
+                                            layerOffset];
+            int tempParent = 
+                mCurrentObject.spriteParent[mPickedObjectLayer - 
+                                            layerOffset];
+                    
+            char tempInvisibleWhenHolding = 
+                mCurrentObject.spriteInvisibleWhenHolding[
+                    mPickedObjectLayer - 
+                    layerOffset];
+
+            int tempInvisibleWhenWorn = 
+                mCurrentObject.spriteInvisibleWhenWorn[
+                    mPickedObjectLayer - 
+                    layerOffset];
+
+            char tempInvisibleWhenContained = 
+                mCurrentObject.spriteInvisibleWhenContained[
+                    mPickedObjectLayer - 
+                    layerOffset];
+
+            char tempBehindSlots = 
+                mCurrentObject.spriteBehindSlots[
+                    mPickedObjectLayer - 
+                    layerOffset];
+            char tempBehindPlayer = 
+                mCurrentObject.spriteBehindPlayer[
+                    mPickedObjectLayer - 
+                    layerOffset];
+            char tempAdditiveBlend = 
+                mCurrentObject.spriteAdditiveBlend[
+                    mPickedObjectLayer - 
+                    layerOffset];
+
+
+            char tempIsHead = 
+                mCurrentObject.spriteIsHead[
+                    mPickedObjectLayer - 
+                    layerOffset];
+            char tempIsBody = 
+                mCurrentObject.spriteIsBody[
+                    mPickedObjectLayer - 
+                    layerOffset];
+            char tempIsBackFoot = 
+                mCurrentObject.spriteIsBackFoot[
+                    mPickedObjectLayer - 
+                    layerOffset];
+            char tempIsFrontFoot = 
+                mCurrentObject.spriteIsFrontFoot[
+                    mPickedObjectLayer - 
+                    layerOffset];
+
+            char tempUseVanish = 
+                mCurrentObject.spriteUseVanish[
+                    mPickedObjectLayer - 
+                    layerOffset];
+            char tempUseAppear = 
+                mCurrentObject.spriteUseAppear[
+                    mPickedObjectLayer - 
+                    layerOffset];
+
+            mCurrentObject.sprites[mPickedObjectLayer - 
+                                   layerOffset]
+                = mCurrentObject.sprites[mPickedObjectLayer];
+                        
+            mCurrentObject.sprites[mPickedObjectLayer] = 
+                tempSprite;
+                
+            mCurrentObject.spritePos[mPickedObjectLayer - 
+                                     layerOffset]
+                = mCurrentObject.spritePos[mPickedObjectLayer];
+                        
+            mCurrentObject.spritePos[mPickedObjectLayer] = tempPos;
+
+            mCurrentObject.spriteRot[mPickedObjectLayer - 
+                                     layerOffset]
+                = mCurrentObject.spriteRot[mPickedObjectLayer];
+                        
+            mCurrentObject.spriteRot[mPickedObjectLayer] = tempRot;
+
+            mCurrentObject.spriteHFlip[mPickedObjectLayer - 
+                                       layerOffset]
+                = mCurrentObject.spriteHFlip[mPickedObjectLayer];
+                        
+            mCurrentObject.spriteHFlip[mPickedObjectLayer] = 
+                tempHFlip;
+
+
+            mCurrentObject.spriteColor[mPickedObjectLayer - 
+                                       layerOffset]
+                = mCurrentObject.spriteColor[mPickedObjectLayer];
+                        
+            mCurrentObject.spriteColor[mPickedObjectLayer] = 
+                tempColor;
+
+                
+            mCurrentObject.spriteAgeStart[mPickedObjectLayer 
+                                          - layerOffset]
+                = mCurrentObject.spriteAgeStart[
+                    mPickedObjectLayer];
+                        
+            mCurrentObject.spriteAgeStart[mPickedObjectLayer] = 
+                tempAgeStart;
+
+            mCurrentObject.spriteAgeEnd[mPickedObjectLayer 
+                                        - layerOffset]
+                = mCurrentObject.spriteAgeEnd[mPickedObjectLayer];
+            mCurrentObject.spriteAgeEnd[mPickedObjectLayer] = 
+                tempAgeEnd;
+
+            mCurrentObject.spriteParent[mPickedObjectLayer 
+                                        - layerOffset]
+                = mCurrentObject.spriteParent[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteParent[mPickedObjectLayer] = 
+                tempParent;
+
+                    
+            mCurrentObject.spriteInvisibleWhenHolding[
+                mPickedObjectLayer 
+                - layerOffset]
+                = mCurrentObject.spriteInvisibleWhenHolding[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteInvisibleWhenHolding[
+                mPickedObjectLayer] = tempInvisibleWhenHolding;
+
+            mCurrentObject.spriteInvisibleWhenWorn[
+                mPickedObjectLayer 
+                - layerOffset]
+                = mCurrentObject.spriteInvisibleWhenWorn[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteInvisibleWhenWorn[
+                mPickedObjectLayer] = tempInvisibleWhenWorn;
+                        
+            mCurrentObject.spriteInvisibleWhenContained[
+                mPickedObjectLayer 
+                - layerOffset]
+                = mCurrentObject.spriteInvisibleWhenContained[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteInvisibleWhenContained[
+                mPickedObjectLayer] = tempInvisibleWhenContained;
+
+            mCurrentObject.spriteBehindSlots[
+                mPickedObjectLayer 
+                - layerOffset]
+                = mCurrentObject.spriteBehindSlots[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteBehindSlots[
+                mPickedObjectLayer] = tempBehindSlots;
+
+            mCurrentObject.spriteBehindPlayer[
+                mPickedObjectLayer 
+                - layerOffset]
+                = mCurrentObject.spriteBehindPlayer[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteBehindPlayer[
+                mPickedObjectLayer] = tempBehindPlayer;
+
+            mCurrentObject.spriteAdditiveBlend[
+                mPickedObjectLayer 
+                - layerOffset]
+                = mCurrentObject.spriteAdditiveBlend[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteAdditiveBlend[
+                mPickedObjectLayer] = tempAdditiveBlend;
+
+
+
+            mCurrentObject.spriteIsHead[ mPickedObjectLayer 
+                                         - layerOffset ] =
+                mCurrentObject.spriteIsHead[mPickedObjectLayer];
+            mCurrentObject.spriteIsHead[mPickedObjectLayer] = 
+                tempIsHead;
+                
+            mCurrentObject.spriteIsBody[ mPickedObjectLayer 
+                                         - layerOffset ] =
+                mCurrentObject.spriteIsBody[mPickedObjectLayer];
+            mCurrentObject.spriteIsBody[mPickedObjectLayer] = 
+                tempIsBody;
+                
+            mCurrentObject.spriteIsBackFoot[ mPickedObjectLayer 
+                                             - layerOffset ] =
+                mCurrentObject.spriteIsBackFoot[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteIsBackFoot[mPickedObjectLayer] = 
+                tempIsBackFoot;
+                
+            mCurrentObject.spriteIsFrontFoot[ mPickedObjectLayer 
+                                              - layerOffset ] =
+                mCurrentObject.spriteIsFrontFoot[
+                    mPickedObjectLayer];
+            mCurrentObject.spriteIsFrontFoot[mPickedObjectLayer] = 
+                tempIsFrontFoot;
+
+
+            mCurrentObject.spriteUseVanish[ mPickedObjectLayer 
+                                            - layerOffset ] =
+                mCurrentObject.spriteUseVanish[mPickedObjectLayer];
+            mCurrentObject.spriteUseVanish[mPickedObjectLayer] = 
+                tempUseVanish;
+
+            mCurrentObject.spriteUseAppear[ mPickedObjectLayer 
+                                            - layerOffset ] =
+                mCurrentObject.spriteUseAppear[mPickedObjectLayer];
+            mCurrentObject.spriteUseAppear[mPickedObjectLayer] = 
+                tempUseAppear;
+                        
+
+            mPickedObjectLayer -= layerOffset;
+
+            // any children pointing to index A must now
+            // point to B and vice-versa
+            for( int i=0; i<mCurrentObject.numSprites; i++ ) {
+                if( mCurrentObject.spriteParent[i] == indexA ) {
+                    mCurrentObject.spriteParent[i] = indexB;
+                    }
+                else if( mCurrentObject.spriteParent[i] == 
+                         indexB ) {
+                    mCurrentObject.spriteParent[i] = indexA;
+                    }
+                }
+            for( int i=0; i<mCurrentObject.numSlots; i++ ) {
+                if( mCurrentObject.slotParent[i] == indexA ) {
+                    mCurrentObject.slotParent[i] = indexB;
+                    }
+                else if( mCurrentObject.slotParent[i] == indexB ) {
+                    mCurrentObject.slotParent[i] = indexA;
+                    }
+                }
+
+            }
+        }
+    }
+
+
 
 void EditorObjectPage::keyDown( unsigned char inASCII ) {
     if( mSaveFaces ) {
         // ignore events
         return;
         }
+        
+    //Picker keybinds
+    bool commandKey = isCommandKeyDown();
+    if( !commandKey && inASCII == 9 ) { // TAB
+        if( TextField::isAnyFocused() ) {
+            TextField::unfocusAll();
+        } else {
+            mObjectPicker.clearSearchField();
+            mObjectPicker.focusSearchField();
+        }
+        return;
+    } else if( commandKey && inASCII == 9 ) { // ctrl + TAB
+        mObjectPicker.setSearchField( "." );
+        TextField::unfocusAll();
+        return;
+    } else if( !TextField::isAnyFocused() && commandKey ) {
+        if( inASCII + 64 == toupper(upKey) ) {
+            mObjectPicker.selectUp();
+        } else if( inASCII + 64 == toupper(downKey) ) {
+            mObjectPicker.selectDown();
+            return;
+        }  else if( inASCII + 64 == toupper(rightKey) ) {
+            mObjectPicker.nextPage();
+        }  else if( inASCII + 64 == toupper(leftKey) ) {
+            mObjectPicker.prevPage();
+        }
+    } else if( !TextField::isAnyFocused() && inASCII == 13 ) {
+        actionPerformed( &mObjectPicker );
+    } else if( TextField::isAnyFocused() && inASCII == 13 ) {
+        TextField::unfocusAll();
+    }
+       
     
     if( TextField::isAnyFocused() || mSetHeldPos ) {
         return;
@@ -5297,25 +5814,44 @@ void EditorObjectPage::keyDown( unsigned char inASCII ) {
             }
         pickedLayerChanged();
         }
-    if( mPickedObjectLayer != -1 && inASCII == 'C' ) {
+    if( inASCII == 'C' ) {
         ObjectRecord *saved = getObject( mCurrentObject.id );
         
-        if( saved != NULL && saved->numSprites > mPickedObjectLayer ) {
-            mSaveDeltaPosClipboard = 
-                sub( mCurrentObject.spritePos[ mPickedObjectLayer ],
-                     saved->spritePos[ mPickedObjectLayer ] );
-            
-            mSaveDeltaRotClipboard = 
-                mCurrentObject.spriteRot[ mPickedObjectLayer ] -
-                saved->spriteRot[ mPickedObjectLayer ];
+        if( mPickedObjectLayer != -1 ) {
+            if( saved != NULL && saved->numSprites > mPickedObjectLayer ) {
+                mSaveDeltaPosClipboard = 
+                    sub( mCurrentObject.spritePos[ mPickedObjectLayer ],
+                         saved->spritePos[ mPickedObjectLayer ] );
+                
+                mSaveDeltaRotClipboard = 
+                    mCurrentObject.spriteRot[ mPickedObjectLayer ] -
+                    saved->spriteRot[ mPickedObjectLayer ];
+                }
+            }
+        else if( mPickedSlot != -1 ) {
+            if( saved != NULL && saved->numSlots > mPickedSlot ) {
+                mSaveDeltaPosClipboard = 
+                    sub( mCurrentObject.slotPos[ mPickedSlot ],
+                         saved->slotPos[ mPickedSlot ] );
+                
+                mSaveDeltaRotClipboard = 0;
+                }
             }
         }
-    if( mPickedObjectLayer != -1 && inASCII == 'V' ) {
-        mCurrentObject.spritePos[ mPickedObjectLayer ] = 
-            add( mCurrentObject.spritePos[ mPickedObjectLayer ],
-                 mSaveDeltaPosClipboard );
-        mCurrentObject.spriteRot[ mPickedObjectLayer ] += 
-            mSaveDeltaRotClipboard;
+    if( inASCII == 'V' ) {
+        if( mPickedObjectLayer != -1 ) {
+            mCurrentObject.spritePos[ mPickedObjectLayer ] = 
+                add( mCurrentObject.spritePos[ mPickedObjectLayer ],
+                     mSaveDeltaPosClipboard );
+            mCurrentObject.spriteRot[ mPickedObjectLayer ] += 
+                mSaveDeltaRotClipboard;
+            }
+        
+        else if( mPickedSlot != -1 ) {
+            mCurrentObject.slotPos[ mPickedSlot ] = 
+                add( mCurrentObject.slotPos[ mPickedSlot ],
+                     mSaveDeltaPosClipboard );
+            }
         pickedLayerChanged();
         }
     
@@ -5378,6 +5914,17 @@ void EditorObjectPage::keyDown( unsigned char inASCII ) {
             mCurrentObject.spriteUseAppear[layerToDupe];
 
         // don't dupe body part status
+        }
+    if( inASCII == 'F' ) {
+        // flip entire object
+        for( int i=0; i< mCurrentObject.numSprites; i++ ) {
+            mCurrentObject.spriteHFlip[i] =
+                ! mCurrentObject.spriteHFlip[i];
+            mCurrentObject.spritePos[i].x *= -1;
+            }
+        for( int i=0; i< mCurrentObject.numSlots; i++ ) {
+            mCurrentObject.slotPos[i].x *= -1;
+            }
         }
     if( mPickedObjectLayer != -1 && inASCII == 8 ) {
         // backspace
@@ -6137,280 +6684,7 @@ void EditorObjectPage::specialKeyDown( int inKeyCode ) {
                 break;
                 }
             case MG_KEY_PAGE_DOWN: {
-                for( int o=0; o<offset; o++ ) {
-                    
-                    int layerOffset = 1;
-                    if( mPickedObjectLayer - 1 < 0 ) {
-                        layerOffset = mPickedObjectLayer;
-                        }
-
-                    if( mPickedObjectLayer >= layerOffset ) {
-
-                        // two indices being swapped
-                        int indexA = mPickedObjectLayer;
-                        int indexB = mPickedObjectLayer - layerOffset;
-
-
-                        LayerSwapRecord swap = { indexA, indexB };
-                        
-                        mObjectLayerSwaps.push_back( swap );
-
-
-                        int tempSprite = 
-                            mCurrentObject.sprites[mPickedObjectLayer - 
-                                                   layerOffset];
-                        doublePair tempPos = 
-                            mCurrentObject.spritePos[mPickedObjectLayer - 
-                                                     layerOffset];
-
-                        double tempRot = 
-                            mCurrentObject.spriteRot[mPickedObjectLayer - 
-                                                     layerOffset];
-
-                        char tempHFlip = 
-                            mCurrentObject.spriteHFlip[mPickedObjectLayer - 
-                                                       layerOffset];
-
-                        FloatRGB tempColor = 
-                            mCurrentObject.spriteColor[mPickedObjectLayer - 
-                                                       layerOffset];
-                
-                        double tempAgeStart = 
-                            mCurrentObject.spriteAgeStart[mPickedObjectLayer - 
-                                                          layerOffset];
-                        double tempAgeEnd = 
-                            mCurrentObject.spriteAgeEnd[mPickedObjectLayer - 
-                                                        layerOffset];
-                        int tempParent = 
-                            mCurrentObject.spriteParent[mPickedObjectLayer - 
-                                                        layerOffset];
-                    
-                        char tempInvisibleWhenHolding = 
-                            mCurrentObject.spriteInvisibleWhenHolding[
-                                mPickedObjectLayer - 
-                                layerOffset];
-
-                        int tempInvisibleWhenWorn = 
-                            mCurrentObject.spriteInvisibleWhenWorn[
-                                mPickedObjectLayer - 
-                                layerOffset];
-
-                        char tempInvisibleWhenContained = 
-                            mCurrentObject.spriteInvisibleWhenContained[
-                                mPickedObjectLayer - 
-                                layerOffset];
-
-                        char tempBehindSlots = 
-                            mCurrentObject.spriteBehindSlots[
-                                mPickedObjectLayer - 
-                                layerOffset];
-                        char tempBehindPlayer = 
-                            mCurrentObject.spriteBehindPlayer[
-                                mPickedObjectLayer - 
-                                layerOffset];
-                        char tempAdditiveBlend = 
-                            mCurrentObject.spriteAdditiveBlend[
-                                mPickedObjectLayer - 
-                                layerOffset];
-
-
-                        char tempIsHead = 
-                            mCurrentObject.spriteIsHead[
-                                mPickedObjectLayer - 
-                                layerOffset];
-                        char tempIsBody = 
-                            mCurrentObject.spriteIsBody[
-                                mPickedObjectLayer - 
-                                layerOffset];
-                        char tempIsBackFoot = 
-                            mCurrentObject.spriteIsBackFoot[
-                                mPickedObjectLayer - 
-                                layerOffset];
-                        char tempIsFrontFoot = 
-                            mCurrentObject.spriteIsFrontFoot[
-                                mPickedObjectLayer - 
-                                layerOffset];
-
-                        char tempUseVanish = 
-                            mCurrentObject.spriteUseVanish[
-                                mPickedObjectLayer - 
-                                layerOffset];
-                        char tempUseAppear = 
-                            mCurrentObject.spriteUseAppear[
-                                mPickedObjectLayer - 
-                                layerOffset];
-
-                        mCurrentObject.sprites[mPickedObjectLayer - 
-                                               layerOffset]
-                            = mCurrentObject.sprites[mPickedObjectLayer];
-                        
-                        mCurrentObject.sprites[mPickedObjectLayer] = 
-                            tempSprite;
-                
-                        mCurrentObject.spritePos[mPickedObjectLayer - 
-                                                 layerOffset]
-                            = mCurrentObject.spritePos[mPickedObjectLayer];
-                        
-                        mCurrentObject.spritePos[mPickedObjectLayer] = tempPos;
-
-                        mCurrentObject.spriteRot[mPickedObjectLayer - 
-                                                 layerOffset]
-                            = mCurrentObject.spriteRot[mPickedObjectLayer];
-                        
-                        mCurrentObject.spriteRot[mPickedObjectLayer] = tempRot;
-
-                        mCurrentObject.spriteHFlip[mPickedObjectLayer - 
-                                                   layerOffset]
-                            = mCurrentObject.spriteHFlip[mPickedObjectLayer];
-                        
-                        mCurrentObject.spriteHFlip[mPickedObjectLayer] = 
-                            tempHFlip;
-
-
-                        mCurrentObject.spriteColor[mPickedObjectLayer - 
-                                                   layerOffset]
-                            = mCurrentObject.spriteColor[mPickedObjectLayer];
-                        
-                        mCurrentObject.spriteColor[mPickedObjectLayer] = 
-                            tempColor;
-
-                
-                        mCurrentObject.spriteAgeStart[mPickedObjectLayer 
-                                                      - layerOffset]
-                            = mCurrentObject.spriteAgeStart[
-                                mPickedObjectLayer];
-                        
-                        mCurrentObject.spriteAgeStart[mPickedObjectLayer] = 
-                            tempAgeStart;
-
-                        mCurrentObject.spriteAgeEnd[mPickedObjectLayer 
-                                                    - layerOffset]
-                            = mCurrentObject.spriteAgeEnd[mPickedObjectLayer];
-                        mCurrentObject.spriteAgeEnd[mPickedObjectLayer] = 
-                            tempAgeEnd;
-
-                        mCurrentObject.spriteParent[mPickedObjectLayer 
-                                                    - layerOffset]
-                            = mCurrentObject.spriteParent[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteParent[mPickedObjectLayer] = 
-                            tempParent;
-
-                    
-                        mCurrentObject.spriteInvisibleWhenHolding[
-                            mPickedObjectLayer 
-                            - layerOffset]
-                            = mCurrentObject.spriteInvisibleWhenHolding[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteInvisibleWhenHolding[
-                            mPickedObjectLayer] = tempInvisibleWhenHolding;
-
-                        mCurrentObject.spriteInvisibleWhenWorn[
-                            mPickedObjectLayer 
-                            - layerOffset]
-                            = mCurrentObject.spriteInvisibleWhenWorn[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteInvisibleWhenWorn[
-                            mPickedObjectLayer] = tempInvisibleWhenWorn;
-                        
-                        mCurrentObject.spriteInvisibleWhenContained[
-                            mPickedObjectLayer 
-                            - layerOffset]
-                            = mCurrentObject.spriteInvisibleWhenContained[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteInvisibleWhenContained[
-                            mPickedObjectLayer] = tempInvisibleWhenContained;
-
-                        mCurrentObject.spriteBehindSlots[
-                            mPickedObjectLayer 
-                            - layerOffset]
-                            = mCurrentObject.spriteBehindSlots[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteBehindSlots[
-                            mPickedObjectLayer] = tempBehindSlots;
-
-                        mCurrentObject.spriteBehindPlayer[
-                            mPickedObjectLayer 
-                            - layerOffset]
-                            = mCurrentObject.spriteBehindPlayer[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteBehindPlayer[
-                            mPickedObjectLayer] = tempBehindPlayer;
-
-                        mCurrentObject.spriteAdditiveBlend[
-                            mPickedObjectLayer 
-                            - layerOffset]
-                            = mCurrentObject.spriteAdditiveBlend[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteAdditiveBlend[
-                            mPickedObjectLayer] = tempAdditiveBlend;
-
-
-
-                        mCurrentObject.spriteIsHead[ mPickedObjectLayer 
-                                                 - layerOffset ] =
-                            mCurrentObject.spriteIsHead[mPickedObjectLayer];
-                        mCurrentObject.spriteIsHead[mPickedObjectLayer] = 
-                            tempIsHead;
-                
-                        mCurrentObject.spriteIsBody[ mPickedObjectLayer 
-                                                 - layerOffset ] =
-                            mCurrentObject.spriteIsBody[mPickedObjectLayer];
-                        mCurrentObject.spriteIsBody[mPickedObjectLayer] = 
-                            tempIsBody;
-                
-                        mCurrentObject.spriteIsBackFoot[ mPickedObjectLayer 
-                                                 - layerOffset ] =
-                            mCurrentObject.spriteIsBackFoot[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteIsBackFoot[mPickedObjectLayer] = 
-                            tempIsBackFoot;
-                
-                        mCurrentObject.spriteIsFrontFoot[ mPickedObjectLayer 
-                                                 - layerOffset ] =
-                            mCurrentObject.spriteIsFrontFoot[
-                                mPickedObjectLayer];
-                        mCurrentObject.spriteIsFrontFoot[mPickedObjectLayer] = 
-                            tempIsFrontFoot;
-
-
-                        mCurrentObject.spriteUseVanish[ mPickedObjectLayer 
-                                                     - layerOffset ] =
-                            mCurrentObject.spriteUseVanish[mPickedObjectLayer];
-                        mCurrentObject.spriteUseVanish[mPickedObjectLayer] = 
-                            tempUseVanish;
-
-                        mCurrentObject.spriteUseAppear[ mPickedObjectLayer 
-                                                     - layerOffset ] =
-                            mCurrentObject.spriteUseAppear[mPickedObjectLayer];
-                        mCurrentObject.spriteUseAppear[mPickedObjectLayer] = 
-                            tempUseAppear;
-                        
-
-                        mPickedObjectLayer -= layerOffset;
-
-                        // any children pointing to index A must now
-                        // point to B and vice-versa
-                        for( int i=0; i<mCurrentObject.numSprites; i++ ) {
-                            if( mCurrentObject.spriteParent[i] == indexA ) {
-                                mCurrentObject.spriteParent[i] = indexB;
-                                }
-                            else if( mCurrentObject.spriteParent[i] == 
-                                     indexB ) {
-                                mCurrentObject.spriteParent[i] = indexA;
-                                }
-                            }
-                        for( int i=0; i<mCurrentObject.numSlots; i++ ) {
-                            if( mCurrentObject.slotParent[i] == indexA ) {
-                                mCurrentObject.slotParent[i] = indexB;
-                                }
-                            else if( mCurrentObject.slotParent[i] == indexB ) {
-                                mCurrentObject.slotParent[i] = indexA;
-                                }
-                            }
-
-                        }
-                    }
+                moveSpriteLayerDown( offset );
                 break;   
                 }
             }
