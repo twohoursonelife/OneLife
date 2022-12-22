@@ -17512,6 +17512,17 @@ void LivingLifePage::step() {
                                         existing->lineage.push_back( mID );
                                         }
                                     }
+
+                                if( id == ourID ) {
+                                    int dontEatTheFruit = SettingsManager::getIntSetting( "dontEatTheFruit", -1 );
+                                    // TODO: If fertility age is ever not hard coded, maybe put it here?
+                                    if (dontEatTheFruit > 0 and existing->lineageEveID == ourID and existing->age < 15.0) {
+                                        // We are Eve, not yet fertile, and have chosen not to eat the fruit. No BB plz.
+                                        Thread::staticSleep( 1000 ); // Server ignores say commands sent in the first second after creation.
+                                        sendToServerSocket((char*)"SAY 0 0 NO BB#");
+                                        printf("dontEatTheFruit set, making Eve infertile.\n");
+                                        }
+                                    }
                                 
 
                                 
