@@ -177,7 +177,26 @@ void EditorCategoryPage::actionPerformed( GUIComponent *inTarget ) {
             }
         else {
             mCurrentCategory = parentID;
-            mSelectionIndex = 0;
+            
+            if( mCurrentCategory != -1 ) {
+               
+                CategoryRecord *cr = getCategory( mCurrentCategory );
+                
+                if( cr != NULL ) {
+                    int newMax =
+                        getCategory( mCurrentCategory )->objectIDSet.size() - 1;
+                    
+                    if( newMax < mSelectionIndex ) {
+                        mSelectionIndex = 0;
+                        }
+                    }
+                else {
+                    mSelectionIndex = 0;
+                    }
+                }
+            else {
+                mSelectionIndex = 0;
+                }
             }
         updateCheckbox();
         }

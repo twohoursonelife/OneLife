@@ -4016,9 +4016,12 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
 				if( isTrippingEffectOn ) setTrippingColor( pos.x, pos.y );
 				}
 
-            drawSprite( getSprite( inObject->sprites[i] ), pos, inScale,
-                        rot, 
-                        logicalXOR( inFlipH, inObject->spriteHFlip[i] ) );
+            SpriteHandle sh = getSprite( inObject->sprites[i] );
+            if( sh != NULL ) {
+                drawSprite( sh, pos, inScale,
+                            rot, 
+                            logicalXOR( inFlipH, inObject->spriteHFlip[i] ) );
+                }
             
             if( multiplicative ) {
                 toggleMultiplicativeBlend( false );
@@ -5035,6 +5038,10 @@ double getClosestObjectPart( ObjectRecord *inObject,
         
         SpriteRecord *sr = getSpriteRecord( inObject->sprites[i] );
         
+        if( sr == NULL ) {
+            continue;
+            }
+
         if( !inConsiderTransparent &&
             sr->multiplicativeBlend ){
             // skip this transparent sprite

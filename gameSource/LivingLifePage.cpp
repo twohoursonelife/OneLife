@@ -207,6 +207,7 @@ static double emotDuration = 10;
 
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
+static int trippingEffectDisabled = 0;
 
 static int historyGraphLength = 100;
 
@@ -2527,6 +2528,9 @@ LivingLifePage::LivingLifePage()
 	
     trippingEmotionIndex =
         SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
+		
+    trippingEffectDisabled =
+        SettingsManager::getIntSetting( "trippingEffectDisabled", 0 );
           
     hideGuiPanel = SettingsManager::getIntSetting( "hideGameUI", 0 );
 
@@ -5498,7 +5502,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
 	
 	// For tripping color effect
-	isTrippingEffectOn = isTripping();
+	isTrippingEffectOn = isTripping() && !trippingEffectDisabled;
     setObjectBankTrippingEffect( isTrippingEffectOn );
 	setAnimationBankTrippingEffect( isTrippingEffectOn );
 	
@@ -5855,13 +5859,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 if( cellOID > 0 && getObject( cellOID )->floorHugging ) {
                     
-                    if( x > 0 && mMapFloors[ mapI - 1 ] > 0 ) {
+                    if( x > 0 && mMapFloors[ mapI - 1 ] > 0 && !getObject( mMapFloors[ mapI - 1 ] )->noCover ) {
                         // floor to our left
                         passIDs[1] = mMapFloors[ mapI - 1 ];
                         drawHuggingFloor = true;
                         }
                     
-                    if( x < mMapD - 1 && mMapFloors[ mapI + 1 ] > 0 ) {
+                    if( x < mMapD - 1 && mMapFloors[ mapI + 1 ] > 0 && !getObject( mMapFloors[ mapI + 1 ] )->noCover ) {
                         // floor to our right
                         passIDs[2] = mMapFloors[ mapI + 1 ];
                         drawHuggingFloor = true;
@@ -19363,6 +19367,12 @@ void LivingLifePage::step() {
                     for( int s=0; s<displayObj->numSprites; s++ ) {
                         
                         if( markSpriteLive( displayObj->sprites[s] ) ) {
+                            numLoaded ++;
+                            }
+                        else if( getSpriteRecord( displayObj->sprites[s] )
+                                 == NULL ) {
+                            // object references sprite that doesn't exist
+                            // count as loaded
                             numLoaded ++;
                             }
                         }

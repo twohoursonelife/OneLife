@@ -1138,13 +1138,13 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                 
                 if( cellOID > 0 && getObject( cellOID )->floorHugging ) {
                     
-                    if( x > 0 && mFloorCells[y][ x - 1 ].oID > 0 ) {
+                    if( x > 0 && mFloorCells[y][ x - 1 ].oID > 0 && !getObject( mFloorCells[y][ x - 1 ].oID )->noCover ) {
                         // floor to our left
                         passIDs[1] = mFloorCells[y][ x - 1 ].oID;
                         drawHuggingFloor = true;
                         }
                     
-                    if( x < mSceneW - 1 && mFloorCells[y][ x + 1 ].oID > 0 ) {
+                    if( x < mSceneW - 1 && mFloorCells[y][ x + 1 ].oID > 0 && !getObject( mFloorCells[y][ x + 1 ].oID )->noCover ) {
                         // floor to our right
                         passIDs[2] = mFloorCells[y][ x + 1 ].oID;
                         drawHuggingFloor = true;

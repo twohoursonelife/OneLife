@@ -5396,9 +5396,48 @@ void handleDrop( int inX, int inY, LiveObject *inDroppingPlayer,
         TransRecord *bareTrans =
             getPTrans( oldHoldingID, -1 );
                             
+
+        if( bareTrans == NULL ||
+            bareTrans->newTarget == 0 ) {
+            // no immediate bare ground trans
+            // check if there's a timer transition for this held object
+            // (like cast fishing pole)
+            // and force-run that transition now
+            TransRecord *timeTrans = getPTrans( -1, oldHoldingID );
+            
+            if( timeTrans != NULL && timeTrans->newTarget != 0 ) {
+                oldHoldingID = timeTrans->newTarget;
+            
+                inDroppingPlayer->holdingID = 
+                    timeTrans->newTarget;
+                holdingSomethingNew( inDroppingPlayer, oldHoldingID );
+
+                setFreshEtaDecayForHeld( inDroppingPlayer );
+                }
+
+            if( getObject( oldHoldingID )->permanent ) {
+                // still permanent after timed trans
+                
+                // check again for a bare ground trans
+                bareTrans =
+                    getPTrans( oldHoldingID, -1 );
+                }
+            }
+        
+
         if( bareTrans != NULL &&
             bareTrans->newTarget > 0 ) {
-                            
+            
+            if( bareTrans->newActor > 0 ) {
+                // something would be left in hand
+                
+                // throw it down first
+                inDroppingPlayer->holdingID = bareTrans->newActor;
+                setFreshEtaDecayForHeld( inDroppingPlayer );
+                handleDrop( inX, inY, inDroppingPlayer, 
+                            inPlayerIndicesToSendUpdatesAbout );
+                }
+
             oldHoldingID = bareTrans->newTarget;
             
             inDroppingPlayer->holdingID = 
@@ -12020,6 +12059,95 @@ static void sendCraving( LiveObject *inPlayer ) {
 
 
 
+static void handleHeldDecay( 
+    LiveObject *nextPlayer, int i,
+    SimpleVector<int> *playerIndicesToSendUpdatesAbout,
+    SimpleVector<int> *playerIndicesToSendHealingAbout ) {
+    
+    int oldID = nextPlayer->holdingID;
+    
+    TransRecord *t = getPTrans( -1, oldID );
+    
+    if( t != NULL ) {
+        
+        int newID = t->newTarget;
+        
+        handleHoldingChange( nextPlayer, newID );
+        
+        if( newID == 0 &&
+            nextPlayer->holdingWound &&
+            nextPlayer->dying ) {
+            
+            // wound decayed naturally, count as healed
+            setNoLongerDying( 
+                nextPlayer,
+                playerIndicesToSendHealingAbout );            
+            }
+        
+        
+        nextPlayer->heldTransitionSourceID = -1;
+        
+        ObjectRecord *newObj = getObject( newID );
+        ObjectRecord *oldObj = getObject( oldID );
+        
+        
+        if( newObj != NULL && newObj->permanent &&
+            oldObj != NULL && ! oldObj->permanent &&
+            ! nextPlayer->holdingWound ) {
+            // object decayed into a permanent
+            // force drop
+            GridPos dropPos = 
+                getPlayerPos( nextPlayer );
+            
+            handleDrop( 
+                dropPos.x, dropPos.y, 
+                nextPlayer,
+                playerIndicesToSendUpdatesAbout );
+            }
+        
+        
+        playerIndicesToSendUpdatesAbout->push_back( i );
+        }
+    else {
+        // no decay transition exists
+        // clear it
+        setFreshEtaDecayForHeld( nextPlayer );
+        }
+    }
+
+
+
+// check if target has a 1-second
+// decay specified
+// if so, make it happen NOW and set in map
+// return new target id
+static int checkTargetInstantDecay( int inTarget, int inX, int inY ) {
+    int newTarget = inTarget;
+    
+    TransRecord *targetDecay = getPTrans( -1, inTarget );
+    
+    // do NOT auto-apply movement transitions here
+    // don't want result of move to repace this object in place, because
+    // moving object might leave something behind, or require something to
+    // land on in its destination (like a moving cart leaving one track
+    // and landing on another)
+
+    if( targetDecay != NULL &&
+        targetDecay->autoDecaySeconds == 1  &&
+        targetDecay->newTarget > 0 &&
+        targetDecay->move == 0 ) {
+                                            
+        newTarget = targetDecay->newTarget;
+                                            
+        setMapObject( inX, inY, newTarget );
+        }
+    
+    return newTarget;
+    }
+
+
+
+
 int main() {
 
     if( checkReadOnly() ) {
@@ -14015,7 +14143,7 @@ int main() {
 				for( int dy = -3; dy <= 3; dy++ ) {
 					float dist = sqrt(dx * dx + dy * dy);
 					if( dist > readRange ) continue;
-					int objId = getMapObject( playerPos.x + dx, playerPos.y + dy );
+					int objId = getMapObjectRaw( playerPos.x + dx, playerPos.y + dy );
 					if( objId <= 0 ) continue;
 					ObjectRecord *obj = getObject( objId );
 					if( obj != NULL && obj->written && obj->passToRead ) {
@@ -16214,12 +16342,58 @@ int main() {
                                     // (and no bare hand action available)
                                     r = getPTrans( nextPlayer->holdingID,
                                                   target );
-                                                  
+                                    
                                     // also check for containment transitions
                                     if( r == NULL && targetObj->numSlots == 0 ) {
                                         r = getPTrans( nextPlayer->holdingID,
                                                       target, false, false, 1 );
                                         if( r != NULL ) containmentTransition = true;
+                                        }
+                                    
+                                    if( r == NULL ) {
+                                        // no transition applies
+                                        // check if held or target has
+                                        // 1-second decay trans defined
+                                        // If so, treat it as instant
+                                        // and let it go through now
+                                        // (skip if result of decay is 0)
+                                        TransRecord *heldDecay = 
+                                                getPTrans( 
+                                                    -1, 
+                                                    nextPlayer->holdingID );
+                                        if( heldDecay != NULL &&
+                                            heldDecay->autoDecaySeconds == 1 &&
+                                            heldDecay->newTarget > 0 ) {
+                                            // force decay NOW and try again
+                                            handleHeldDecay( 
+                                             nextPlayer,
+                                             i,
+                                             &playerIndicesToSendUpdatesAbout,
+                                             &playerIndicesToSendHealingAbout );
+                                            r = getPTrans( 
+                                                nextPlayer->holdingID,
+                                                target );
+                                            }
+                                        
+                                        }
+                                    if( r == NULL ) {
+                                        
+                                        int newTarget = 
+                                            checkTargetInstantDecay(
+                                                target, m.x, m.y );
+                                        
+                                        // if so, let transition go through
+                                        // (skip if result of decay is 0)
+                                        if( newTarget != 0 &&
+                                            newTarget != target ) {
+                                            
+                                            target = newTarget;
+                                            targetObj = getObject( target );
+                                            
+                                            r = getPTrans( 
+                                                nextPlayer->holdingID,
+                                                target );
+                                            }
                                         }
                                     }
                                 
@@ -16266,8 +16440,20 @@ int main() {
                                         // check if new actor will contain
                                         // them (reverse containment transfer)
                                         
+										int oldSlots = 
+											getNumContainerSlots( target );
+										int newSlots = 
+											getNumContainerSlots( r->newTarget );
+										
                                         if( r->newActor > 0 &&
-                                            nextPlayer->numContained == 0 ) {
+                                            nextPlayer->numContained == 0 &&
+											( oldSlots > 0 &&
+											newSlots == 0 && 
+											r->actor == 0 &&
+											r->newActor > 0 &&
+											getNumContainerSlots( r->newActor ) == oldSlots &&
+											getObject( r->newActor )->slotSize >= targetObj->slotSize )
+											) {
                                             // old actor empty
                                             
                                             int numSlotsNewActor =
@@ -17900,18 +18086,20 @@ int main() {
                                                 clickedClothingTrans = NULL;
                                                 }
 
-                                            int nt = 
-                                                clickedClothingTrans->newTarget;
-                                            
-                                            if( nt > 0 &&
-                                                getObject( nt )->clothing 
-                                                == 'n' ) {
-                                                // don't allow transitions
-                                                // that leave a non-wearable
-                                                // item on your body
-                                                clickedClothingTrans = NULL;
-                                                }
-                                            }
+                                            if( clickedClothingTrans != NULL ) {
+												int nt = 
+													clickedClothingTrans->newTarget;
+												
+												if( nt > 0 &&
+													getObject( nt )->clothing 
+													== 'n' ) {
+													// don't allow transitions
+													// that leave a non-wearable
+													// item on your body
+													clickedClothingTrans = NULL;
+													}
+												}
+											}
                                         }
                                     }
                                 
@@ -18803,7 +18991,27 @@ int main() {
                                         // consider bare-hand action
                                         TransRecord *handTrans = getPTrans(
                                             0, target );
-                                    
+                                        
+                                        if( handTrans == NULL ) {
+                                            // check for instant decay
+                                            int newTarget = 
+                                                checkTargetInstantDecay(
+                                                    target, m.x, m.y );
+                                        
+                                            // if so, let transition go through
+                                            // (skip if result of decay is 0)
+                                            if( newTarget != 0 &&
+                                                newTarget != target ) {
+                                            
+                                                target = newTarget;
+                                                targetObj = getObject( target );
+                                                
+                                                handTrans = 
+                                                    getPTrans( 0, target );
+                                                }
+                                            }
+
+
                                         // handle only simplest case here
                                         // (to avoid side-effects)
                                         // REMV on container stack
@@ -19741,55 +19949,9 @@ int main() {
                     nextPlayer->holdingEtaDecay < curTime ) {
                 
                     // what they're holding has decayed
-
-                    int oldID = nextPlayer->holdingID;
-                
-                    TransRecord *t = getPTrans( -1, oldID );
-
-                    if( t != NULL ) {
-
-                        int newID = t->newTarget;
-                        
-                        handleHoldingChange( nextPlayer, newID );
-                        
-                        if( newID == 0 &&
-                            nextPlayer->holdingWound &&
-                            nextPlayer->dying ) {
-                            
-                            // wound decayed naturally, count as healed
-                            setNoLongerDying( 
-                                nextPlayer,
-                                &playerIndicesToSendHealingAbout );            
-                            }
-                        
-
-                        nextPlayer->heldTransitionSourceID = -1;
-                        
-                        ObjectRecord *newObj = getObject( newID );
-                        ObjectRecord *oldObj = getObject( oldID );
-                        
-                        
-                        if( newObj != NULL && newObj->permanent &&
-                            oldObj != NULL && ! oldObj->permanent ) {
-                            // object decayed into a permanent
-                            // force drop
-                             GridPos dropPos = 
-                                getPlayerPos( nextPlayer );
-                            
-                             handleDrop( 
-                                    dropPos.x, dropPos.y, 
-                                    nextPlayer,
-                                    &playerIndicesToSendUpdatesAbout );
-                            }
-                        
-
-                        playerIndicesToSendUpdatesAbout.push_back( i );
-                        }
-                    else {
-                        // no decay transition exists
-                        // clear it
-                        setFreshEtaDecayForHeld( nextPlayer );
-                        }
+                    handleHeldDecay( nextPlayer, i,
+                                     &playerIndicesToSendUpdatesAbout,
+                                     &playerIndicesToSendHealingAbout );
                     }
 
                 // check if anything in the container they are holding
