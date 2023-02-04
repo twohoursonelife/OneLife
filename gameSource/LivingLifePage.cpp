@@ -19554,6 +19554,11 @@ void LivingLifePage::makeActive( char inFresh ) {
     mZKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
+	
+    upKeyDown = false;
+    leftKeyDown = false;
+    downKeyDown = false;
+    rightKeyDown = false;
     
     screenCenterPlayerOffsetX = 0;
     screenCenterPlayerOffsetY = 0;
