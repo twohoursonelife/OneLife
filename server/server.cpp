@@ -4813,6 +4813,11 @@ SimpleVector<ChangePosition> newLocationSpeechPos;
 
 char *isCurseNamingSay( char *inSaidString );
 
+char *isInfertilityDeclaringSay( char *inSaidString );
+
+char *isFertilityDeclaringSay( char *inSaidString );
+
+
 //2HOL additions for: password-protected objects
 char *isPasswordSettingSay( char *inSaidString );
 char *isPasswordInvokingSay( char *inSaidString );
@@ -4857,6 +4862,14 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             }
         inPlayer->lastSay = stringDuplicate( inToSay );
         }
+
+
+    if( getFemale( inPlayer ) ) {
+        char *infertilityDeclaring = isInfertilityDeclaringSay( inToSay );
+        char *fertilityDeclaring = isFertilityDeclaringSay( inToSay );
+        if( infertilityDeclaring != NULL || fertilityDeclaring != NULL ) return;
+    }
+
 
     char isCurse = false;
 
