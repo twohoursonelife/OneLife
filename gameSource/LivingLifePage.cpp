@@ -23441,7 +23441,6 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
 
 	calcOffsetHUD();
 
-	delete handwritingFont;
 	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 	pencilFont->copySpacing( handwritingFont );
 	pencilErasedFont->copySpacing( handwritingFont );
