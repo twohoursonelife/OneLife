@@ -113,7 +113,9 @@ double fertileAge = 15;
 // End UncleGus Custom Variables
 double minSayGapInSeconds = 1.0;
 
-int maxLineageTracked = 20;
+// each generation is at minimum 14 minutes apart
+// so 1024 generations is approximately 10 days
+int maxLineageTracked = 1024;
 
 int apocalypsePossible = 0;
 char apocalypseTriggered = false;
