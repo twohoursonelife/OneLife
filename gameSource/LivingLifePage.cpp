@@ -3400,7 +3400,13 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         return;
         }
 
-    double lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * gui_fov_scale_hud );
+    double lineSpacing = 0.0;
+    if( !tinyStyle ) {
+        lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
+        }
+    else {
+        lineSpacing = minitech::tinyHandwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
+        }
     
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
     
@@ -3456,23 +3462,32 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         
 
         double length = handwritingFont->measureString( line );
-
-        //FOV
-        /*int numBlots = lrint( 0.25 + length / 20 ) + 1;
+            
+        int numBlots = lrint( 0.25 + length / 20 / gui_fov_scale_hud ) + 1;
         
         if( inForceMinChalkBlots != -1 && numBlots < inForceMinChalkBlots ) {
             numBlots = inForceMinChalkBlots;
             }
     
-        doublePair blotSpacing = { 20, 0 };*/
+        doublePair blotSpacing = { 20 * gui_fov_scale_hud, 0 };
     
         doublePair firstBlot = 
             { inPos.x, firstLineY - i * lineSpacing};
 
         
-        for( doublePair blotPos = firstBlot; blotPos.x < inPos.x + ( length + 20 * gui_fov_scale_hud ); blotPos.x += 20 * gui_fov_scale_hud ) {
-            //doublePair blotPos = add( firstBlot, mult( blotSpacing, b ) );
-			blotPos.y = firstBlot.y;
+        if( numBlots == 1 ) {
+            // center first and only blot on line of text 
+            // (probably one char of text)
+            firstBlot.x += length / 2;
+            }
+        else {
+            // stretch blots so they just perfectly cover this line
+            blotSpacing.x = length / ( numBlots - 1 );
+            }
+
+        
+        for( int b=0; b<numBlots; b++ ) {
+            doublePair blotPos = add( firstBlot, mult( blotSpacing, b ) );
         
             double rot = blotRandSource.getRandomDouble();
             drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
