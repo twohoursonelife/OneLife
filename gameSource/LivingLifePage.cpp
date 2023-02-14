@@ -83,6 +83,8 @@ static float pencilErasedFontExtraFade = 0.75;
 extern doublePair lastScreenViewCenter;
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
+static int holdingYumOrMeh = 0;
+
 static char shouldMoveCamera = true;
 
 
@@ -2463,6 +2465,8 @@ LivingLifePage::LivingLifePage()
           mCellBorderSprite( loadWhiteSprite( "cellBorder.tga" ) ),
           mCellFillSprite( loadWhiteSprite( "cellFill.tga" ) ),
           mHintArrowSprite( loadSprite( "hintArrow.tga" ) ),
+          mYumIconSprite( loadSprite( "yumIcon.tga" ) ),
+          mMehIconSprite( loadSprite( "mehIcon.tga" ) ),
           mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
           mLastMouseOverID( 0 ),
           mCurMouseOverID( 0 ),
@@ -3041,6 +3045,8 @@ LivingLifePage::~LivingLifePage() {
     freeSprite( mCellBorderSprite );
     freeSprite( mCellFillSprite );
     freeSprite( mHintArrowSprite );
+    freeSprite( mYumIconSprite );
+    freeSprite( mMehIconSprite );
     
     freeSprite( mNotePaperSprite );
     freeSprite( mChalkBlotSprite );
@@ -5066,6 +5072,51 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
 
     if( inObj->id == ourID ) {
         setClothingHighlightFades( NULL );
+        
+        // yum slip
+        if( holdingYumOrMeh != 0 ) {
+            
+            LiveObject *o = getOurLiveObject();
+            doublePair speechPos = pos;
+            
+            speechPos.y += 84;
+
+            ObjectRecord *displayObj = getObject( o->displayID );
+     
+
+            double age = computeCurrentAge( o );
+            
+            doublePair headPos = 
+                displayObj->spritePos[ getHeadIndex( displayObj, age ) ];
+            
+            doublePair bodyPos = 
+                displayObj->spritePos[ getBodyIndex( displayObj, age ) ];
+
+            doublePair frontFootPos = 
+                displayObj->spritePos[ getFrontFootIndex( displayObj, age ) ];
+            
+            headPos = add( headPos, 
+                           getAgeHeadOffset( age, headPos, 
+                                             bodyPos, frontFootPos ) );
+            headPos = add( headPos,
+                           getAgeBodyOffset( age, bodyPos ) );
+            
+            speechPos.y += headPos.y;
+            
+            speechPos.x += 41;
+            speechPos.y -= 41;
+            
+            setDrawColor( 1, 1, 1, 1 );
+            if( holdingYumOrMeh == -1 ) {
+                drawSprite( mMehIconSprite, speechPos );
+                }
+            else if ( holdingYumOrMeh == 1 ) {
+                drawSprite( mYumIconSprite, speechPos );
+                }
+                
+            }
+            
+        
         }
     
     return returnPack;
@@ -8663,10 +8714,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     newbieTips::yumSlipShowing = false;
+    holdingYumOrMeh = 0;
 
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 
         if( ! equal( mYumSlipPosOffset[i], mYumSlipHideOffset[i] ) ) {
+			
+            mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
+			
             doublePair slipPos = 
                 add( mult( recalcOffset( mYumSlipPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -8692,9 +8747,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 if( i == 3 ) {
                     word = translate( "meh" );
+                    holdingYumOrMeh = -1;
                     }
                 else {
                     word = translate( "yum" );
+                    holdingYumOrMeh = 1;
                     }
                 newbieTips::yumSlipShowing = true;
 
@@ -9145,7 +9202,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         setDrawColor( 0, 0, 0, 1 );
         if( mYumBonus > 0 ) {    
             char *yumString = autoSprintf( "+%d", mYumBonus );
-            
             pencilFont->drawString( yumString, yumPos, alignLeft );
             delete [] yumString;
             }
