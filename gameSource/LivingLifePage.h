@@ -959,7 +959,8 @@ class LivingLifePage : public GamePage, public ActionListener {
                                         LiveObject *inSpeaker = NULL,
                                         int inForceMinChalkBlots = -1,
                                         FloatColor *inForceBlotColor = NULL,
-                                        FloatColor *inForceTextColor = NULL );
+                                        FloatColor *inForceTextColor = NULL,
+                                        bool tinyStyle = false );
         
         
         void drawOffScreenSounds();
