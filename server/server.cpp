@@ -14201,13 +14201,16 @@ int main() {
 				if( m.type != EMOT ) {
 					//Clear afk emote if they were afk
 					if( nextPlayer->isAFK ) {
-
-						clearFrozenEmote( nextPlayer, afkEmotionIndex );
-						
+						if( clearFrozenEmote( nextPlayer, afkEmotionIndex ) ) {
+							//Only change state when afk emote is successfully cleared
+							nextPlayer->isAFK = false;
+							nextPlayer->lastActionTime = Time::getCurrentTime();
+							}
 						}
-					
-					nextPlayer->isAFK = false;
-					nextPlayer->lastActionTime = Time::getCurrentTime();
+					else {					
+						nextPlayer->isAFK = false;
+						nextPlayer->lastActionTime = Time::getCurrentTime();
+						}
 					}
                 
 
@@ -19249,10 +19252,10 @@ int main() {
 					}
 				
 				if( curTime >= nextPlayer->trippingEffectETA ) {
-					nextPlayer->tripping = false;
-					
-					clearFrozenEmote( nextPlayer, trippingEmotionIndex );
-					
+					if( clearFrozenEmote( nextPlayer, trippingEmotionIndex ) ) {
+						//Only change state when tripping emote is successfully cleared
+						nextPlayer->tripping = false;
+						}
 					}
 				else if( !nextPlayer->emotFrozen &&
 					curTime < nextPlayer->trippingEffectETA ) {
@@ -19268,10 +19271,10 @@ int main() {
 			
 			if( nextPlayer->drunkennessEffect ) {
 				if( Time::getCurrentTime() >= nextPlayer->drunkennessEffectETA ) {
-					nextPlayer->drunkennessEffect = false;
-					
-					clearFrozenEmote( nextPlayer, drunkEmotionIndex );
-					
+					if( clearFrozenEmote( nextPlayer, drunkEmotionIndex ) ) {
+						//Only change state when drunk emote is successfully cleared
+						nextPlayer->drunkennessEffect = false;
+						}
 					}
 				else if( !nextPlayer->emotFrozen &&
 					Time::getCurrentTime() < nextPlayer->drunkennessEffectETA ) {
