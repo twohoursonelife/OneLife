@@ -9185,7 +9185,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         toggleMultiplicativeBlend( false );
         
-
+        if( false ) // Hide OldDesStrings
         for( int i=0; i<mOldDesStrings.size(); i++ ) {
             doublePair pos = { lastScreenViewCenter.x, 
                                lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
@@ -9200,10 +9200,24 @@ void LivingLifePage::draw( doublePair inViewCenter,
         doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 480 ) * gui_fov_scale ), 
                               lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
         setDrawColor( 0, 0, 0, 1 );
-        if( mYumBonus > 0 ) {    
-            char *yumString = autoSprintf( "+%d", mYumBonus );
-            pencilFont->drawString( yumString, yumPos, alignLeft );
-            delete [] yumString;
+        if( true ) { // always draw the bonus part of the food bar
+		
+			yumPos.x += 16 * ( 30 * gui_fov_scale_hud );
+			yumPos.y -= 20 * gui_fov_scale_hud;
+			
+			char *yumString = autoSprintf( "BONUS: +%d", mYumBonus );
+			double yumStringSize = pencilFont->measureString( yumString );
+
+			pencilFont->drawString( yumString, yumPos, alignLeft );
+			
+            // Yum Multiplier
+            if( mYumMultiplier > 0 ) {
+				yumPos.x += yumStringSize;
+                char *yumString2 = autoSprintf( "  (+%d NEXT YUM)", mYumMultiplier );
+                double yumStringSize2 = pencilFont->measureString( yumString2 );
+                pencilFont->drawString( yumString2, yumPos, alignLeft );
+                }
+            
             }
         
         for( int i=0; i<mOldYumBonus.size(); i++ ) {
@@ -9225,6 +9239,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int shortestFill = 100;
         
         
+        if( false ) // Hiding LastAteStrings
         for( int i=0; i<mOldLastAteStrings.size(); i++ ) {
             float fade =
                 mOldLastAteFades.getElementDirect( i );
@@ -9260,6 +9275,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             toggleMultiplicativeBlend( false );
             }
 
+        if( false ) // Hiding LastAteStrings
         if( shortestFill < 100 ) {
             toggleMultiplicativeBlend( true );
             setDrawColor( 1, 1, 1, 1 );
@@ -9275,6 +9291,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         
 
+        if( false ) // Hiding LastAteStrings
         if( mCurrentLastAteString != NULL ) {
             setDrawColor( 0, 0, 0, 1 );
         
