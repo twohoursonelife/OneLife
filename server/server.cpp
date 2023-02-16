@@ -5933,6 +5933,7 @@ static char isReallyYummy( LiveObject *inPlayer, int inObjectID ) {
     }
 
 
+static void setRefuseFoodEmote( LiveObject *hitPlayer );
 
 static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
                        char inFedSelf = true ) {
@@ -5948,6 +5949,9 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         if( inFedSelf && canYumChainBreak ) {
             inPlayer->yummyFoodChain.deleteAll();
             }
+			
+		setRefuseFoodEmote( inPlayer );
+			
         }
     
     
@@ -12158,6 +12162,29 @@ static int checkTargetInstantDecay( int inTarget, int inX, int inY ) {
         }
     
     return newTarget;
+    }
+
+
+static void setRefuseFoodEmote( LiveObject *hitPlayer ) {
+    if( hitPlayer->emotFrozen ) {
+        return;
+        }
+    
+    int newEmotIndex =
+        SettingsManager::
+        getIntSetting( 
+            "refuseFoodEmotionIndex",
+            -1 );
+    if( newEmotIndex != -1 ) {
+        newEmotPlayerIDs.push_back( 
+            hitPlayer->id );
+        
+        newEmotIndices.push_back( 
+            newEmotIndex );
+        // was 5 sec for OHOL's babies' refuseFoodEmote
+		// changed to 3 for 2HOL's mehEmote
+        newEmotTTLs.push_back( 3 );
+        }
     }
 
 
