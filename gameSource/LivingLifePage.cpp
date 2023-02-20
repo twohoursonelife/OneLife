@@ -9197,29 +9197,50 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 mOldDesStrings.getElementDirect( i ), pos, alignCenter );
             }
 
-        doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 480 ) * gui_fov_scale ), 
+        doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
                               lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
         setDrawColor( 0, 0, 0, 1 );
         if( true ) { // always draw the bonus part of the food bar
 		
-			yumPos.x += 16 * ( 30 * gui_fov_scale_hud );
-			yumPos.y -= 20 * gui_fov_scale_hud;
+			yumPos.x += 15 * ( 30 * gui_fov_scale_hud ) + 64 * gui_fov_scale_hud;
+			yumPos.y -= 22 * gui_fov_scale_hud;
 			
-			char *yumString = autoSprintf( "BONUS: +%d", mYumBonus );
+			char *yumString = autoSprintf( "+%d", mYumBonus );
 			double yumStringSize = pencilFont->measureString( yumString );
+			pencilFont->drawString( yumString, yumPos, alignCenter );
+			
 
-			pencilFont->drawString( yumString, yumPos, alignLeft );
+			doublePair pos = yumPos;
+			pos.y += 20 * gui_fov_scale_hud;
+			char *yumString3 = autoSprintf( "BONUS:" );
+			double yumStringSize3 = handwritingFont->measureString( yumString3 );
+			handwritingFont->drawString( yumString3, pos, alignCenter );
 			
             // Yum Multiplier
-            if( mYumMultiplier > 0 ) {
-				yumPos.x += yumStringSize;
-                char *yumString2 = autoSprintf( "  (+%d NEXT YUM)", mYumMultiplier );
+            if( true ) {
+				
+				yumPos.x += yumStringSize3 + 96 * gui_fov_scale_hud;
+                char *yumString2;
+				if( holdingYumOrMeh != 0 && mYumMultiplier > 0 ) {
+					yumString2 = autoSprintf( "(+%d BONUS NEXT YUM)", mYumMultiplier + 1 );
+					}
+				else {
+					yumString2 = autoSprintf( "%d", mYumMultiplier );
+					}
                 double yumStringSize2 = pencilFont->measureString( yumString2 );
-                pencilFont->drawString( yumString2, yumPos, alignLeft );
+                pencilFont->drawString( yumString2, yumPos, alignCenter );
+				
+				doublePair pos = yumPos;
+				pos.y += 20 * gui_fov_scale_hud;
+				char *yumString4 = autoSprintf( "YUM LEVEL:" );
+				// double yumStringSize4 = handwritingFont->measureString( yumString4 );
+				handwritingFont->drawString( yumString4, pos, alignCenter );
+
                 }
             
             }
         
+		if( false )
         for( int i=0; i<mOldYumBonus.size(); i++ ) {
             float fade =
                 mOldYumBonusFades.getElementDirect( i );
@@ -11060,7 +11081,7 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
 
 
     char *message = 
-        autoSprintf( "%s: %s (+%d)", translate( "craving"), 
+        autoSprintf( "%s: %s (+%d YUM LEVELS)", translate( "craving"), 
                      foodDescription, inYumBonus );
     
     delete [] foodDescription;
