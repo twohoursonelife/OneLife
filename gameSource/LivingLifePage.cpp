@@ -20664,6 +20664,8 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             // store negative in place so that we can show their relation
             // string
             mCurMouseOverID = - p.hitOtherPersonID;
+			
+            overNothing = false;
             }
         }
     
