@@ -2764,26 +2764,22 @@ static int countYoungFemalesInLineage( int inLineageEveID ) {
 
 int computeFoodCapacity( LiveObject *inPlayer ) {
     int ageInYears = lrint( computeAge( inPlayer ) );
-    
+    int minFoodCap = 4;
+    int maxFoodcap = 15;
     int returnVal = 0;
     
     if( ageInYears < oldAge ) {
         
-        if( ageInYears > adultAge - 4 ) {
-            ageInYears = adultAge - 4;
-            }
+        returnVal = ageInYears + minFoodCap;
+        if( returnVal > maxFoodcap ) returnVal = maxFoodcap;
         
-        returnVal = ageInYears + 4;
         }
     else {
         // food capacity decreases as we near death
         int cap = forceDeathAge - ageInYears + 4;
+        if( cap < minFoodCap ) cap = minFoodCap;
         
-        if( cap < 4 ) {
-            cap = 4;
-            }
-        
-        int lostBars = 20 - cap;
+        int lostBars = maxFoodcap - cap;
 
         if( lostBars > 0 && inPlayer->fitnessScore > 0 ) {
         
@@ -2798,7 +2794,7 @@ int computeFoodCapacity( LiveObject *inPlayer ) {
                 }
             }
         
-        returnVal = 20 - lostBars;
+        returnVal = maxFoodcap - lostBars;
         }
 
     return ceil( returnVal * inPlayer->foodCapModifier );
