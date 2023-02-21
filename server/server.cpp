@@ -6043,9 +6043,17 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         // only get bonus if actually was yummy (whether fed self or not)
         // chain not broken if fed non-yummy by other, but don't get bonus
         inPlayer->yummyBonusStore += currentBonus;
-		
-        // and only get bonus part of foodValue if yummy (or is craved)
+        }
+        
+    if( wasYummy ) {
+        // bonus part of foodValue goes into the yum bonus if yummy (or is craved)
         inPlayer->yummyBonusStore += o->bonusValue;
+        }
+    else {
+        // otherwise it goes into the base food bar, without overflow
+        inPlayer->foodStore += o->bonusValue;
+        int cap = computeFoodCapacity( inPlayer );
+        if( inPlayer->foodStore > cap ) inPlayer->foodStore = cap;
         }
     
     }
