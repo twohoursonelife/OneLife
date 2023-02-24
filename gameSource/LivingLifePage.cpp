@@ -22634,9 +22634,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             return;
         }
     } else if( vogMode && !vogPickerOn ) {
-        addComponent( &mObjectPicker );
-        mObjectPicker.addActionListener( this );
-        vogPickerOn = true;
+		if( !commandKey && inASCII == 9 ) { // TAB
+			addComponent( &mObjectPicker );
+			mObjectPicker.addActionListener( this );
+			vogPickerOn = true;
+		}
     }
 
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
