@@ -863,6 +863,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         int mYumBonus;
         int mOldYumBonusValue;
+		bool mFirstYumEaten;
+		float mYumIncrementFade;
         SimpleVector<int> mOldYumBonus;
         SimpleVector<float> mOldYumBonusFades;
 

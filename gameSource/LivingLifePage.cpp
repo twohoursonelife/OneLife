@@ -2468,6 +2468,9 @@ LivingLifePage::LivingLifePage()
           mYumIconSprite( loadSprite( "yumIcon.tga" ) ),
           mMehIconSprite( loadSprite( "mehIcon.tga" ) ),
           mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
+          mOldYumBonusValue( 0 ),
+          mFirstYumEaten( false ),
+          mYumIncrementFade( 0 ),
           mLastMouseOverID( 0 ),
           mCurMouseOverID( 0 ),
           mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
@@ -8714,7 +8717,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     newbieTips::yumSlipShowing = false;
-    holdingYumOrMeh = 0;
 
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 
@@ -8747,11 +8749,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 if( i == 3 ) {
                     word = translate( "meh" );
-                    holdingYumOrMeh = -1;
                     }
                 else {
                     word = translate( "yum" );
-                    holdingYumOrMeh = 1;
                     }
                 newbieTips::yumSlipShowing = true;
 
@@ -9209,24 +9209,20 @@ void LivingLifePage::draw( doublePair inViewCenter,
             yumPos.y -= 2 * gui_fov_scale_hud;
             handwritingFont->drawString( yumString3, yumPos, alignCenter );
             
-            // Yum Bonus value
+            // 2HOL food UI - Yum Bonus value
             char *yumString = autoSprintf( "+%d", mYumBonus );
             double yumStringSize = pencilFont->measureString( yumString );
             yumPos.y -= 20 * gui_fov_scale_hud;
             pencilFont->drawString( yumString, yumPos, alignCenter );
             
-            // Fade animation of recent yum bonus increase
-            if( mOldYumBonus.size() > 0 ) {
-                int i = 0;
-                
-                float fade =
-                    mOldYumBonusFades.getElementDirect( i );
+            // 2HOL food UI - Fade animation of yum bonus increase
+            if( mFirstYumEaten ) {
                     
-                if( fade > 0.5 ) {
-                    fade -= 0.05;
+                if( mYumIncrementFade > 0.5 ) {
+                    mYumIncrementFade -= 0.05;
                     }
                 else {
-                    fade -= 0.1;
+                    mYumIncrementFade -= 0.1;
                     }
                 
                 *( mOldYumBonusFades.getElement( i ) ) = fade;
@@ -9254,9 +9250,20 @@ void LivingLifePage::draw( doublePair inViewCenter,
             pos.y += 20 * gui_fov_scale_hud;
             handwritingFont->drawString( yumString4, pos, alignCenter );
             
-            // Yum Multiplier value / hint
+            // 2HOL food UI - Yum Multiplier value / hint
             char *yumString2;
-            if( holdingYumOrMeh != 0 && mYumMultiplier > 0 ) {
+            if( 
+                // only hint when holding food
+                holdingYumOrMeh != 0 && 
+                // only hint when it gives yum bonus
+                mYumMultiplier + 1 > 0 && 
+                // 2 yums give you the first bonus
+                // so hint only after eating first yum
+                mFirstYumEaten &&
+                // holdingID is delayed
+                // use eating anim as a trick to avoid flickering
+                ourLiveObject->curAnim != eating
+                ) {
                 yumString2 = autoSprintf( "(+%d BONUS NEXT YUM)", mYumMultiplier + 1 );
                 }
             else {
@@ -14877,12 +14884,17 @@ void LivingLifePage::step() {
                         if( heldYum ) {
                             // YUM
                             slipIndexToShow = 2;
+                            holdingYumOrMeh = 1;
                             }
                         else {
                             if( o.holdingID > 0 &&
                                 getObject( o.holdingID )->foodValue > 0 ) {
                                 // MEH
                                 slipIndexToShow = 3;
+                                holdingYumOrMeh = -1;
+                                }
+                            else {
+                                holdingYumOrMeh = 0;
                                 }
                             }
                         
@@ -18054,6 +18066,11 @@ void LivingLifePage::step() {
                         mOldYumBonus.push_back( oldYumBonus );
                         mOldYumBonusFades.push_back( 1.0f );
                         }
+                        
+                    if( mYumBonus - mOldYumBonusValue > 0 ) {
+                        // 2HOL food UI - Fade animation of yum bonus increase
+                        mYumIncrementFade = 1.0f;
+                        }
                     }
                 
                 if( mYumMultiplier != oldYumMultiplier ) {
@@ -18177,6 +18194,10 @@ void LivingLifePage::step() {
                         }
                 
                     if( lastAteID != 0 ) {
+                        
+                        // 2HOL food UI - whether first yum has been eaten
+                        mFirstYumEaten = true;
+                        
                         ObjectRecord *lastAteObj = getObject( lastAteID );
                         
                         char *strUpper = stringToUpperCase(
@@ -19967,6 +19988,9 @@ void LivingLifePage::makeActive( char inFresh ) {
     mOldLastAteBarFades.deleteAll();
     
     mYumBonus = 0;
+    mOldYumBonusValue = 0;
+    mFirstYumEaten = false;
+    mYumIncrementFade = 0.0f;
     mOldYumBonus.deleteAll();
     mOldYumBonusFades.deleteAll();
     
