@@ -815,6 +815,8 @@ typedef struct LiveObject {
 		//2HOL mechanics to read written objects
 		//positions already read while in range
 		SimpleVector<GridPos> readPositions;
+		timeSec_t lastWrittenObjectScanTime;
+		GridPos lastWrittenObjectScanPos;
 		
 		//time when read position is expired and can be read again
 		SimpleVector<double> readPositionsETA;
@@ -7825,8 +7827,12 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.error = false;
     newObject.errorCauseString = "";
 	
-	newObject.lastActionTime = Time::getCurrentTime();
-	newObject.isAFK = false;
+    newObject.lastActionTime = Time::getCurrentTime();
+    newObject.isAFK = false;
+    
+    newObject.lastWrittenObjectScanTime = 0;
+    newObject.lastWrittenObjectScanPos.x = 9999;
+    newObject.lastWrittenObjectScanPos.y = 9999;
     
     newObject.customGraveID = -1;
     newObject.deathReason = NULL;
@@ -14179,45 +14185,54 @@ int main() {
                               nextPlayer->xd + 8, nextPlayer->yd + 7 );
                 nextPlayer->lastRegionLookTime = curLookTime;
                 }
-				
-			//2HOL mechanics to read written objects
-			GridPos playerPos;
-			if( nextPlayer->xs == nextPlayer->xd && nextPlayer->ys == nextPlayer->yd ) {
-				playerPos.x = nextPlayer->xd;
-				playerPos.y = nextPlayer->yd;
-			} else {
-				playerPos = computePartialMoveSpot( nextPlayer );
-			}
-			
-			float readRange = 3.0;
-			
-			//Remove positions already read when players get out of range and speech bubbles are expired 
-			for( int j = nextPlayer->readPositions.size() - 1; j >= 0; j-- ) {
-				GridPos p = nextPlayer->readPositions.getElementDirect( j );
-				double eta = nextPlayer->readPositionsETA.getElementDirect( j );
-				if( 
-					distance( p, playerPos ) > readRange && 
-					Time::getCurrentTime() > eta
-					) {
-					nextPlayer->readPositions.deleteElement( j );
-					nextPlayer->readPositionsETA.deleteElement( j );
-				}
-			}
-			
-			//Scan area around players for pass-to-read objects
-			for( int dx = -3; dx <= 3; dx++ ) {
-				for( int dy = -3; dy <= 3; dy++ ) {
-					float dist = sqrt(dx * dx + dy * dy);
-					if( dist > readRange ) continue;
-					int objId = getMapObjectRaw( playerPos.x + dx, playerPos.y + dy );
-					if( objId <= 0 ) continue;
-					ObjectRecord *obj = getObject( objId );
-					if( obj != NULL && obj->written && obj->passToRead ) {
-						GridPos readPos = { playerPos.x + dx, playerPos.y + dy };
-						forceObjectToRead( nextPlayer, objId, readPos, true );
-					}
-				}
-			}
+                
+            if( curLookTime - nextPlayer->lastWrittenObjectScanTime > 1 ) {
+                
+                //2HOL mechanics to read written objects
+                GridPos playerPos;
+                if( nextPlayer->xs == nextPlayer->xd && nextPlayer->ys == nextPlayer->yd ) {
+                    playerPos.x = nextPlayer->xd;
+                    playerPos.y = nextPlayer->yd;
+                } else {
+                    playerPos = computePartialMoveSpot( nextPlayer );
+                }
+                
+                if( !equal( playerPos, nextPlayer->lastWrittenObjectScanPos ) ) {
+                    
+                    nextPlayer->lastWrittenObjectScanPos = playerPos;
+                    nextPlayer->lastWrittenObjectScanTime = curLookTime;
+                
+                    float readRange = 3.0;
+                    
+                    //Remove positions already read when players get out of range and speech bubbles are expired 
+                    for( int j = nextPlayer->readPositions.size() - 1; j >= 0; j-- ) {
+                        GridPos p = nextPlayer->readPositions.getElementDirect( j );
+                        double eta = nextPlayer->readPositionsETA.getElementDirect( j );
+                        if( 
+                            distance( p, playerPos ) > readRange && 
+                            Time::getCurrentTime() > eta
+                            ) {
+                            nextPlayer->readPositions.deleteElement( j );
+                            nextPlayer->readPositionsETA.deleteElement( j );
+                        }
+                    }
+                    
+                    //Scan area around players for pass-to-read objects
+                    for( int dx = -3; dx <= 3; dx++ ) {
+                        for( int dy = -3; dy <= 3; dy++ ) {
+                            float dist = sqrt(dx * dx + dy * dy);
+                            if( dist > readRange ) continue;
+                            int objId = getMapObjectRaw( playerPos.x + dx, playerPos.y + dy );
+                            if( objId <= 0 ) continue;
+                            ObjectRecord *obj = getObject( objId );
+                            if( obj != NULL && obj->written && obj->passToRead ) {
+                                GridPos readPos = { playerPos.x + dx, playerPos.y + dy };
+                                forceObjectToRead( nextPlayer, objId, readPos, true );
+                            }
+                        }
+                    }
+                }
+            }
 
             char *message = NULL;
             
