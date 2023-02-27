@@ -2155,6 +2155,9 @@ static int lastPongReceived = 0;
 
 
 int ourID;
+double ourAge;
+char ourGender;
+int stepCount = 0;
 
 static int valleySpacing = 40;
 static int valleyOffset = 0;
@@ -9822,6 +9825,21 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawMessage( "bugMessage2", messagePos );
             }
         }
+		
+	if( true ) {
+		setDrawColor( 0, 0, 0, 1 );
+		doublePair drawPos;
+		char sBuf[32];
+		int age = (int)(ourAge*10);
+		int ageDecimal = age - int(age*0.1)*10;
+		age = (int)((age-ageDecimal)*0.1);
+		sprintf(sBuf, "%c  %i.%i", ourGender, age, ageDecimal);
+		drawPos = lastScreenViewCenter;
+		drawPos.x += recalcOffsetX( 290 ) * gui_fov_scale + 30 * gui_fov_scale_hud;
+		drawPos.y -= viewHeight/2 - 25 * gui_fov_scale_hud;
+		handwritingFont->drawString( sBuf, drawPos, alignCenter );
+		}
+
 
 	// minitech
 	float worldMouseX, worldMouseY;
@@ -12323,6 +12341,10 @@ void LivingLifePage::step() {
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
 	
 	minitech::livingLifeStep();
+    stepCount++;
+    if (stepCount > 10000) stepCount = 0;
+    if (ourObject != NULL && stepCount % 10 == 0) 
+        ourAge = computeServerAge( computeCurrentAge( ourObject ) );
 
     char *message = getNextServerMessage();
 
@@ -16754,6 +16776,7 @@ void LivingLifePage::step() {
                     gameObjects.getElement( recentInsertedGameObjectIndex );
                 
                 ourID = ourObject->id;
+                if (ourObject) ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
 				
 
                 if( ourID != lastPlayerID ) {
