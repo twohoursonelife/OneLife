@@ -13592,7 +13592,9 @@ void LivingLifePage::step() {
                     // first map chunk just recieved
 					
 					minitech::initOnBirth();
-					
+                    
+                    newbieTips::drawTipsArrow = false;
+                    
 					//reset fov on birth
 					if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
 						changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
