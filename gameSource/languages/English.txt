@@ -257,6 +257,8 @@ you "YOU"
 eat "EAT"
 
 youWith "YOU WITH"
+youHolding "YOU HOLDING"
+youRiding "YOU RIDING"
 with "WITH"
 
 yum "YUM"
