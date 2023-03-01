@@ -9203,12 +9203,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
         doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
                               lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
         setDrawColor( 0, 0, 0, 1 );
-        if( true ) { // always draw the bonus part of the food bar
+        // Food bar is not loaded if the game just has just reconnected
+        // Draw the bonus part of the food bar after the food bar is loaded
+        if( ourLiveObject->maxFoodCapacity > 0 ) {
             
             // 2HOL food UI - Yum Bonus label
             char *yumString3 = autoSprintf( "BONUS:" );
             double yumStringSize3 = handwritingFont->measureString( yumString3 );
-            yumPos.x += 15 * ( 30 * gui_fov_scale_hud );
+            yumPos.x += ourLiveObject->maxFoodCapacity * ( 30 * gui_fov_scale_hud );
             yumPos.y -= 2 * gui_fov_scale_hud;
             doublePair pos = yumPos;
             pos.x += yumStringSize3 / 2 + 16 * gui_fov_scale_hud;
