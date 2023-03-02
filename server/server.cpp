@@ -2596,7 +2596,7 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
     float xStart = 120.0;
     if( inPlayer->yummyBonusStore > xStart ) {
         // controls the rate of fall off 
-        float xScaling = 3.0;
+        float xScaling = 1.2;
         float x = (inPlayer->yummyBonusStore - xStart) / xStart * xScaling;
         // y is a fraction
         float y = 1/(x+1);
