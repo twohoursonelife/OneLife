@@ -83,6 +83,8 @@ static float pencilErasedFontExtraFade = 0.75;
 extern doublePair lastScreenViewCenter;
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
+static int holdingYumOrMeh = 0;
+
 static char shouldMoveCamera = true;
 
 
@@ -2153,6 +2155,9 @@ static int lastPongReceived = 0;
 
 
 int ourID;
+double ourAge;
+char ourGender;
+int stepCount = 0;
 
 static int valleySpacing = 40;
 static int valleyOffset = 0;
@@ -2463,7 +2468,12 @@ LivingLifePage::LivingLifePage()
           mCellBorderSprite( loadWhiteSprite( "cellBorder.tga" ) ),
           mCellFillSprite( loadWhiteSprite( "cellFill.tga" ) ),
           mHintArrowSprite( loadSprite( "hintArrow.tga" ) ),
+          mYumIconSprite( loadSprite( "yumIcon.tga" ) ),
+          mMehIconSprite( loadSprite( "mehIcon.tga" ) ),
           mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
+          mOldYumBonusValue( 0 ),
+          mFirstYumEaten( false ),
+          mYumIncrementFade( 0 ),
           mLastMouseOverID( 0 ),
           mCurMouseOverID( 0 ),
           mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
@@ -3041,6 +3051,8 @@ LivingLifePage::~LivingLifePage() {
     freeSprite( mCellBorderSprite );
     freeSprite( mCellFillSprite );
     freeSprite( mHintArrowSprite );
+    freeSprite( mYumIconSprite );
+    freeSprite( mMehIconSprite );
     
     freeSprite( mNotePaperSprite );
     freeSprite( mChalkBlotSprite );
@@ -3386,7 +3398,8 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
                                                 LiveObject *inSpeaker,
                                                 int inForceMinChalkBlots,
                                                 FloatColor *inForceBlotColor,
-                                                FloatColor *inForceTextColor ) {
+                                                FloatColor *inForceTextColor,
+                                                bool tinyStyle ) {
     
     char *stringUpper = stringToUpperCase( inString );
 
@@ -3399,8 +3412,17 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         delete lines;
         return;
         }
+		
+	float scale = 1.0;
+	if(tinyStyle) scale = 0.5;
 
-    double lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * gui_fov_scale_hud );
+    double lineSpacing = 0.0;
+    if( !tinyStyle ) {
+        lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
+        }
+    else {
+        lineSpacing = minitech::tinyHandwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
+        }
     
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
     
@@ -3455,37 +3477,52 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         char *line = lines->getElementDirect( i );
         
 
-        double length = handwritingFont->measureString( line );
-
-        //FOV
-        /*int numBlots = lrint( 0.25 + length / 20 ) + 1;
+        double length = 0.0;
+        if( !tinyStyle ) {
+            length = handwritingFont->measureString( line );
+            } 
+        else {
+            length = minitech::tinyHandwritingFont->measureString( line );
+            }
+            
+        int numBlots = lrint( 0.25 + length / 20 / scale / gui_fov_scale_hud ) + 1;
         
         if( inForceMinChalkBlots != -1 && numBlots < inForceMinChalkBlots ) {
             numBlots = inForceMinChalkBlots;
             }
     
-        doublePair blotSpacing = { 20, 0 };*/
+        doublePair blotSpacing = { 20 * scale * gui_fov_scale_hud, 0 };
     
         doublePair firstBlot = 
             { inPos.x, firstLineY - i * lineSpacing};
 
         
-        for( doublePair blotPos = firstBlot; blotPos.x < inPos.x + ( length + 20 * gui_fov_scale_hud ); blotPos.x += 20 * gui_fov_scale_hud ) {
-            //doublePair blotPos = add( firstBlot, mult( blotSpacing, b ) );
-			blotPos.y = firstBlot.y;
+        if( numBlots == 1 ) {
+            // center first and only blot on line of text 
+            // (probably one char of text)
+            firstBlot.x += length / 2;
+            }
+        else {
+            // stretch blots so they just perfectly cover this line
+            blotSpacing.x = length / ( numBlots - 1 );
+            }
+
+        
+        for( int b=0; b<numBlots; b++ ) {
+            doublePair blotPos = add( firstBlot, mult( blotSpacing, b ) );
         
             double rot = blotRandSource.getRandomDouble();
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
+            drawSprite( mChalkBlotSprite, blotPos, scale * gui_fov_scale_hud, rot );
+            drawSprite( mChalkBlotSprite, blotPos, scale * gui_fov_scale_hud, rot );
             
             // double hit vertically
             blotPos.y += ( 5 * gui_fov_scale_hud );
             rot = blotRandSource.getRandomDouble();
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
+            drawSprite( mChalkBlotSprite, blotPos, scale * gui_fov_scale_hud, rot );
             
             blotPos.y -= ( 10 * gui_fov_scale_hud );
             rot = blotRandSource.getRandomDouble();
-            drawSprite( mChalkBlotSprite, blotPos, gui_fov_scale_hud, rot );
+            drawSprite( mChalkBlotSprite, blotPos, scale * gui_fov_scale_hud, rot );
             }
         }
     
@@ -3523,7 +3560,12 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         doublePair lineStart = 
             { inPos.x, firstLineY - i * lineSpacing};
         
-        handwritingFont->drawString( line, lineStart, alignLeft );
+        if( !tinyStyle ) {
+            handwritingFont->drawString( line, lineStart, alignLeft );
+            }
+        else {
+            minitech::tinyHandwritingFont->drawString( line, lineStart, alignLeft );
+            }
         delete [] line;
         }
 
@@ -5036,6 +5078,52 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
 
     if( inObj->id == ourID ) {
         setClothingHighlightFades( NULL );
+        
+        // yum slip
+        if( holdingYumOrMeh != 0 ) {
+            
+            LiveObject *o = getOurLiveObject();
+            doublePair speechPos = pos;
+            
+            speechPos.y += 84;
+
+            ObjectRecord *displayObj = getObject( o->displayID );
+     
+
+            double age = computeCurrentAge( o );
+            
+            doublePair headPos = 
+                displayObj->spritePos[ getHeadIndex( displayObj, age ) ];
+            
+            doublePair bodyPos = 
+                displayObj->spritePos[ getBodyIndex( displayObj, age ) ];
+
+            doublePair frontFootPos = 
+                displayObj->spritePos[ getFrontFootIndex( displayObj, age ) ];
+            
+            headPos = add( headPos, 
+                           getAgeHeadOffset( age, headPos, 
+                                             bodyPos, frontFootPos ) );
+            headPos = add( headPos,
+                           getAgeBodyOffset( age, bodyPos ) );
+            
+            speechPos.y += headPos.y;
+            
+            speechPos.x += 41;
+            speechPos.y -= 41;
+			newbieTips::yumBubblePos = speechPos;
+            
+            setDrawColor( 1, 1, 1, 1 );
+            if( holdingYumOrMeh == -1 ) {
+                drawSprite( mMehIconSprite, speechPos );
+                }
+            else if ( holdingYumOrMeh == 1 ) {
+                drawSprite( mYumIconSprite, speechPos );
+                }
+                
+            }
+            
+        
         }
     
     return returnPack;
@@ -8637,6 +8725,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 
         if( ! equal( mYumSlipPosOffset[i], mYumSlipHideOffset[i] ) ) {
+			
+            mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
+			
             doublePair slipPos = 
                 add( mult( recalcOffset( mYumSlipPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -9000,7 +9091,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         for( int i=0; i<ourLiveObject->foodCapacity; i++ ) {
             doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
-                               lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+                               lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
             pos.x += i * ( 30 * gui_fov_scale_hud );
 			
             drawSprite( 
@@ -9021,7 +9112,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         for( int i=ourLiveObject->foodCapacity; 
              i < ourLiveObject->maxFoodCapacity; i++ ) {
 			doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
-							   lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+							   lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
 			pos.x += i * ( 30 * gui_fov_scale_hud );
             
             drawSprite( 
@@ -9098,7 +9189,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         toggleMultiplicativeBlend( false );
         
-
+        if( false ) // Hide OldDesStrings
         for( int i=0; i<mOldDesStrings.size(); i++ ) {
             doublePair pos = { lastScreenViewCenter.x, 
                                lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
@@ -9110,16 +9201,87 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 mOldDesStrings.getElementDirect( i ), pos, alignCenter );
             }
 
-        doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 480 ) * gui_fov_scale ), 
-                              lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
+        doublePair yumPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+                              lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
         setDrawColor( 0, 0, 0, 1 );
-        if( mYumBonus > 0 ) {    
-            char *yumString = autoSprintf( "+%d", mYumBonus );
+        // Food bar is not loaded if the game just has just reconnected
+        // Draw the bonus part of the food bar after the food bar is loaded
+        if( ourLiveObject->maxFoodCapacity > 0 ) {
             
-            pencilFont->drawString( yumString, yumPos, alignLeft );
-            delete [] yumString;
+            // 2HOL food UI - Yum Bonus label
+            char *yumString3 = autoSprintf( "BONUS:" );
+            double yumStringSize3 = handwritingFont->measureString( yumString3 );
+            yumPos.x += ourLiveObject->maxFoodCapacity * ( 30 * gui_fov_scale_hud );
+            yumPos.y -= 2 * gui_fov_scale_hud;
+            doublePair pos = yumPos;
+            pos.x += yumStringSize3 / 2 + 16 * gui_fov_scale_hud;
+            handwritingFont->drawString( yumString3, pos, alignCenter );
+            
+            // 2HOL food UI - Yum Bonus value
+            char *yumString = autoSprintf( "+%d", mYumBonus );
+            double yumStringSize = pencilFont->measureString( yumString );
+            doublePair pos2 = pos;
+            pos2.x += yumStringSize3 / 2 + 16 * gui_fov_scale_hud + yumStringSize / 2;
+            pencilFont->drawString( yumString, pos2, alignCenter );
+            
+            // 2HOL food UI - Fade animation of yum bonus increase
+            if( mFirstYumEaten ) {
+                    
+                if( mYumIncrementFade > 0.5 ) {
+                    mYumIncrementFade -= 0.05;
+                    }
+                else {
+                    mYumIncrementFade -= 0.1;
+                    }
+                    
+                if( mYumBonus - mOldYumBonusValue > 0 ) {
+                    char *yumString5 = autoSprintf( "+%d", mYumBonus - mOldYumBonusValue );
+                    double yumStringSize5 = pencilFont->measureString( yumString5 );
+                    doublePair yumFadePos = pos2;
+                    yumFadePos.x += yumStringSize / 2 + 4 * gui_fov_scale_hud + yumStringSize5 / 2;
+                    setDrawColor( 0, 0, 0, mYumIncrementFade );
+                    pencilFont->drawString( yumString5, yumFadePos, alignLeft );
+                    setDrawColor( 0, 0, 0, 1 );
+                    delete [] yumString5;
+                    }
+                }
+            
+            // 2HOL food UI - Yum Multiplier label
+            char *yumString4 = autoSprintf( "LEVEL:" );
+            double yumStringSize4 = handwritingFont->measureString( yumString4 );
+            yumPos.x += yumStringSize4 / 2 + 16 * gui_fov_scale_hud;
+            yumPos.y += 26 * gui_fov_scale_hud;
+            handwritingFont->drawString( yumString4, yumPos, alignCenter );
+            
+            // 2HOL food UI - Yum Multiplier value / hint
+            char *yumString2;
+            if( 
+                // only hint when holding food
+                holdingYumOrMeh != 0 && 
+                // only hint when it gives yum bonus
+                mYumMultiplier + 1 > 0 && 
+                // 2 yums give you the first bonus
+                // so hint only after eating first yum
+                mFirstYumEaten &&
+                // holdingID is delayed
+                // use eating anim as a trick to avoid flickering
+                ourLiveObject->curAnim != eating
+                ) {
+                yumString2 = autoSprintf( "(+%d BONUS NEXT YUM)", mYumMultiplier + 1 );
+                double yumStringSize2 = pencilFont->measureString( yumString2 );
+                yumPos.x += yumStringSize4 / 2 + 16 * gui_fov_scale_hud + yumStringSize2 / 2;
+                pencilFont->drawString( yumString2, yumPos, alignCenter );
+                }
+            else {
+                yumString2 = autoSprintf( "%d", mYumMultiplier );
+                double yumStringSize2 = pencilFont->measureString( yumString2 );
+                yumPos.x += yumStringSize4 / 2 + 16 * gui_fov_scale_hud + yumStringSize2 / 2;
+                pencilFont->drawString( yumString2, yumPos, alignCenter );
+                }
+            
             }
         
+        if( false )
         for( int i=0; i<mOldYumBonus.size(); i++ ) {
             float fade =
                 mOldYumBonusFades.getElementDirect( i );
@@ -9139,6 +9301,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int shortestFill = 100;
         
         
+        if( false ) // Hiding LastAteStrings
         for( int i=0; i<mOldLastAteStrings.size(); i++ ) {
             float fade =
                 mOldLastAteFades.getElementDirect( i );
@@ -9174,6 +9337,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             toggleMultiplicativeBlend( false );
             }
 
+        if( false ) // Hiding LastAteStrings
         if( shortestFill < 100 ) {
             toggleMultiplicativeBlend( true );
             setDrawColor( 1, 1, 1, 1 );
@@ -9189,6 +9353,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         
 
+        if( false ) // Hiding LastAteStrings
         if( mCurrentLastAteString != NULL ) {
             setDrawColor( 0, 0, 0, 1 );
         
@@ -9238,6 +9403,22 @@ void LivingLifePage::draw( doublePair inViewCenter,
                          ourLiveObject->holdingID > 0 ) {
                     des = autoSprintf( "%s %s",
                                        translate( "youWith" ),
+                                       getObject( ourLiveObject->holdingID )->
+                                       description );
+                    desToDelete = des;
+                    }
+                else if( ourLiveObject->holdingID > 0 &&
+                    getObject( ourLiveObject->holdingID )->rideable ) {
+                    
+                    des = autoSprintf( "%s %s",
+                                       translate( "youRiding" ),
+                                       getObject( ourLiveObject->holdingID )->
+                                       description );
+                    desToDelete = des;
+                    }
+                else if( ourLiveObject->holdingID > 0 ) {
+                    des = autoSprintf( "%s %s",
+                                       translate( "youHolding" ),
                                        getObject( ourLiveObject->holdingID )->
                                        description );
                     desToDelete = des;
@@ -9577,9 +9758,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 }
             
-            
-            setDrawColor( 0, 0, 0, 1 );
-            pencilFont->drawString( stringUpper, pos, alignCenter );
+            // This was the main description drawn on guiPanel
+            // setDrawColor( 0, 0, 0, 1 );
+            // pencilFont->drawString( stringUpper, pos, alignCenter );
+			
+			// Moved to be cursor-tips
+			if( mCurMouseOverID != 0 ) {
+				FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+				FloatColor txtColor = { 1, 1, 1, 1 };
+				drawChalkBackgroundString( 
+					{lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
+					stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+				}
             
             delete [] stringUpper;
             }
@@ -9648,6 +9838,21 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawMessage( "bugMessage2", messagePos );
             }
         }
+		
+	if( true ) {
+		setDrawColor( 0, 0, 0, 1 );
+		doublePair drawPos;
+		char sBuf[32];
+		int age = (int)(ourAge*10);
+		int ageDecimal = age - int(age*0.1)*10;
+		age = (int)((age-ageDecimal)*0.1);
+		sprintf(sBuf, "%c  %i.%i", ourGender, age, ageDecimal);
+		drawPos = lastScreenViewCenter;
+		drawPos.x += recalcOffsetX( 290 ) * gui_fov_scale + 30 * gui_fov_scale_hud;
+		drawPos.y -= viewHeight/2 - 25 * gui_fov_scale_hud;
+		handwritingFont->drawString( sBuf, drawPos, alignCenter );
+		}
+
 
 	// minitech
 	float worldMouseX, worldMouseY;
@@ -10941,7 +11146,7 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
 
 
     char *message = 
-        autoSprintf( "%s: %s (+%d)", translate( "craving"), 
+        autoSprintf( "%s: %s (+%d LEVELS)", translate( "craving"), 
                      foodDescription, inYumBonus );
     
     delete [] foodDescription;
@@ -12149,6 +12354,10 @@ void LivingLifePage::step() {
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
 	
 	minitech::livingLifeStep();
+    stepCount++;
+    if (stepCount > 10000) stepCount = 0;
+    if (ourObject != NULL && stepCount % 10 == 0) 
+        ourAge = computeServerAge( computeCurrentAge( ourObject ) );
 
     char *message = getNextServerMessage();
 
@@ -13386,7 +13595,9 @@ void LivingLifePage::step() {
                     // first map chunk just recieved
 					
 					minitech::initOnBirth();
-					
+                    
+                    newbieTips::drawTipsArrow = false;
+                    
 					//reset fov on birth
 					if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
 						changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
@@ -14710,12 +14921,17 @@ void LivingLifePage::step() {
                         if( heldYum ) {
                             // YUM
                             slipIndexToShow = 2;
+                            holdingYumOrMeh = 1;
                             }
                         else {
                             if( o.holdingID > 0 &&
                                 getObject( o.holdingID )->foodValue > 0 ) {
                                 // MEH
                                 slipIndexToShow = 3;
+                                holdingYumOrMeh = -1;
+                                }
+                            else {
+                                holdingYumOrMeh = 0;
                                 }
                             }
                         
@@ -16575,6 +16791,7 @@ void LivingLifePage::step() {
                     gameObjects.getElement( recentInsertedGameObjectIndex );
                 
                 ourID = ourObject->id;
+                if (ourObject) ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
 				
 
                 if( ourID != lastPlayerID ) {
@@ -17851,6 +18068,9 @@ void LivingLifePage::step() {
 
                 
                 if( oldYumBonus != mYumBonus ) {
+                    
+                    mOldYumBonusValue = oldYumBonus;
+					
                     // pull out of old stack, if present
                     for( int i=0; i<mOldYumBonus.size(); i++ ) {
                         if( mOldYumBonus.getElementDirect( i ) == mYumBonus ) {
@@ -17883,6 +18103,11 @@ void LivingLifePage::step() {
                         // push on top of stack
                         mOldYumBonus.push_back( oldYumBonus );
                         mOldYumBonusFades.push_back( 1.0f );
+                        }
+                        
+                    if( mYumBonus - mOldYumBonusValue > 0 ) {
+                        // 2HOL food UI - Fade animation of yum bonus increase
+                        mYumIncrementFade = 1.0f;
                         }
                     }
                 
@@ -18007,6 +18232,10 @@ void LivingLifePage::step() {
                         }
                 
                     if( lastAteID != 0 ) {
+                        
+                        // 2HOL food UI - whether first yum has been eaten
+                        mFirstYumEaten = true;
+                        
                         ObjectRecord *lastAteObj = getObject( lastAteID );
                         
                         char *strUpper = stringToUpperCase(
@@ -18382,6 +18611,15 @@ void LivingLifePage::step() {
             
             setViewCenterPosition( lastScreenViewCenter.x, 
                                    lastScreenViewCenter.y );
+								   
+			getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+			screenToWorld( lastScreenMouseX,
+						   lastScreenMouseY,
+						   &lastMouseX,
+						   &lastMouseY );
+						   
+			mLastMouseOverID = mCurMouseOverID;
+			mCurMouseOverID = 0;
             
             }
 
@@ -19554,6 +19792,11 @@ void LivingLifePage::makeActive( char inFresh ) {
     mZKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
+	
+    upKeyDown = false;
+    leftKeyDown = false;
+    downKeyDown = false;
+    rightKeyDown = false;
     
     screenCenterPlayerOffsetX = 0;
     screenCenterPlayerOffsetY = 0;
@@ -19783,6 +20026,9 @@ void LivingLifePage::makeActive( char inFresh ) {
     mOldLastAteBarFades.deleteAll();
     
     mYumBonus = 0;
+    mOldYumBonusValue = 0;
+    mFirstYumEaten = false;
+    mYumIncrementFade = 0.0f;
     mOldYumBonus.deleteAll();
     mOldYumBonusFades.deleteAll();
     
@@ -20510,6 +20756,8 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             // store negative in place so that we can show their relation
             // string
             mCurMouseOverID = - p.hitOtherPersonID;
+			
+            overNothing = false;
             }
         }
     
@@ -22448,9 +22696,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             return;
         }
     } else if( vogMode && !vogPickerOn ) {
-        addComponent( &mObjectPicker );
-        mObjectPicker.addActionListener( this );
-        vogPickerOn = true;
+		if( !commandKey && inASCII == 9 ) { // TAB
+			addComponent( &mObjectPicker );
+			mObjectPicker.addActionListener( this );
+			vogPickerOn = true;
+		}
     }
 
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
@@ -23436,7 +23686,6 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
 
 	calcOffsetHUD();
 
-	delete handwritingFont;
 	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 	pencilFont->copySpacing( handwritingFont );
 	pencilErasedFont->copySpacing( handwritingFont );

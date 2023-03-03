@@ -52,10 +52,15 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
     
     if( inLineageMaxFoodDepth > 0 ) {
         
-        // the next craving is drawn with certain probability to "advance the tech"
-        // which controls how many difficult food is in the craving pool vs the easy food
+        // The next craving is drawn with certain probability to "advance the tech"
+        // with a limit on the size of the "tech jump"
         
-        double harderCravingProb = SettingsManager::getDoubleSetting( "harderCravingProb", 0.5 );
+        double harderCravingProb = SettingsManager::getDoubleSetting( "harderCravingProb", 0.6 );
+        int maxCravingDepthGap = SettingsManager::getIntSetting( "maxCravingDepthGap", 10 );
+        
+        bool harderCravingOrNot = randSource.getRandomBoundedDouble( 0, 1 ) <= harderCravingProb;
+		
+        int maxDepth = 0;
         
         for( int i=0; i<allFoods->size(); i++ ) {
             int id = allFoods->getElementDirect( i );
@@ -63,34 +68,46 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
             if( id != inFoodToAvoid.foodID ) {
                 
                 int d = getObjectDepth( id );
-
-                if( d <= inLineageMaxFoodDepth ) {
+                if( d == UNREACHABLE ) continue;
+                if( d > maxDepth ) maxDepth = d;
+                    
+                if( 
+                    (!harderCravingOrNot && d <= inLineageMaxFoodDepth) ||
+                    (harderCravingOrNot && d > inLineageMaxFoodDepth && d <= inLineageMaxFoodDepth + maxCravingDepthGap)
+                ) {
                     possibleFoods.push_back( id );
                     }
                 }
             }
-            
-        int EasyFoodListLength = possibleFoods.size();
-        int TotalFoodListLength = ceil( EasyFoodListLength / (1 - harderCravingProb) );
-
-        int nextDepth = inLineageMaxFoodDepth;
         
-        while( possibleFoods.size() < TotalFoodListLength && nextDepth < getMaxDepth() ) {
-            nextDepth = nextDepth + 1;
-            for( int i=0; i<allFoods->size(); i++ ) {
-                int id = allFoods->getElementDirect( i );
-                
-                if( id != inFoodToAvoid.foodID ) {
+        // We are at a point on the tech tree that 
+        // the depth gap between our most advanced food and the next harder food
+        // is greater than maxCravingDepthGap.
+        // We ignore maxCravingDepthGap and pick from the next harder food
+        if( harderCravingOrNot && possibleFoods.size() == 0 ) {
+            // printf( "Tech Tree Gap ...\n" );
+            int nextDepth = inLineageMaxFoodDepth;
+            // have like at least 3 food in the pool to avoid repeating between chains
+            while( possibleFoods.size() < 3 ) {
+                nextDepth = nextDepth + 1;
+                for( int i=0; i<allFoods->size(); i++ ) {
+                    int id = allFoods->getElementDirect( i );
                     
-                    int d = getObjectDepth( id );
+                    if( id != inFoodToAvoid.foodID ) {
+                        
+                        int d = getObjectDepth( id );
+						if( d == UNREACHABLE ) continue;
 
-                    if( d == nextDepth ) {
-                        possibleFoods.push_back( id );
-                        if( possibleFoods.size() == TotalFoodListLength ) break;
+                        if( d == nextDepth ||
+							nextDepth > maxDepth // We reached the top of tech tree
+						) {
+                            possibleFoods.push_back( id );
+                            }
                         }
                     }
                 }
             }
+
         }
     else {
         // new lineage, crave some wild food
@@ -114,14 +131,24 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
             
         int pickedFood = possibleFoods.getElementDirect( pick );
         
-        double cravingBonusScale = SettingsManager::getDoubleSetting( "cravingBonusScale", 0.2 );
+        double cravingBonusScale = SettingsManager::getDoubleSetting( "cravingBonusScale", 0.4 );
         
-        int bonus = lrint( ( getObjectDepth( pickedFood ) - inLineageMaxFoodDepth ) * cravingBonusScale );
+        int bonus = ( getObjectDepth( pickedFood ) - inLineageMaxFoodDepth ) * cravingBonusScale;
         
         if( bonus < 1 ) bonus = 1;
     
-        printf( "%d possible foods, picking #%d\n", possibleFoods.size(),
-                pick );
+        // ObjectRecord *o = getObject( pickedFood );
+        // printf( "harderCravingOrNot = %d, %d possible foods, picking #%d, max %d, depth %d, gap %d, scale %.2f, bonus %d, %s\n",
+                // harderCravingOrNot,
+                // possibleFoods.size(),
+                // pick,
+                // inLineageMaxFoodDepth,
+                // getObjectDepth( pickedFood ),
+                // getObjectDepth( pickedFood ) - inLineageMaxFoodDepth,
+                // cravingBonusScale,
+                // bonus,
+                // o->description
+                // );
         
         Craving c = { pickedFood,
                       nextUniqueID,
@@ -132,7 +159,7 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
         return c;
         }
     else {
-        // no possible foods at or below d depth
+        // no possible food - this case should not happen
 
         // return first food in main list
         if( allFoods->size() > 0 ) {

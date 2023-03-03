@@ -1141,10 +1141,13 @@ float initObjectBankStep() {
                 setupWall( r );
 
                             
-                sscanf( lines[next], "foodValue=%d", 
-                        &( r->foodValue ) );
+                r->foodValue = 0;
+                r->bonusValue = 0;
+				
+                sscanf( lines[next], "foodValue=%d,%d", 
+                        &( r->foodValue ), &( r->bonusValue ) );
                 
-                if( r->foodValue > 0 ) {
+                if( r->foodValue > 0 || r->bonusValue > 0 ) {
                     allPossibleFoodIDs.push_back( r->id );
                     }
 
@@ -2597,6 +2600,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->wallLayer,
                         inObject->frontWall,
                         inObject->foodValue,
+                        inObject->bonusValue,
                         inObject->speedMult,
                         inObject->heldOffset,
                         inObject->clothing,
@@ -2878,6 +2882,7 @@ int addObject( const char *inDescription,
                char inWallLayer,
                char inFrontWall,
                int inFoodValue,
+               int inBonusValue,
                float inSpeedMult,
                doublePair inHeldOffset,
                char inClothing,
@@ -3068,7 +3073,12 @@ int addObject( const char *inDescription,
         if( inWallLayer ) lines.push_back( autoSprintf( "wallLayer=%d", (int)inWallLayer ) );
         if( inFrontWall ) lines.push_back( autoSprintf( "frontWall=%d", (int)inFrontWall ) );
 
-        lines.push_back( autoSprintf( "foodValue=%d", inFoodValue ) );
+        if( inBonusValue > 0 ) {
+            lines.push_back( autoSprintf( "foodValue=%d,%d", inFoodValue, inBonusValue ) );            
+            }
+        else {
+            lines.push_back( autoSprintf( "foodValue=%d", inFoodValue ) );
+            }
         
         lines.push_back( autoSprintf( "speedMult=%f", inSpeedMult ) );
 
@@ -3387,6 +3397,7 @@ int addObject( const char *inDescription,
     r->wallLayer = inWallLayer;
     r->frontWall = inFrontWall;
     r->foodValue = inFoodValue;
+    r->bonusValue = inBonusValue;
 
     
     // do NOT add to food list

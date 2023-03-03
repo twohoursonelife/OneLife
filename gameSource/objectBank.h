@@ -172,6 +172,7 @@ typedef struct ObjectRecord {
 
         
         int foodValue;
+        int bonusValue; // This portion goes directly to the bonus part of the food bar
         
         // multiplier on walking speed when holding
         float speedMult;
@@ -578,6 +579,7 @@ int addObject( const char *inDescription,
                char inWallLayer,
                char inFrontWall,
                int inFoodValue,
+               int inBonusValue,
                float inSpeedMult,
                doublePair inHeldOffset,
                char inClothing,

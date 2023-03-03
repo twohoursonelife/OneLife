@@ -113,7 +113,9 @@ double fertileAge = 15;
 // End UncleGus Custom Variables
 double minSayGapInSeconds = 1.0;
 
-int maxLineageTracked = 20;
+// each generation is at minimum 14 minutes apart
+// so 1024 generations is approximately 10 days
+int maxLineageTracked = 1024;
 
 int apocalypsePossible = 0;
 char apocalypseTriggered = false;
@@ -813,6 +815,8 @@ typedef struct LiveObject {
 		//2HOL mechanics to read written objects
 		//positions already read while in range
 		SimpleVector<GridPos> readPositions;
+		timeSec_t lastWrittenObjectScanTime;
+		GridPos lastWrittenObjectScanPos;
 		
 		//time when read position is expired and can be read again
 		SimpleVector<double> readPositionsETA;
@@ -2584,6 +2588,23 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
     
     // all player temp effects push us up above min
     value += minFoodDecrementSeconds;
+    
+    // The more you stack the yum bonus, the faster it drains
+    // A nerf against extreme bonus stacking that lasts for a whole life
+    
+    // bonus above this will start to fall off
+    float xStart = 120.0;
+    if( inPlayer->yummyBonusStore > xStart ) {
+        // controls the rate of fall off 
+        float xScaling = 1.2;
+        float x = (inPlayer->yummyBonusStore - xStart) / xStart * xScaling;
+        // y is a fraction
+        float y = 1/(x+1);
+        // multiplied to the original value
+        value = value * y;
+        // still obey the min
+        value = std::max(value, minFoodDecrementSeconds);
+        }
 
     return value;
     }
@@ -2745,26 +2766,22 @@ static int countYoungFemalesInLineage( int inLineageEveID ) {
 
 int computeFoodCapacity( LiveObject *inPlayer ) {
     int ageInYears = lrint( computeAge( inPlayer ) );
-    
+    int minFoodCap = 4;
+    int maxFoodcap = 15;
     int returnVal = 0;
     
     if( ageInYears < oldAge ) {
         
-        if( ageInYears > adultAge - 4 ) {
-            ageInYears = adultAge - 4;
-            }
+        returnVal = ageInYears + minFoodCap;
+        if( returnVal > maxFoodcap ) returnVal = maxFoodcap;
         
-        returnVal = ageInYears + 4;
         }
     else {
         // food capacity decreases as we near death
         int cap = forceDeathAge - ageInYears + 4;
+        if( cap < minFoodCap ) cap = minFoodCap;
         
-        if( cap < 4 ) {
-            cap = 4;
-            }
-        
-        int lostBars = 20 - cap;
+        int lostBars = maxFoodcap - cap;
 
         if( lostBars > 0 && inPlayer->fitnessScore > 0 ) {
         
@@ -2779,7 +2796,7 @@ int computeFoodCapacity( LiveObject *inPlayer ) {
                 }
             }
         
-        returnVal = 20 - lostBars;
+        returnVal = maxFoodcap - lostBars;
         }
 
     return ceil( returnVal * inPlayer->foodCapModifier );
@@ -4813,6 +4830,11 @@ SimpleVector<ChangePosition> newLocationSpeechPos;
 
 char *isCurseNamingSay( char *inSaidString );
 
+char *isInfertilityDeclaringSay( char *inSaidString );
+
+char *isFertilityDeclaringSay( char *inSaidString );
+
+
 //2HOL additions for: password-protected objects
 char *isPasswordSettingSay( char *inSaidString );
 char *isPasswordInvokingSay( char *inSaidString );
@@ -4857,6 +4879,14 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             }
         inPlayer->lastSay = stringDuplicate( inToSay );
         }
+
+
+    if( getFemale( inPlayer ) ) {
+        char *infertilityDeclaring = isInfertilityDeclaringSay( inToSay );
+        char *fertilityDeclaring = isFertilityDeclaringSay( inToSay );
+        if( infertilityDeclaring != NULL || fertilityDeclaring != NULL ) return;
+    }
+
 
     char isCurse = false;
 
@@ -5918,6 +5948,7 @@ static char isReallyYummy( LiveObject *inPlayer, int inObjectID ) {
     }
 
 
+static void setRefuseFoodEmote( LiveObject *hitPlayer );
 
 static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
                        char inFedSelf = true ) {
@@ -5933,6 +5964,9 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         if( inFedSelf && canYumChainBreak ) {
             inPlayer->yummyFoodChain.deleteAll();
             }
+			
+		setRefuseFoodEmote( inPlayer );
+			
         }
     
     
@@ -6011,6 +6045,17 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         // only get bonus if actually was yummy (whether fed self or not)
         // chain not broken if fed non-yummy by other, but don't get bonus
         inPlayer->yummyBonusStore += currentBonus;
+        }
+        
+    if( wasYummy ) {
+        // bonus part of foodValue goes into the yum bonus if yummy (or is craved)
+        inPlayer->yummyBonusStore += o->bonusValue;
+        }
+    else {
+        // otherwise it goes into the base food bar, without overflow
+        inPlayer->foodStore += o->bonusValue;
+        int cap = computeFoodCapacity( inPlayer );
+        if( inPlayer->foodStore > cap ) inPlayer->foodStore = cap;
         }
     
     }
@@ -7782,8 +7827,12 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.error = false;
     newObject.errorCauseString = "";
 	
-	newObject.lastActionTime = Time::getCurrentTime();
-	newObject.isAFK = false;
+    newObject.lastActionTime = Time::getCurrentTime();
+    newObject.isAFK = false;
+    
+    newObject.lastWrittenObjectScanTime = 0;
+    newObject.lastWrittenObjectScanPos.x = 9999;
+    newObject.lastWrittenObjectScanPos.y = 9999;
     
     newObject.customGraveID = -1;
     newObject.deathReason = NULL;
@@ -12146,6 +12195,29 @@ static int checkTargetInstantDecay( int inTarget, int inX, int inY ) {
     }
 
 
+static void setRefuseFoodEmote( LiveObject *hitPlayer ) {
+    if( hitPlayer->emotFrozen ) {
+        return;
+        }
+    
+    int newEmotIndex =
+        SettingsManager::
+        getIntSetting( 
+            "refuseFoodEmotionIndex",
+            -1 );
+    if( newEmotIndex != -1 ) {
+        newEmotPlayerIDs.push_back( 
+            hitPlayer->id );
+        
+        newEmotIndices.push_back( 
+            newEmotIndex );
+        // was 5 sec for OHOL's babies' refuseFoodEmote
+		// changed to 3 for 2HOL's mehEmote
+        newEmotTTLs.push_back( 3 );
+        }
+    }
+
+
 
 
 int main() {
@@ -14113,45 +14185,54 @@ int main() {
                               nextPlayer->xd + 8, nextPlayer->yd + 7 );
                 nextPlayer->lastRegionLookTime = curLookTime;
                 }
-				
-			//2HOL mechanics to read written objects
-			GridPos playerPos;
-			if( nextPlayer->xs == nextPlayer->xd && nextPlayer->ys == nextPlayer->yd ) {
-				playerPos.x = nextPlayer->xd;
-				playerPos.y = nextPlayer->yd;
-			} else {
-				playerPos = computePartialMoveSpot( nextPlayer );
-			}
-			
-			float readRange = 3.0;
-			
-			//Remove positions already read when players get out of range and speech bubbles are expired 
-			for( int j = nextPlayer->readPositions.size() - 1; j >= 0; j-- ) {
-				GridPos p = nextPlayer->readPositions.getElementDirect( j );
-				double eta = nextPlayer->readPositionsETA.getElementDirect( j );
-				if( 
-					distance( p, playerPos ) > readRange && 
-					Time::getCurrentTime() > eta
-					) {
-					nextPlayer->readPositions.deleteElement( j );
-					nextPlayer->readPositionsETA.deleteElement( j );
-				}
-			}
-			
-			//Scan area around players for pass-to-read objects
-			for( int dx = -3; dx <= 3; dx++ ) {
-				for( int dy = -3; dy <= 3; dy++ ) {
-					float dist = sqrt(dx * dx + dy * dy);
-					if( dist > readRange ) continue;
-					int objId = getMapObjectRaw( playerPos.x + dx, playerPos.y + dy );
-					if( objId <= 0 ) continue;
-					ObjectRecord *obj = getObject( objId );
-					if( obj != NULL && obj->written && obj->passToRead ) {
-						GridPos readPos = { playerPos.x + dx, playerPos.y + dy };
-						forceObjectToRead( nextPlayer, objId, readPos, true );
-					}
-				}
-			}
+                
+            if( curLookTime - nextPlayer->lastWrittenObjectScanTime > 1 ) {
+                
+                //2HOL mechanics to read written objects
+                GridPos playerPos;
+                if( nextPlayer->xs == nextPlayer->xd && nextPlayer->ys == nextPlayer->yd ) {
+                    playerPos.x = nextPlayer->xd;
+                    playerPos.y = nextPlayer->yd;
+                } else {
+                    playerPos = computePartialMoveSpot( nextPlayer );
+                }
+                
+                if( !equal( playerPos, nextPlayer->lastWrittenObjectScanPos ) ) {
+                    
+                    nextPlayer->lastWrittenObjectScanPos = playerPos;
+                    nextPlayer->lastWrittenObjectScanTime = curLookTime;
+                
+                    float readRange = 3.0;
+                    
+                    //Remove positions already read when players get out of range and speech bubbles are expired 
+                    for( int j = nextPlayer->readPositions.size() - 1; j >= 0; j-- ) {
+                        GridPos p = nextPlayer->readPositions.getElementDirect( j );
+                        double eta = nextPlayer->readPositionsETA.getElementDirect( j );
+                        if( 
+                            distance( p, playerPos ) > readRange && 
+                            Time::getCurrentTime() > eta
+                            ) {
+                            nextPlayer->readPositions.deleteElement( j );
+                            nextPlayer->readPositionsETA.deleteElement( j );
+                        }
+                    }
+                    
+                    //Scan area around players for pass-to-read objects
+                    for( int dx = -3; dx <= 3; dx++ ) {
+                        for( int dy = -3; dy <= 3; dy++ ) {
+                            float dist = sqrt(dx * dx + dy * dy);
+                            if( dist > readRange ) continue;
+                            int objId = getMapObjectRaw( playerPos.x + dx, playerPos.y + dy );
+                            if( objId <= 0 ) continue;
+                            ObjectRecord *obj = getObject( objId );
+                            if( obj != NULL && obj->written && obj->passToRead ) {
+                                GridPos readPos = { playerPos.x + dx, playerPos.y + dy };
+                                forceObjectToRead( nextPlayer, objId, readPos, true );
+                            }
+                        }
+                    }
+                }
+            }
 
             char *message = NULL;
             
@@ -14186,13 +14267,16 @@ int main() {
 				if( m.type != EMOT ) {
 					//Clear afk emote if they were afk
 					if( nextPlayer->isAFK ) {
-
-						clearFrozenEmote( nextPlayer, afkEmotionIndex );
-						
+						if( clearFrozenEmote( nextPlayer, afkEmotionIndex ) ) {
+							//Only change state when afk emote is successfully cleared
+							nextPlayer->isAFK = false;
+							nextPlayer->lastActionTime = Time::getCurrentTime();
+							}
 						}
-					
-					nextPlayer->isAFK = false;
-					nextPlayer->lastActionTime = Time::getCurrentTime();
+					else {					
+						nextPlayer->isAFK = false;
+						nextPlayer->lastActionTime = Time::getCurrentTime();
+						}
 					}
                 
 
@@ -17227,7 +17311,7 @@ int main() {
                                 
 
                                 if( targetObj->permanent &&
-                                    targetObj->foodValue > 0 ) {
+                                    (targetObj->foodValue > 0 || targetObj->bonusValue > 0) ) {
                                     
                                     // just touching this object
                                     // causes us to eat from it
@@ -18154,7 +18238,7 @@ int main() {
                                     }
                                 // next case, holding food
                                 // that couldn't be put into clicked clothing
-                                else if( obj->foodValue > 0 && 
+                                else if( (obj->foodValue > 0 || obj->bonusValue > 0) && 
                                          targetPlayer->foodStore < cap &&
                                          ! couldHaveGoneIn ) {
                                     
@@ -18190,6 +18274,7 @@ int main() {
 
                                         targetPlayer->yummyBonusStore += over;
                                         }
+										
                                     targetPlayer->foodDecrementETASeconds =
                                         Time::getCurrentTime() +
                                         computeFoodDecrementTimeSeconds( 
@@ -19234,10 +19319,10 @@ int main() {
 					}
 				
 				if( curTime >= nextPlayer->trippingEffectETA ) {
-					nextPlayer->tripping = false;
-					
-					clearFrozenEmote( nextPlayer, trippingEmotionIndex );
-					
+					if( clearFrozenEmote( nextPlayer, trippingEmotionIndex ) ) {
+						//Only change state when tripping emote is successfully cleared
+						nextPlayer->tripping = false;
+						}
 					}
 				else if( !nextPlayer->emotFrozen &&
 					curTime < nextPlayer->trippingEffectETA ) {
@@ -19253,10 +19338,10 @@ int main() {
 			
 			if( nextPlayer->drunkennessEffect ) {
 				if( Time::getCurrentTime() >= nextPlayer->drunkennessEffectETA ) {
-					nextPlayer->drunkennessEffect = false;
-					
-					clearFrozenEmote( nextPlayer, drunkEmotionIndex );
-					
+					if( clearFrozenEmote( nextPlayer, drunkEmotionIndex ) ) {
+						//Only change state when drunk emote is successfully cleared
+						nextPlayer->drunkennessEffect = false;
+						}
 					}
 				else if( !nextPlayer->emotFrozen &&
 					Time::getCurrentTime() < nextPlayer->drunkennessEffectETA ) {

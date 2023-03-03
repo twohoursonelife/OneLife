@@ -79,7 +79,7 @@ EditorObjectPage::EditorObjectPage()
           mFoodValueField( smallFont, 
                            -250,  -32, 4,
                            false,
-                           "Food", "0123456789", NULL ),
+                           "Food", "0123456789,", NULL ),
           mSpeedMultField( smallFont, 
                            -250,  -64, 4,
                            false,
@@ -1473,6 +1473,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             creationSoundForce = 
                 mCreationSoundForceCheckbox.getToggled();
             }
+            
+        char *foodValueText = mFoodValueField.getText();
+        int foodValue = 0;
+        int bonusValue = 0;
+        sscanf( foodValueText, "%d,%d", &( foodValue ), &( bonusValue ) );
 
         int newID =
         addObject( text,
@@ -1506,7 +1511,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mFloorHuggingCheckbox.getToggled(),
                    mWallLayerCheckbox.getToggled(),
                    mFrontWallCheckbox.getToggled(),
-                   mFoodValueField.getInt(),
+                   foodValue,
+                   bonusValue,
                    mSpeedMultField.getFloat(),
                    mCurrentObject.heldOffset,
                    mCurrentObject.clothing,
@@ -1627,6 +1633,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             creationSoundForce = 
                 mCreationSoundForceCheckbox.getToggled();
             }
+            
+        char *foodValueText = mFoodValueField.getText();
+        int foodValue = 0;
+        int bonusValue = 0;
+        sscanf( foodValueText, "%d,%d", &( foodValue ), &( bonusValue ) );
 
 
         addObject( text,
@@ -1660,7 +1671,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mFloorHuggingCheckbox.getToggled(),
                    mWallLayerCheckbox.getToggled(),
                    mFrontWallCheckbox.getToggled(),
-                   mFoodValueField.getInt(),
+                   foodValue,
+                   bonusValue,
                    mSpeedMultField.getFloat(),
                    mCurrentObject.heldOffset,
                    mCurrentObject.clothing,
@@ -2895,7 +2907,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mHeatValueField.setInt( pickedRecord->heatValue );
             mRValueField.setFloat( pickedRecord->rValue, 2 );
             
-            mFoodValueField.setInt( pickedRecord->foodValue );
+            if( pickedRecord->bonusValue > 0 ) {
+                mFoodValueField.setText( autoSprintf( "%d,%d", pickedRecord->foodValue, pickedRecord->bonusValue ) );
+                }
+            else {
+                mFoodValueField.setText( autoSprintf( "%d", pickedRecord->foodValue ) );
+                }
 
             mSpeedMultField.setFloat( pickedRecord->speedMult, 2 );
 

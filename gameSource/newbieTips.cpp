@@ -20,6 +20,7 @@ int newbieTips::pathFindingD;
 bool newbieTips::newbieTipsEnabled = false;
 
 bool newbieTips::yumSlipShowing;
+doublePair newbieTips::yumBubblePos = {9999, 9999};
 int newbieTips::hungerSlipShowing;
 
 bool newbieTips::drawTipsArrow = false;
@@ -168,7 +169,13 @@ void newbieTips::livingLifeStep(
                 startTipsArrow( pos, false );
             }
         } else if( mLiveTutorialTriggerNumber == 10 || mLiveTutorialTriggerNumber == 1010 ) { // Yum slip
-            if( yumSlipShowing ) startTipsArrow( {-viewWidth / minitech::guiScale + 450, 62}, false );
+            if( yumSlipShowing ) {
+				LiveObject *ourLiveObject = livingLifePage->getOurLiveObject();
+				if( ourLiveObject == NULL ) return;
+				doublePair pos = yumBubblePos;
+				pos.y += 16;
+				startTipsArrow( conversionFromMinitechPos(pos), false );
+			}
         } else if( mLiveTutorialTriggerNumber == 11 ) { // Tule reeds
             if( getObjId(118, 1) == 121 ) { //Tule Reeds
                 startTipsArrow( {118, 1}, true );
