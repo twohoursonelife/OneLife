@@ -12,6 +12,7 @@ public:
     static bool newbieTipsEnabled;
     
     static bool yumSlipShowing;
+	static doublePair yumBubblePos;
     static int hungerSlipShowing;
 
     static bool drawTipsArrow;

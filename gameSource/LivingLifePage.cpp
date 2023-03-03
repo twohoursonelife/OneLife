@@ -5111,6 +5111,7 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             
             speechPos.x += 41;
             speechPos.y -= 41;
+			newbieTips::yumBubblePos = speechPos;
             
             setDrawColor( 1, 1, 1, 1 );
             if( holdingYumOrMeh == -1 ) {
