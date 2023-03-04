@@ -11062,9 +11062,9 @@ static void doDrug( LiveObject *inPlayer ) {
 	
 // returns true if frozen emote cleared successfully
 static bool clearFrozenEmote( LiveObject *inPlayer, int inEmoteIndex ) {
-	
-	if( inPlayer->emotFrozen &&
-		inPlayer->emotFrozenIndex == inEmoteIndex ) {
+	if( !inPlayer->emotFrozen ||
+        (inPlayer->emotFrozen &&
+		inPlayer->emotFrozenIndex == inEmoteIndex) ) {
 			
 		inPlayer->emotFrozen = false;
 		inPlayer->emotUnfreezeETA = 0;
