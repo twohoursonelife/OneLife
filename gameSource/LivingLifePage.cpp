@@ -7229,7 +7229,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             setDrawColor( 1, 1, 1, h->fade );
 
-            drawSprite( mHintArrowSprite, targetPos );
+            // drawSprite( mHintArrowSprite, targetPos );
             }
         }
         
@@ -9862,11 +9862,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 				   &worldMouseX,
 				   &worldMouseY );
 	minitech::livingLifeDraw(worldMouseX, worldMouseY);
-    
-    
-    if( newbieTips::screenOrTile == 0 ) 
-        drawSprite( mHintArrowSprite, hintArrowPos, newbieTips::arrowScale() );
-    
     
     if( vogMode ) {
         // draw again, so we can see picker
