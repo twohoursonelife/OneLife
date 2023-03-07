@@ -9229,10 +9229,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mFirstYumEaten ) {
                     
                 if( mYumIncrementFade > 0.5 ) {
-                    mYumIncrementFade -= 0.05;
+                    mYumIncrementFade -= 0.03;
                     }
                 else {
-                    mYumIncrementFade -= 0.1;
+                    mYumIncrementFade -= 0.05;
                     }
                     
                 if( mYumBonus - mOldYumBonusValue > 0 ) {
