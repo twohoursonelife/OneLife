@@ -2778,7 +2778,7 @@ int computeFoodCapacity( LiveObject *inPlayer ) {
         }
     else {
         // food capacity decreases as we near death
-        int cap = forceDeathAge - ageInYears + 4;
+        int cap = maxFoodcap - ( ageInYears - oldAge );
         if( cap < minFoodCap ) cap = minFoodCap;
         
         int lostBars = maxFoodcap - cap;
@@ -2789,7 +2789,7 @@ int computeFoodCapacity( LiveObject *inPlayer ) {
 
             // for now, let's make it quadratic
             double maxLostBars = 
-                16 - 16 * pow( inPlayer->fitnessScore / 60.0, 2 );
+                (maxFoodcap - minFoodCap) * (1 - pow( inPlayer->fitnessScore / 60.0, 2 ));
             
             if( lostBars > maxLostBars ) {
                 lostBars = maxLostBars;
