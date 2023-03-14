@@ -17727,7 +17727,7 @@ void LivingLifePage::step() {
                                         }
                                     }
 
-                                if( id == ourID ) {
+                                if( id == ourID && !vogMode ) {
                                     int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
                                     // TODO: If fertility age is ever not hard coded, maybe put it here?
                                     if (automaticInfertilityAsEve > 0 and existing->lineageEveID == ourID and existing->age < 15.0) {
