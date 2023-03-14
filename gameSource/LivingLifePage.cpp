@@ -5360,6 +5360,7 @@ static void drawHUDBarPart( double x, double y, double width, double height ) {
     
 char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
     int i = inTileIndex;
+    if( i < 0 || i >= mMapD * mMapD ) return false;
 
     int fID = mMapFloors[ i ];
 
