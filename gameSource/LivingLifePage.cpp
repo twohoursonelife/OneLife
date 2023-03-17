@@ -20916,7 +20916,13 @@ char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
 
 
 void LivingLifePage::pointerDown( float inX, float inY ) {
-	if (!mForceGroundClick && minitech::livingLifePageMouseDown( inX, inY )) return;
+    
+    int mouseButton = getLastMouseButton();
+    
+    if (!mForceGroundClick && 
+        !isLastMouseButtonRight() &&
+        !(mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN) &&
+        minitech::livingLifePageMouseDown( inX, inY )) return;
 	
     lastMouseX = inX;
     lastMouseY = inY;
@@ -20930,7 +20936,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 	
-	int mouseButton = getLastMouseButton();
 	bool scaling = false;
     if( !mForceGroundClick ) {
         if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
