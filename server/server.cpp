@@ -2766,8 +2766,8 @@ static int countYoungFemalesInLineage( int inLineageEveID ) {
 
 int computeFoodCapacity( LiveObject *inPlayer ) {
     int ageInYears = lrint( computeAge( inPlayer ) );
-    int minFoodCap = 4;
-    int maxFoodcap = 15;
+    int minFoodCap = 3;
+    int maxFoodcap = 10;
     int returnVal = 0;
     
     if( ageInYears < oldAge ) {
