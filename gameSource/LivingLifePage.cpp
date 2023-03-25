@@ -18616,8 +18616,9 @@ void LivingLifePage::step() {
 						   &lastMouseX,
 						   &lastMouseY );
 						   
-			mLastMouseOverID = mCurMouseOverID;
-			mCurMouseOverID = 0;
+            // camera moved, simulate a pointer move to the last known position
+            // to check again what the pointer is hitting
+            pointerMove( lastMouseX, lastMouseY );
             
             }
 
