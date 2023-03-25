@@ -2593,10 +2593,10 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
     // A nerf against extreme bonus stacking that lasts for a whole life
     
     // bonus above this will start to fall off
-    float xStart = 120.0;
+    float xStart = 80.0;
     if( inPlayer->yummyBonusStore > xStart ) {
         // controls the rate of fall off 
-        float xScaling = 1.2;
+        float xScaling = 1.5;
         float x = (inPlayer->yummyBonusStore - xStart) / xStart * xScaling;
         // y is a fraction
         float y = 1/(x+1);
