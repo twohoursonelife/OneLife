@@ -6047,8 +6047,9 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         inPlayer->yummyBonusStore += currentBonus;
         }
         
-    if( wasYummy ) {
+    if( wasYummy || o->permanent ) {
         // bonus part of foodValue goes into the yum bonus if yummy (or is craved)
+        // or if food is permanent, special case for testing/mod objects
         inPlayer->yummyBonusStore += o->bonusValue;
         }
     else {
