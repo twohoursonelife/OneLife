@@ -2484,6 +2484,7 @@ LivingLifePage::LivingLifePage()
           mShowHighlights( true ),
           mUsingSteam( false ),
           mZKeyDown( false ),
+          mXKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 ) {
 
 
@@ -5359,6 +5360,7 @@ static void drawHUDBarPart( double x, double y, double width, double height ) {
     
 char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
     int i = inTileIndex;
+    if( i < 0 || i >= mMapD * mMapD ) return false;
 
     int fID = mMapFloors[ i ];
 
@@ -7229,7 +7231,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             setDrawColor( 1, 1, 1, h->fade );
 
-            drawSprite( mHintArrowSprite, targetPos );
+            // drawSprite( mHintArrowSprite, targetPos );
             }
         }
         
@@ -9228,10 +9230,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mFirstYumEaten ) {
                     
                 if( mYumIncrementFade > 0.5 ) {
-                    mYumIncrementFade -= 0.05;
+                    mYumIncrementFade -= 0.03;
                     }
                 else {
-                    mYumIncrementFade -= 0.1;
+                    mYumIncrementFade -= 0.05;
                     }
                     
                 if( mYumBonus - mOldYumBonusValue > 0 ) {
@@ -9762,14 +9764,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // setDrawColor( 0, 0, 0, 1 );
             // pencilFont->drawString( stringUpper, pos, alignCenter );
 			
-			// Moved to be cursor-tips
-			if( mCurMouseOverID != 0 ) {
-				FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-				FloatColor txtColor = { 1, 1, 1, 1 };
-				drawChalkBackgroundString( 
-					{lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
-					stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
-				}
+            // Moved to be cursor-tips
+            if( ! mXKeyDown )
+            if( mCurMouseOverID != 0 ) {
+                FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+                FloatColor txtColor = { 1, 1, 1, 1 };
+                drawChalkBackgroundString( 
+                    {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
+                    stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+                }
             
             delete [] stringUpper;
             }
@@ -9862,11 +9865,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 				   &worldMouseX,
 				   &worldMouseY );
 	minitech::livingLifeDraw(worldMouseX, worldMouseY);
-    
-    
-    if( newbieTips::screenOrTile == 0 ) 
-        drawSprite( mHintArrowSprite, hintArrowPos, newbieTips::arrowScale() );
-    
     
     if( vogMode ) {
         // draw again, so we can see picker
@@ -17730,7 +17728,7 @@ void LivingLifePage::step() {
                                         }
                                     }
 
-                                if( id == ourID ) {
+                                if( id == ourID && !vogMode ) {
                                     int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
                                     // TODO: If fertility age is ever not hard coded, maybe put it here?
                                     if (automaticInfertilityAsEve > 0 and existing->lineageEveID == ourID and existing->age < 15.0) {
@@ -18290,7 +18288,7 @@ void LivingLifePage::step() {
 
                         mHungerSlipVisible = 0;
                         }
-                    else if( ourLiveObject->foodStore + mYumBonus <= 4 &&
+                    else if( ourLiveObject->foodStore + mYumBonus <= 2 &&
                              computeCurrentAge( ourLiveObject ) < 117.33 ) {
                         
                         // don't play hunger sounds at end of life
@@ -18321,7 +18319,7 @@ void LivingLifePage::step() {
                                 }
                             }
                         }
-                    else if( ourLiveObject->foodStore + mYumBonus <= 8 ) {
+                    else if( ourLiveObject->foodStore + mYumBonus <= 5 ) {
                         mHungerSlipVisible = 1;
                         mPulseHungerSound = false;
                         }
@@ -18330,7 +18328,7 @@ void LivingLifePage::step() {
                         }
                     newbieTips::hungerSlipShowing = mHungerSlipVisible;
 
-                    if( ourLiveObject->foodStore + mYumBonus > 4 ||
+                    if( ourLiveObject->foodStore + mYumBonus > 2 ||
                         computeCurrentAge( ourLiveObject ) >= 57 ) {
                         // restore music
                         setMusicLoudness( musicLoudness );
@@ -18618,8 +18616,9 @@ void LivingLifePage::step() {
 						   &lastMouseX,
 						   &lastMouseY );
 						   
-			mLastMouseOverID = mCurMouseOverID;
-			mCurMouseOverID = 0;
+            // camera moved, simulate a pointer move to the last known position
+            // to check again what the pointer is hitting
+            pointerMove( lastMouseX, lastMouseY );
             
             }
 
@@ -19790,6 +19789,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     // unhold E key
     mEKeyDown = false;
     mZKeyDown = false;
+    mXKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
 	
@@ -20335,6 +20335,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
         // don't worry about p->hitOurPlacement when checking them
         // next, people in this row
         // recently dropped babies are in front and tested first
+        if( ! mXKeyDown )
         for( int d=0; d<2 && ! p->hit; d++ )
         for( int x=clickDestX+1; x>=clickDestX-1 && ! p->hit; x-- ) {
             float clickOffsetX = ( clickDestX  - x ) * CELL_D + clickExtraX;
@@ -20521,7 +20522,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
 
 
 
-    
+    if( !mXKeyDown )
     if( p->hit && p->hitAnObject && ! p->hitOtherPerson && ! p->hitSelf ) {
         // hit an object
         
@@ -20916,7 +20917,13 @@ char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
 
 
 void LivingLifePage::pointerDown( float inX, float inY ) {
-	if (!mForceGroundClick && minitech::livingLifePageMouseDown( inX, inY )) return;
+    
+    int mouseButton = getLastMouseButton();
+    
+    if (!mForceGroundClick && 
+        !isLastMouseButtonRight() &&
+        !(mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN) &&
+        minitech::livingLifePageMouseDown( inX, inY )) return;
 	
     lastMouseX = inX;
     lastMouseY = inY;
@@ -20930,7 +20937,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 	
-	int mouseButton = getLastMouseButton();
 	bool scaling = false;
     if( !mForceGroundClick ) {
         if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
@@ -22936,6 +22942,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case 'x':
+        case 'X':
             if( userTwinCode != NULL &&
                 ! mStartedLoadingFirstObjectSet ) {
                 
@@ -22944,6 +22951,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 
                 setWaiting( false );
                 setSignal( "twinCancel" );
+                }
+            else if( ! mSayField.isFocused() ) {
+                mXKeyDown = true;
                 }
             break;
         /*
@@ -23064,6 +23074,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             break;
         case '/':
             if( ! mSayField.isFocused() ) {
+                mEKeyDown = false;
+                mZKeyDown = false;
+                mXKeyDown = false;
+                
                 // start typing a filter
                 mSayField.setText( "/" );
                 mSayField.focus();
@@ -23072,6 +23086,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         case 13:  // enter
             // speak
             if( ! TextField::isAnyFocused() ) {
+                mEKeyDown = false;
+                mZKeyDown = false;
+                mXKeyDown = false;
                 
                 mSayField.setText( "" );
                 mSayField.focus();
@@ -23376,6 +23393,9 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 mSayField.setText( "" );
                 }
             mSayField.focus();
+            mEKeyDown = false;
+            mZKeyDown = false;
+            mXKeyDown = false;
             }
         else {
             char *curText = mSayField.getText();
@@ -23522,6 +23542,10 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
         case 'z':
         case 'Z':
             mZKeyDown = false;
+            break;
+        case 'x':
+        case 'X':
+            mXKeyDown = false;
             break;
         case ' ':
             if (! SettingsManager::getIntSetting( "keyboardActions", 1 )) shouldMoveCamera = true;

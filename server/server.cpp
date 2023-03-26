@@ -2593,10 +2593,10 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
     // A nerf against extreme bonus stacking that lasts for a whole life
     
     // bonus above this will start to fall off
-    float xStart = 120.0;
+    float xStart = 80.0;
     if( inPlayer->yummyBonusStore > xStart ) {
         // controls the rate of fall off 
-        float xScaling = 1.2;
+        float xScaling = 1.5;
         float x = (inPlayer->yummyBonusStore - xStart) / xStart * xScaling;
         // y is a fraction
         float y = 1/(x+1);
@@ -2766,8 +2766,8 @@ static int countYoungFemalesInLineage( int inLineageEveID ) {
 
 int computeFoodCapacity( LiveObject *inPlayer ) {
     int ageInYears = lrint( computeAge( inPlayer ) );
-    int minFoodCap = 4;
-    int maxFoodcap = 15;
+    int minFoodCap = 3;
+    int maxFoodcap = 10;
     int returnVal = 0;
     
     if( ageInYears < oldAge ) {
@@ -2778,7 +2778,7 @@ int computeFoodCapacity( LiveObject *inPlayer ) {
         }
     else {
         // food capacity decreases as we near death
-        int cap = forceDeathAge - ageInYears + 4;
+        int cap = maxFoodcap - ( ageInYears - oldAge );
         if( cap < minFoodCap ) cap = minFoodCap;
         
         int lostBars = maxFoodcap - cap;
@@ -2789,7 +2789,7 @@ int computeFoodCapacity( LiveObject *inPlayer ) {
 
             // for now, let's make it quadratic
             double maxLostBars = 
-                16 - 16 * pow( inPlayer->fitnessScore / 60.0, 2 );
+                (maxFoodcap - minFoodCap) * (1 - pow( inPlayer->fitnessScore / 60.0, 2 ));
             
             if( lostBars > maxLostBars ) {
                 lostBars = maxLostBars;
@@ -6047,8 +6047,9 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         inPlayer->yummyBonusStore += currentBonus;
         }
         
-    if( wasYummy ) {
+    if( wasYummy || o->permanent ) {
         // bonus part of foodValue goes into the yum bonus if yummy (or is craved)
+        // or if food is permanent, special case for testing/mod objects
         inPlayer->yummyBonusStore += o->bonusValue;
         }
     else {
@@ -11062,9 +11063,9 @@ static void doDrug( LiveObject *inPlayer ) {
 	
 // returns true if frozen emote cleared successfully
 static bool clearFrozenEmote( LiveObject *inPlayer, int inEmoteIndex ) {
-	
-	if( inPlayer->emotFrozen &&
-		inPlayer->emotFrozenIndex == inEmoteIndex ) {
+	if( !inPlayer->emotFrozen ||
+        (inPlayer->emotFrozen &&
+		inPlayer->emotFrozenIndex == inEmoteIndex) ) {
 			
 		inPlayer->emotFrozen = false;
 		inPlayer->emotUnfreezeETA = 0;

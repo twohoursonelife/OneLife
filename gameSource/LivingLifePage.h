@@ -1036,6 +1036,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         char mUsingSteam;
         char mZKeyDown;
+        
+        char mXKeyDown;
 
         
         //FOV
