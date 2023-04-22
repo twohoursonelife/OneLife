@@ -117,6 +117,8 @@
 #include <math.h>
 #include <float.h>
 #include <stdint.h>
+
+#define PI 3.141592654 // used in river generation
  
  
 #include "../gameSource/transitionBank.h"
@@ -848,6 +850,61 @@ static int computeMapBiomeIndex( int inX, int inY,
  
     // else cache miss
     pickedBiome = -1;
+    
+    
+    // River generation
+    float roughness = 0.2; // 0.55
+    float scale = 8 * 4.8; // 12.8
+    float offset = 16; // 16
+    float width = 0.010; // 0.015
+    float boundaryThreshold = 0.40; // 0.40
+    float maskThreshold = 0.45; // 0.45
+    float maskScale = scale; // 12.8
+    
+    setXYRandomSeed( biomeRandSeedB, biomeRandSeedA );
+
+    // First layer of noise, to get some curved contour lines
+    double randVal2 = 
+        ( getXYFractal2( inX, inY,
+                        roughness,
+                        scale ) );
+    
+    if( abs(randVal2 - boundaryThreshold) < width ) {
+        
+        // An attempt not to have a fixed offset
+        // which leads to what described below 
+        // float xOffset = 16 * sin( 2 * PI * inX / 1000 );
+        // float yOffset = 16 * cos( 2 * PI * inY / 1000 );
+        
+        float xOffset = offset;
+        float yOffset = offset;
+        
+        // Second layer of noise, to mask over the first layer
+        // so the curves do not go around to form rings/loops.
+        // Currently this layer is just an offset of the first layer
+        // this way the curves won't be too short.
+        // But this causes the curves to mostly go in one diagonal direction
+        randVal2 = 
+            ( getXYFractal2( inX + xOffset, inY + yOffset,
+                            roughness,
+                            maskScale ) );
+        
+        if( randVal2 > maskThreshold ) {
+            pickedBiome = 0; // Ocean
+            
+            setXYRandomSeed( 63533 );
+            
+            // Thrid layer of noise, to get another set of curved contour lines
+            // These are the river crossings
+            double randVal3 = 
+                ( getXYFractal2( inX, inY,
+                                roughness,
+                                scale ) );
+            if( abs(randVal3 - boundaryThreshold) < width / 2 ) pickedBiome = 1; // ShallowRiver
+            
+            return pickedBiome;
+            }
+        }
  
  
     // try topographical altitude mapping
@@ -1352,7 +1409,7 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
     int pickedBiome = getMapBiomeIndex( inX, inY, &secondPlace,
                                                 &secondPlaceGap );
 												
-	if(biomes[pickedBiome] == 7){
+	if(biomes[pickedBiome] == 7 || biomes[pickedBiome] == 9){
 		density = 1;
 		
 	}
@@ -1503,7 +1560,7 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
 			}
             
 	}else {
-		if(biomes[pickedBiome] != 7){
+		if(biomes[pickedBiome] != 7 && biomes[pickedBiome] != 9){
 			mapCacheInsert( inX, inY, 0 );
 			return 0;
 			}
@@ -1673,7 +1730,8 @@ void outputMapImage() {
                                  "Desert",
                                  "Jungle",
                                  "Ocean ",
-                                 "Flower"
+                                 "Flower",
+                                 "ShallowRiver"
                                  };    
  
     for( int j=0; j<numBiomes; j++ ) {
@@ -6218,7 +6276,7 @@ int getTweakedBaseMap( int inX, int inY ) {
     double secondPlaceGap;
 
     int pickedBiome = getMapBiomeIndex( inX, inY, &secondPlace, &secondPlaceGap );
-    if( biomes[pickedBiome] == 7 ) return result;
+    if( biomes[pickedBiome] == 7 || biomes[pickedBiome] == 9 ) return result;
     
  
     if( result > 0 ) {

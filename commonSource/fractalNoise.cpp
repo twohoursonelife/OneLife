@@ -143,3 +143,22 @@ double getXYFractal( int inX, int inY, double inRoughness, double inScale ) {
     
     return sum * oneOverIntMax;
     }
+
+
+double getXYFractal2( int inX, int inY, double inRoughness, double inScale ) {
+
+    double b = inRoughness;
+    double a = 1 - b;
+
+    double sum =
+        a * getXYRandomBN( inX / (4 * inScale), inY / (4 * inScale) )
+        +
+        b * (
+            a * getXYRandomBN( inX / (2 * inScale), inY / (2 * inScale) )
+            +
+            b * (
+                a * getXYRandomBN( inX / (inScale), 
+                                   inY / (inScale) ) ));
+    
+    return sum * oneOverIntMax;
+    }

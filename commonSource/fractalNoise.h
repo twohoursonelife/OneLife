@@ -18,3 +18,5 @@ double getXYRandom( int inX, int inY );
 // BUT can be larger than 1 sometimes
 double getXYFractal( int inX, int inY, double inRoughness, double inScale );
 
+// fewer octaves
+double getXYFractal2( int inX, int inY, double inRoughness, double inScale );
