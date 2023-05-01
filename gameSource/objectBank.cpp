@@ -2818,6 +2818,22 @@ ObjectRecord **searchObjects( const char *inSearch,
         *outNumResults = results.size();
         return results.getElementArray();
         }
+    else if( strstr( inSearch, "##" ) != NULL ) {
+        
+        SimpleVector< ObjectRecord *> results;
+        char* search = stringDuplicate( inSearch );
+        char* numString = &( search[2] );
+        int id = atoi( numString );
+        if( idMap[id] != NULL ) {
+            results.push_back( idMap[id] );
+            }
+        delete [] search;
+            
+        *outNumResults = results.size();
+        *outNumRemaining = 0;
+        return results.getElementArray();
+        
+        }
     
 
     char *lowerSearch = stringToLowerCase( inSearch );
