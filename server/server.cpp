@@ -8574,7 +8574,60 @@ static char isContainmentWithMatchedTags( int inContainerID, int inContainedID )
     return false;
     }
 
+
+static void changeContained( int inX, int inY, int inSlotNumber, 
+                             int inNewObjectID ) {
+    
+    int numContained = 0;
+    int *contained = getContained( inX, inY, &numContained );
+
+    timeSec_t *containedETA = 
+        getContainedEtaDecay( inX, inY, &numContained );
+    
+    timeSec_t curTimeSec = Time::timeSec();
+    
+    if( contained != NULL && containedETA != NULL &&
+        numContained > inSlotNumber ) {
+    
+        int oldObjectID = contained[ inSlotNumber ];
+        timeSec_t oldETA = containedETA[ inSlotNumber ];
         
+        if( oldObjectID > 0 ) {
+            
+            TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
+
+            TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
+            
+
+            timeSec_t newETA = 0;
+            
+            if( newDecayTrans != NULL ) {
+                newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
+                }
+            
+            if( oldDecayTrans != NULL && newDecayTrans != NULL &&
+                oldDecayTrans->autoDecaySeconds == 
+                newDecayTrans->autoDecaySeconds ) {
+                // preserve remaining seconds from old object
+                newETA = oldETA;
+                }
+            
+            contained[ inSlotNumber ] = inNewObjectID;
+            containedETA[ inSlotNumber ] = newETA;
+
+            setContained( inX, inY, numContained, contained );
+            setContainedEtaDecay( inX, inY, numContained, containedETA );
+            }
+        }
+
+    if( contained != NULL ) {
+        delete [] contained;
+        }
+    if( containedETA != NULL ) {
+        delete [] containedETA;
+        }
+    }
+
 
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
@@ -8849,25 +8902,22 @@ static char addHeldToContainer( LiveObject *inPlayer,
                     }
                 }
             }
-            
-        // Execute containment transitions
-        
-        if( contTrans != NULL && contTrans->newActor > 0 ) {
-                                
-            idToAdd = contTrans->newActor;
-            
-            if( inPlayer->numContained > 0 ) {
-                // negative to indicate sub-container
-                idToAdd *= -1;
-                }
-            
-        }
 
         
         addContained( 
             inContX, inContY,
             idToAdd,
             inPlayer->holdingEtaDecay );
+            
+            
+        // Execute containment transitions
+        
+        if( contTrans != NULL && contTrans->newActor > 0 ) {
+                                
+            changeContained( inContX, inContY, numIn, contTrans->newActor );
+            
+        }
+            
 
         if( inPlayer->numContained > 0 ) {
             timeSec_t curTime = Time::timeSec();
@@ -9348,61 +9398,6 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
         }
 
     return false;
-    }
-
-
-
-static void changeContained( int inX, int inY, int inSlotNumber, 
-                             int inNewObjectID ) {
-    
-    int numContained = 0;
-    int *contained = getContained( inX, inY, &numContained );
-
-    timeSec_t *containedETA = 
-        getContainedEtaDecay( inX, inY, &numContained );
-    
-    timeSec_t curTimeSec = Time::timeSec();
-    
-    if( contained != NULL && containedETA != NULL &&
-        numContained > inSlotNumber ) {
-    
-        int oldObjectID = contained[ inSlotNumber ];
-        timeSec_t oldETA = containedETA[ inSlotNumber ];
-        
-        if( oldObjectID > 0 ) {
-            
-            TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
-
-            TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
-            
-
-            timeSec_t newETA = 0;
-            
-            if( newDecayTrans != NULL ) {
-                newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
-                }
-            
-            if( oldDecayTrans != NULL && newDecayTrans != NULL &&
-                oldDecayTrans->autoDecaySeconds == 
-                newDecayTrans->autoDecaySeconds ) {
-                // preserve remaining seconds from old object
-                newETA = oldETA;
-                }
-            
-            contained[ inSlotNumber ] = inNewObjectID;
-            containedETA[ inSlotNumber ] = newETA;
-
-            setContained( inX, inY, numContained, contained );
-            setContainedEtaDecay( inX, inY, numContained, containedETA );
-            }
-        }
-
-    if( contained != NULL ) {
-        delete [] contained;
-        }
-    if( containedETA != NULL ) {
-        delete [] containedETA;
-        }
     }
 
 
