@@ -17162,12 +17162,13 @@ int main() {
                                                 
                                                 if( (isOutContTrans && containmentTrans->target != containmentTrans->newTarget) ||
                                                     (!isOutContTrans && containmentTrans->actor != containmentTrans->newActor) ) {
-                                                    // This case should not happen.
-                                                    // It means that the useOnContained transition
+                                                    // This case means that the useOnContained transition
                                                     // triggers a containment transition,
                                                     // both trying to change the object being taken out.
+                                                    
+                                                    // Let the useOnContained transition preceeds the containment transition
                                                     containmentTrans = NULL;
-                                                    blockedByContainmentTrans = true;
+                                                    blockedByContainmentTrans = false;
                                                     }
                                                 else if( numContained > newNumSlots ) {
                                                     containmentTrans = NULL;
