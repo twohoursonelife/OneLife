@@ -5092,6 +5092,61 @@ timeSec_t *getContainedEtaDecay( int inX, int inY, int *outNumContained,
     return containedEta;
     }
  
+
+// direct copy from server.cpp
+static void changeContained( int inX, int inY, int inSlotNumber, 
+                             int inNewObjectID ) {
+    
+    int numContained = 0;
+    int *contained = getContained( inX, inY, &numContained );
+
+    timeSec_t *containedETA = 
+        getContainedEtaDecay( inX, inY, &numContained );
+    
+    timeSec_t curTimeSec = Time::timeSec();
+    
+    if( contained != NULL && containedETA != NULL &&
+        numContained > inSlotNumber ) {
+    
+        int oldObjectID = contained[ inSlotNumber ];
+        timeSec_t oldETA = containedETA[ inSlotNumber ];
+        
+        if( oldObjectID > 0 ) {
+            
+            TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
+
+            TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
+            
+
+            timeSec_t newETA = 0;
+            
+            if( newDecayTrans != NULL ) {
+                newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
+                }
+            
+            if( oldDecayTrans != NULL && newDecayTrans != NULL &&
+                oldDecayTrans->autoDecaySeconds == 
+                newDecayTrans->autoDecaySeconds ) {
+                // preserve remaining seconds from old object
+                newETA = oldETA;
+                }
+            
+            contained[ inSlotNumber ] = inNewObjectID;
+            containedETA[ inSlotNumber ] = newETA;
+
+            setContained( inX, inY, numContained, contained );
+            setContainedEtaDecay( inX, inY, numContained, containedETA );
+            }
+        }
+
+    if( contained != NULL ) {
+        delete [] contained;
+        }
+    if( containedETA != NULL ) {
+        delete [] containedETA;
+        }
+    }
+
  
  
 int checkDecayObject( int inX, int inY, int inID ) {
@@ -5850,6 +5905,70 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
                 // just set change in DB
                 setMapObjectRaw( inX, inY, newID );
+                
+                // Check for containment transitions - checkDecayObject
+                
+                int oldSlots = getNumContainerSlots( inID );
+                int newSlots = getNumContainerSlots( newID );
+                
+                if( oldSlots > 0 &&
+                    newSlots > 0 && 
+                    // assume same number of slots for simplicity
+                    oldSlots == newSlots
+                    ) {
+                        
+                    int numContained;
+                    int *cont = getContained( inX, inY, &numContained );
+                        
+                    if( numContained > 0 ) {
+                        
+                        for( int i=0; i<numContained; i++ ) {
+                        
+                            int contained = 
+                                getContained( inX, inY, i );
+                            
+                            if( contained < 0 ) {
+                                // again for simplicity
+                                // block transisionts if it is a subcontainer
+                                continue;
+                                }
+                                
+                            ObjectRecord *containedObj = getObject( contained );
+                            
+                            TransRecord *contTrans = getPTrans( newID, contained );
+                            
+                            TransRecord *containmentTrans = NULL;
+                            int containedID = contained;
+                            int oldContainedID = inID;
+                            int newContainerID = newID;
+                            
+                            // Consider only Any flag here
+                            // The other flags don't make sense here, we're changing the container itself
+                            // not interacting with the contained items
+                            
+                            // IN precedes OUT
+                            int newContainedID = -1;
+                            if( containmentTrans == NULL ) {
+                                containmentTrans = getPTrans( containedID, newContainerID, false, false, 4 );
+                                if( containmentTrans == NULL ) containmentTrans = getPTrans( 0, newContainerID, false, false, 4 );
+                                if( containmentTrans != NULL ) newContainedID = containmentTrans->newActor;
+                            }
+                            if( containmentTrans == NULL ) {
+                                containmentTrans = getPTrans( oldContainedID, containedID, false, false, 4 );
+                                if( containmentTrans == NULL ) containmentTrans = getPTrans( 0, containedID, false, false, 4 );
+                                if( containmentTrans != NULL ) newContainedID = containmentTrans->newTarget;
+                            }
+                            
+                            // Execute containment transitions - checkDecayObject
+                            
+                            if( containmentTrans != NULL ) {
+                                changeContained( inX, inY, i, newContainedID );
+                            }
+                            
+                            }
+                        }
+                    }
+                
                 }
            
                
@@ -6052,7 +6171,7 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                     
                 if( change ) {
                 
-                    // Check for containment transitions
+                    // Check for containment transitions - checkDecayContained
                     
                     int inOrout = -1;
                     
@@ -6190,7 +6309,7 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                     
                     if( contTrans != NULL ) {
                         
-                        // Execute containment transitions
+                        // Execute containment transitions - checkDecayContained
                         
                         int newContainer = 0;
                         // Don't change the newID here to simplify things...
