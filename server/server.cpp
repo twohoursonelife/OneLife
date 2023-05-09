@@ -8910,7 +8910,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
             inPlayer->holdingEtaDecay );
             
             
-        // Execute containment transitions
+        // Execute containment transitions - addHeldToContainer - contained
         
         if( contTrans != NULL && contTrans->newActor > 0 ) {
                                 
@@ -8980,7 +8980,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
             // behave like an add action instead.
             }
             
-        // Execute containment transitions
+        // Execute containment transitions - addHeldToContainer - container
         
         if( contTrans != NULL ) {
             setResponsiblePlayer( -inPlayer->id );
@@ -9185,7 +9185,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                     }
 
                 
-                // Execute containment transitions
+                // Execute containment transitions - removeFromContainerToHold - container
                 
                 if( contTrans != NULL ) {
                     setMapObject( inContX, inContY, contTrans->newActor );
@@ -9233,7 +9233,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                     inPlayer->holdingID *= -1;    
                     }
                     
-                // Execute containment transitions
+                // Execute containment transitions - removeFromContainerToHold - contained
                 
                 if( contTrans != NULL ) {
                     if( contTrans->newTarget > 0 ) handleHoldingChange( inPlayer, contTrans->newTarget );
@@ -9342,6 +9342,8 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
             int idToAdd = inPlayer->holdingID;
             
             if( contTrans != NULL ) {
+                
+                // Execute containment transitions - addHeldToClothingContainer - contained and container
                 
                 if( contTrans->newActor > 0 ) handleHoldingChange( inPlayer, contTrans->newActor );
                 
@@ -9580,6 +9582,8 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
         }
         
         if( contTrans != NULL ) {
+            
+            // Execute containment transitions - removeFromClothingContainerToHold - contained and container
             
             if( contTrans->newTarget > 0 ) handleHoldingChange( inPlayer, contTrans->newTarget );
             
@@ -16423,7 +16427,7 @@ int main() {
                                     r = getPTrans( nextPlayer->holdingID,
                                                   target );
                                     
-                                    // also check for containment transitions
+                                    // also check for containment transitions - USE stacking
                                     if( r == NULL && targetObj->numSlots == 0 ) {
                                         r = getPTrans( nextPlayer->holdingID,
                                                       target, false, false, 1 );
@@ -16810,7 +16814,8 @@ int main() {
                                         newGroundObject = r->newTarget;
                                         }
                                         
-                                    // Execute containment transitions
+                                    // Execute containment transitions - USE stacking - contained
+                                    // creation of the container is above
                                     if( containmentTransition ) {
                                         int idToAdd = nextPlayer->holdingID;
                                         if( r->newActor > 0 ) idToAdd = r->newActor;
@@ -17100,7 +17105,7 @@ int main() {
                                             int containedID = contTrans->newTarget;
                                             int oldContainedID = contTrans->target;
                                             
-                                            // IN containment transitions
+                                            // IN containment transitions - useOnContained
                                             
                                             if( numContained == 1 ) {
                                                 containmentTrans = getPTrans( containedID, containerID, false, false, 1 );
@@ -17124,7 +17129,7 @@ int main() {
                                             
                                             if( containmentTrans == NULL ) noInContTrans = true;
                                             
-                                            // OUT containment transitions
+                                            // OUT containment transitions - useOnContained
                                             
                                             if( containmentTrans == NULL ) {
                                                 if( numContained == 1 ) {
@@ -17271,6 +17276,9 @@ int main() {
                                                 m.i, 
                                                 contTrans->newTarget );
                                                 
+                                            // Execute containment transitions - useOnContained - container
+                                            // contained is not changed, because this is useOnContained transition
+                                            
                                             if( containmentTrans != NULL ) {
                                                 int newContainerID = containmentTrans->newTarget;
                                                 if( isOutContTrans ) newContainerID = containmentTrans->newActor;
@@ -18148,7 +18156,7 @@ int main() {
                                             getPTrans( nextPlayer->holdingID,
                                                        clickedClothing->id );
                                                        
-                                        // Check for containment transitions
+                                        // Check for containment transitions - clickedClothing
                                         if( clickedClothingTrans == NULL ) {
                                             clickedClothingTrans =
                                                 getPTrans( nextPlayer->holdingID,
@@ -18223,7 +18231,7 @@ int main() {
                                         getObject( 
                                             clickedClothingTrans->newTarget ) );
                                             
-                                    // Execute containment transitions
+                                    // Execute containment transitions - clickedClothing
                                     if( isContainmentTransition ) {
                                         addHeldToClothingContainer( 
                                             nextPlayer,
@@ -18955,7 +18963,7 @@ int main() {
                                                         }
                                                     else {
                                                         
-                                                        // try containment transitions
+                                                        // try containment transitions - DROP stacking
                                                         
                                                         TransRecord *contTrans
                                                             = getPTrans(
