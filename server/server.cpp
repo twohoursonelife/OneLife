@@ -16786,6 +16786,68 @@ int main() {
                                                 r->newTarget );
                                             }
                                         }
+                                        
+                                        
+                                    // Check for containment transitions - changing container by USE
+                                    
+                                    if( oldSlots > 0 &&
+                                        newSlots > 0 && 
+                                        // assume same number of slots for simplicity
+                                        oldSlots == newSlots
+                                        ) {
+                                            
+                                        int numContained = 
+                                            getNumContained( m.x, m.y );
+                                            
+                                        if( numContained > 0 ) {
+                                            
+                                            for( int i=0; i<numContained; i++ ) {
+                                            
+                                                int contained = 
+                                                    getContained( m.x, m.y, i );
+                                                
+                                                if( contained < 0 ) {
+                                                    // again for simplicity
+                                                    // block transisionts if it is a subcontainer
+                                                    continue;
+                                                    }
+                                                    
+                                                ObjectRecord *containedObj = getObject( contained );
+                                                
+                                                TransRecord *contTrans = getPTrans( r->newTarget, contained );
+                                                
+                                                TransRecord *containmentTrans = NULL;
+                                                int containedID = contained;
+                                                int oldContainedID = target;
+                                                int newContainerID = r->newTarget;
+                                                
+                                                // Consider only Any flag here
+                                                // The other flags don't make sense here, we're changing the container itself
+                                                // not interacting with the contained items
+                                                
+                                                // IN precedes OUT
+                                                int newContainedID = -1;
+                                                if( containmentTrans == NULL ) {
+                                                    containmentTrans = getPTrans( containedID, newContainerID, false, false, 4 );
+                                                    if( containmentTrans == NULL ) containmentTrans = getPTrans( 0, newContainerID, false, false, 4 );
+                                                    if( containmentTrans != NULL ) newContainedID = containmentTrans->newActor;
+                                                }
+                                                if( containmentTrans == NULL ) {
+                                                    containmentTrans = getPTrans( oldContainedID, containedID, false, false, 4 );
+                                                    if( containmentTrans == NULL ) containmentTrans = getPTrans( 0, containedID, false, false, 4 );
+                                                    if( containmentTrans != NULL ) newContainedID = containmentTrans->newTarget;
+                                                }
+                                                
+                                                // Execute containment transitions - changing container by USE
+                                                
+                                                if( containmentTrans != NULL ) {
+                                                    changeContained( m.x, m.y, i, newContainedID );
+                                                }
+                                                
+                                                }
+                                            }
+                                        }
+                                        
                                     
                                     
                                     timeSec_t oldEtaDecay = 
