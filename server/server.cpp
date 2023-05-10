@@ -17333,10 +17333,64 @@ int main() {
                                             setResponsiblePlayer( 
                                                 - nextPlayer->id );
                                             
+                                            
+                                            
+                                            bool shouldResetDecay = true;
+                                            if( contTrans->target == contTrans->newTarget ) 
+                                                shouldResetDecay = false;
+
+                                            if( contTrans->actor == 0 &&
+                                                contTrans->target > 0 && contTrans->newTarget > 0 &&
+                                                contTrans->target != contTrans->newTarget ) {
+                                                
+                                                TransRecord *oldDecayTrans = 
+                                                    getTrans( -1, contTrans->target );
+                                                
+                                                TransRecord *newDecayTrans = 
+                                                    getTrans( -1, contTrans->newTarget );
+                                                
+                                                if( oldDecayTrans != NULL &&
+                                                    newDecayTrans != NULL  &&
+                                                    oldDecayTrans->epochAutoDecay ==
+                                                    newDecayTrans->epochAutoDecay &&
+                                                    oldDecayTrans->autoDecaySeconds ==
+                                                    newDecayTrans->autoDecaySeconds &&
+                                                    oldDecayTrans->autoDecaySeconds 
+                                                    > 0 ) {
+                                                    
+                                                    // old target and new
+                                                    // target decay into something
+                                                    // in same amount of time
+                                                    // and this was a bare-hand
+                                                    // action
+                                                    
+                                                    // doesn't matter if they 
+                                                    // decay into SAME thing.
+
+                                                    // keep old decay time in place
+                                                    // (instead of resetting timer)
+                                                    shouldResetDecay = false;
+                                                    
+                                                    }
+                                                }
+
                                             changeContained( 
                                                 m.x, m.y,
                                                 m.i, 
                                                 contTrans->newTarget );
+                                                
+                                                
+                                            if( shouldResetDecay ) {
+                                                
+                                                TransRecord *newDecayT = getMetaTrans( -1, contTrans->newTarget );
+                                                
+                                                if( newDecayT != NULL ) {
+                                                    timeSec_t mapETA = Time::timeSec() + newDecayT->autoDecaySeconds;
+                                                    setSlotEtaDecay( m.x, m.y, m.i, mapETA, 0 );
+                                                    }
+                                                
+                                                }
+                                                
                                                 
                                             // Execute containment transitions - useOnContained - container
                                             // contained is not changed, because this is useOnContained transition
