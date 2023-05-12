@@ -16,6 +16,9 @@ class ExtendedMessagePage : public GamePage, public ActionListener {
         
 
         void setMessageKey( const char *inMessageKey );
+
+        // returns empty string if null
+        char *getMessageKey(); // for discord controller 
         
         // destroyed by caller
         void setSubMessage( const char *inMessage );

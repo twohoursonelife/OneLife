@@ -15,15 +15,23 @@
 #include "objectBank.h"
 #include "buttonStyle.h"
 
+#ifdef USE_DISCORD
+#include "DiscordController.h"
+#include <time.h>
+time_t last_discord_setting_change = 0;
+#endif // USE_DISCORD
+
 #include "DropdownList.h"
 
-
-extern Font *mainFont;
+    extern Font * mainFont;
 
 extern float musicLoudness;
 
 extern bool showingInGameSettings;
 
+#ifdef USE_DISCORD
+DiscordController *discordControllerInstance; // extern from DiscordController.h
+#endif // USE_DISCORD
 
 SettingsPage::SettingsPage()
         : mBackground( "background.tga", 0.75f ),
@@ -35,6 +43,9 @@ SettingsPage::SettingsPage()
           mControlButton( mainFont, -452.5, 112, "CONTROL" ),
           mScreenButton( mainFont, -452.5, 16, "SCREEN" ),
           mSoundButton( mainFont, -452.5, -80, "SOUND" ),
+#ifdef USE_DISCORD
+          mDiscordButton( mainFont, -452.5, -176, "DISCORD" ),
+#endif // USE_DISCORD
           mBackButton( mainFont, -452.5, -272, translate( "backButton" ) ),
           
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
@@ -73,7 +84,12 @@ SettingsPage::SettingsPage()
                                 translate( "musicLoudness" ) ),
           mSoundEffectsLoudnessSlider( mainFont, 0, -48, 4, 200, 30,
                                        0.0, 1.0, 
-                                       translate( "soundLoudness" ) ) {
+                                       translate( "soundLoudness" ) )
+#ifdef USE_DISCORD
+          ,mEnableDiscordRichPresence(0, 168, 4), // TODO: are these values correct?
+          mEnableDiscordRichPresenceDetails(0, 128, 4) 
+#endif // USE_DISCORD
+                                                        {
                             
 
     
@@ -165,15 +181,27 @@ SettingsPage::SettingsPage()
     mGameplayButton.setSize( 175, 60 );
     addComponent( &mGameplayButton );
     mGameplayButton.addActionListener( this );
-    
-    
+
+#ifdef USE_DISCORD
+    setButtonStyle(&mDiscordButton);
+    mDiscordButton.setSize(175, 60);
+    addComponent(&mDiscordButton);
+    mDiscordButton.addActionListener(this);
+#endif // USE_DISCORD
+
     setButtonStyle( &mRestartButton );
     mRestartButton.setSize( 175, 60 );
     addComponent( &mRestartButton );
     mRestartButton.addActionListener( this );
     mRestartButton.setVisible( false );
 
-    
+#ifdef USE_DISCORD
+    // Discord
+    addComponent(&mEnableDiscordRichPresence);
+    mEnableDiscordRichPresence.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresenceDetails);
+    mEnableDiscordRichPresenceDetails.addActionListener(this);
+#endif // USE_DISCORD
 
     // Not in use
     setButtonStyle( &mEditAccountButton );
@@ -187,6 +215,9 @@ SettingsPage::SettingsPage()
     mControlButton.setCursorTip( "CONTROL SETTINGS" );
     mScreenButton.setCursorTip( "SCREEN SETTINGS" );
     mSoundButton.setCursorTip( "SOUND SETTINGS" );
+#ifdef USE_DISCORD
+    mDiscordButton.setCursorTip("DISCORD RICH PRESENCE SETTINGS");
+#endif // USE_DISCORD
     mBackButton.setCursorTip( "GO BACK" );
     
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
@@ -204,7 +235,12 @@ SettingsPage::SettingsPage()
     mFullscreenBox.setCursorTip( "TOGGLE BETWEEN FULLSCREEN AND WINDOWED MODE" );
     mBorderlessBox.setCursorTip( "ALLOW CURSOR TO MOVE OUTSIDE THE GAME WINDOW" );
 
-    
+#ifdef USE_DISCORD
+    // Discord
+    mEnableDiscordRichPresence.setCursorTip("SHOW PLAYING A GAME STATUS IN YOUR DISCORD PROFILE STATUS");
+    mEnableDiscordRichPresenceDetails.setCursorTip("ALSO SHOW DETAILS OF YOUR CURRENT GAME IN YOUR DISCORD PROFILE STATUS");
+#endif // USE_DISCORD
+
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
     
@@ -241,7 +277,19 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "centerCamera", 0 );
 	
 	mEnableCenterCameraBox.setToggled( mEnableCenterCameraSetting );
-    
+
+#ifdef USE_DISCORD
+    mDiscordRichPresenceSetting =
+        SettingsManager::getIntSetting("discordRichPresence", 1);
+
+    mEnableDiscordRichPresence.setToggled(mDiscordRichPresenceSetting);
+
+    mDiscordRichPresenceDetailsSetting =
+        SettingsManager::getIntSetting("discordRichPresenceDetails", 0);
+
+    mEnableDiscordRichPresenceDetails.setToggled(mDiscordRichPresenceDetailsSetting);
+#endif // USE_DISCORD
+
     mPage = 0;
     
 
@@ -466,7 +514,30 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     else if( inTarget == &mSoundButton ) {
         mPage = 3;
         }
-    
+
+#ifdef USE_DISCORD
+    else if( inTarget == &mDiscordButton ) {
+        mPage = 4;
+        }
+    else if( inTarget == &mEnableDiscordRichPresence ) {
+        int newSetting = mEnableDiscordRichPresence.getToggled();
+        last_discord_setting_change = time(0);
+        mDiscordRichPresenceSetting = newSetting;
+        SettingsManager::setSetting("discordRichPresence", newSetting);
+        if(discordControllerInstance != NULL) {
+            discordControllerInstance->updateDisplayGame((char)newSetting);
+            }
+        }
+    else if( inTarget == &mEnableDiscordRichPresenceDetails ) {
+        last_discord_setting_change = time(0);
+        int newSetting = mEnableDiscordRichPresenceDetails.getToggled();
+        mDiscordRichPresenceDetailsSetting = newSetting;
+        SettingsManager::setSetting("discordRichPresenceDetails", newSetting);
+        if(discordControllerInstance != NULL) {
+            discordControllerInstance->updateDisplayDetails((char)newSetting);
+            }
+        }
+#endif // USE_DISCORD
     checkRestartRequired();
     updatePage();
     }
@@ -613,7 +684,29 @@ void SettingsPage::draw( doublePair inViewCenter,
             mainFont->drawString( translate( "scale"), pos, alignRight );
             }
         }
-    
+#ifdef USE_DISCORD
+    if( mEnableDiscordRichPresence.isVisible() ) {
+        doublePair pos = mEnableDiscordRichPresence.getPosition();
+        
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString( "RICH PRESENCE ", pos, alignRight );
+        }
+
+    if( mEnableDiscordRichPresenceDetails.isVisible() ) {
+        doublePair pos = mEnableDiscordRichPresenceDetails.getPosition();
+
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString( "RICH PRESENCE DETAILS", pos, alignRight );
+        }
+    // prevent someone from making spamming requests to update their status, discord may block our key!
+    // allow for at least 2 seconds to pass until the user is allowed to change the discord setting again.
+    mEnableDiscordRichPresence.setActive(time(0) - last_discord_setting_change > 2);
+    mEnableDiscordRichPresenceDetails.setActive(time(0) - last_discord_setting_change > 2);
+#endif // USE_DISCORD
     }
 
 
@@ -732,7 +825,12 @@ void SettingsPage::updatePage() {
     mBorderlessBox.setPosition( 0, -lineSpacing * 2 );
     mRedetectButton.setPosition( 160, lineSpacing * 2 );
     mRedetectButton.setPadding( 8, 4 );
-    
+
+#ifdef USE_DISCORD
+    mEnableDiscordRichPresence.setPosition(0, 2 * lineSpacing);
+    mEnableDiscordRichPresenceDetails.setPosition(0, lineSpacing);
+#endif // USE_DISCORD
+
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
     mEnableNudeBox.setVisible( mPage == 0 );
@@ -755,12 +853,19 @@ void SettingsPage::updatePage() {
     mMusicLoudnessSlider.setVisible( mPage == 3 );
     mSoundEffectsLoudnessSlider.setVisible( mPage == 3 );
 
+#ifdef USE_DISCORD
+    mEnableDiscordRichPresence.setVisible(mPage == 4);
+    mEnableDiscordRichPresenceDetails.setVisible(mPage == 4 && mDiscordRichPresenceSetting);
+#endif // USE_DISCORD
 
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
     mScreenButton.setActive( mPage != 2 );
     mSoundButton.setActive( mPage != 3 );
-  
+
+#ifdef USE_DISCORD
+    mDiscordButton.setActive( mPage != 4 );
+#endif // USE_DISCORD
 
 }
 
