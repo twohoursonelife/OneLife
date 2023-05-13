@@ -13874,10 +13874,20 @@ void LivingLifePage::step() {
                                     // don't play sound then
                                     LiveObject *causingPlayer =
                                         getLiveObject( - responsiblePlayerID );
+                                    
+                                    // also check if this change results from decay
+                                    TransRecord *decayTrans = 
+                                        getPTrans( -1, oldContID );
 
-                                    if( causingPlayer != NULL &&
+                                    if( (causingPlayer != NULL &&
                                         causingPlayer->holdingID 
-                                        != oldContID ) {
+                                        != oldContID) ||
+                                        
+                                        // play create sound if it is decay
+                                        ( decayTrans != NULL &&
+                                            decayTrans->newTarget == newContID )
+
+                                        ) {
                                         
 
                                         ObjectRecord *newObj = 
