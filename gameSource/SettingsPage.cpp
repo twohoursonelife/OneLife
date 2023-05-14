@@ -17,20 +17,21 @@
 
 #ifdef USE_DISCORD
 #include "DiscordController.h"
-#include <time.h>
-time_t last_discord_setting_change = 0;
 #endif // USE_DISCORD
 
 #include "DropdownList.h"
 
-    extern Font * mainFont;
+extern Font * mainFont;
 
 extern float musicLoudness;
 
 extern bool showingInGameSettings;
 
 #ifdef USE_DISCORD
-DiscordController *discordControllerInstance; // extern from DiscordController.h
+// extern from DiscordController.h
+DiscordController *discordControllerInstance; 
+#include <ctime>
+time_t last_discord_setting_change = 0;
 #endif // USE_DISCORD
 
 SettingsPage::SettingsPage()
@@ -86,8 +87,10 @@ SettingsPage::SettingsPage()
                                        0.0, 1.0, 
                                        translate( "soundLoudness" ) )
 #ifdef USE_DISCORD
-          ,mEnableDiscordRichPresence(0, 168, 4), // TODO: are these values correct?
-          mEnableDiscordRichPresenceDetails(0, 128, 4) 
+        , mEnableDiscordRichPresence(0, 168, 4), // TODO: are these values correct?
+          mEnableDiscordRichPresenceStatus(0, 128, 4), 
+          mEnableDiscordRichPresenceDetails(0, 88, 4),
+          mDiscordHideFirstNameInDetails(0, 48, 4) 
 #endif // USE_DISCORD
                                                         {
                             
@@ -199,8 +202,12 @@ SettingsPage::SettingsPage()
     // Discord
     addComponent(&mEnableDiscordRichPresence);
     mEnableDiscordRichPresence.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresenceStatus);
+    mEnableDiscordRichPresenceStatus.addActionListener(this);
     addComponent(&mEnableDiscordRichPresenceDetails);
     mEnableDiscordRichPresenceDetails.addActionListener(this);
+    addComponent(&mDiscordHideFirstNameInDetails);
+    mDiscordHideFirstNameInDetails.addActionListener(this);
 #endif // USE_DISCORD
 
     // Not in use
@@ -238,7 +245,9 @@ SettingsPage::SettingsPage()
 #ifdef USE_DISCORD
     // Discord
     mEnableDiscordRichPresence.setCursorTip("SHOW PLAYING A GAME STATUS IN YOUR DISCORD PROFILE STATUS");
-    mEnableDiscordRichPresenceDetails.setCursorTip("ALSO SHOW DETAILS OF YOUR CURRENT GAME IN YOUR DISCORD PROFILE STATUS");
+    mEnableDiscordRichPresenceStatus.setCursorTip("SHOW STATUS SUCH AS AGE, GENDER, IDLE STATUS...");
+    mEnableDiscordRichPresenceDetails.setCursorTip("SHOW DETAILS OF CURRENT LIFE SUCH AS YOUR NAME AND FAMILY NAME...");
+    mDiscordHideFirstNameInDetails.setCursorTip("HIDE YOUR CURRENT NAME/EVE-MARK IN YOUR LIFE DETAILS, BUT KEEP FAMILY NAME...");
 #endif // USE_DISCORD
 
     mOldFullscreenSetting = 
@@ -284,10 +293,20 @@ SettingsPage::SettingsPage()
 
     mEnableDiscordRichPresence.setToggled(mDiscordRichPresenceSetting);
 
+    mDiscordRichPresenceStatusSetting =
+        SettingsManager::getIntSetting("discordRichPresenceStatus", 1);
+
+    mEnableDiscordRichPresenceStatus.setToggled(mDiscordRichPresenceStatusSetting);
+
     mDiscordRichPresenceDetailsSetting =
         SettingsManager::getIntSetting("discordRichPresenceDetails", 0);
 
-    mEnableDiscordRichPresenceDetails.setToggled(mDiscordRichPresenceDetailsSetting);
+    mEnableDiscordRichPresenceDetails.setToggled(mDiscordRichPresenceStatusSetting);
+
+    mDiscordHideFirstNameInDetailsSetting =
+        SettingsManager::getIntSetting("discordRichPresenceHideFirstName", 1);
+
+    mDiscordHideFirstNameInDetails.setToggled(mDiscordHideFirstNameInDetailsSetting);
 #endif // USE_DISCORD
 
     mPage = 0;
@@ -528,6 +547,15 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             discordControllerInstance->updateDisplayGame((char)newSetting);
             }
         }
+    else if( inTarget == &mEnableDiscordRichPresenceStatus ) {
+        last_discord_setting_change = time(0);
+        int newSetting = mEnableDiscordRichPresenceStatus.getToggled();
+        mDiscordRichPresenceStatusSetting = newSetting;
+        SettingsManager::setSetting("discordRichPresenceStatus", newSetting);
+        if(discordControllerInstance != NULL) {
+            discordControllerInstance->updateDisplayStatus((char)newSetting);
+            }
+        }
     else if( inTarget == &mEnableDiscordRichPresenceDetails ) {
         last_discord_setting_change = time(0);
         int newSetting = mEnableDiscordRichPresenceDetails.getToggled();
@@ -537,6 +565,15 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             discordControllerInstance->updateDisplayDetails((char)newSetting);
             }
         }
+    else if( inTarget == &mDiscordHideFirstNameInDetails ) {
+        last_discord_setting_change = time(0);
+        int newSetting = mDiscordHideFirstNameInDetails.getToggled();
+        mDiscordHideFirstNameInDetailsSetting = newSetting;
+        SettingsManager::setSetting("discordRichPresenceHideFirstName", newSetting);
+        if(discordControllerInstance != NULL) {
+            discordControllerInstance->updateDisplayFirstName((char)!newSetting);
+            }
+        }        
 #endif // USE_DISCORD
     checkRestartRequired();
     updatePage();
@@ -693,7 +730,14 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString( "RICH PRESENCE ", pos, alignRight );
         }
+    if( mEnableDiscordRichPresenceStatus.isVisible() ) {
+        doublePair pos = mEnableDiscordRichPresenceStatus.getPosition();
 
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString( "RICH PRESENCE STATUS", pos, alignRight );
+        }
     if( mEnableDiscordRichPresenceDetails.isVisible() ) {
         doublePair pos = mEnableDiscordRichPresenceDetails.getPosition();
 
@@ -702,10 +746,20 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString( "RICH PRESENCE DETAILS", pos, alignRight );
         }
-    // prevent someone from making spamming requests to update their status, discord may block our key!
+    if( mDiscordHideFirstNameInDetails.isVisible() ) {
+        doublePair pos = mDiscordHideFirstNameInDetails.getPosition();
+
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString( "HIDE FIRST NAME", pos, alignRight );
+        }    
+    // prevent someone from making spamming requests to update their status, discord may block our key, due to spamming requests!
     // allow for at least 2 seconds to pass until the user is allowed to change the discord setting again.
     mEnableDiscordRichPresence.setActive(time(0) - last_discord_setting_change > 2);
+    mEnableDiscordRichPresenceStatus.setActive(time(0) - last_discord_setting_change > 2);
     mEnableDiscordRichPresenceDetails.setActive(time(0) - last_discord_setting_change > 2);
+    mDiscordHideFirstNameInDetails.setActive(time(0) - last_discord_setting_change > 2);
 #endif // USE_DISCORD
     }
 
@@ -827,8 +881,10 @@ void SettingsPage::updatePage() {
     mRedetectButton.setPadding( 8, 4 );
 
 #ifdef USE_DISCORD
-    mEnableDiscordRichPresence.setPosition(0, 2 * lineSpacing);
+    mEnableDiscordRichPresence.setPosition(0, 3 * lineSpacing);
+    mEnableDiscordRichPresenceStatus.setPosition(0, 2 * lineSpacing);
     mEnableDiscordRichPresenceDetails.setPosition(0, lineSpacing);
+    mDiscordHideFirstNameInDetails.setPosition(0, 0);
 #endif // USE_DISCORD
 
     mEnableFOVBox.setVisible( mPage == 0 );
@@ -855,7 +911,14 @@ void SettingsPage::updatePage() {
 
 #ifdef USE_DISCORD
     mEnableDiscordRichPresence.setVisible(mPage == 4);
-    mEnableDiscordRichPresenceDetails.setVisible(mPage == 4 && mDiscordRichPresenceSetting);
+    mEnableDiscordRichPresenceStatus.setVisible(mPage == 4 && mEnableDiscordRichPresence.getToggled());
+    mEnableDiscordRichPresenceDetails.setVisible(mPage == 4 
+                                        && mEnableDiscordRichPresence.getToggled() 
+                                        && mEnableDiscordRichPresenceStatus.getToggled());
+    mDiscordHideFirstNameInDetails.setVisible(mPage == 4 
+                                        && mEnableDiscordRichPresenceDetails.getToggled() 
+                                        && mEnableDiscordRichPresence.getToggled() 
+                                        && mEnableDiscordRichPresenceStatus.getToggled());
 #endif // USE_DISCORD
 
     mGameplayButton.setActive( mPage != 0 );

@@ -228,6 +228,7 @@ static int victimEmotionIndex = 2;
 static int starvingEmotionIndex = 2;
 static int satisfiedEmotionIndex = 2;
 
+// if changed also change in discordController.cpp
 static int afkEmotionIndex = 2;
 static double afkTimeSeconds = 0;
 
@@ -12421,6 +12422,7 @@ int main() {
     starvingEmotionIndex =
         SettingsManager::getIntSetting( "starvingEmotionIndex", 2 );
 
+    // if changed also change in discordController.cpp
     afkEmotionIndex =
         SettingsManager::getIntSetting( "afkEmotionIndex", 2 );
 

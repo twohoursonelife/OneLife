@@ -1601,53 +1601,53 @@ void discordStep() {
     {
         if (currentGamePage == loadingPage)
         {
-            discordController->step(DiscordCurrentGamePage::LOADING_PAGE, NULL);
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LOADING_PAGE, NULL);
         }
         else if (currentGamePage == livingLifePage)
         {
             if (!livingLifePage->receivedOurLiveObject())
             {
-                discordController->step(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
             }
             else if (livingLifePage->isTutorial())
             {
-                discordController->step(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
             }
             else
             {
-                discordController->step(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
             }
         }
         else if (currentGamePage == settingsPage)
         {
-            discordController->step(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
         }
         else if (currentGamePage == extendedMessagePage)
         {
             if (0 == strcmp("connectionLost", extendedMessagePage->getMessageKey()))
             {
-                discordController->step(DiscordCurrentGamePage::CONNECTION_LOST_PAGE, NULL);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::CONNECTION_LOST_PAGE, NULL);
             }
             else if (0 == strcmp("youDied", extendedMessagePage->getMessageKey()))
             {
-                discordController->step(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
             }
             else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey()))
             {
-                discordController->step(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
             }
             else
             {
-                discordController->step(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
             }
         }
         else if (currentGamePage == getServerAddressPage)
         {
-            discordController->step(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
         }
         else
         {
-            discordController->step(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
         }
         EDiscordResult result = discordController->runCallbacks();
         // if (result != EDiscordResult::DiscordResult_Ok)

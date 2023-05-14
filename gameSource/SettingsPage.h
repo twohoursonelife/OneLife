@@ -45,9 +45,11 @@ class SettingsPage : public GamePage, public ActionListener {
         int mEnableCenterCameraSetting;
 #ifdef USE_DISCORD
         int mDiscordRichPresenceSetting;
+        int mDiscordRichPresenceStatusSetting;
         int mDiscordRichPresenceDetailsSetting;
+        int mDiscordHideFirstNameInDetailsSetting;
 #endif // USE_DISCORD
-        int mPage;
+            int mPage;
         
         SoundUsage mTestSound;
 
@@ -98,6 +100,8 @@ class SettingsPage : public GamePage, public ActionListener {
 #ifdef USE_DISCORD
         // Discord
         CheckboxButton mEnableDiscordRichPresence;
+        CheckboxButton mEnableDiscordRichPresenceStatus;
         CheckboxButton mEnableDiscordRichPresenceDetails;
+        CheckboxButton mDiscordHideFirstNameInDetails;
 #endif // USE_DISCORD
     };

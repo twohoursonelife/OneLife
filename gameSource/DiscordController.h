@@ -57,13 +57,20 @@ public:
     DiscordController();
     EDiscordResult connect();
     EDiscordResult runCallbacks();
-    void step(DiscordCurrentGamePage page, GamePage *dataPage);
+    // send new activity to the discord application (only if needed).
+    void lazyUpdateRichPresence(DiscordCurrentGamePage page, GamePage *dataPage);
+
+    //-- these are used by SettingsPage.cpp
     void updateDisplayGame(char newValue);
+    void updateDisplayStatus(char newValue);
     void updateDisplayDetails(char newValue);
+    void updateDisplayFirstName(char newValue);
+    //--
 
 protected:
     DiscordApplication app;
-    bool isHealthy; // connection is live and we have an instance
+    // connection is live and we have an instance
+    bool isHealthy;
     struct DiscordActivity activity;
 
     ActivityType getCurrentActivity();
