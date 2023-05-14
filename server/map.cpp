@@ -6324,7 +6324,7 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                             // newID = contTrans->newTarget;
                         }
                         
-                        setMapObject( inX, inY, newContainer );
+                        if( newContainer != containerID ) setMapObject( inX, inY, newContainer );
                             
                     }
                 }
