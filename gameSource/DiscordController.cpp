@@ -120,7 +120,6 @@ EDiscordResult DiscordController::connect()
     struct DiscordCreateParams params;
     DiscordCreateParamsSetDefault(&params);
 
-    // TODO: should we create discord_client_id.ini? (maybe it is not meant to be viewable by public...)
     char *discord_client_id = SettingsManager::getStringSetting("discord_client_id", "1071527161049124914");
     VERBOSE("discord_client_id to parse: %s\n", discord_client_id);
     // TODO: what happens if discord change the key to accept letters too?
@@ -146,7 +145,6 @@ EDiscordResult DiscordController::connect()
     params.event_data = &app;
     params.activity_events = &activities_events;
     EDiscordResult result = DiscordCreate(DISCORD_VERSION, &params, &app.core);
-    // TODO: it seems it will pass even if id was wrong??, please test
     if (result != EDiscordResult::DiscordResult_Ok)
     {
         printf("discord error connect(): failed to connect to discord client, result returned: %d\n", (int)result);
@@ -158,7 +156,7 @@ EDiscordResult DiscordController::connect()
     app.application = app.core->get_application_manager(app.core);
 
     memset(&activity, 0, sizeof(activity));
-
+    // TOOD: what happens if wrong image name was given?
     char *gameLargeIcon = SettingsManager::getStringSetting("discordGameLargeIcon", "icon");
     strncpy(activity.assets.large_image, gameLargeIcon, sizeof(activity.assets.large_image));
     delete[] gameLargeIcon;
@@ -197,10 +195,10 @@ void DiscordController::updateActivity(ActivityType activity_type, const char *d
         return;
     }
 
-    // update it to remove the previous status.
+    // update it even if !dDisplayStatus to remove the previous status.
     //! if (!dDisplayStatus)
     //! {
-    //!     // ....
+    //!     return ....
     //! }
     printf("discord: updateActivity details=\"%s\" and state=\"%s\"\n", details, state);
     if (!isConnected())
@@ -517,20 +515,21 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
     }
     else if (page == DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE)
     {
-        if (!dFirstReportDone || dDisplayStatus != dLastDisplayStatus || ActivityType::PLAYING_TUTORIAL != getCurrentActivity())
+        if (dataPage == NULL)
         {
-            if (dataPage == NULL)
-            {
-                printf("discord error lazyUpdateRichPresence(): dataPage is NULL sig fault imminent.\n");
-                fflush(stdout);
-            }
-            LivingLifePage *livingLifePage = (LivingLifePage *)dataPage;
-            LiveObject *ourObject = livingLifePage->getOurLiveObject();
-            char isIdle = false;
-            if (ourObject != NULL)
-            {
-                isIdle = ourObject->currentEmot != NULL && getEmotion(afkEmotionIndex) == ourObject->currentEmot;
-            }
+            printf("discord error lazyUpdateRichPresence(): dataPage is NULL sig fault imminent.\n");
+            fflush(stdout);
+        }
+        LivingLifePage *livingLifePage = (LivingLifePage *)dataPage;
+        LiveObject *ourObject = livingLifePage->getOurLiveObject();
+        char isIdle = false;
+        if (ourObject != NULL)
+        {
+            isIdle = ourObject->currentEmot != NULL && getEmotion(afkEmotionIndex) == ourObject->currentEmot;
+        }
+        if (dLastWasIdle != isIdle || !dFirstReportDone || dDisplayStatus != dLastDisplayStatus || ActivityType::PLAYING_TUTORIAL != getCurrentActivity())
+        {
+            dLastWasIdle = isIdle;
             updateActivity(ActivityType::PLAYING_TUTORIAL, "Playing Tutorial", isIdle ? "[IDLE]" : "");
         }
     }
