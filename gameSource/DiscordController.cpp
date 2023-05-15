@@ -398,9 +398,13 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                         state = stringDuplicate(ourName);
                     }
                 }
-                else
+                else if (0 != strcmp(ourName, "NAMELESS"))
                 {
                     state = autoSprintf("As %s", ourName);
+                }
+                else
+                {
+                    state = "NAMELESS";
                 }
                 updateActivity(ActivityType::LIVING_LIFE, details, state);
                 delete[] details;
@@ -472,9 +476,13 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                         state = stringDuplicate(ourName);
                     }
                 }
-                else
+                else if (0 != strcmp(ourName, "NAMELESS"))
                 {
                     state = autoSprintf("As %s", ourName);
+                }
+                else
+                {
+                    state = "NAMELESS";
                 }
                 updateActivity(ActivityType::DEATH_SCREEN, details, state);
                 dLastReportedName = stringDuplicate(ourName);
