@@ -856,7 +856,7 @@ static int computeMapBiomeIndex( int inX, int inY,
     float roughness = 0.2; // 0.55
     float scale = 8 * 4.8; // 12.8
     float offset = 16; // 16
-    float width = 0.010; // 0.015
+    float width = 0.008; // 0.015
     float boundaryThreshold = 0.40; // 0.40
     float maskThreshold = 0.45; // 0.45
     float maskScale = scale; // 12.8
