@@ -29,35 +29,43 @@
 // from game.cpp, used to check if current server connection request is a new game request or a reconnect attempt.
 extern char userReconnect;
 
-char dDisplayGame = false;      // initial value overriden in setttings
-char dDisplayStatus = false;    // initial value overriden in setttings
-char dDisplayDetails = false;   // initial value overriden in setttings
-char dDisplayFirstName = false; // initial value overriden in setttings
+// initial values will be overriden from setttings
+char dDisplayGame = false;
+char dDisplayStatus = false;
+char dDisplayDetails = false;
+char dDisplayFirstName = false;
 
 // last time we tried to connect to the discord app
 time_t lastReconnectAttempt = 0;
 time_t inited_at = 0;
 
-// last reported name to the discord app
-size_t dLastReportedNameSize = 0;
+// the last reported name size to the discord app
+size_t dLastReportedNameSize = -1;
+
 // last reported age to the discord app
-int dLastDisplayedAge = -1;
+int dLastDisplayedAge; // initialized in connect()
+
 // last reported fertility status to the discord app
 char dLastWasInfertile = false;
+
 // did we previously report AFK=true status to the discord app
 char dLastWasIdle = false;
-// did we previously report status to the discord app?
+
+// previous value of DisplayStatus (after updateActivity)
 char dLastDisplayStatus = false;
-// did we previously report details to the discord app?
+
+// previous value of DisplayDetails (after updateActivity)
 char dLastDisplayDetails = false;
-// did we previously report our first name to the discord app?
+
+// previous value of DisplayFirstName (after updateActivity)
 char dLastDisplayFirstName = false;
+
 // did we report anything previously?, this is set to false whenever the discord
 // app is re-connectes after a disconnect or when the user re-enables the discord option from the setting
 // after they disabled it.
 char dFirstReportDone = false;
 
-// was the loaded key invalid in it's format?
+// was the parsed discord key invalid in it's format?
 char invalidKey = false;
 
 int numInstances = 0;
@@ -108,6 +116,7 @@ EDiscordResult DiscordController::connect()
     VERBOSE("DiscordController::connect() was called\n");
     if (invalidKey)
     {
+        VERBOSE("DiscordController::connect() skipped because previous connect() failure was due to invalidKey\n");
         return EDiscordResult::DiscordResult_InvalidSecret;
     }
     if (!dDisplayGame)
@@ -126,7 +135,7 @@ EDiscordResult DiscordController::connect()
     // TODO: what happens if discord change the key to accept letters too?
     char *endptr;
     DiscordClientId parsed_client_id = strtoll(discord_client_id, &endptr, 10);
-    VERBOSE("discord_client_id after parse: %lld\n", parsed_client_id);
+    VERBOSE("discord_client_id after parse: %ld\n", parsed_client_id);
     if (*endptr != '\0')
     {
         VERBOSE("discord_client_id key was not fully read from string, key is probably invalid\n");
@@ -190,6 +199,7 @@ EDiscordResult DiscordController::connect()
     dFirstReportDone = false;
     // lastReconnectAttempt = 0;
     isHealthy = true;
+    dLastDisplayedAge = -1;
     return result;
 }
 
@@ -250,15 +260,21 @@ void DiscordController::disconnect()
     VERBOSE("DiscordController::disconnect() was called\n");
     if (isHealthy)
     {
-        isHealthy = false;
         if (app.core != NULL)
         {
+            // IDiscordActivityManager *activity_manager = app.core->get_activity_manager(app.core);
+            // if (activity_manager != NULL)
+            // {
+            //     activity_manager->clear_activity(activity_manager, NULL, NULL);
+            //     app.core->run_callbacks(app.core);
+            // }
             app.core->destroy(app.core);
         }
         else
         {
             printf("discord warning disconnect(): isHealthy=true while app.core is NULL\n"); // this is not normal!
         }
+        isHealthy = false;
         memset(&app, 0, sizeof(app));
         printf("discord: disconnect() called, app core destroyed\n");
     }
@@ -266,7 +282,7 @@ void DiscordController::disconnect()
 
 DiscordController::~DiscordController()
 {
-    VERBOSE("DiscordController::~DiscordController() was called\n");
+    VERBOSE("DiscordController::~DiscordController() deconstructor was called\n");
     disconnect();
     numInstances--;
     discordControllerInstance = NULL;
@@ -307,7 +323,7 @@ void DiscordController::runCallbacks()
         if (result == EDiscordResult::DiscordResult_NotRunning)
             printf("discord error runCallbacks(): discord app not running, connection marked unhealthy, we may attempt connection again after %d seconds.\n", reconnectAttemptDelaySeconds);
     }
-    VERBOSE("DiscordController::runCallbacks(): result returned: %d", (int)result);
+    VERBOSE("DiscordController::runCallbacks(): result returned: %d\n", (int)result);
 }
 
 char DiscordController::isConnected()
@@ -366,7 +382,7 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
         }
         LivingLifePage *livingLifePage = (LivingLifePage *)dataPage;
         LiveObject *ourObject = livingLifePage->getOurLiveObject();
-        if (ourObject == NULL) 
+        if (ourObject == NULL)
         {
             VERBOSE("DiscordController::lazyUpdateRichPresence(%d, %p): early returning becauselivingLifePage->getOurLiveObject()returned null\n", page, dataPage);
             return;

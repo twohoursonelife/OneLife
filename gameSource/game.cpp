@@ -1597,7 +1597,7 @@ void showReconnectPage() {
 
 #ifdef USE_DISCORD // <-- vscode doesnt know it's enabled at compile time... it can be overriden with .vscode/c_cpp_properties.json, content: {"configurations":[{"defines": ["USE_DISCORD"],}],}
 void discordStep() {
-    if (discordController != NULL)
+    if (discordController == NULL)
     {
         return;
     }

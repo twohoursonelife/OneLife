@@ -22,6 +22,7 @@ typedef enum ActivityType
     // TODO: can add more (death screen, waiting to be born...)
 } ActivityType;
 
+// used to transfer current page information from game.cpp to DiscordController.cpp
 typedef enum DiscordCurrentGamePage
 {
     NO_PAGE = 0,
