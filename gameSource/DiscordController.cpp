@@ -15,7 +15,7 @@
 
 #include <time.h>
 
-//#define DISCORD_DEBUGGING
+// #define DISCORD_DEBUGGING
 #ifdef DISCORD_DEBUGGING
 // print to stdout then flush it.
 #define VERBOSE(fmt, ...)                                \
@@ -173,14 +173,14 @@ EDiscordResult DiscordController::connect()
     result = app.core->run_callbacks(app.core);
     if (result != EDiscordResult::DiscordResult_Ok)
     {
-	if(result == EDiscordResult::DiscordResult_NotRunning)
-	{
-	    printf("discord error connect(): first attempt to run_callbacks() failed because discord client is not running, we may attempt connecting again after %d seconds\n", reconnectAttemptDelaySeconds);
-	}
-	else
-	{
+        if (result == EDiscordResult::DiscordResult_NotRunning)
+        {
+            printf("discord error connect(): first attempt to run_callbacks() failed because discord client is not running, we may attempt connecting again after %d seconds\n", reconnectAttemptDelaySeconds);
+        }
+        else
+        {
             printf("discord error connect(): first attempt to run_callbacks() failed code resturned: %d\n", result);
-	}
+        }
         return result;
     }
     if (invalidKey)
@@ -251,14 +251,14 @@ void DiscordController::disconnect()
     if (isHealthy)
     {
         isHealthy = false;
-	if(app.core != NULL) 
-	{
+        if (app.core != NULL)
+        {
             app.core->destroy(app.core);
-	}
-	else
-	{
-	    printf("discord warning disconnect(): isHealthy=true while app.core is NULL\n");// this is not normal!
-	}
+        }
+        else
+        {
+            printf("discord warning disconnect(): isHealthy=true while app.core is NULL\n"); // this is not normal!
+        }
         memset(&app, 0, sizeof(app));
         printf("discord: disconnect() called, app core destroyed\n");
     }
@@ -272,15 +272,15 @@ DiscordController::~DiscordController()
     discordControllerInstance = NULL;
 }
 
-EDiscordResult DiscordController::runCallbacks()
+// run pending activity changes asynchronously.
+void DiscordController::runCallbacks()
 {
 
     VERBOSE("DiscordController::runCallbacks() was called\n");
     if (!dDisplayGame)
     {
-        VERBOSE("DiscordController::runCallbacks() early return EDiscordResult::DiscordResult_ApplicationMismatch(%d) because dDisplayGame is false\n",
-                EDiscordResult::DiscordResult_ApplicationMismatch);
-        return EDiscordResult::DiscordResult_ApplicationMismatch;
+        VERBOSE("DiscordController::runCallbacks() early return because dDisplayGame is false\n");
+        return;
     }
     if (!app.core || !isConnected())
     {
@@ -288,18 +288,18 @@ EDiscordResult DiscordController::runCallbacks()
         if (invalidKey)
         {
             VERBOSE("DiscordController::runCallbacks() core not initialized because invalid is key\n");
-            return EDiscordResult::DiscordResult_ApplicationMismatch;
+            return;
         }
         time_t now = time(0);
         if (now - lastReconnectAttempt > reconnectAttemptDelaySeconds)
         {
             lastReconnectAttempt = now;
             printf("discord runCallbacks(): not connected attempting reconnect now, then will skip this call\n");
-            connect(); // TODO: does this block while connecting?
+            connect();
         }
-        return EDiscordResult::DiscordResult_ApplicationMismatch;
+        return;
     }
-    EDiscordResult result = app.core->run_callbacks(app.core);
+    EDiscordResult result = app.core->run_callbacks(app.core); // OnActivityUpdate will be asynchronously called when it's result is ready.
     if (result != EDiscordResult::DiscordResult_Ok)
     {
         VERBOSE("DiscordController::runCallbacks(): failed to run callbacks loop, result from run_callbacks(): %d, connection marked unhealthy\n", (int)result);
@@ -307,7 +307,7 @@ EDiscordResult DiscordController::runCallbacks()
         if (result == EDiscordResult::DiscordResult_NotRunning)
             printf("discord error runCallbacks(): discord app not running, connection marked unhealthy, we may attempt connection again after %d seconds.\n", reconnectAttemptDelaySeconds);
     }
-    return result;
+    VERBOSE("DiscordController::runCallbacks(): result returned: %d", (int)result);
 }
 
 char DiscordController::isConnected()
@@ -361,78 +361,81 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
     {
         if (dataPage == NULL)
         {
-            printf("discord error lazyUpdateRichPresence(): dataPage is NULL sig fault imminent.\n");
-            fflush(stdout);
+            printf("discord error lazyUpdateRichPresence(): dataPage is NULL.\n");
+            return;
         }
         LivingLifePage *livingLifePage = (LivingLifePage *)dataPage;
         LiveObject *ourObject = livingLifePage->getOurLiveObject();
-        if (ourObject != NULL)
+        if (ourObject == NULL) 
         {
-	    char *ourName;
-            int ourAge = (int)livingLifePage->getLastComputedAge();
-            if (ourObject->name != NULL)
-                ourName = autoSprintf("%s", ourObject->name);
-            else // "NAMELESS" is also used as a key in dDisplayFirstName below, if changed also change it there...
-                ourName = stringDuplicate("NAMELESS");
-	    size_t ourNameSize = strlen(ourName);
-            // TODO: not necesarrly that when we have afkEmote means we are really idle!, 2hol allows you to set the afk emotion with /sleep
-            char isIdle = ourObject->currentEmot != NULL && getEmotion(afkEmotionIndex) == ourObject->currentEmot;
-            char infertileFound, fertileFound;
-            char *t1, *t2; // temp swap strings
+            VERBOSE("DiscordController::lazyUpdateRichPresence(%d, %p): early returning becauselivingLifePage->getOurLiveObject()returned null\n", page, dataPage);
+            return;
+        }
+        char *ourName;
+        int ourAge = (int)livingLifePage->getLastComputedAge();
+        if (ourObject->name != NULL)
+            ourName = autoSprintf("%s", ourObject->name);
+        else // "NAMELESS" is also used as a key after dDisplayFirstName below, if changed also change it there...
+            ourName = stringDuplicate("NAMELESS");
+        size_t ourNameSize = strlen(ourName);
+        // TODO: not necesarrly that when we have afkEmote means we are really idle!, 2hol allows you to set the afk emotion with /sleep
+        char isIdle = ourObject->currentEmot != NULL && getEmotion(afkEmotionIndex) == ourObject->currentEmot;
+        char infertileFound, fertileFound;
+        char *t1, *t2; // temp swap strings
 
-            t1 = replaceOnce(ourName, "+INFERTILE+", "", &infertileFound);
-            delete[] ourName;
-	    if(ActivityType::LIVING_LIFE != getCurrentActivity()) {
-		dLastReportedNameSize = 0;
-	    }
-            if (dLastDisplayFirstName != dDisplayFirstName || dLastDisplayDetails != dDisplayDetails || !dFirstReportDone || dDisplayStatus != dLastDisplayStatus || ourNameSize != dLastReportedNameSize || dLastDisplayedAge != ourAge || dLastWasInfertile != infertileFound || dLastWasIdle != isIdle)
+        t1 = replaceOnce(ourName, "+INFERTILE+", "", &infertileFound);
+        delete[] ourName;
+        if (ActivityType::LIVING_LIFE != getCurrentActivity())
+        {
+            dLastReportedNameSize = 0;
+        }
+        if (dLastDisplayFirstName != dDisplayFirstName || dLastDisplayDetails != dDisplayDetails || !dFirstReportDone || dDisplayStatus != dLastDisplayStatus || ourNameSize != dLastReportedNameSize || dLastDisplayedAge != ourAge || dLastWasInfertile != infertileFound || dLastWasIdle != isIdle)
+        {
+            t2 = replaceOnce(t1, "+FERTILE+", "", &fertileFound);
+            delete[] t1;
+            t1 = trimWhitespace(t2);
+            delete[] t2;
+            ourName = stringDuplicate(strlen(t1) == 0 ? "NAMELESS" : t1); // "NAMELESS" is also used as a key after dDisplayFirstName below, if changed also change it there...
+            delete[] t1;
+            dLastDisplayedAge = ourAge;
+            dLastWasInfertile = infertileFound;
+            dLastWasIdle = isIdle;
+            const char ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
+            char *details = autoSprintf("Living Life, [%c] Age %d%s%s", ourGender, ourAge, infertileFound ? (char *)"[INF] " : (char *)"", isIdle ? (char *)" [IDLE]" : (char *)"");
+            char *state;
+            if (!dDisplayFirstName)
             {
-                t2 = replaceOnce(t1, "+FERTILE+", "", &fertileFound);
-                delete[] t1;
-                t1 = trimWhitespace(t2);
-                delete[] t2;
-                ourName = stringDuplicate(strlen(t1) == 0 ? "NAMELESS" : t1);
-                delete[] t1;
-                dLastDisplayedAge = ourAge;
-                dLastWasInfertile = infertileFound;
-                dLastWasIdle = isIdle;
-                const char ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
-                char *details = autoSprintf("Living Life, [%c] Age %d%s%s", ourGender, ourAge, infertileFound ? (char *)"[INF] " : (char *)"", isIdle ? (char *)" [IDLE]" : (char *)"");
-                char *state;
-                if (!dDisplayFirstName)
+                // hide the first name or the EVE mark.
+                char firstName[99];
+                char lastName[99];
+                int numNames = sscanf(ourName, "%99s %99s", firstName, lastName);
+                if (numNames > 1)
                 {
-                    // hide the first name or the EVE mark.
-                    char firstName[99];
-                    char lastName[99];
-                    int numNames = sscanf(ourName, "%99s %99s", firstName, lastName);
-                    if (numNames > 1)
-                    {
-                        state = autoSprintf("In The %s Family", lastName);
-                    }
-                    else
-                    {
-                        // TODO: when does this happen, other instances except NONAME may need to be handled differrently...
-                        state = stringDuplicate(ourName);
-                    }
-                }
-                else if (0 != strcmp(ourName, "NAMELESS"))
-                {
-                    state = autoSprintf("As %s", ourName);
+                    state = autoSprintf("In The %s Family", lastName);
                 }
                 else
                 {
-                    state = stringDuplicate("NAMELESS");
+                    // TODO: when does this happen, other instances except NONAME may need to be handled differrently...
+                    state = stringDuplicate(ourName);
                 }
-                updateActivity(ActivityType::LIVING_LIFE, details, state);
-		dLastReportedNameSize = ourNameSize;
-                delete[] details;
-                delete[] state;
-                delete[] ourName;
+            }
+            else if (0 != strcmp(ourName, "NAMELESS"))
+            {
+                state = autoSprintf("As %s", ourName);
             }
             else
             {
-                delete[] t1;
+                state = stringDuplicate("NAMELESS");
             }
+            updateActivity(ActivityType::LIVING_LIFE, details, state);
+            dLastReportedNameSize = ourNameSize;
+            delete[] details;
+            delete[] state;
+            delete[] ourName;
+        }
+        else
+        {
+            delete[] t1;
         }
     }
     else if (page == DiscordCurrentGamePage::DISONNECTED_PAGE)

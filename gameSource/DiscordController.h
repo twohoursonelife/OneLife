@@ -56,7 +56,7 @@ public:
     ~DiscordController();
     DiscordController();
     EDiscordResult connect();
-    EDiscordResult runCallbacks();
+    void runCallbacks();
     // send new activity to the discord application (only if needed).
     void lazyUpdateRichPresence(DiscordCurrentGamePage page, GamePage *dataPage);
 
@@ -70,11 +70,11 @@ public:
 protected:
     DiscordApplication app;
     // connection is live and we have an instance
-    bool isHealthy;
+    char isHealthy;
     struct DiscordActivity activity;
 
     ActivityType getCurrentActivity();
-    bool isConnected();
+    char isConnected();
     void disconnect();
     void updateActivity(ActivityType activity_type, const char *details, const char *state);
 };

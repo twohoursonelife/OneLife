@@ -1599,63 +1599,62 @@ void showReconnectPage() {
 void discordStep() {
     if (discordController != NULL)
     {
-        if (currentGamePage == loadingPage)
-        {
-            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LOADING_PAGE, NULL);
-        }
-        else if (currentGamePage == livingLifePage)
-        {
-            if (!livingLifePage->receivedOurLiveObject())
-            {
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
-            }
-            else if (livingLifePage->isTutorial())
-            {
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
-            }
-            else
-            {
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
-            }
-        }
-        else if (currentGamePage == settingsPage)
-        {
-            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
-        }
-        else if (currentGamePage == extendedMessagePage)
-        {
-            if (0 == strcmp("connectionLost", extendedMessagePage->getMessageKey()))
-            {
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::CONNECTION_LOST_PAGE, NULL);
-            }
-            else if (0 == strcmp("youDied", extendedMessagePage->getMessageKey()))
-            {
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
-            }
-            else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey()))
-            {
-                // TODO: sometimes we lose connection when we die, i it's becuase server disconnects us before we get our death message.
-                // just an age check would fix it, and show the died status instead of connection lost.
-                // another problem is that userReconnect will be true while reconnect is clicked, but server will respawn us so it should be waiting to be born...
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
-            }
-            else
-            {
-                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
-            }
-        }
-        else if (currentGamePage == getServerAddressPage)
+        return;
+    }
+    if (currentGamePage == loadingPage)
+    {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LOADING_PAGE, NULL);
+    }
+    else if (currentGamePage == livingLifePage)
+    {
+        if (!livingLifePage->receivedOurLiveObject())
         {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
+        }
+        else if (livingLifePage->isTutorial())
+        {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
+        }
+        else
+        {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
+        }
+    }
+    else if (currentGamePage == settingsPage)
+    {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
+    }
+    else if (currentGamePage == extendedMessagePage)
+    {
+        if (0 == strcmp("connectionLost", extendedMessagePage->getMessageKey()))
+        {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::CONNECTION_LOST_PAGE, NULL);
+        }
+        else if (0 == strcmp("youDied", extendedMessagePage->getMessageKey()))
+        {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
+        }
+        else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey()))
+        {
+            // TODO: sometimes we lose connection when we die, i it's becuase server disconnects us before we get our death message.
+            // just an age check would fix it, and show the died status instead of connection lost.
+            // another problem is that userReconnect will be true while reconnect is clicked, but server will respawn us so it should be waiting to be born...
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
         }
         else
         {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
         }
-        EDiscordResult result = discordController->runCallbacks();
-        // if (result != EDiscordResult::DiscordResult_Ok)
-        //     printf("game error discordController->runCallbacks(): failed with return code %d\n", result);
     }
+    else if (currentGamePage == getServerAddressPage)
+    {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
+    }
+    else
+    {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
+    }
+    discordController->runCallbacks();
 }
 #endif // USE_DISCORD
 
