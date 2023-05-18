@@ -39,7 +39,7 @@ time_t lastReconnectAttempt = 0;
 time_t inited_at = 0;
 
 // last reported name to the discord app
-char *dLastReportedName = NULL;
+size_t dLastReportedNameSize = 0;
 // last reported age to the discord app
 int dLastDisplayedAge = -1;
 // last reported fertility status to the discord app
@@ -172,7 +172,14 @@ EDiscordResult DiscordController::connect()
     result = app.core->run_callbacks(app.core);
     if (result != EDiscordResult::DiscordResult_Ok)
     {
-        printf("discord error connect(): first attempt to run_callbacks() failed code resturned: %d\n", result);
+	if(result == EDiscordResult::DiscordResult_NotRunning)
+	{
+	    printf("discord error connect(): first attempt to run_callbacks() failed because discord client is not running, we may attempt connecting again after %d seconds\n", reconnectAttemptDelaySeconds);
+	}
+	else
+	{
+            printf("discord error connect(): first attempt to run_callbacks() failed code resturned: %d\n", result);
+	}
         return result;
     }
     if (invalidKey)
@@ -259,6 +266,7 @@ DiscordController::~DiscordController()
 
 EDiscordResult DiscordController::runCallbacks()
 {
+
     VERBOSE("DiscordController::runCallbacks() was called\n");
     if (!dDisplayGame)
     {
@@ -352,12 +360,13 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
         LiveObject *ourObject = livingLifePage->getOurLiveObject();
         if (ourObject != NULL)
         {
-            char *ourName;
+	    char *ourName;
             int ourAge = (int)livingLifePage->getLastComputedAge();
             if (ourObject->name != NULL)
                 ourName = autoSprintf("%s", ourObject->name);
             else // "NAMELESS" is also used as a key in dDisplayFirstName below, if changed also change it there...
                 ourName = stringDuplicate("NAMELESS");
+	    size_t ourNameSize = strlen(ourName);
             // TODO: not necesarrly that when we have afkEmote means we are really idle!, 2hol allows you to set the afk emotion with /sleep
             char isIdle = ourObject->currentEmot != NULL && getEmotion(afkEmotionIndex) == ourObject->currentEmot;
             char infertileFound, fertileFound;
@@ -365,7 +374,10 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
 
             t1 = replaceOnce(ourName, "+INFERTILE+", "", &infertileFound);
             delete[] ourName;
-            if (dLastDisplayFirstName != dDisplayFirstName || dLastDisplayDetails != dDisplayDetails || !dFirstReportDone || dDisplayStatus != dLastDisplayStatus || ActivityType::LIVING_LIFE != getCurrentActivity() || dLastReportedName == NULL || 0 != strcmp(dLastReportedName, ourName) || dLastDisplayedAge != ourAge || dLastWasInfertile != infertileFound || dLastWasIdle != isIdle)
+	    if(ActivityType::LIVING_LIFE != getCurrentActivity()) {
+		dLastReportedNameSize = 0;
+	    }
+            if (dLastDisplayFirstName != dDisplayFirstName || dLastDisplayDetails != dDisplayDetails || !dFirstReportDone || dDisplayStatus != dLastDisplayStatus || ourNameSize != dLastReportedNameSize || dLastDisplayedAge != ourAge || dLastWasInfertile != infertileFound || dLastWasIdle != isIdle)
             {
                 t2 = replaceOnce(t1, "+FERTILE+", "", &fertileFound);
                 delete[] t1;
@@ -373,14 +385,11 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                 delete[] t2;
                 ourName = stringDuplicate(strlen(t1) == 0 ? "NAMELESS" : t1);
                 delete[] t1;
-                if (dLastReportedName != NULL)
-                    delete[] dLastReportedName;
-                dLastReportedName = stringDuplicate(ourName);
                 dLastDisplayedAge = ourAge;
                 dLastWasInfertile = infertileFound;
                 dLastWasIdle = isIdle;
                 const char ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
-                char *details = autoSprintf("Living Life, Age %d [%c]%s%s", ourAge, ourGender, infertileFound ? (char *)" [INF]" : (char *)"", isIdle ? (char *)" [IDLE]" : (char *)"");
+                char *details = autoSprintf("Living Life, [%c] Age %d%s%s", ourGender, ourAge, infertileFound ? (char *)"[INF] " : (char *)"", isIdle ? (char *)" [IDLE]" : (char *)"");
                 char *state;
                 if (!dDisplayFirstName)
                 {
@@ -390,7 +399,7 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                     int numNames = sscanf(ourName, "%99s %99s", firstName, lastName);
                     if (numNames > 1)
                     {
-                        state = autoSprintf("In %s's Family", lastName);
+                        state = autoSprintf("In The %s Family", lastName);
                     }
                     else
                     {
@@ -404,9 +413,10 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                 }
                 else
                 {
-                    state = "NAMELESS";
+                    state = stringDuplicate("NAMELESS");
                 }
                 updateActivity(ActivityType::LIVING_LIFE, details, state);
+		dLastReportedNameSize = ourNameSize;
                 delete[] details;
                 delete[] state;
                 delete[] ourName;
@@ -442,8 +452,6 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                     ourName = autoSprintf("%s", ourObject->name);
                 else
                     ourName = stringDuplicate("NAMELESS");
-                delete[] dLastReportedName;
-                dLastReportedName = stringDuplicate(ourName);
                 dLastDisplayedAge = ourAge;
 
                 char infertileFound, fertileFound;
@@ -458,7 +466,7 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                 ourName = stringDuplicate(strlen(t1) == 0 ? "NAMELESS" : t1);
                 delete[] t1;
                 const char ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
-                char *details = autoSprintf("Died at age %d [%c]%s", ourAge, ourGender);
+                char *details = autoSprintf("Died At Age %d [%c]", ourAge, ourGender);
                 char *state;
                 if (!dDisplayFirstName)
                 {
@@ -468,7 +476,7 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                     int numNames = sscanf(ourName, "%99s %99s", firstName, lastName);
                     if (numNames > 1)
                     {
-                        state = autoSprintf("In %s's Family", lastName);
+                        state = autoSprintf("In The %s Family", lastName);
                     }
                     else
                     {
@@ -482,10 +490,9 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
                 }
                 else
                 {
-                    state = "NAMELESS";
+                    state = stringDuplicate("NAMELESS");
                 }
                 updateActivity(ActivityType::DEATH_SCREEN, details, state);
-                dLastReportedName = stringDuplicate(ourName);
                 delete[] details;
                 delete[] state;
                 delete[] ourName;

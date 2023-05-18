@@ -247,7 +247,7 @@ SettingsPage::SettingsPage()
     mEnableDiscordRichPresence.setCursorTip("SHOW PLAYING A GAME STATUS IN YOUR DISCORD PROFILE STATUS");
     mEnableDiscordRichPresenceStatus.setCursorTip("SHOW STATUS SUCH AS AGE, GENDER, IDLE STATUS...");
     mEnableDiscordRichPresenceDetails.setCursorTip("SHOW DETAILS OF CURRENT LIFE SUCH AS YOUR NAME AND FAMILY NAME...");
-    mDiscordHideFirstNameInDetails.setCursorTip("HIDE YOUR CURRENT NAME/EVE-MARK IN YOUR LIFE DETAILS, BUT KEEP FAMILY NAME...");
+    mDiscordHideFirstNameInDetails.setCursorTip("HIDE YOUR CURRENT FIRST NAME/EVE-MARK IN YOUR LIFE DETAILS, BUT KEEP FAMILY NAME...");
 #endif // USE_DISCORD
 
     mOldFullscreenSetting = 
@@ -301,7 +301,7 @@ SettingsPage::SettingsPage()
     mDiscordRichPresenceDetailsSetting =
         SettingsManager::getIntSetting("discordRichPresenceDetails", 0);
 
-    mEnableDiscordRichPresenceDetails.setToggled(mDiscordRichPresenceStatusSetting);
+    mEnableDiscordRichPresenceDetails.setToggled(mDiscordRichPresenceDetailsSetting);
 
     mDiscordHideFirstNameInDetailsSetting =
         SettingsManager::getIntSetting("discordRichPresenceHideFirstName", 1);

@@ -1634,6 +1634,9 @@ void discordStep() {
             }
             else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey()))
             {
+                // TODO: sometimes we lose connection when we die, i it's becuase server disconnects us before we get our death message.
+                // just an age check would fix it, and show the died status instead of connection lost.
+                // another problem is that userReconnect will be true while reconnect is clicked, but server will respawn us so it should be waiting to be born...
                 discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
             }
             else
@@ -1657,7 +1660,6 @@ void discordStep() {
 #endif // USE_DISCORD
 
 void drawFrame( char inUpdate ) {    
-
 
     if( !inUpdate ) {
         
@@ -1728,7 +1730,7 @@ void drawFrame( char inUpdate ) {
             showReconnectPage();
             }
 #ifdef USE_DISCORD
-        discordStep();
+        discordStep();// called when paused too, to change to IDLE state if player idle is detected.
 #endif // USE_DISCORD
         return;
         }
