@@ -80,6 +80,7 @@ void DISCORD_CALLBACK OnActivityUpdate(void *data, EDiscordResult result)
 DiscordController::DiscordController()
 {
     memset(&app, 0, sizeof(app));
+    isHealthy = false;
     // all defaults to more privacy(if not settings files exists).
     dDisplayGame = SettingsManager::getIntSetting("discordRichPresence", 1) > 0;
     dDisplayStatus = SettingsManager::getIntSetting("discordRichPresenceStatus", 0) > 0;
@@ -250,7 +251,14 @@ void DiscordController::disconnect()
     if (isHealthy)
     {
         isHealthy = false;
-        app.core->destroy(app.core);
+	if(app.core != NULL) 
+	{
+            app.core->destroy(app.core);
+	}
+	else
+	{
+	    printf("discord warning disconnect(): isHealthy=true while app.core is NULL\n");// this is not normal!
+	}
         memset(&app, 0, sizeof(app));
         printf("discord: disconnect() called, app core destroyed\n");
     }
@@ -302,7 +310,7 @@ EDiscordResult DiscordController::runCallbacks()
     return result;
 }
 
-bool DiscordController::isConnected()
+char DiscordController::isConnected()
 {
     return isHealthy;
 }
