@@ -16559,6 +16559,7 @@ int main() {
                                         }
                                     else if( numContained > 0 && 
                                              numSlotsInNew > 0 &&
+                                             r->newTarget > 0 &&
                                              getObject( r->newTarget )->slotSize < 
                                              targetObj->slotSize ) {
                                         // container is holding something
