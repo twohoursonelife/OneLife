@@ -8984,7 +8984,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
         
         if( contTrans != NULL ) {
             setResponsiblePlayer( -inPlayer->id );
-            setMapObject( inContX, inContY, contTrans->newTarget );
+            if( contTrans->newTarget != target ) setMapObject( inContX, inContY, contTrans->newTarget );
         }
 
         return true;
