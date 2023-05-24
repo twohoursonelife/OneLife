@@ -5244,7 +5244,7 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
         if( isCurse ) {
             char *targetEmail = getCurseReceiverEmail( cursedName );
             if( targetEmail != NULL ) {
-                setDBCurse( inPlayer->email, targetEmail );
+                setDBCurse( inPlayer->id, inPlayer->email, targetEmail );
                 dbCurseTargetEmail = targetEmail;
                 }
             }
@@ -5264,7 +5264,7 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             spendCurseToken( inPlayer->email ) ) {
             
             isCurse = true;
-            setDBCurse( inPlayer->email, youCursePlayer->email );
+            setDBCurse( inPlayer->id, inPlayer->email, youCursePlayer->email );
             dbCurseTargetEmail = youCursePlayer->email;
             }
         else if( isBabyShortcut && babyCursePlayer != NULL &&
@@ -5278,7 +5278,7 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
                 targetEmail = babyCursePlayer->origEmail;
                 }
             if( targetEmail != NULL ) {
-                setDBCurse( inPlayer->email, targetEmail );
+                setDBCurse( inPlayer->id, inPlayer->email, targetEmail );
                 dbCurseTargetEmail = targetEmail;
                 }
             }
@@ -5288,7 +5288,8 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             
             isCurse = true;
             
-            setDBCurse( inPlayer->email, inPlayer->lastBabyEmail );
+            setDBCurse( inPlayer->id, 
+                        inPlayer->email, inPlayer->lastBabyEmail );
             dbCurseTargetEmail = inPlayer->lastBabyEmail;
             }
         }
