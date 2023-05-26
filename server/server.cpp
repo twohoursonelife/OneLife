@@ -8266,6 +8266,13 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                 }
             else {
                 
+                nextConnection->hashedSpawnSeed = 0;
+                
+                if( nextConnection->famTarget != NULL ) {
+                    delete[] nextConnection->famTarget;
+                    nextConnection->famTarget = NULL;
+                    }
+                
                 processLoggedInPlayer( false, 
                                        nextConnection->sock,
                                        nextConnection->sockBuffer,
