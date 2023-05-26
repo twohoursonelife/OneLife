@@ -61,7 +61,8 @@ public:
     static SimpleVector<int> kidsEverHeld;
     static int lastKidID;
     static int lastNeverHeldKidsDeathCount;
-    static bool seedLessonDone;
+    static double lastSeedLessonTime;
+    static double lastLootLessonTime;
     static bool justTriedToKill;
     static int justUsedOnObjectID;
 	
