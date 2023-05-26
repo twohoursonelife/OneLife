@@ -708,8 +708,8 @@ unsigned char TextField::processCharacter( unsigned char inASCII ) {
     else {
         // no allowed list specified 
         
-        if( processedChar == '\r' ) {
-            // \r only permitted if it is listed explicitly
+        if( processedChar == '\r' || processedChar == '\n' ) {
+            // \r and \n only permitted if it is listed explicitly
             return 0;
             }
         }
