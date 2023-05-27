@@ -38,7 +38,8 @@ SimpleVector<int> newbieTips::kids;
 SimpleVector<int> newbieTips::kidsEverHeld;
 int newbieTips::lastKidID = 0;
 int newbieTips::lastNeverHeldKidsDeathCount = 0;
-bool newbieTips::seedLessonDone = false;
+double newbieTips::lastSeedLessonTime = 0;
+double newbieTips::lastLootLessonTime = 0;
 bool newbieTips::justTriedToKill = false;
 int newbieTips::justUsedOnObjectID = 0;
 
@@ -348,12 +349,21 @@ void newbieTips::livingLifeStep(
         // Tips 6 - seed
         doublePair currentPos = ourLiveObject->currentPos;
         float dist = sqrt(pow(currentPos.y, 2) + pow(currentPos.x, 2));
-        if( !seedLessonDone && dist > 500 && tryToStartSession( 6 ) ) {
+        if( game_getCurrentTime() - lastSeedLessonTime > 120 && dist > 500 && tryToStartSession( 6 ) ) {
             shouldDisplayMessage = true;
             messageToDisplay = "IF YOU WANT TO START A CAMP IN THE WILD,##YOU CAN ENTER YOUR OWN  'SPAWN CODE'  IN THE LOGIN PAGE.";
-            seedLessonDone = true;
+            lastSeedLessonTime = game_getCurrentTime();
         } else {
             tryToEndSession( 6 );
+        }
+        
+        // Tips 7 - No looting
+        if( game_getCurrentTime() - lastLootLessonTime > 120 && dist > 500 && tryToStartSession( 7 ) ) {
+            shouldDisplayMessage = true;
+            messageToDisplay = "IF YOU FIND SETTLEMENTS SEEMINGLY ABANDONED##PLEASE DO NOT TAKE ANYTHING, OTHERS MAY RETURN TO PLAY LATER.";
+            lastLootLessonTime = game_getCurrentTime();
+        } else {
+            tryToEndSession( 7 );
         }
         
         if( ourLiveObject->age > 104 ) {

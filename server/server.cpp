@@ -8266,6 +8266,13 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                 }
             else {
                 
+                nextConnection->hashedSpawnSeed = 0;
+                
+                if( nextConnection->famTarget != NULL ) {
+                    delete[] nextConnection->famTarget;
+                    nextConnection->famTarget = NULL;
+                    }
+                
                 processLoggedInPlayer( false, 
                                        nextConnection->sock,
                                        nextConnection->sockBuffer,
@@ -8574,7 +8581,60 @@ static char isContainmentWithMatchedTags( int inContainerID, int inContainedID )
     return false;
     }
 
+
+static void changeContained( int inX, int inY, int inSlotNumber, 
+                             int inNewObjectID ) {
+    
+    int numContained = 0;
+    int *contained = getContained( inX, inY, &numContained );
+
+    timeSec_t *containedETA = 
+        getContainedEtaDecay( inX, inY, &numContained );
+    
+    timeSec_t curTimeSec = Time::timeSec();
+    
+    if( contained != NULL && containedETA != NULL &&
+        numContained > inSlotNumber ) {
+    
+        int oldObjectID = contained[ inSlotNumber ];
+        timeSec_t oldETA = containedETA[ inSlotNumber ];
         
+        if( oldObjectID > 0 ) {
+            
+            TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
+
+            TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
+            
+
+            timeSec_t newETA = 0;
+            
+            if( newDecayTrans != NULL ) {
+                newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
+                }
+            
+            if( oldDecayTrans != NULL && newDecayTrans != NULL &&
+                oldDecayTrans->autoDecaySeconds == 
+                newDecayTrans->autoDecaySeconds ) {
+                // preserve remaining seconds from old object
+                newETA = oldETA;
+                }
+            
+            contained[ inSlotNumber ] = inNewObjectID;
+            containedETA[ inSlotNumber ] = newETA;
+
+            setContained( inX, inY, numContained, contained );
+            setContainedEtaDecay( inX, inY, numContained, containedETA );
+            }
+        }
+
+    if( contained != NULL ) {
+        delete [] contained;
+        }
+    if( containedETA != NULL ) {
+        delete [] containedETA;
+        }
+    }
+
 
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
@@ -8849,25 +8909,22 @@ static char addHeldToContainer( LiveObject *inPlayer,
                     }
                 }
             }
-            
-        // Execute containment transitions
-        
-        if( contTrans != NULL && contTrans->newActor > 0 ) {
-                                
-            idToAdd = contTrans->newActor;
-            
-            if( inPlayer->numContained > 0 ) {
-                // negative to indicate sub-container
-                idToAdd *= -1;
-                }
-            
-        }
 
         
         addContained( 
             inContX, inContY,
             idToAdd,
             inPlayer->holdingEtaDecay );
+            
+            
+        // Execute containment transitions - addHeldToContainer - contained
+        
+        if( contTrans != NULL && contTrans->newActor > 0 ) {
+                                
+            changeContained( inContX, inContY, numIn, contTrans->newActor );
+            
+        }
+            
 
         if( inPlayer->numContained > 0 ) {
             timeSec_t curTime = Time::timeSec();
@@ -8930,11 +8987,11 @@ static char addHeldToContainer( LiveObject *inPlayer,
             // behave like an add action instead.
             }
             
-        // Execute containment transitions
+        // Execute containment transitions - addHeldToContainer - container
         
         if( contTrans != NULL ) {
             setResponsiblePlayer( -inPlayer->id );
-            setMapObject( inContX, inContY, contTrans->newTarget );
+            if( contTrans->newTarget != target ) setMapObject( inContX, inContY, contTrans->newTarget );
         }
 
         return true;
@@ -9135,7 +9192,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                     }
 
                 
-                // Execute containment transitions
+                // Execute containment transitions - removeFromContainerToHold - container
                 
                 if( contTrans != NULL ) {
                     setMapObject( inContX, inContY, contTrans->newActor );
@@ -9183,7 +9240,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                     inPlayer->holdingID *= -1;    
                     }
                     
-                // Execute containment transitions
+                // Execute containment transitions - removeFromContainerToHold - contained
                 
                 if( contTrans != NULL ) {
                     if( contTrans->newTarget > 0 ) handleHoldingChange( inPlayer, contTrans->newTarget );
@@ -9293,6 +9350,8 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
             
             if( contTrans != NULL ) {
                 
+                // Execute containment transitions - addHeldToClothingContainer - contained and container
+                
                 if( contTrans->newActor > 0 ) handleHoldingChange( inPlayer, contTrans->newActor );
                 
                 // idToAdd = contTrans->newActor;
@@ -9348,61 +9407,6 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
         }
 
     return false;
-    }
-
-
-
-static void changeContained( int inX, int inY, int inSlotNumber, 
-                             int inNewObjectID ) {
-    
-    int numContained = 0;
-    int *contained = getContained( inX, inY, &numContained );
-
-    timeSec_t *containedETA = 
-        getContainedEtaDecay( inX, inY, &numContained );
-    
-    timeSec_t curTimeSec = Time::timeSec();
-    
-    if( contained != NULL && containedETA != NULL &&
-        numContained > inSlotNumber ) {
-    
-        int oldObjectID = contained[ inSlotNumber ];
-        timeSec_t oldETA = containedETA[ inSlotNumber ];
-        
-        if( oldObjectID > 0 ) {
-            
-            TransRecord *oldDecayTrans = getTrans( -1, oldObjectID );
-
-            TransRecord *newDecayTrans = getTrans( -1, inNewObjectID );
-            
-
-            timeSec_t newETA = 0;
-            
-            if( newDecayTrans != NULL ) {
-                newETA = curTimeSec + newDecayTrans->autoDecaySeconds;
-                }
-            
-            if( oldDecayTrans != NULL && newDecayTrans != NULL &&
-                oldDecayTrans->autoDecaySeconds == 
-                newDecayTrans->autoDecaySeconds ) {
-                // preserve remaining seconds from old object
-                newETA = oldETA;
-                }
-            
-            contained[ inSlotNumber ] = inNewObjectID;
-            containedETA[ inSlotNumber ] = newETA;
-
-            setContained( inX, inY, numContained, contained );
-            setContainedEtaDecay( inX, inY, numContained, containedETA );
-            }
-        }
-
-    if( contained != NULL ) {
-        delete [] contained;
-        }
-    if( containedETA != NULL ) {
-        delete [] containedETA;
-        }
     }
 
 
@@ -9585,6 +9589,8 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
         }
         
         if( contTrans != NULL ) {
+            
+            // Execute containment transitions - removeFromClothingContainerToHold - contained and container
             
             if( contTrans->newTarget > 0 ) handleHoldingChange( inPlayer, contTrans->newTarget );
             
@@ -14573,7 +14579,12 @@ int main() {
                         if( m.id > 0 &&
                             getObject( m.id ) != NULL ) {
                             
-                            setMapObject( m.x, m.y, m.id );
+                            if( getObject( m.id )->floor ) {
+                                setMapFloor( m.x, m.y, m.id );
+                                }
+                            else {
+                                setMapObject( m.x, m.y, m.id );
+                                }
                             }
                         }
                     }
@@ -16428,7 +16439,7 @@ int main() {
                                     r = getPTrans( nextPlayer->holdingID,
                                                   target );
                                     
-                                    // also check for containment transitions
+                                    // also check for containment transitions - USE stacking
                                     if( r == NULL && targetObj->numSlots == 0 ) {
                                         r = getPTrans( nextPlayer->holdingID,
                                                       target, false, false, 1 );
@@ -16558,6 +16569,25 @@ int main() {
                                         heldCanBeUsed = false;
                                         r = NULL;
                                         }
+                                    else if( numContained > 0 && 
+                                             numSlotsInNew > 0 &&
+                                             r->newTarget > 0 &&
+                                             getObject( r->newTarget )->slotSize < 
+                                             targetObj->slotSize ) {
+                                        // container is holding something
+                                        // and it is going to have a smaller slotSize
+                                        // make sure the contained items
+                                        // can fit in the new container
+                                        for( int i=0; i<numContained; i++ ) {
+                                            int contained = 
+                                                    getContained( m.x, m.y, i );
+                                            if( !containmentPermitted( r->newTarget, contained ) ) {
+                                                heldCanBeUsed = false;
+                                                r = NULL;
+                                                }
+                                            }
+                                        }
+                                        
                                     }
                                   
                                 if( r == NULL && 
@@ -16787,6 +16817,68 @@ int main() {
                                                 r->newTarget );
                                             }
                                         }
+                                        
+                                        
+                                    // Check for containment transitions - changing container by USE
+                                    
+                                    if( oldSlots > 0 &&
+                                        newSlots > 0 && 
+                                        // assume same number of slots for simplicity
+                                        oldSlots == newSlots
+                                        ) {
+                                            
+                                        int numContained = 
+                                            getNumContained( m.x, m.y );
+                                            
+                                        if( numContained > 0 ) {
+                                            
+                                            for( int i=0; i<numContained; i++ ) {
+                                            
+                                                int contained = 
+                                                    getContained( m.x, m.y, i );
+                                                
+                                                if( contained < 0 ) {
+                                                    // again for simplicity
+                                                    // block transisionts if it is a subcontainer
+                                                    continue;
+                                                    }
+                                                    
+                                                ObjectRecord *containedObj = getObject( contained );
+                                                
+                                                TransRecord *contTrans = getPTrans( r->newTarget, contained );
+                                                
+                                                TransRecord *containmentTrans = NULL;
+                                                int containedID = contained;
+                                                int oldContainedID = target;
+                                                int newContainerID = r->newTarget;
+                                                
+                                                // Consider only Any flag here
+                                                // The other flags don't make sense here, we're changing the container itself
+                                                // not interacting with the contained items
+                                                
+                                                // IN precedes OUT
+                                                int newContainedID = -1;
+                                                if( containmentTrans == NULL ) {
+                                                    containmentTrans = getPTrans( containedID, newContainerID, false, false, 4 );
+                                                    if( containmentTrans == NULL ) containmentTrans = getPTrans( 0, newContainerID, false, false, 4 );
+                                                    if( containmentTrans != NULL ) newContainedID = containmentTrans->newActor;
+                                                }
+                                                if( containmentTrans == NULL ) {
+                                                    containmentTrans = getPTrans( oldContainedID, containedID, false, false, 4 );
+                                                    if( containmentTrans == NULL ) containmentTrans = getPTrans( 0, containedID, false, false, 4 );
+                                                    if( containmentTrans != NULL ) newContainedID = containmentTrans->newTarget;
+                                                }
+                                                
+                                                // Execute containment transitions - changing container by USE
+                                                
+                                                if( containmentTrans != NULL ) {
+                                                    changeContained( m.x, m.y, i, newContainedID );
+                                                }
+                                                
+                                                }
+                                            }
+                                        }
+                                        
                                     
                                     
                                     timeSec_t oldEtaDecay = 
@@ -16815,7 +16907,8 @@ int main() {
                                         newGroundObject = r->newTarget;
                                         }
                                         
-                                    // Execute containment transitions
+                                    // Execute containment transitions - USE stacking - contained
+                                    // creation of the container is above
                                     if( containmentTransition ) {
                                         int idToAdd = nextPlayer->holdingID;
                                         if( r->newActor > 0 ) idToAdd = r->newActor;
@@ -17105,7 +17198,7 @@ int main() {
                                             int containedID = contTrans->newTarget;
                                             int oldContainedID = contTrans->target;
                                             
-                                            // IN containment transitions
+                                            // IN containment transitions - useOnContained
                                             
                                             if( numContained == 1 ) {
                                                 containmentTrans = getPTrans( containedID, containerID, false, false, 1 );
@@ -17129,7 +17222,7 @@ int main() {
                                             
                                             if( containmentTrans == NULL ) noInContTrans = true;
                                             
-                                            // OUT containment transitions
+                                            // OUT containment transitions - useOnContained
                                             
                                             if( containmentTrans == NULL ) {
                                                 if( numContained == 1 ) {
@@ -17167,12 +17260,13 @@ int main() {
                                                 
                                                 if( (isOutContTrans && containmentTrans->target != containmentTrans->newTarget) ||
                                                     (!isOutContTrans && containmentTrans->actor != containmentTrans->newActor) ) {
-                                                    // This case should not happen.
-                                                    // It means that the useOnContained transition
+                                                    // This case means that the useOnContained transition
                                                     // triggers a containment transition,
                                                     // both trying to change the object being taken out.
+                                                    
+                                                    // Let the useOnContained transition preceeds the containment transition
                                                     containmentTrans = NULL;
-                                                    blockedByContainmentTrans = true;
+                                                    blockedByContainmentTrans = false;
                                                     }
                                                 else if( numContained > newNumSlots ) {
                                                     containmentTrans = NULL;
@@ -17270,11 +17364,68 @@ int main() {
                                             setResponsiblePlayer( 
                                                 - nextPlayer->id );
                                             
+                                            
+                                            
+                                            bool shouldResetDecay = true;
+                                            if( contTrans->target == contTrans->newTarget ) 
+                                                shouldResetDecay = false;
+
+                                            if( contTrans->actor == 0 &&
+                                                contTrans->target > 0 && contTrans->newTarget > 0 &&
+                                                contTrans->target != contTrans->newTarget ) {
+                                                
+                                                TransRecord *oldDecayTrans = 
+                                                    getTrans( -1, contTrans->target );
+                                                
+                                                TransRecord *newDecayTrans = 
+                                                    getTrans( -1, contTrans->newTarget );
+                                                
+                                                if( oldDecayTrans != NULL &&
+                                                    newDecayTrans != NULL  &&
+                                                    oldDecayTrans->epochAutoDecay ==
+                                                    newDecayTrans->epochAutoDecay &&
+                                                    oldDecayTrans->autoDecaySeconds ==
+                                                    newDecayTrans->autoDecaySeconds &&
+                                                    oldDecayTrans->autoDecaySeconds 
+                                                    > 0 ) {
+                                                    
+                                                    // old target and new
+                                                    // target decay into something
+                                                    // in same amount of time
+                                                    // and this was a bare-hand
+                                                    // action
+                                                    
+                                                    // doesn't matter if they 
+                                                    // decay into SAME thing.
+
+                                                    // keep old decay time in place
+                                                    // (instead of resetting timer)
+                                                    shouldResetDecay = false;
+                                                    
+                                                    }
+                                                }
+
                                             changeContained( 
                                                 m.x, m.y,
                                                 m.i, 
                                                 contTrans->newTarget );
                                                 
+                                                
+                                            if( shouldResetDecay ) {
+                                                
+                                                TransRecord *newDecayT = getMetaTrans( -1, contTrans->newTarget );
+                                                
+                                                if( newDecayT != NULL ) {
+                                                    timeSec_t mapETA = Time::timeSec() + newDecayT->autoDecaySeconds;
+                                                    setSlotEtaDecay( m.x, m.y, m.i, mapETA, 0 );
+                                                    }
+                                                
+                                                }
+                                                
+                                                
+                                            // Execute containment transitions - useOnContained - container
+                                            // contained is not changed, because this is useOnContained transition
+                                            
                                             if( containmentTrans != NULL ) {
                                                 int newContainerID = containmentTrans->newTarget;
                                                 if( isOutContTrans ) newContainerID = containmentTrans->newActor;
@@ -18152,7 +18303,7 @@ int main() {
                                             getPTrans( nextPlayer->holdingID,
                                                        clickedClothing->id );
                                                        
-                                        // Check for containment transitions
+                                        // Check for containment transitions - clickedClothing
                                         if( clickedClothingTrans == NULL ) {
                                             clickedClothingTrans =
                                                 getPTrans( nextPlayer->holdingID,
@@ -18227,7 +18378,7 @@ int main() {
                                         getObject( 
                                             clickedClothingTrans->newTarget ) );
                                             
-                                    // Execute containment transitions
+                                    // Execute containment transitions - clickedClothing
                                     if( isContainmentTransition ) {
                                         addHeldToClothingContainer( 
                                             nextPlayer,
@@ -18959,7 +19110,7 @@ int main() {
                                                         }
                                                     else {
                                                         
-                                                        // try containment transitions
+                                                        // try containment transitions - DROP stacking
                                                         
                                                         TransRecord *contTrans
                                                             = getPTrans(

@@ -1006,7 +1006,11 @@ std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) {
 	return description;
 }
 
-static bool possibleUseOnContainedContTrans( int oldId, int newId ) { 
+// Checks for a potential container change caused by containment transitions
+// We could check all the changed contained objects and all the IN and OUT transitions
+// But it suffices for now to just check for
+// a change in the container and that both containers having the useOnContained tag
+static bool potentialContainerChangebyContTrans( int oldId, int newId ) { 
     if( oldId == newId ) return false;
     int maxObjectID = getMaxObjectID();
     if( oldId <= 0 || newId <= 0 || oldId > maxObjectID || newId > maxObjectID ) return false;
@@ -13761,7 +13765,7 @@ void LivingLifePage::step() {
                                 }
                             }
                         
-                        bool useOnContainedContainmentTrans = false;
+                        bool containerChangebyContTrans = false;
 
                         if( strstr( idBuffer, "," ) != NULL ) {
                             int numInts;
@@ -13777,14 +13781,14 @@ void LivingLifePage::step() {
                             
                             // Check for possible contained change as well as container change
                             // in a containment transition
-                            useOnContainedContainmentTrans = possibleUseOnContainedContTrans(old, newID);
+                            containerChangebyContTrans = potentialContainerChangebyContTrans(old, newID);
 							
                             SimpleVector<int> oldContained;
                             // player triggered
                             // with no changed to container
                             // look for contained change
                             if( speed == 0 &&
-                                ( old == newID || useOnContainedContainmentTrans ) && 
+                                ( old == newID || containerChangebyContTrans ) && 
                                 responsiblePlayerID < 0 ) {
                             
                                 oldContained.push_back_other( 
@@ -13834,7 +13838,7 @@ void LivingLifePage::step() {
                             delete [] ints;
 
                             if( speed == 0 &&
-                                ( old == newID || useOnContainedContainmentTrans ) && 
+                                ( old == newID || containerChangebyContTrans ) && 
                                 responsiblePlayerID < 0
                                 &&
                                 oldContained.size() ==
@@ -13870,10 +13874,20 @@ void LivingLifePage::step() {
                                     // don't play sound then
                                     LiveObject *causingPlayer =
                                         getLiveObject( - responsiblePlayerID );
+                                    
+                                    // also check if this change results from decay
+                                    TransRecord *decayTrans = 
+                                        getPTrans( -1, oldContID );
 
-                                    if( causingPlayer != NULL &&
+                                    if( (causingPlayer != NULL &&
                                         causingPlayer->holdingID 
-                                        != oldContID ) {
+                                        != oldContID) ||
+                                        
+                                        // play create sound if it is decay
+                                        ( decayTrans != NULL &&
+                                            decayTrans->newTarget == newContID )
+
+                                        ) {
                                         
 
                                         ObjectRecord *newObj = 
@@ -14465,7 +14479,7 @@ void LivingLifePage::step() {
                             
                             if( responsiblePlayerObject == NULL ||
                                 !responsiblePlayerObject->onScreen ||
-                                useOnContainedContainmentTrans ) {
+                                containerChangebyContTrans ) {
                                 
                                 // set it down instantly, no drop animation
                                 // (player's held offset isn't valid)
@@ -22863,6 +22877,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                     sendToServerSocket( (char*)"VOGX 0 0#" );
                     vogMode = false;
                     if( vogPickerOn ) {
+                        TextField::unfocusAll();
                         removeComponent( &mObjectPicker );
                         mObjectPicker.removeActionListener( this );
                         }

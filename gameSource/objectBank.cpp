@@ -955,7 +955,7 @@ float initObjectBankStep() {
                             r->rightBlockingRadius > 0 );
 
                 if( r->wide ) {
-                    r->drawBehindPlayer = true;
+                    // r->drawBehindPlayer = true;
                     
                     if( r->leftBlockingRadius > maxWideRadius ) {
                         maxWideRadius = r->leftBlockingRadius;
@@ -2818,6 +2818,42 @@ ObjectRecord **searchObjects( const char *inSearch,
         *outNumResults = results.size();
         return results.getElementArray();
         }
+    else if( strstr( inSearch, "##" ) != NULL ) {
+        // search object by ID
+        // also returns the use dummies
+        
+        SimpleVector< ObjectRecord *> results;
+        char* search = stringDuplicate( inSearch );
+        char* numString = &( search[2] );
+        int id = atoi( numString );
+        if( idMap[id] != NULL ) {
+            ObjectRecord *parent = idMap[id];
+            if( inNumToSkip == 0 ) results.push_back( parent );
+            if( parent->numUses > 1 && parent->useDummyIDs != NULL ) {
+                for( int i=0; i<parent->numUses - 1; i++ ) {
+                    int dummyID = parent->useDummyIDs[i];
+                    ObjectRecord *dummy = getObject( dummyID );
+                    if( dummy != NULL && 
+                        results.size() < inNumToGet &&
+                        i + 1 >= inNumToSkip
+                        ) 
+                        results.push_back( dummy );
+                    }
+                *outNumRemaining = 0;
+                if( results.size() < parent->numUses - inNumToSkip ) 
+                    *outNumRemaining = parent->numUses - inNumToSkip - results.size();
+                }
+            else {
+                *outNumRemaining = 0;
+                }
+            }
+        delete [] search;
+        delete [] numString;
+            
+        *outNumResults = results.size();
+        return results.getElementArray();
+        
+        }
     
 
     char *lowerSearch = stringToLowerCase( inSearch );
@@ -3352,7 +3388,7 @@ int addObject( const char *inDescription,
     r->wide = ( r->leftBlockingRadius > 0 || r->rightBlockingRadius > 0 );
     
     if( r->wide ) {
-        r->drawBehindPlayer = true;
+        // r->drawBehindPlayer = true;
         
         if( r->leftBlockingRadius > maxWideRadius ) {
             maxWideRadius = r->leftBlockingRadius;
