@@ -14579,7 +14579,12 @@ int main() {
                         if( m.id > 0 &&
                             getObject( m.id ) != NULL ) {
                             
-                            setMapObject( m.x, m.y, m.id );
+                            if( getObject( m.id )->floor ) {
+                                setMapFloor( m.x, m.y, m.id );
+                                }
+                            else {
+                                setMapObject( m.x, m.y, m.id );
+                                }
                             }
                         }
                     }
