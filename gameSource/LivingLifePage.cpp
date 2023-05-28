@@ -22708,10 +22708,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             }  else if( inASCII + 64 == toupper(leftKey) ) {
                 mObjectPicker.prevPage();
             }
-        } else if( !TextField::isAnyFocused() && inASCII == 13 ) {
-            actionPerformed( &mObjectPicker );
-            return;
-        } else if( TextField::isAnyFocused() && inASCII == 13 ) {
+        } else if( TextField::isAnyFocused() && !mSayField.isFocused() && inASCII == 13 ) {
             TextField::unfocusAll();
             return;
         }
