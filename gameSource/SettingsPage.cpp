@@ -87,10 +87,11 @@ SettingsPage::SettingsPage()
                                        0.0, 1.0, 
                                        translate( "soundLoudness" ) )
 #ifdef USE_DISCORD
-        , mEnableDiscordRichPresence(0, 168, 4), // TODO: are these values correct?
+        , mEnableDiscordRichPresence(0, 168, 4),
           mEnableDiscordRichPresenceStatus(0, 128, 4), 
-          mEnableDiscordRichPresenceDetails(0, 88, 4),
-          mDiscordHideFirstNameInDetails(0, 48, 4) 
+          mEnableDiscordShowAgeInStatus(0, 88, 4), 
+          mEnableDiscordRichPresenceDetails(0, 48, 4),
+          mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
                                                         {
                             
@@ -204,6 +205,8 @@ SettingsPage::SettingsPage()
     mEnableDiscordRichPresence.addActionListener(this);
     addComponent(&mEnableDiscordRichPresenceStatus);
     mEnableDiscordRichPresenceStatus.addActionListener(this);
+    addComponent(&mEnableDiscordShowAgeInStatus);
+    mEnableDiscordShowAgeInStatus.addActionListener(this);
     addComponent(&mEnableDiscordRichPresenceDetails);
     mEnableDiscordRichPresenceDetails.addActionListener(this);
     addComponent(&mDiscordHideFirstNameInDetails);
@@ -245,9 +248,10 @@ SettingsPage::SettingsPage()
 #ifdef USE_DISCORD
     // Discord
     mEnableDiscordRichPresence.setCursorTip("SHOW PLAYING A GAME STATUS IN YOUR DISCORD PROFILE STATUS");
-    mEnableDiscordRichPresenceStatus.setCursorTip("SHOW STATUS SUCH AS AGE, GENDER, IDLE STATUS...");
-    mEnableDiscordRichPresenceDetails.setCursorTip("SHOW DETAILS OF CURRENT LIFE SUCH AS YOUR NAME AND FAMILY NAME...");
-    mDiscordHideFirstNameInDetails.setCursorTip("HIDE YOUR CURRENT FIRST NAME/EVE-MARK IN YOUR LIFE DETAILS, BUT KEEP FAMILY NAME...");
+    mEnableDiscordRichPresenceStatus.setCursorTip("SHOW IN-GAME STATUS SUCH AS AGE, GENDER, IDLE STATUS");
+    mEnableDiscordShowAgeInStatus.setCursorTip("SHOW YOUR IN-GAME AGE IN THE STATUS");
+    mEnableDiscordRichPresenceDetails.setCursorTip("SHOW DETAILS OF CURRENT IN-GAME LIFE SUCH AS YOUR NAME AND FAMILY NAME");
+    mDiscordHideFirstNameInDetails.setCursorTip("HIDE YOUR CURRENT FIRST NAME/EVE-MARK IN YOUR LIFE DETAILS, BUT KEEP FAMILY NAME");
 #endif // USE_DISCORD
 
     mOldFullscreenSetting = 
@@ -295,6 +299,11 @@ SettingsPage::SettingsPage()
 
     mDiscordRichPresenceStatusSetting =
         SettingsManager::getIntSetting("discordRichPresenceStatus", 1);
+
+    mDiscordShowAgeInStatusSetting =
+        SettingsManager::getIntSetting("discordRichPresenceShowAge", 1);
+
+    mEnableDiscordShowAgeInStatus.setToggled(mDiscordShowAgeInStatusSetting);
 
     mEnableDiscordRichPresenceStatus.setToggled(mDiscordRichPresenceStatusSetting);
 
@@ -556,6 +565,15 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             discordControllerInstance->updateDisplayStatus((char)newSetting);
             }
         }
+    else if( inTarget == &mEnableDiscordShowAgeInStatus ) {
+        last_discord_setting_change = time(0);
+        int newSetting = mEnableDiscordShowAgeInStatus.getToggled();
+        mDiscordShowAgeInStatusSetting = newSetting;
+        SettingsManager::setSetting("discordRichPresenceShowAge", newSetting);
+        if(discordControllerInstance != NULL) {
+            discordControllerInstance->updateDisplayAge((char)newSetting);
+            }
+        }
     else if( inTarget == &mEnableDiscordRichPresenceDetails ) {
         last_discord_setting_change = time(0);
         int newSetting = mEnableDiscordRichPresenceDetails.getToggled();
@@ -738,6 +756,14 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString( "RICH PRESENCE STATUS", pos, alignRight );
         }
+    if( mEnableDiscordShowAgeInStatus.isVisible() ) {
+        doublePair pos = mEnableDiscordShowAgeInStatus.getPosition();
+
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString( "SHOW AGE", pos, alignRight );
+        }
     if( mEnableDiscordRichPresenceDetails.isVisible() ) {
         doublePair pos = mEnableDiscordRichPresenceDetails.getPosition();
 
@@ -758,6 +784,7 @@ void SettingsPage::draw( doublePair inViewCenter,
     // allow for at least 2 seconds to pass until the user is allowed to change the discord setting again.
     mEnableDiscordRichPresence.setActive(time(0) - last_discord_setting_change > 2);
     mEnableDiscordRichPresenceStatus.setActive(time(0) - last_discord_setting_change > 2);
+    mEnableDiscordShowAgeInStatus.setActive(time(0) - last_discord_setting_change > 2);
     mEnableDiscordRichPresenceDetails.setActive(time(0) - last_discord_setting_change > 2);
     mDiscordHideFirstNameInDetails.setActive(time(0) - last_discord_setting_change > 2);
 #endif // USE_DISCORD
@@ -883,8 +910,9 @@ void SettingsPage::updatePage() {
 #ifdef USE_DISCORD
     mEnableDiscordRichPresence.setPosition(0, 3 * lineSpacing);
     mEnableDiscordRichPresenceStatus.setPosition(0, 2 * lineSpacing);
-    mEnableDiscordRichPresenceDetails.setPosition(0, lineSpacing);
-    mDiscordHideFirstNameInDetails.setPosition(0, 0);
+    mEnableDiscordShowAgeInStatus.setPosition(0, lineSpacing);
+    mEnableDiscordRichPresenceDetails.setPosition(0, 0);
+    mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
     mEnableFOVBox.setVisible( mPage == 0 );
@@ -912,6 +940,9 @@ void SettingsPage::updatePage() {
 #ifdef USE_DISCORD
     mEnableDiscordRichPresence.setVisible(mPage == 4);
     mEnableDiscordRichPresenceStatus.setVisible(mPage == 4 && mEnableDiscordRichPresence.getToggled());
+    mEnableDiscordShowAgeInStatus.setVisible(mPage == 4 
+                                        && mEnableDiscordRichPresence.getToggled()
+                                        && mEnableDiscordRichPresenceStatus.getToggled());
     mEnableDiscordRichPresenceDetails.setVisible(mPage == 4 
                                         && mEnableDiscordRichPresence.getToggled() 
                                         && mEnableDiscordRichPresenceStatus.getToggled());

@@ -723,9 +723,9 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 
 #ifdef USE_DISCORD
     discordController = new DiscordController;
-    EDiscordResult result = discordController->connect(); // TODO: does this block while connecting?
+    EDiscordResult result = discordController->connect();
     if (result != EDiscordResult::DiscordResult_Ok) {
-        printf("game error: discord connection not successful\n");
+        printf("discord error: game: discord connection not successful\n");
         }
 #endif // USE_DISCORD
 
@@ -1597,65 +1597,67 @@ void showReconnectPage() {
 
 #ifdef USE_DISCORD // <-- vscode doesnt know it's enabled at compile time... it can be overriden with .vscode/c_cpp_properties.json, content: {"configurations":[{"defines": ["USE_DISCORD"],}],}
 void discordStep() {
-    if (discordController == NULL)
-    {
+    if (discordController == NULL) {
         return;
-    }
-    if (currentGamePage == loadingPage)
-    {
+        }
+    if (currentGamePage == loadingPage) {
         discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LOADING_PAGE, NULL);
-    }
-    else if (currentGamePage == livingLifePage)
-    {
-        if (!livingLifePage->receivedOurLiveObject())
-        {
+        }
+    else if (currentGamePage == livingLifePage) {
+        if (!livingLifePage->isLivingLife()) {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
-        }
-        else if (livingLifePage->isTutorial())
-        {
+            }
+        else if (livingLifePage->isTutorial()) {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
-        }
-        else
-        {
+            }
+        else {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
+            }
         }
-    }
-    else if (currentGamePage == settingsPage)
-    {
-        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
-    }
-    else if (currentGamePage == extendedMessagePage)
-    {
-        if (0 == strcmp("connectionLost", extendedMessagePage->getMessageKey()))
-        {
-            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::CONNECTION_LOST_PAGE, NULL);
+    else if (currentGamePage == settingsPage) {
+            if (livingLifePage != NULL && livingLifePage->isLivingLife()){
+                // allow player to see their changes without exiting the settings page.
+                if (livingLifePage->isTutorial()) {
+                    discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
+                    }
+                else{
+                    discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
+                    }
+                }
+            else {
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
+                }
         }
-        else if (0 == strcmp("youDied", extendedMessagePage->getMessageKey()))
-        {
-            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
-        }
-        else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey()))
-        {
-            // TODO: sometimes we lose connection when we die, i it's becuase server disconnects us before we get our death message.
+    else if (currentGamePage == extendedMessagePage) {
+        if (0 == strcmp("connectionLost", extendedMessagePage->getMessageKey())) {
+            // TODO: sometimes we lose connection when we die, i think it's becuase server disconnects us before we get our death message.
             // just an age check would fix it, and show the died status instead of connection lost.
-            // another problem is that userReconnect will be true while reconnect is clicked, but server will respawn us so it should be waiting to be born...
+            if (livingLifePage != NULL && livingLifePage->getLastComputedAge() > 119.5) { // REVIEW: make 119.5 variable, not constant, create it from settings
+                // this is an attempt to handle the previous todo.
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
+                }
+            else {
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
+                }
+            }
+        else if (0 == strcmp("youDied", extendedMessagePage->getMessageKey())) {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
+            }
+        else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey())) {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
-        }
-        else
-        {
+            }
+        else {
             discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
+            }
         }
-    }
-    else if (currentGamePage == getServerAddressPage)
-    {
+    else if (currentGamePage == getServerAddressPage) {
         discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
-    }
-    else
-    {
+        }
+    else {
         discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
-    }
+        }
     discordController->runCallbacks();
-}
+    }
 #endif // USE_DISCORD
 
 void drawFrame( char inUpdate ) {    

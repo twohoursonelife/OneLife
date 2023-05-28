@@ -5,7 +5,7 @@
 #include "GamePage.h"
 
 class DiscordController;
-extern DiscordController *discordControllerInstance; // for settings page
+extern DiscordController *discordControllerInstance; // extern for settings page
 
 typedef enum ActivityType
 {
@@ -19,7 +19,6 @@ typedef enum ActivityType
     EDITING_SETTINGS,
     CONNECTION_LOST,
     PLAYING_TUTORIAL,
-    // TODO: can add more (death screen, waiting to be born...)
 } ActivityType;
 
 // used to transfer current page information from game.cpp to DiscordController.cpp
@@ -33,7 +32,6 @@ typedef enum DiscordCurrentGamePage
     WAITING_TO_BE_BORN_PAGE,
     DEATH_PAGE,
     SETTINGS_PAGE,
-    CONNECTION_LOST_PAGE,
     LIVING_TUTORIAL_PAGE,
 } DiscordCurrentGamePage;
 
@@ -66,17 +64,19 @@ public:
     void updateDisplayStatus(char newValue);
     void updateDisplayDetails(char newValue);
     void updateDisplayFirstName(char newValue);
+    void updateDisplayAge(char newValue);
     //--
-
-protected:
-    DiscordApplication app;
-    // connection is live and we have an instance
-    char isHealthy;
-    struct DiscordActivity activity;
-
+    //-- these can be protected.
     ActivityType getCurrentActivity();
     char isConnected();
-    void disconnect();
     void updateActivity(ActivityType activity_type, const char *details, const char *state);
+    //--
+protected:
+    DiscordApplication mApp;
+    // connection is live and we have an instance
+    char mIsHealthy;
+    struct DiscordActivity mActivity;
+
+    void disconnect();
 };
 #endif // DISCORD_CONTROLLER_H
