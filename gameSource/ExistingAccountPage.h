@@ -61,11 +61,11 @@ class ExistingAccountPage : public GamePage, public ActionListener {
         // Left Pane Page 0
         TextField mEmailField;
         TextButton mEmailLockButton;
-        KeyEquivalentTextButton mPasteEmailButton;
+        TextButton mPasteEmailButton;
         
         TextField mKeyField;
         TextButton mKeyLockButton;
-        KeyEquivalentTextButton mPasteButton;
+        TextButton mPasteButton;
 
         TextField *mFields[2];
         
