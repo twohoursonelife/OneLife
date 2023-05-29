@@ -142,7 +142,7 @@ EDiscordResult DiscordController::connect()
     struct DiscordCreateParams params;
     DiscordCreateParamsSetDefault(&params);
 
-    char *discord_client_id = SettingsManager::getStringSetting("discord_client_id", "1071527161049124914");
+    char *discord_client_id = SettingsManager::getStringSetting("discord_client_id", "967932935569285160");
     VERBOSE("discord_client_id to parse: %s\n", discord_client_id);
     // TODO: what happens if discord change the key to accept letters too?
     char *endptr;
