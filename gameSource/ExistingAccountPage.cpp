@@ -72,14 +72,14 @@ ExistingAccountPage::ExistingAccountPage()
                        // single/double quotes 
                        "\"' \\" ),
           mEmailLockButton( mainFont, -108, 96, "!" ),
-          mPasteEmailButton( mainFont, 0, 68, translate( "paste" ), 'v', 'V' ),
+          mPasteEmailButton( mainFont, 0, 68, translate( "paste" ) ),
                        
           mKeyField( mainFont, -360, 0, 15, true,
                      translate( "accountKey" ),
                      // allow only ticket code characters
                      "23456789ABCDEFGHJKLMNPQRSTUVWXYZ-" ),
           mKeyLockButton( mainFont, -108, 0, "!" ),
-          mPasteButton( mainFont, 0, -112, translate( "paste" ), 'v', 'V' ),
+          mPasteButton( mainFont, 0, -112, translate( "paste" ) ),
           
           mNextToGameTabButton( mainFont,  0, 0, "NEXT" ),          
           
@@ -140,7 +140,9 @@ ExistingAccountPage::ExistingAccountPage()
     
 
     mEmailField.setWidth( 360 );
+    mEmailField.usePasteShortcut(true);
     mKeyField.setWidth( 360 );
+    mKeyField.usePasteShortcut(true);
     mTwinCodeField.setWidth( 360 );
     mSpawnSeed.setWidth( 360 );
     mTargetFamily.setWidth( 360 );
