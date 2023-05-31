@@ -105,6 +105,9 @@ CustomRandomSource randSource( 34957197 );
 
 #include "message.h"
 
+#ifdef USE_DISCORD
+#include "DiscordController.h"
+#endif // USE_DISCORD
 
 // should we pull the map
 static char mapPullMode = 0;
@@ -154,6 +157,11 @@ ReviewPage *reviewPage;
 TwinPage *twinPage;
 PollPage *pollPage;
 GeneticHistoryPage *geneticHistoryPage;
+
+#ifdef USE_DISCORD
+DiscordController *discordController;
+#endif // USE_DISCORD
+
 //TestPage *testPage = NULL;
 
 
@@ -713,6 +721,13 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     rebirthChoicePage = new RebirthChoicePage;
     settingsPage = new SettingsPage;
 
+#ifdef USE_DISCORD
+    discordController = new DiscordController;
+    EDiscordResult result = discordController->connect();
+    if (result != EDiscordResult::DiscordResult_Ok) {
+        printf("discord error: game: discord connection not successful\n");
+        }
+#endif // USE_DISCORD
 
     char *reviewURL = 
         SettingsManager::getStringSetting( "reviewServerURL", "" );
@@ -1580,10 +1595,72 @@ void showReconnectPage() {
     currentGamePage->base_makeActive( true );
     }
 
-    
+#ifdef USE_DISCORD // <-- vscode doesnt know it's enabled at compile time... it can be overriden with .vscode/c_cpp_properties.json, content: {"configurations":[{"defines": ["USE_DISCORD"],}],}
+void discordStep() {
+    if (discordController == NULL) {
+        return;
+        }
+    if (currentGamePage == loadingPage) {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LOADING_PAGE, NULL);
+        }
+    else if (currentGamePage == livingLifePage) {
+        if (!livingLifePage->isLivingLife()) {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
+            }
+        else if (livingLifePage->isTutorial()) {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
+            }
+        else {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
+            }
+        }
+    else if (currentGamePage == settingsPage) {
+            if (livingLifePage != NULL && livingLifePage->isLivingLife()){
+                // allow player to see their changes without exiting the settings page.
+                if (livingLifePage->isTutorial()) {
+                    discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_TUTORIAL_PAGE, livingLifePage);
+                    }
+                else{
+                    discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::LIVING_LIFE_PAGE, livingLifePage);
+                    }
+                }
+            else {
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::SETTINGS_PAGE, NULL);
+                }
+        }
+    else if (currentGamePage == extendedMessagePage) {
+        if (0 == strcmp("connectionLost", extendedMessagePage->getMessageKey())) {
+            // TODO: sometimes we lose connection when we die, i think it's becuase server disconnects us before we get our death message.
+            // just an age check would fix it, and show the died status instead of connection lost.
+            if (livingLifePage != NULL && livingLifePage->getLastComputedAge() > 119.5) { // REVIEW: make 119.5 variable, not constant, create it from settings
+                // this is an attempt to handle the previous todo.
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
+                }
+            else {
+                discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
+                }
+            }
+        else if (0 == strcmp("youDied", extendedMessagePage->getMessageKey())) {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DEATH_PAGE, livingLifePage);
+            }
+        else if (0 == strcmp("connectionFailed", extendedMessagePage->getMessageKey())) {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::DISONNECTED_PAGE, NULL);
+            }
+        else {
+            discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
+            }
+        }
+    else if (currentGamePage == getServerAddressPage) {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::WAITING_TO_BE_BORN_PAGE, NULL);
+        }
+    else {
+        discordController->lazyUpdateRichPresence(DiscordCurrentGamePage::MAIN_MENU_PAGE, NULL);
+        }
+    discordController->runCallbacks();
+    }
+#endif // USE_DISCORD
 
 void drawFrame( char inUpdate ) {    
-
 
     if( !inUpdate ) {
         
@@ -1653,8 +1730,9 @@ void drawFrame( char inUpdate ) {
     
             showReconnectPage();
             }
-        
-
+#ifdef USE_DISCORD
+        discordStep();// called when paused too, to change to IDLE state if player idle is detected.
+#endif // USE_DISCORD
         return;
         }
 
@@ -2079,6 +2157,9 @@ void drawFrame( char inUpdate ) {
             }
         else if( currentGamePage == existingAccountPage ) {    
             if( existingAccountPage->checkSignal( "quit" ) ) {
+#ifdef USE_DISCORD
+                delete discordController; // call deconstructor to cleanly disconnect
+#endif // USE_DISCORD
                 quitGame();
                 }
             else if( existingAccountPage->checkSignal( "poll" ) ) {
@@ -2483,17 +2564,24 @@ void drawFrame( char inUpdate ) {
                 currentGamePage->base_makeActive( true );
                 }
             else if( rebirthChoicePage->checkSignal( "quit" ) ) {
+#ifdef USE_DISCORD
+                delete discordController; // call deconstructor to cleanly disconnect
+#endif // USE_DISCORD
                 quitGame();
                 }
             }
         else if( currentGamePage == finalMessagePage ) {
             if( finalMessagePage->checkSignal( "quit" ) ) {
+#ifdef USE_DISCORD
+                delete discordController; // call deconstructor to cleanly disconnect
+#endif // USE_DISCORD
                 quitGame();
                 }
             }
-        }
-    
-
+#ifdef USE_DISCORD
+        discordStep();
+#endif // USE_DISCORD
+    }
 
     // now draw stuff AFTER all updates
     drawFrameNoUpdate( true );
@@ -2594,7 +2682,12 @@ void pointerUp( float inX, float inY ) {
     // "Buttons" in the Pause screen in-game
     if( currentGamePage == livingLifePage && isPaused() ) {
         if( hoveringResumeButton ) pauseGame();
-        if( hoveringQuitButton ) quitGame();
+        if( hoveringQuitButton ) {
+#ifdef USE_DISCORD
+            delete discordController;// call deconstructor to cleanly disconnect
+#endif // USE_DISCORD
+            quitGame();
+            }
         if( hoveringSettingsButton ) {
             pauseGame();
             pauseScreenFade = 0;

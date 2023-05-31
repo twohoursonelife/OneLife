@@ -2159,7 +2159,7 @@ static int lastPongReceived = 0;
 
 
 int ourID;
-double ourAge;
+double ourAge = 0;
 char ourGender;
 int stepCount = 0;
 
@@ -12253,7 +12253,7 @@ void LivingLifePage::step() {
 
         closeSocket( mServerSocket );
         mServerSocket = -1;
-        
+
         if( mDeathReason != NULL ) {
             delete [] mDeathReason;
             }
@@ -12381,7 +12381,7 @@ void LivingLifePage::step() {
         if( type == SHUTDOWN  || type == FORCED_SHUTDOWN ) {
             closeSocket( mServerSocket );
             mServerSocket = -1;
-            
+
             setWaiting( false );
             setSignal( "serverShutdown" );
             
@@ -12391,7 +12391,7 @@ void LivingLifePage::step() {
         else if( type == SERVER_FULL ) {
             closeSocket( mServerSocket );
             mServerSocket = -1;
-            
+
             setWaiting( false );
             setSignal( "serverFull" );
             
@@ -12687,7 +12687,7 @@ void LivingLifePage::step() {
         else if( type == REJECTED ) {
             closeSocket( mServerSocket );
             mServerSocket = -1;
-            
+
             setWaiting( false );
             setSignal( "loginFailed" );
             
@@ -24022,3 +24022,17 @@ bool LivingLifePage::dirIsSafeToWalk(int x, int y, int dir) {
 	return true;
 }
 
+
+double LivingLifePage::getLastComputedAge() {
+    // for DiscordController
+    return ourAge;
+    }
+char LivingLifePage::isLivingLife() {
+    // for DiscordController
+    return mServerSocket != -1 && mFirstServerMessagesReceived > 2;
+    }
+
+char LivingLifePage::isTutorial() {
+    // for DiscordController
+    return 0 != mTutorialNumber;
+    }

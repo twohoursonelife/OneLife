@@ -78,6 +78,9 @@ PollPage.cpp \
 fitnessScore.cpp \
 GeneticHistoryPage.cpp \
 
+ifneq ($(DISCORD_SDK_PATH),)
+	LAYER_SOURCE += DiscordController.cpp
+endif
 
 
 GAME_GRAPHICS = \
