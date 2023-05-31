@@ -431,7 +431,7 @@ void DiscordController::lazyUpdateRichPresence(DiscordCurrentGamePage page, Game
             {
                 agePart = stringDuplicate("");
             }
-            char *infertilePart = infertileFound ? (char *)"[INF] " : (char *)"";
+            char *infertilePart = infertileFound ? (char *)" [INF] " : (char *)"";
             char *idlePart = isIdle ? (char *)" [IDLE]" : (char *)"";
             char *details = autoSprintf("Living Life, [%c]%s%s%s", ourGender, agePart, infertilePart, idlePart);
             delete[] agePart;

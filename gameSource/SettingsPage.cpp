@@ -247,11 +247,11 @@ SettingsPage::SettingsPage()
 
 #ifdef USE_DISCORD
     // Discord
-    mEnableDiscordRichPresence.setCursorTip("SHOW PLAYING A GAME STATUS IN YOUR DISCORD PROFILE STATUS");
-    mEnableDiscordRichPresenceStatus.setCursorTip("SHOW IN-GAME STATUS SUCH AS AGE, GENDER, IDLE STATUS");
-    mEnableDiscordShowAgeInStatus.setCursorTip("SHOW YOUR IN-GAME AGE IN THE STATUS");
-    mEnableDiscordRichPresenceDetails.setCursorTip("SHOW DETAILS OF CURRENT IN-GAME LIFE SUCH AS YOUR NAME AND FAMILY NAME");
-    mDiscordHideFirstNameInDetails.setCursorTip("HIDE YOUR CURRENT FIRST NAME/EVE-MARK IN YOUR LIFE DETAILS, BUT KEEP FAMILY NAME");
+    mEnableDiscordRichPresence.setCursorTip("SHOW \"PLAYING A GAME\" STATUS IN YOUR DISCORD PROFILE STATUS");
+    mEnableDiscordRichPresenceStatus.setCursorTip("SHOW AGE, GENDER AND IDLE STATUS OF CURRENT LIFE");
+    mEnableDiscordShowAgeInStatus.setCursorTip("SELECTIVELY TOGGLE ON OR OFF AGE DISPLAY IN THE STATUS HERE");
+    mEnableDiscordRichPresenceDetails.setCursorTip("SHOW FIRST NAME AND FAMILY NAME OF CURRENT LIFE");
+    mDiscordHideFirstNameInDetails.setCursorTip("HIDE FIRST NAME IN THE STATUS");
 #endif // USE_DISCORD
 
     mOldFullscreenSetting = 
