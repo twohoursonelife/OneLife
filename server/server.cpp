@@ -16517,7 +16517,30 @@ int main() {
                                         numSlotsInNew =
                                             getObject( r->newTarget )->numSlots;
                                         }
+                                        
+                                    if( numContained > 0 && 
+                                        numSlotsInNew > 0 &&
+                                        numContained <= numSlotsInNew && 
+                                        r->newTarget > 0 &&
+                                        getObject( r->newTarget )->slotSize < 
+                                        targetObj->slotSize ) {
+                                        // container is holding something
+                                        // and it is going to have a smaller slotSize
+                                        // make sure the contained items
+                                        // can fit in the new container
+                                        for( int i=0; i<numContained; i++ ) {
+                                            int contained = 
+                                                    getContained( m.x, m.y, i );
+                                            if( contained < 0 ) contained = -contained;
+                                            if( !containmentPermitted( r->newTarget, contained ) ) {
+                                                heldCanBeUsed = false;
+                                                r = NULL;
+                                                break;
+                                                }
+                                            }
+                                        }
                                     
+                                    if( r != NULL )
                                     if( numContained > numSlotsInNew &&
                                         numSlotsInNew == 0 ) {
                                         // not enough room in new target
@@ -16557,24 +16580,6 @@ int main() {
                                         // block it.
                                         heldCanBeUsed = false;
                                         r = NULL;
-                                        }
-                                    else if( numContained > 0 && 
-                                             numSlotsInNew > 0 &&
-                                             r->newTarget > 0 &&
-                                             getObject( r->newTarget )->slotSize < 
-                                             targetObj->slotSize ) {
-                                        // container is holding something
-                                        // and it is going to have a smaller slotSize
-                                        // make sure the contained items
-                                        // can fit in the new container
-                                        for( int i=0; i<numContained; i++ ) {
-                                            int contained = 
-                                                    getContained( m.x, m.y, i );
-                                            if( !containmentPermitted( r->newTarget, contained ) ) {
-                                                heldCanBeUsed = false;
-                                                r = NULL;
-                                                }
-                                            }
                                         }
                                         
                                     }
