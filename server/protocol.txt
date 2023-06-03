@@ -90,8 +90,6 @@ twin_code_hash is optional.  The sha1 hash of the twin code.
 twin_count is mandatory if twin_code_hash is present.  How many twins are in
 the party, total.
 
-
-
 3.  The server responds with one of:
 
 ACCEPTED
@@ -113,6 +111,20 @@ After ACCEPTED, normal client-server messaging commences.
 
 After REJECTED, the server will close the connection to the client.
 
+An outside application can also respond with the message PLAYER_LIST# instead of the previous LOGIN message in this case the server
+will then send a list of connected players gender age name and fertilityStatus in the format
+----
+num_connected
+gender age name delcaredFertile
+....
+#
+----
+where
+gender: F or M
+age: player age with 1 decimal
+name: player full name or "(null)" can include the word "EVE"
+delcaredFertile: 1 if player is infertile else 0
+the server will disconnect after sending the PLAYER_LIST respond.
 
 
 

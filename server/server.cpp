@@ -13463,9 +13463,67 @@ int main() {
                     }
                 
                 if( message != NULL ) {
-                    
-                    
-                    if( strstr( message, "LOGIN" ) != NULL ) {
+#ifndef NO_PLAYER_LIST
+                    // TODO: handle misceleneous cases (server full, server down...etc)
+                    if( 0 == strcmp( message, "PLAYER_LIST" ) ) {
+                        // request for player list https://github.com/twohoursonelife/OneLife/issues/202
+                        HostAddress *a = nextConnection->sock->getRemoteHostAddress();
+                        char address[100];
+                        if( a == NULL ) {    
+                            sprintf(address, "%s", "uknown");
+                            }
+                        else {
+                            snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
+                            delete a;
+                            }
+                        AppLog::infoF( "Got PLAYER_LIST request from address: %s", address );
+                        int numLive = players.size();
+                        // 4 for count(3 characters+newline) + estimated line size for each player(1 for gender, 5 for age(3chars+1 dot+1 decimal), 15 longest seen in firstNames.txt, 15 longest seen in lastNames.txt, 1 for fertility status, 4 for spaces, 1 for newline)
+                        int buffSize = (4 + numLive * (1 + 5 + 15 + 15 + 1 + 4)) * sizeof(char);
+                        // also make sure buffer does not exceed 5MB
+                        if(buffSize > 5 * 1024)
+                            buffSize = 5 * 1024;
+                        
+                        char messageBuff[buffSize];
+                        messageBuff[0] = '\0';
+                        char *numLinesStr = autoSprintf("%d\n", numLive);
+                        strncat(messageBuff, numLinesStr, strlen(numLinesStr));
+                        // -2 here is for \0 and #
+                        int remainingLen = buffSize - 2 - strlen(numLinesStr);
+                        delete[] numLinesStr;
+                        float age;
+                        char gender, *name;
+                        for( int i=0; i<numLive; i++ ) {
+                            LiveObject *player = players.getElement( i );
+                            gender = getFemale( player ) ? 'F' : 'M';
+                            age = (float) computeAge( player->lifeStartTimeSeconds );
+                            name = player->name;
+                            if(name == NULL) {
+                                // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it
+                                name = "(null)";
+                                }
+                            char *playerLine = autoSprintf("%c %.1f %s %d\n", gender, age, name, player->declaredInfertile);
+                            int playerLineLen = strlen(playerLine);
+                            if(playerLineLen + 2 > remainingLen) {
+                                delete[] playerLine;
+                                break;
+                            }
+                            strncat(messageBuff, playerLine, playerLineLen);
+                            remainingLen -= playerLineLen;
+                            delete[] playerLine;
+                            }
+                        strncat(messageBuff, "#", 1);
+                        // TODO: i believe if their download rate is slow server will stay stuck here waiting for them (need testing)
+                        nextConnection->sock->send( (unsigned char*)messageBuff, strlen( messageBuff ), false, false);
+                        // TODO: this is an attempt to fix previous TODO, added "false, false" above in send() and then wait 2 seconds then close the connection anyway
+                        nextConnection->sock->sendFlushBeforeClose(2000);
+                        deleteMembers( nextConnection );
+                        newConnections.deleteElement(i);
+                        i--;
+                        AppLog::infoF("PLAYER_LIST response-message sent to: %s", address);
+                        }
+#endif // #ifndef NO_PLAYER_LIST
+                    else if( strstr( message, "LOGIN" ) != NULL ) {
                         
                         SimpleVector<char *> *tokens =
                             tokenizeString( message );
