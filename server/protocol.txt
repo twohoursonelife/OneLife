@@ -111,21 +111,25 @@ After ACCEPTED, normal client-server messaging commences.
 
 After REJECTED, the server will close the connection to the client.
 
-An outside application can also respond with the message PLAYER_LIST# instead of the previous LOGIN message in this case the server
+An outside application can also respond with the message PLAYER_LIST <secret># instead of the previous LOGIN message in this case the server
 will then send a list of connected players gender age name and fertilityStatus in the format
 ----
 num_connected
-gender age name delcaredFertile
+gender age name delcaredInfertile
+gender age name delcaredInfertile
+gender age name delcaredInfertile
 ....
+gender age name delcaredInfertile
 #
 ----
 where
+num_connected: number of connected players (count of next lines)
 gender: F or M
 age: player age with 1 decimal
 name: player full name or "(null)" can include the word "EVE"
-delcaredFertile: 1 if player is infertile else 0
-the server will disconnect after sending the PLAYER_LIST respond.
-
+delcaredInfertile: 1 if player is infertile else 0 (note: will not count player age, only checks if player said one of infertilityDeclaringPhrases.ini)
+if <secret> differs from playerListSecret.ini REJECTED response will be sent.
+if playerListSecret.ini is empty the request can just be PLAYER_LIST# without a secret.
 
 
 
