@@ -13811,7 +13811,7 @@ int main() {
                     delete [] message;
                     }
                 else if(nextConnection->playerListSent) {
-                    if(currentTime - nextConnection->connectionStartTimeSeconds > 5) {
+                    if(currentTime - nextConnection->connectionStartTimeSeconds > 15) {
                         HostAddress *a = nextConnection->sock->getRemoteHostAddress();
                         char address[100];
                         if( a == NULL ) {    
