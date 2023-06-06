@@ -134,7 +134,8 @@ if playerListSecret.ini is empty the request can just be PLAYER_LIST# without a 
 
 if memory requirement for the message was too much for the server to be
 handled the message will not be complete. to check if the server sent the full
-message see if the server's response ended with #.
+message see if the server's response ended with #. if it did not end with #,
+it means that some player lines are missing.
 END OF PLAYER_LIST.
 
 Each message from server is prefaced by a type tag.

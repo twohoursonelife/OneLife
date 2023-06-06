@@ -13518,6 +13518,7 @@ int main() {
                             delete[] numLinesStr;
                             float age;
                             char gender, *name;
+			    char finished = true;
                             for( int i=0; i<numLive; i++ ) {
                                 LiveObject *player = players.getElement( i );
                                 gender = getFemale( player ) ? 'F' : 'M';
@@ -13531,13 +13532,16 @@ int main() {
                                 int playerLineLen = strlen(playerLine);
                                 if(playerLineLen + 2 > remainingLen) {
                                     delete[] playerLine;
+				    finished = false;
                                     break;
                                 }
                                 strncat(messageBuff, playerLine, playerLineLen);
                                 remainingLen -= playerLineLen;
                                 delete[] playerLine;
                                 }
-                            strncat(messageBuff, "#", 1);
+			    if(finished) {
+                            	strncat(messageBuff, "#", 1);
+			    	}
                             nextConnection->sock->send( (unsigned char*)messageBuff, strlen( messageBuff ), false, false);
                             nextConnection->playerListSent = true;
                             AppLog::infoF("PLAYER_LIST response-message sent to: %s", address);
