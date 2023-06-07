@@ -111,6 +111,7 @@
  
    
 #include "dbCommon.h"
+#include "dbShrink.h"
  
  
 #include <stdarg.h>
@@ -2136,10 +2137,11 @@ static void blockingClearCached( int inX, int inY ) {
  
  
  
- 
+extern int dbShrinkMode;
  
 char lookTimeDBEmpty = false;
 char skipLookTimeCleanup = 0;
+int staleSec = 0;
 char skipRemovedObjectCleanup = 0;
  
 // if lookTimeDBEmpty, then we init all map cell look times to NOW
@@ -2147,209 +2149,7 @@ int cellsLookedAtToInit = 0;
  
  
  
-// version of open call that checks whether look time exists in lookTimeDB
-// for each record in opened DB, and clears any entries that are not
-// rebuilding file storage for DB in the process
-// lookTimeDB MUST be open before calling this
-//
-// If lookTimeDBEmpty, this call just opens the target DB normally without
-// shrinking it.
-//
-// Can handle max key and value size of 16 and 12 bytes
-// Assumes that first 8 bytes of key are xy as 32-bit ints
-int DB_open_timeShrunk(
-    DB *db,
-    const char *path,
-    int mode,
-    unsigned long hash_table_size,
-    unsigned long key_size,
-    unsigned long value_size) {
  
-    File dbFile( NULL, path );
-   
-    if( ! dbFile.exists() || lookTimeDBEmpty || skipLookTimeCleanup ) {
- 
-        if( lookTimeDBEmpty ) {
-            AppLog::infoF( "No lookTimes present, not cleaning %s", path );
-            }
-       
-        int error = DB_open( db,
-                                 path,
-                                 mode,
-                                 hash_table_size,
-                                 key_size,
-                                 value_size );
- 
-        if( ! error && ! skipLookTimeCleanup ) {
-            // add look time for cells in this DB to present
-            // essentially resetting all look times to NOW
-           
-            DB_Iterator dbi;
-   
-   
-            DB_Iterator_init( db, &dbi );
-   
-            // key and value size that are big enough to handle all of our DB
-            unsigned char key[16];
-   
-            unsigned char value[12];
-   
-            while( DB_Iterator_next( &dbi, key, value ) > 0 ) {
-                int x = valueToInt( key );
-                int y = valueToInt( &( key[4] ) );
- 
-                cellsLookedAtToInit++;
-               
-                dbLookTimePut( x, y, MAP_TIMESEC );
-                }
-            }
-        return error;
-        }
-   
-    char *dbTempName = autoSprintf( "%s.temp", path );
-    File dbTempFile( NULL, dbTempName );
-   
-    if( dbTempFile.exists() ) {
-        dbTempFile.remove();
-        }
-   
-    if( dbTempFile.exists() ) {
-        AppLog::errorF( "Failed to remove temp DB file %s", dbTempName );
- 
-        delete [] dbTempName;
- 
-        return DB_open( db,
-                            path,
-                            mode,
-                            hash_table_size,
-                            key_size,
-                            value_size );
-        }
-   
-    DB oldDB;
-   
-    int error = DB_open( &oldDB,
-                             path,
-                             mode,
-                             hash_table_size,
-                             key_size,
-                             value_size );
-    if( error ) {
-        AppLog::errorF( "Failed to open DB file %s in DB_open_timeShrunk",
-                        path );
-        delete [] dbTempName;
- 
-        return error;
-        }
- 
-   
- 
-   
- 
-   
-    DB_Iterator dbi;
-   
-   
-    DB_Iterator_init( &oldDB, &dbi );
-   
-    // key and value size that are big enough to handle all of our DB
-    unsigned char key[16];
-   
-    unsigned char value[12];
-   
-    int total = 0;
-    int stale = 0;
-    int nonStale = 0;
-   
-    // first, just count
-    while( DB_Iterator_next( &dbi, key, value ) > 0 ) {
-        total++;
- 
-        int x = valueToInt( key );
-        int y = valueToInt( &( key[4] ) );
- 
-        if( dbLookTimeGet( x, y ) > 0 ) {
-            // keep
-            nonStale++;
-            }
-        else {
-            // stale
-            // ignore
-            stale++;
-            }
-        }
- 
- 
- 
-    // optimial size for DB of remaining elements
-    unsigned int newSize = DB_getShrinkSize( &oldDB, nonStale );
- 
-    AppLog::infoF( "Shrinking hash table in %s from %d down to %d",
-                   path,
-                   DB_getCurrentSize( &oldDB ),
-                   newSize );
- 
- 
-    DB tempDB;
-   
-    error = DB_open( &tempDB,
-                         dbTempName,
-                         mode,
-                         newSize,
-                         key_size,
-                         value_size );
-    if( error ) {
-        AppLog::errorF( "Failed to open DB file %s in DB_open_timeShrunk",
-                        dbTempName );
-        delete [] dbTempName;
-        DB_close( &oldDB );
-        return error;
-        }
- 
- 
-    // now that we have new temp db properly sized,
-    // iterate again and insert, but don't count
-    DB_Iterator_init( &oldDB, &dbi );
- 
-    while( DB_Iterator_next( &dbi, key, value ) > 0 ) {
-        int x = valueToInt( key );
-        int y = valueToInt( &( key[4] ) );
- 
-        if( dbLookTimeGet( x, y ) > 0 ) {
-            // keep
-            // insert it in temp
-            DB_put_new( &tempDB, key, value );
-            }
-        else {
-            // stale
-            // ignore
-            }
-        }
- 
- 
-   
-    AppLog::infoF( "Cleaned %d / %d stale map cells from %s", stale, total,
-                   path );
- 
-    printf( "\n" );
-   
-   
-    DB_close( &tempDB );
-    DB_close( &oldDB );
- 
-    dbTempFile.copy( &dbFile );
-    dbTempFile.remove();
- 
-    delete [] dbTempName;
- 
-    // now open new, shrunk file
-    return DB_open( db,
-                        path,
-                        mode,
-                        hash_table_size,
-                        key_size,
-                        value_size );
-    }
  
  
  
@@ -2387,7 +2187,7 @@ char getIsCategory( int inID ) {
  
 // for large inserts, like tutorial map loads, we don't want to
 // track individual map changes.
-static char skipTrackingMapChanges = false;
+char skipTrackingMapChanges = false;
  
  
  
@@ -3317,8 +3117,7 @@ char initMap() {
         }
  
  
-    skipLookTimeCleanup =
-        SettingsManager::getIntSetting( "skipLookTimeCleanup", 0 );
+    loadDBShrinkSettings();
  
  
     if( skipLookTimeCleanup ) {
@@ -3346,9 +3145,6 @@ char initMap() {
             return false;
             }
    
- 
-        int staleSec =
-            SettingsManager::getIntSetting( "mapCellForgottenSeconds", 0 );
    
         if( lookTimeDBExists && staleSec > 0 ) {
             AppLog::info( "\nCleaning stale look times from map..." );
@@ -3481,291 +3277,8 @@ char initMap() {
    
     lookTimeDBOpen = true;
    
-   
  
- 
-    // note that the various decay ETA slots in map.db
-    // are define but unused, because we store times separately
-    // in mapTime.db
-    error = DB_open_timeShrunk( &db,
-                         "map.db",
-                         KISSDB_OPEN_MODE_RWCREAT,
-                         80000,
-                         16, // four 32-bit ints, xysb
-                             // s is the slot number
-                             // s=0 for base object
-                             // s=1 decay ETA seconds (wall clock time)
-                             // s=2 for count of contained objects
-                             // s=3 first contained object
-                             // s=4 second contained object
-                             // s=... remaining contained objects
-                             // Then decay ETA for each slot, in order,
-                             //   after that.
-                             // s = -1
-                             //  is a special flag slot set to 0 if NONE
-                             //  of the contained items have ETA decay
-                             //  or 1 if some of the contained items might
-                             //  have ETA decay.
-                             //  (this saves us from having to check each
-                             //   one)
-                             // If a contained object id is negative,
-                             // that indicates that it sub-contains
-                             // other objects in its corresponding b slot
-                             //
-                             // b is for indexing sub-container slots
-                             // b=0 is the main object
-                             // b=1 is the first sub-slot, etc.
-                         4 // one int, object ID at x,y in slot (s-3)
-                           // OR contained count if s=2
-                         );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening map KissDB", error );
-        return false;
-        }
-   
-    dbOpen = true;
- 
- 
- 
-    // this DB uses the same slot numbers as the map.db
-    // however, only times are stored here, because they require 8 bytes
-    // so, slot 0 and 2 are never used, for example
-    error = DB_open_timeShrunk( &timeDB,
-                         "mapTime.db",
-                         KISSDB_OPEN_MODE_RWCREAT,
-                         80000,
-                         16, // four 32-bit ints, xysb
-                         // s is the slot number
-                         // s=0 for base object
-                         // s=1 decay ETA seconds (wall clock time)
-                         // s=2 for count of contained objects
-                         // s=3 first contained object
-                         // s=4 second contained object
-                         // s=... remaining contained objects
-                         // Then decay ETA for each slot, in order,
-                         //   after that.
-                             // If a contained object id is negative,
-                             // that indicates that it sub-contains
-                             // other objects in its corresponding b slot
-                             //
-                             // b is for indexing sub-container slots
-                             // b=0 is the main object
-                             // b=1 is the first sub-slot, etc.
-                         8 // one 64-bit double, representing an ETA time
-                           // in whatever binary format and byte order
-                           // "double" on the server platform uses
-                         );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening map time KissDB", error );
-        return false;
-        }
-   
-    timeDBOpen = true;
- 
- 
- 
- 
- 
- 
-    error = DB_open_timeShrunk( &biomeDB,
-                         "biome.db",
-                         KISSDB_OPEN_MODE_RWCREAT,
-                         80000,
-                         8, // two 32-bit ints, xy
-                         12 // three ints,  
-                         // 1: biome number at x,y
-                         // 2: second place biome number at x,y
-                         // 3: second place biome gap as int (float gap
-                         //    multiplied by 1,000,000)
-                         );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening biome KissDB", error );
-        return false;
-        }
-   
-    biomeDBOpen = true;
- 
- 
- 
-    // see if any biomes are listed in DB
-    // if not, we don't even need to check it when generating map
-    DB_Iterator biomeDBi;
-    DB_Iterator_init( &biomeDB, &biomeDBi );
-   
-    unsigned char biomeKey[8];
-    unsigned char biomeValue[12];
-   
- 
-    while( DB_Iterator_next( &biomeDBi, biomeKey, biomeValue ) > 0 ) {
-        int x = valueToInt( biomeKey );
-        int y = valueToInt( &( biomeKey[4] ) );
-       
-        anyBiomesInDB = true;
-       
-        if( x > maxBiomeXLoc ) {
-            maxBiomeXLoc = x;
-            }
-        if( x < minBiomeXLoc ) {
-            minBiomeXLoc = x;
-            }
-        if( y > maxBiomeYLoc ) {
-            maxBiomeYLoc = y;
-            }
-        if( y < minBiomeYLoc ) {
-            minBiomeYLoc = y;
-            }
-        }
-   
-    printf( "Min (x,y) of biome in db = (%d,%d), "
-            "Max (x,y) of biome in db = (%d,%d)\n",
-            minBiomeXLoc, minBiomeYLoc,
-            maxBiomeXLoc, maxBiomeYLoc );
-   
-           
- 
- 
-    error = DB_open_timeShrunk( &floorDB,
-                         "floor.db",
-                         KISSDB_OPEN_MODE_RWCREAT,
-                         80000,
-                         8, // two 32-bit ints, xy
-                         4 // one int, the floor object ID at x,y
-                         );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening floor KissDB", error );
-        return false;
-        }
-   
-    floorDBOpen = true;
- 
- 
- 
-    error = DB_open_timeShrunk( &floorTimeDB,
-                         "floorTime.db",
-                         KISSDB_OPEN_MODE_RWCREAT,
-                         80000,
-                         8, // two 32-bit ints, xy
-                         8 // one 64-bit double, representing an ETA time
-                           // in whatever binary format and byte order
-                           // "double" on the server platform uses
-                         );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening floor time KissDB", error );
-        return false;
-        }
-   
-    floorTimeDBOpen = true;
- 
- 
- 
-    // ALWAYS delete old grave DB at each server startup
-    // grave info is only player ID, and server only remembers players
-    // live, in RAM, while it is still running
-    deleteFileByName( "grave.db" );
- 
- 
-    error = DB_open( &graveDB,
-                     "grave.db",
-                     KISSDB_OPEN_MODE_RWCREAT,
-                     80000,
-                     8, // two 32-bit ints, xy
-                     4 // one int, the grave player ID at x,y
-                     );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening grave KissDB", error );
-        return false;
-        }
-   
-    graveDBOpen = true;
- 
- 
- 
- 
- 
-    error = DB_open( &eveDB,
-                         "eve.db",
-                         KISSDB_OPEN_MODE_RWCREAT,
-                         // this can be a lot smaller than other DBs
-                         // it's not performance-critical, and the keys are
-                         // much longer, so stackdb will waste disk space
-                         5000,
-                         50, // first 50 characters of email address
-                             // append spaces to the end if needed
-                         12 // three ints,  x_center, y_center, radius
-                         );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening eve KissDB", error );
-        return false;
-        }
-   
-    eveDBOpen = true;
- 
- 
- 
- 
-    error = DB_open( &metaDB,
-                     "meta.db",
-                     KISSDB_OPEN_MODE_RWCREAT,
-                     // starting size doesn't matter here
-                     500,
-                     4, // one 32-bit int as key
-                     // data
-                     MAP_METADATA_LENGTH
-                     );
-   
-    if( error ) {
-        AppLog::errorF( "Error %d opening meta KissDB", error );
-        return false;
-        }
-   
-    metaDBOpen = true;
- 
-    DB_Iterator metaIterator;
-   
-    DB_Iterator_init( &metaDB, &metaIterator );
- 
-    unsigned char metaKey[4];
-   
-    unsigned char metaValue[MAP_METADATA_LENGTH];
- 
-    int maxMetaID = 0;
-    int numMetaRecords = 0;
-   
-    while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
-        numMetaRecords++;
-       
-        int metaID = valueToInt( metaKey );
- 
-        if( metaID > maxMetaID ) {
-            maxMetaID = metaID;
-            }
-        }
-   
-    AppLog::infoF(
-        "MetadataDB:  Found %d records with max MetadataID of %d",
-        numMetaRecords, maxMetaID );
-   
-    setLastMetadataID( maxMetaID );
-   
- 
- 
-   
- 
- 
-    if( lookTimeDBEmpty && cellsLookedAtToInit > 0 ) {
-        printf( "Since lookTime db was empty, we initialized look times "
-                "for %d cells to now.\n\n", cellsLookedAtToInit );
-        }
- 
-   
- 
+
     int numObjects;
     ObjectRecord **allObjects = getAllObjects( &numObjects );
    
@@ -3948,6 +3461,294 @@ char initMap() {
    
     skipRemovedObjectCleanup =
         SettingsManager::getIntSetting( "skipRemovedObjectCleanup", 0 );
+
+ 
+ 
+ 
+    // note that the various decay ETA slots in map.db
+    // are define but unused, because we store times separately
+    // in mapTime.db
+    error = DB_open_modeSwitch( &db,
+                         "map.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         16, // four 32-bit ints, xysb
+                             // s is the slot number
+                             // s=0 for base object
+                             // s=1 decay ETA seconds (wall clock time)
+                             // s=2 for count of contained objects
+                             // s=3 first contained object
+                             // s=4 second contained object
+                             // s=... remaining contained objects
+                             // Then decay ETA for each slot, in order,
+                             //   after that.
+                             // s = -1
+                             //  is a special flag slot set to 0 if NONE
+                             //  of the contained items have ETA decay
+                             //  or 1 if some of the contained items might
+                             //  have ETA decay.
+                             //  (this saves us from having to check each
+                             //   one)
+                             // If a contained object id is negative,
+                             // that indicates that it sub-contains
+                             // other objects in its corresponding b slot
+                             //
+                             // b is for indexing sub-container slots
+                             // b=0 is the main object
+                             // b=1 is the first sub-slot, etc.
+                         4 // one int, object ID at x,y in slot (s-3)
+                           // OR contained count if s=2
+                         );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening map KissDB", error );
+        return false;
+        }
+   
+    dbOpen = true;
+ 
+ 
+ 
+    // this DB uses the same slot numbers as the map.db
+    // however, only times are stored here, because they require 8 bytes
+    // so, slot 0 and 2 are never used, for example
+    error = DB_open_modeSwitch( &timeDB,
+                         "mapTime.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         16, // four 32-bit ints, xysb
+                         // s is the slot number
+                         // s=0 for base object
+                         // s=1 decay ETA seconds (wall clock time)
+                         // s=2 for count of contained objects
+                         // s=3 first contained object
+                         // s=4 second contained object
+                         // s=... remaining contained objects
+                         // Then decay ETA for each slot, in order,
+                         //   after that.
+                             // If a contained object id is negative,
+                             // that indicates that it sub-contains
+                             // other objects in its corresponding b slot
+                             //
+                             // b is for indexing sub-container slots
+                             // b=0 is the main object
+                             // b=1 is the first sub-slot, etc.
+                         8 // one 64-bit double, representing an ETA time
+                           // in whatever binary format and byte order
+                           // "double" on the server platform uses
+                         );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening map time KissDB", error );
+        return false;
+        }
+   
+    timeDBOpen = true;
+ 
+ 
+ 
+ 
+ 
+ 
+    error = DB_open_modeSwitch( &biomeDB,
+                         "biome.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         8, // two 32-bit ints, xy
+                         12 // three ints,  
+                         // 1: biome number at x,y
+                         // 2: second place biome number at x,y
+                         // 3: second place biome gap as int (float gap
+                         //    multiplied by 1,000,000)
+                         );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening biome KissDB", error );
+        return false;
+        }
+   
+    biomeDBOpen = true;
+ 
+ 
+ 
+    // see if any biomes are listed in DB
+    // if not, we don't even need to check it when generating map
+    DB_Iterator biomeDBi;
+    DB_Iterator_init( &biomeDB, &biomeDBi );
+   
+    unsigned char biomeKey[8];
+    unsigned char biomeValue[12];
+   
+ 
+    while( DB_Iterator_next( &biomeDBi, biomeKey, biomeValue ) > 0 ) {
+        int x = valueToInt( biomeKey );
+        int y = valueToInt( &( biomeKey[4] ) );
+       
+        anyBiomesInDB = true;
+       
+        if( x > maxBiomeXLoc ) {
+            maxBiomeXLoc = x;
+            }
+        if( x < minBiomeXLoc ) {
+            minBiomeXLoc = x;
+            }
+        if( y > maxBiomeYLoc ) {
+            maxBiomeYLoc = y;
+            }
+        if( y < minBiomeYLoc ) {
+            minBiomeYLoc = y;
+            }
+        }
+   
+    printf( "Min (x,y) of biome in db = (%d,%d), "
+            "Max (x,y) of biome in db = (%d,%d)\n",
+            minBiomeXLoc, minBiomeYLoc,
+            maxBiomeXLoc, maxBiomeYLoc );
+   
+           
+ 
+ 
+    error = DB_open_modeSwitch( &floorDB,
+                         "floor.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         8, // two 32-bit ints, xy
+                         4 // one int, the floor object ID at x,y
+                         );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening floor KissDB", error );
+        return false;
+        }
+   
+    floorDBOpen = true;
+ 
+ 
+ 
+    error = DB_open_modeSwitch( &floorTimeDB,
+                         "floorTime.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         8, // two 32-bit ints, xy
+                         8 // one 64-bit double, representing an ETA time
+                           // in whatever binary format and byte order
+                           // "double" on the server platform uses
+                         );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening floor time KissDB", error );
+        return false;
+        }
+   
+    floorTimeDBOpen = true;
+ 
+ 
+ 
+    // ALWAYS delete old grave DB at each server startup
+    // grave info is only player ID, and server only remembers players
+    // live, in RAM, while it is still running
+    deleteFileByName( "grave.db" );
+ 
+ 
+    error = DB_open( &graveDB,
+                     "grave.db",
+                     KISSDB_OPEN_MODE_RWCREAT,
+                     80000,
+                     8, // two 32-bit ints, xy
+                     4 // one int, the grave player ID at x,y
+                     );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening grave KissDB", error );
+        return false;
+        }
+   
+    graveDBOpen = true;
+ 
+ 
+ 
+ 
+ 
+    error = DB_open( &eveDB,
+                         "eve.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         // this can be a lot smaller than other DBs
+                         // it's not performance-critical, and the keys are
+                         // much longer, so stackdb will waste disk space
+                         5000,
+                         50, // first 50 characters of email address
+                             // append spaces to the end if needed
+                         12 // three ints,  x_center, y_center, radius
+                         );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening eve KissDB", error );
+        return false;
+        }
+   
+    eveDBOpen = true;
+ 
+ 
+ 
+ 
+    error = DB_open( &metaDB,
+                     "meta.db",
+                     KISSDB_OPEN_MODE_RWCREAT,
+                     // starting size doesn't matter here
+                     500,
+                     4, // one 32-bit int as key
+                     // data
+                     MAP_METADATA_LENGTH
+                     );
+   
+    if( error ) {
+        AppLog::errorF( "Error %d opening meta KissDB", error );
+        return false;
+        }
+   
+    metaDBOpen = true;
+ 
+    DB_Iterator metaIterator;
+   
+    DB_Iterator_init( &metaDB, &metaIterator );
+ 
+    unsigned char metaKey[4];
+   
+    unsigned char metaValue[MAP_METADATA_LENGTH];
+ 
+    int maxMetaID = 0;
+    int numMetaRecords = 0;
+   
+    while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
+        numMetaRecords++;
+       
+        int metaID = valueToInt( metaKey );
+ 
+        if( metaID > maxMetaID ) {
+            maxMetaID = metaID;
+            }
+        }
+   
+    AppLog::infoF(
+        "MetadataDB:  Found %d records with max MetadataID of %d",
+        numMetaRecords, maxMetaID );
+   
+    setLastMetadataID( maxMetaID );
+   
+ 
+ 
+   
+ 
+ 
+    if( lookTimeDBEmpty && cellsLookedAtToInit > 0 ) {
+        printf( "Since lookTime db was empty, we initialized look times "
+                "for %d cells to now.\n\n", cellsLookedAtToInit );
+        }
+ 
+   
+ 
+ 
+ 
  
  
  
@@ -4556,6 +4357,32 @@ static int dbGet( int inX, int inY, int inSlot, int inSubCont = 0 ) {
     return returnVal;
     }
  
+ 
+// returns -1 if not found
+int dbGet_noCache( int inX, int inY, int inSlot, int inSubCont = 0 ) {
+ 
+    unsigned char key[16];
+    unsigned char value[4];
+ 
+    // look for changes to default in database
+    intQuadToKey( inX, inY, inSlot, inSubCont, key );
+   
+    int result = DB_get( &db, key, value );
+   
+   
+   
+    int returnVal;
+   
+    if( result == 0 ) {
+        // found
+        returnVal = valueToInt( value );
+        }
+    else {
+        returnVal = -1;
+        }
+   
+    return returnVal;
+    }
  
  
  
