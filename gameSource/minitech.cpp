@@ -82,8 +82,9 @@ const char *biomeNames[] = {"GRASSLANDS",
 							"TUNDRA",
 							"DESERT",
 							"JUNGLE",
-							"OCEAN",
-							"FLOWER FIELDS"
+							"DEEP WATER",
+							"FLOWER FIELDS",
+							"SHALLOW WATER",
                             };
 static int numBiomes = 9;
 

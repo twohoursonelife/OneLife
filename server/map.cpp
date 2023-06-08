@@ -1730,9 +1730,9 @@ void outputMapImage() {
                                  "Snow  ",
                                  "Desert",
                                  "Jungle",
-                                 "Ocean ",
+                                 "DeepWater",
                                  "Flower",
-                                 "ShallowRiver"
+                                 "ShallowWater"
                                  };    
  
     for( int j=0; j<numBiomes; j++ ) {
