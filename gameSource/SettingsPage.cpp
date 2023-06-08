@@ -125,7 +125,8 @@ SettingsPage::SettingsPage()
         mEnableYumFinderBox(0, 48, 4),
         mEnableObjectSearchBox(0, 8, 4),
         mEnableFamilyDisplayBox(0, -32, 4),
-        mEnableDangerousTileBox(0, -72, 4) {
+        mEnableDangerousTileBox(0, -72, 4),
+        mOutputMapBox( 561, 52, 4 ) {
                             
 
     
@@ -134,6 +135,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent( &mOutputMapBox );
+    mOutputMapBox.addActionListener( this );
     addComponent(&mEnableDangerousTileBox);
     mEnableDangerousTileBox.addActionListener(this);
     addComponent(&mEnableFamilyDisplayBox);
@@ -303,6 +306,7 @@ SettingsPage::SettingsPage()
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
     mEnableCenterCameraBox.setCursorTip( "ALWAYS CENTER THE CAMERA VIEW ON YOUR CHARACTER" );
     mEnableNudeBox.setCursorTip( "ENABLE NUDITY" );
+    mOutputMapBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
     
     mUseCustomServerBox.setCursorTip( "CONNECT TO A CUSTOM SERVER" );
     mCustomServerAddressField.setCursorTip( "CUSTOM SERVER ADDRESS" );
@@ -363,6 +367,12 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "nudeEnabled", 1 );
 
     mEnableNudeBox.setToggled( mEnableNudeSetting );
+
+
+    mOldOutputMapSetting = 
+        SettingsManager::getIntSetting( "outputMapOn", 0 );
+
+    mOutputMapBox.setToggled( mOldOutputMapSetting );
     
     mEnableFOVSetting =
         SettingsManager::getIntSetting( "fovEnabled", 0 );
@@ -905,6 +915,11 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("dangerousTileEnabled",
                                     newSetting);
         }
+    else if( inTarget == &mOutputMapBox ) {
+        int newSetting = mOutputMapBox.getToggled();
+        
+        SettingsManager::setSetting( "outputMapOn", newSetting );
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1013,6 +1028,15 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y -= 2;
 
         drawTextWithShadow( "UI SIZE", pos, alignRight );
+        }
+        
+    if( mOutputMapBox.isVisible() ) {
+        doublePair pos = mOutputMapBox.getPosition();
+        
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow( "SAVE MAP FILES", pos, alignRight );
         }
         
     if( mUseCustomServerBox.isVisible() ) {
@@ -1323,6 +1347,7 @@ void SettingsPage::updatePage() {
     mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
     mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
     mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
+    mOutputMapBox.setPosition(0, lineSpacing * -4);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1372,6 +1397,7 @@ void SettingsPage::updatePage() {
     mEnableObjectSearchBox.setVisible(mPage == 5);
     mEnableFamilyDisplayBox.setVisible(mPage == 5);
     mEnableDangerousTileBox.setVisible(mPage == 5);
+    mOutputMapBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
@@ -1390,7 +1416,8 @@ void SettingsPage::checkRestartRequired() {
     if( mOldFullscreenSetting != mFullscreenBox.getToggled() ||
         mOldBorderlessSetting != mBorderlessBox.getToggled() ||
         getCountingOnVsync() != mVsyncBox.getToggled() ||
-        ( mTargetFrameRateField.isVisible() && mTargetFrameRateField.getInt() != targetFramesPerSecond )
+        ( mTargetFrameRateField.isVisible() && mTargetFrameRateField.getInt() != targetFramesPerSecond ) ||
+        mOldOutputMapSetting != mOutputMapBox.getToggled()
         ) {
         setStatusDirect( "RESTART REQUIRED##FOR NEW SETTINGS TO TAKE EFFECT", true );
         // Do not show RESTART button when setting page is accessed mid-game
