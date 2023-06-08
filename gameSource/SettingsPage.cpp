@@ -201,16 +201,16 @@ SettingsPage::SettingsPage()
 
 #ifdef USE_DISCORD
     // Discord
-    addComponent(&mEnableDiscordRichPresence);
-    mEnableDiscordRichPresence.addActionListener(this);
-    addComponent(&mEnableDiscordRichPresenceStatus);
-    mEnableDiscordRichPresenceStatus.addActionListener(this);
-    addComponent(&mEnableDiscordShowAgeInStatus);
-    mEnableDiscordShowAgeInStatus.addActionListener(this);
-    addComponent(&mEnableDiscordRichPresenceDetails);
-    mEnableDiscordRichPresenceDetails.addActionListener(this);
     addComponent(&mDiscordHideFirstNameInDetails);
     mDiscordHideFirstNameInDetails.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresenceDetails);
+    mEnableDiscordRichPresenceDetails.addActionListener(this);
+    addComponent(&mEnableDiscordShowAgeInStatus);
+    mEnableDiscordShowAgeInStatus.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresenceStatus);
+    mEnableDiscordRichPresenceStatus.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresence);
+    mEnableDiscordRichPresence.addActionListener(this);
 #endif // USE_DISCORD
 
     // Not in use
