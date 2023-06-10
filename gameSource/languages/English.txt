@@ -275,6 +275,9 @@ eventuallyHint "(EVENTUALLY)"
 
 timeHint "(TIME PASSING)"
 
+freshHint "(FRESH)"
+fullHint "(FULL)"
+
 
 
 noHint "NO INFORMATION" 
