@@ -72,11 +72,9 @@ static char mouthFrameOutputStarted = false;
 
 // Used in hue shifting objects, animaionts and ground sprites
 // when the character is tripping
-static bool isTrippingEffectOn;
+bool isTrippingEffectOn;
+bool trippingEffectDisabled;
 
-void setAnimationBankTrippingEffect( bool isTripping ) {
-    isTrippingEffectOn = isTripping;
-    }
 
 
 
@@ -2787,7 +2785,7 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
             int spriteID = obj->sprites[i];
 			
 			if( !multiplicative && !workingSpriteFade[i] == 0 ) {
-				if( isTrippingEffectOn ) setTrippingColor( pos.x, pos.y );
+				if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
 				}
 			
             if( drawMouthShapes && spriteID == mouthAnchorID &&

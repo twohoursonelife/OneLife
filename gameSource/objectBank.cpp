@@ -176,13 +176,6 @@ static void rebuildRaceList() {
 static JenkinsRandomSource randSource;
 
 
-// Used in hue shifting objects, animaionts and ground sprites
-// when the character is tripping
-static bool isTrippingEffectOn;
-
-void setObjectBankTrippingEffect( bool isTripping ) {
-    isTrippingEffectOn = isTripping;
-    }
 
 void setTrippingColor( double x, double y ) {
 	
@@ -4060,7 +4053,7 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                 }
 				
 			if( !multiplicative ) {
-				if( isTrippingEffectOn ) setTrippingColor( pos.x, pos.y );
+				if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
 				}
 
             SpriteHandle sh = getSprite( inObject->sprites[i] );

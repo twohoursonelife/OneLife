@@ -39,6 +39,7 @@ class SettingsPage : public GamePage, public ActionListener {
         
         int mOldFullscreenSetting;
         int mOldBorderlessSetting;
+        int mTrippingEffectDisabledSetting;
         int mEnableNudeSetting;
         int mEnableFOVSetting;
         int mEnableKActionsSetting;
@@ -93,6 +94,7 @@ class SettingsPage : public GamePage, public ActionListener {
         TextButton mRedetectButton;
         CheckboxButton mFullscreenBox;
         CheckboxButton mBorderlessBox;
+        CheckboxButton mTrippingEffectDisabledBox;
         
         // Sound
         ValueSlider mMusicLoudnessSlider;
