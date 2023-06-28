@@ -12608,9 +12608,15 @@ int main() {
         SettingsManager::getIntSetting( "port", 5077 );
     
     char *toTrim = SettingsManager::getStringSetting("playerListSecret", "");
-    playerListSecret = trimWhitespace(toTrim);
+    char *trimmed = trimWhitespace(toTrim);
     delete [] toTrim;
-
+    if(strlen(trimmed) > 0) {
+        playerListSecret = trimmed;
+        }
+    else {
+        playerListSecret = NULL;
+        delete[] trimmed;
+        }
     SocketServer *server = new SocketServer(port, 256);
 
     sockPoll.addSocketServer( server );
@@ -13467,14 +13473,15 @@ int main() {
                 if( message != NULL ) {
                     char passedSecret = false;
                     if(!nextConnection->playerListSent) {
-                        if( (playerListSecret == NULL || 0 == strlen( playerListSecret )) && 0 == strcmp( message, "PLAYER_LIST" ) ) {
+                        if( (playerListSecret == NULL) && 0 == strcmp( message, "PLAYER_LIST" ) ) {
                             passedSecret = true;
                             } 
-                        else if( playerListSecret != NULL && 0 != strlen( playerListSecret ) ) {
+                        else if( playerListSecret != NULL ) {
                             char *requestWithSecret = autoSprintf("PLAYER_LIST %s", playerListSecret);
-                            if(0 == strcmp( message, requestWithSecret )) {
+                            if(0 == strcmp( message, requestWithSecret )) { // TODO: this is crackable with timing attacks! (need to find another secure way if we discovered someone abusing this)
                                 passedSecret = true;
                                 }
+                            delete[] requestWithSecret;
                             }
                         }
                     if( !passedSecret && stringStartsWith( message, "PLAYER_LIST" ) ) {
@@ -13811,7 +13818,7 @@ int main() {
                     delete [] message;
                     }
                 else if(nextConnection->playerListSent) {
-                    int timeToClose = playerListSecret != NULL && 0 != strlen( playerListSecret ) ? 10 : 4; // give more time if it is private.
+                    int timeToClose = playerListSecret != NULL ? 10 : 4; // give more time if it is private.
                     if(currentTime - nextConnection->connectionStartTimeSeconds > timeToClose) {
                         HostAddress *a = nextConnection->sock->getRemoteHostAddress();
                         char address[100];

@@ -1,0 +1,1993 @@
+clang-tidy server.cpp map.cpp ../gameSource/transitionBank.cpp ../gameSource/categoryBank.cpp ../gameSource/objectBank.cpp ../gameSource/animationBank.cpp ../gameSource/ageControl.cpp ../gameSource/folderCache.cpp ../gameSource/SoundUsage.cpp ../gameSource/objectMetadata.cpp ../gameSource/GridPos.cpp ../commonSource/fractalNoise.cpp ../commonSource/sayLimit.cpp kissdb.cpp lineardb3.cpp lifeLog.cpp foodLog.cpp backup.cpp triggers.cpp dbCommon.cpp playerStats.cpp lineageLog.cpp failureLog.cpp names.cpp monument.cpp lineageLimit.cpp curses.cpp curseLog.cpp spiral.cpp objectSurvey.cpp language.cpp familySkipList.cpp lifeTokens.cpp fitnessScore.cpp CoordinateTimeTracking.cpp arcReport.cpp curseDB.cpp cravings.cpp  -- -Wall -Wwrite-strings -Wchar-subscripts -Wparentheses -g  -DLINUX  -O0 -I../..
+40 warnings generated.
+65 warnings generated.
+68 warnings generated.
+69 warnings generated.
+81 warnings generated.
+89 warnings generated.
+90 warnings generated.
+92 warnings generated.
+93 warnings generated.
+94 warnings generated.
+94 warnings generated.
+94 warnings generated.
+94 warnings generated.
+94 warnings generated.
+94 warnings generated.
+95 warnings generated.
+97 warnings generated.
+98 warnings generated.
+102 warnings generated.
+102 warnings generated.
+104 warnings generated.
+106 warnings generated.
+108 warnings generated.
+111 warnings generated.
+113 warnings generated.
+116 warnings generated.
+119 warnings generated.
+120 warnings generated.
+120 warnings generated.
+122 warnings generated.
+123 warnings generated.
+126 warnings generated.
+128 warnings generated.
+130 warnings generated.
+132 warnings generated.
+134 warnings generated.
+135 warnings generated.
+137 warnings generated.
+Suppressed 59 warnings (59 in non-user code).
+Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
+../../minorGems/io/file/File.h:1017:26: warning: Use of memory allocated with size zero [clang-analyzer-cplusplus.NewDelete]
+    dataString[ length ] = '\0';
+                         ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2965:9: note: Assuming the condition is false
+    if( inSlotTimeStretch < 0.0001 ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2965:5: note: Taking false branch
+    if( inSlotTimeStretch < 0.0001 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2972:9: note: Assuming 'inSpriteBehindPlayer' is equal to NULL
+    if( inSpriteBehindPlayer != NULL ) {    
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2972:5: note: Taking false branch
+    if( inSpriteBehindPlayer != NULL ) {    
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2982:9: note: Assuming 'inSpriteAdditiveBlend' is equal to NULL
+    if( inSpriteAdditiveBlend != NULL ) {    
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2982:5: note: Taking false branch
+    if( inSpriteAdditiveBlend != NULL ) {    
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2997:9: note: Assuming the condition is false
+    if( newHeight == -1 ) {
+        ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2997:5: note: Taking false branch
+    if( newHeight == -1 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:3005:9: note: Assuming 'inNoWriteToFile' is not equal to 0
+    if( ! inNoWriteToFile && !objectsDir.exists() ) {
+        ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:3005:27: note: Left side of '&&' is false
+    if( ! inNoWriteToFile && !objectsDir.exists() ) {
+                          ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:3012:9: note: Left side of '&&' is true
+    if( objectsDir.exists() && objectsDir.isDirectory() ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:3012:5: note: Taking true branch
+    if( objectsDir.exists() && objectsDir.isDirectory() ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:3017:9: note: Taking true branch
+        if( nextNumberFile->exists() ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:3020:17: note: Calling 'File::readFileContents'
+                nextNumberFile->readFileContents();
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/io/file/File.h:1010:9: note: 'data' is not equal to NULL
+    if( data == NULL ) {
+        ^~~~
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/io/file/File.h:1010:5: note: Taking false branch
+    if( data == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/io/file/File.h:1014:24: note: Memory is allocated
+    char *dataString = new char[ length + 1 ];
+                       ^
+../../minorGems/util/development/memory/debugMemory.h:114:13: note: expanded from macro 'new'
+#define new DEBUG_NEW
+            ^
+../../minorGems/util/development/memory/debugMemory.h:109:19: note: expanded from macro 'DEBUG_NEW'
+#define DEBUG_NEW new
+                  ^
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/io/file/File.h:1017:26: note: Use of memory allocated with size zero
+    dataString[ length ] = '\0';
+                         ^
+../../minorGems/util/random/JenkinsRandomSource.h:82:9: warning: Call to virtual method 'JenkinsRandomSource::genRand32' during construction bypasses virtual dispatch [clang-analyzer-optin.cplusplus.VirtualCall]
+        genRand32();
+        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:3130:5: note: Calling 'reseedMap'
+    reseedMap( false );
+    ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2959:11: note: 'inForceFresh' is 0
+    if( ! inForceFresh ) {
+          ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2959:5: note: Taking true branch
+    if( ! inForceFresh ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2966:9: note: Assuming 'seedFile' is equal to NULL
+    if( seedFile != NULL ) {
+        ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2966:5: note: Taking false branch
+    if( seedFile != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2980:10: note: 'set' is 0
+    if( !set ) {
+         ^~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2980:5: note: Taking true branch
+    if( !set ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2983:14: note: 'inForceFresh' is 0
+        if( !inForceFresh ) {
+             ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:2983:9: note: Taking true branch
+        if( !inForceFresh ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:3024:23: note: Assuming 'i' is >= 'secretALen'
+        for( int i=0; i<secretALen; i++ ) {
+                      ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:3024:9: note: Loop condition is false. Execution continues on line 3032
+        for( int i=0; i<secretALen; i++ ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:3042:29: note: Calling constructor for 'JenkinsRandomSource'
+        JenkinsRandomSource tempRandSourceA( modTimeSeedA );
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/util/random/JenkinsRandomSource.h:71:5: note: Calling 'JenkinsRandomSource::reseed'
+    reseed( inSeed );
+    ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/util/random/JenkinsRandomSource.h:81:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<20; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/util/random/JenkinsRandomSource.h:82:9: note: Call to virtual method 'JenkinsRandomSource::genRand32' during construction bypasses virtual dispatch
+        genRand32();
+        ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:446:24: warning: Potential leak of memory pointed to by 'r' [clang-analyzer-cplusplus.NewDeleteLeaks]
+            for( int j=0; j<numLines; j++ ) {
+                       ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:179:9: note: Assuming 'currentFile' is not equal to field 'numFiles'
+    if( currentFile == cache.numFiles ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:179:5: note: Taking false branch
+    if( currentFile == cache.numFiles ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:188:9: note: Assuming the condition is true
+    if( strstr( txtFileName, ".txt" ) != NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:188:5: note: Taking true branch
+    if( strstr( txtFileName, ".txt" ) != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:193:13: note: Assuming 'animText' is not equal to NULL
+        if( animText != NULL ) {
+            ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:193:9: note: Taking true branch
+        if( animText != NULL ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:194:34: note: Memory is allocated
+            AnimationRecord *r = new AnimationRecord;
+                                 ^
+../../minorGems/util/development/memory/debugMemory.h:114:13: note: expanded from macro 'new'
+#define new DEBUG_NEW
+            ^
+../../minorGems/util/development/memory/debugMemory.h:109:19: note: expanded from macro 'DEBUG_NEW'
+#define DEBUG_NEW new
+                  ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:202:17: note: Assuming 'numLines' is <= 4
+            if( numLines > 4 ) {
+                ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:202:13: note: Taking false branch
+            if( numLines > 4 ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:446:24: note: Potential leak of memory pointed to by 'r'
+            for( int j=0; j<numLines; j++ ) {
+                       ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:2789:27: warning: logical not is only applied to the left hand side of this comparison [clang-diagnostic-logical-not-parentheses]
+                        if( !multiplicative && !workingSpriteFade[i] == 0 ) {
+                                               ^                     ~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:2789:27: note: add parentheses after the '!' to evaluate the comparison first
+                        if( !multiplicative && !workingSpriteFade[i] == 0 ) {
+                                               ^
+                                                (                        )
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/animationBank.cpp:2789:27: note: add parentheses around left hand side expression to silence this warning
+                        if( !multiplicative && !workingSpriteFade[i] == 0 ) {
+                                               ^
+                                               (                    )
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:610:4: warning: Call to function 'strcpy' is insecure as it does not provide bounding of the memory buffer. Replace unbounded copy functions with analogous functions that support length arguments such as 'strlcpy'. CWE-119 [clang-analyzer-security.insecureAPI.strcpy]
+                        strcpy (pwc, pw.c_str());
+                        ^~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:610:4: note: Call to function 'strcpy' is insecure as it does not provide bounding of the memory buffer. Replace unbounded copy functions with analogous functions that support length arguments such as 'strlcpy'. CWE-119
+                        strcpy (pwc, pw.c_str());
+                        ^~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2851:9: warning: Attempt to free released memory [clang-analyzer-cplusplus.NewDelete]
+        delete [] numString;
+        ^~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2779:9: note: Assuming the condition is false
+    if( strcmp( inSearch, "" ) == 0 ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2779:5: note: Taking false branch
+    if( strcmp( inSearch, "" ) == 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2821:14: note: Assuming the condition is true
+    else if( strstr( inSearch, "##" ) != NULL ) {
+             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2821:10: note: Taking true branch
+    else if( strstr( inSearch, "##" ) != NULL ) {
+         ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2826:24: note: Calling 'stringDuplicate'
+        char* search = stringDuplicate( inSearch );
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../minorGems/util/stringUtils.h:100:26: note: Memory is allocated
+    char *returnBuffer = new char[ strlen( inString ) + 1 ];
+                         ^
+../../minorGems/util/development/memory/debugMemory.h:114:13: note: expanded from macro 'new'
+#define new DEBUG_NEW
+            ^
+../../minorGems/util/development/memory/debugMemory.h:109:19: note: expanded from macro 'DEBUG_NEW'
+#define DEBUG_NEW new
+                  ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2826:24: note: Returned allocated memory
+        char* search = stringDuplicate( inSearch );
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2829:13: note: Assuming the condition is false
+        if( idMap[id] != NULL ) {
+            ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2829:9: note: Taking false branch
+        if( idMap[id] != NULL ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2850:9: note: Memory is released
+        delete [] search;
+        ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:2851:9: note: Attempt to free released memory
+        delete [] numString;
+        ^~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4191:32: warning: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x') [clang-analyzer-core.CallAndMessage]
+                centerOffset = rotate( centerOffset, - rotOffset * 2 * M_PI );
+                               ^       ~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4164:9: note: Assuming 'inNumContained' is <= 'numSlots'
+    if( inNumContained > numSlots ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4164:5: note: Taking false branch
+    if( inNumContained > numSlots ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4168:19: note: Assuming 'i' is < 'inNumContained'
+    for( int i=0; i<inNumContained; i++ ) {
+                  ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4168:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<inNumContained; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4175:13: note: Assuming field 'slotStyle' is not equal to 0
+        if( inObject->slotStyle == 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4175:9: note: Taking false branch
+        if( inObject->slotStyle == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4178:18: note: Assuming field 'slotStyle' is not equal to 1
+        else if( inObject->slotStyle == 1 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4178:14: note: Taking false branch
+        else if( inObject->slotStyle == 1 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4181:18: note: Assuming field 'slotStyle' is not equal to 2
+        else if( inObject->slotStyle == 2 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4181:14: note: Taking false branch
+        else if( inObject->slotStyle == 2 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4187:13: note: Assuming the condition is true
+        if( inObject->slotVert[i] ) {
+            ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4187:9: note: Taking true branch
+        if( inObject->slotVert[i] ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4190:17: note: Assuming 'inFlipH' is not equal to 0
+            if( inFlipH ) {
+                ^~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4190:13: note: Taking true branch
+            if( inFlipH ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4191:32: note: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x')
+                centerOffset = rotate( centerOffset, - rotOffset * 2 * M_PI );
+                               ^       ~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4195:32: warning: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x') [clang-analyzer-core.CallAndMessage]
+                centerOffset = rotate( centerOffset, - rotOffset * 2 * M_PI );
+                               ^       ~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4164:9: note: Assuming 'inNumContained' is <= 'numSlots'
+    if( inNumContained > numSlots ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4164:5: note: Taking false branch
+    if( inNumContained > numSlots ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4168:19: note: Assuming 'i' is < 'inNumContained'
+    for( int i=0; i<inNumContained; i++ ) {
+                  ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4168:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<inNumContained; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4175:13: note: Assuming field 'slotStyle' is not equal to 0
+        if( inObject->slotStyle == 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4175:9: note: Taking false branch
+        if( inObject->slotStyle == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4178:18: note: Assuming field 'slotStyle' is not equal to 1
+        else if( inObject->slotStyle == 1 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4178:14: note: Taking false branch
+        else if( inObject->slotStyle == 1 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4181:18: note: Assuming field 'slotStyle' is not equal to 2
+        else if( inObject->slotStyle == 2 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4181:14: note: Taking false branch
+        else if( inObject->slotStyle == 2 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4187:13: note: Assuming the condition is true
+        if( inObject->slotVert[i] ) {
+            ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4187:9: note: Taking true branch
+        if( inObject->slotVert[i] ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4190:17: note: Assuming 'inFlipH' is 0
+            if( inFlipH ) {
+                ^~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4190:13: note: Taking false branch
+            if( inFlipH ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4195:32: note: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x')
+                centerOffset = rotate( centerOffset, - rotOffset * 2 * M_PI );
+                               ^       ~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4201:30: warning: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x') [clang-analyzer-core.CallAndMessage]
+        doublePair slotPos = sub( inObject->slotPos[i], 
+                             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4164:9: note: Assuming 'inNumContained' is <= 'numSlots'
+    if( inNumContained > numSlots ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4164:5: note: Taking false branch
+    if( inNumContained > numSlots ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4168:19: note: Assuming 'i' is < 'inNumContained'
+    for( int i=0; i<inNumContained; i++ ) {
+                  ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4168:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<inNumContained; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4175:13: note: Assuming field 'slotStyle' is not equal to 0
+        if( inObject->slotStyle == 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4175:9: note: Taking false branch
+        if( inObject->slotStyle == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4178:18: note: Assuming field 'slotStyle' is not equal to 1
+        else if( inObject->slotStyle == 1 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4178:14: note: Taking false branch
+        else if( inObject->slotStyle == 1 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4181:18: note: Assuming field 'slotStyle' is not equal to 2
+        else if( inObject->slotStyle == 2 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4181:14: note: Taking false branch
+        else if( inObject->slotStyle == 2 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4187:13: note: Assuming the condition is false
+        if( inObject->slotVert[i] ) {
+            ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4187:9: note: Taking false branch
+        if( inObject->slotVert[i] ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:4201:30: note: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x')
+        doublePair slotPos = sub( inObject->slotPos[i], 
+                             ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5951:24: warning: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x') [clang-analyzer-core.CallAndMessage]
+                equal( sub( superO->spritePos[ ss ],
+                       ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5869:9: note: Assuming 'superO' is not equal to NULL
+    if( superO == NULL || subO == NULL ) {
+        ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5869:9: note: Left side of '||' is false
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5869:27: note: Assuming 'subO' is not equal to NULL
+    if( superO == NULL || subO == NULL ) {
+                          ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5869:5: note: Taking false branch
+    if( superO == NULL || subO == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5873:9: note: Assuming field 'numSprites' is not equal to 0
+    if( subO->numSprites == 0 ) {
+        ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5873:5: note: Taking false branch
+    if( subO->numSprites == 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5876:14: note: Assuming field 'numSprites' is not equal to 1
+    else if( subO->numSprites == 1 &&
+             ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5876:36: note: Left side of '&&' is false
+    else if( subO->numSprites == 1 &&
+                                   ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5911:20: note: Assuming 'ss' is < field 'numSprites'
+    for( int ss=0; ss<superO->numSprites; ss++ ) {
+                   ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5911:5: note: Loop condition is true.  Entering loop body
+    for( int ss=0; ss<superO->numSprites; ss++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5912:13: note: Assuming the condition is true
+        if( superO->sprites[ ss ] == spriteSubZeroID &&
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5912:13: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5913:13: note: Assuming the condition is true
+            superO->spriteRot[ ss ] == spriteSubZeroRot &&
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5912:13: note: Left side of '&&' is true
+        if( superO->sprites[ ss ] == spriteSubZeroID &&
+            ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5914:13: note: Assuming the condition is true
+            superO->spriteHFlip[ ss ] == spriteSubZeroFlip ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5912:9: note: Taking true branch
+        if( superO->sprites[ ss ] == spriteSubZeroID &&
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5921:17: note: Assuming 'd' is >= 'minDist'
+            if( d < minDist ) {
+                ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5921:13: note: Taking false branch
+            if( d < minDist ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5911:20: note: Assuming 'ss' is >= field 'numSprites'
+    for( int ss=0; ss<superO->numSprites; ss++ ) {
+                   ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5911:5: note: Loop condition is false. Execution continues on line 5929
+    for( int ss=0; ss<superO->numSprites; ss++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5929:10: note: 'found' is 1
+    if( !found ) {
+         ^~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5929:5: note: Taking false branch
+    if( !found ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5934:19: note: Assuming 's' is < field 'numSprites'
+    for( int s=0; s<subO->numSprites; s++ ) {
+                  ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5934:5: note: Loop condition is true.  Entering loop body
+    for( int s=0; s<subO->numSprites; s++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5949:9: note: Loop condition is true.  Entering loop body
+        for( int ss=0; ss<superO->numSprites; ss++ ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5950:17: note: Left side of '&&' is true
+            if( superO->sprites[ ss ] == spriteID &&
+                ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/objectBank.cpp:5951:24: note: Passed-by-value struct argument contains uninitialized data (e.g., field: 'x')
+                equal( sub( superO->spritePos[ ss ],
+                       ^
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/transitionBank.cpp:660:9: warning: Value stored to 'numRecords' is never read [clang-analyzer-deadcode.DeadStores]
+        numRecords = records.size();
+        ^            ~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../gameSource/transitionBank.cpp:660:9: note: Value stored to 'numRecords' is never read
+        numRecords = records.size();
+        ^            ~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/CoordinateTimeTracking.cpp:42:29: warning: assigning field to itself [clang-diagnostic-self-assign-field]
+            for( mNextIndex = mNextIndex; 
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/CoordinateTimeTracking.cpp:64:29: warning: assigning field to itself [clang-diagnostic-self-assign-field]
+            for( mNextIndex = mNextIndex; mNextIndex > -1; mNextIndex -- ) {
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/cravings.cpp:253:9: warning: variable 'numPurged' set but not used [clang-diagnostic-unused-but-set-variable]
+    int numPurged = 0;
+        ^
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:287:13: warning: Attempt to free released memory [clang-analyzer-cplusplus.NewDelete]
+            delete [] r->email;
+            ^
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:726:5: note: Calling 'stepCurses'
+    stepCurses();
+    ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:282:19: note: Assuming the condition is true
+    for( int i=0; i<playerNames.size(); i++ ) {
+                  ^~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:282:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<playerNames.size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:285:13: note: Assuming the condition is true
+        if( curTime - playerNameTimeout > r->timeCreated ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:285:9: note: Taking true branch
+        if( curTime - playerNameTimeout > r->timeCreated ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:287:13: note: Memory is released
+            delete [] r->email;
+            ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:282:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<playerNames.size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:285:13: note: Assuming the condition is true
+        if( curTime - playerNameTimeout > r->timeCreated ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:285:9: note: Taking true branch
+        if( curTime - playerNameTimeout > r->timeCreated ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/curses.cpp:287:13: note: Attempt to free released memory
+            delete [] r->email;
+            ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:20:17: warning: Attempt to delete released memory [clang-analyzer-cplusplus.NewDelete]
+    delete inR->skippedLineageList;
+                ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:100:31: note: Calling 'findRecord'
+    FamilySkipListRecord *r = findRecord( inBabyEmail );
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:48:19: note: Assuming the condition is true
+    for( int i=0; i<skipListRecords.size(); i++ ) {
+                  ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:48:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<skipListRecords.size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:13: note: Assuming the condition is false
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:9: note: Taking false branch
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:54:18: note: Assuming the condition is true
+        else if( curTime - r->lastUpdateTime > 7200 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:54:14: note: Taking true branch
+        else if( curTime - r->lastUpdateTime > 7200 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:56:13: note: Calling 'freeRecordMembers'
+            freeRecordMembers( r );
+            ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:20:5: note: Memory is released
+    delete inR->skippedLineageList;
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:56:13: note: Returning; memory was released
+            freeRecordMembers( r );
+            ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:48:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<skipListRecords.size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:13: note: Assuming the condition is false
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:9: note: Taking false branch
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:54:18: note: Assuming the condition is true
+        else if( curTime - r->lastUpdateTime > 7200 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:54:14: note: Taking true branch
+        else if( curTime - r->lastUpdateTime > 7200 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:56:13: note: Calling 'freeRecordMembers'
+            freeRecordMembers( r );
+            ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:20:17: note: Attempt to delete released memory
+    delete inR->skippedLineageList;
+                ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:106:9: warning: Use of memory after it is freed [clang-analyzer-cplusplus.NewDelete]
+    if( r->skippedLineageList->getElementIndex( inLineageEveID ) != -1 ) {
+        ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:100:31: note: Calling 'findRecord'
+    FamilySkipListRecord *r = findRecord( inBabyEmail );
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:48:19: note: Assuming the condition is true
+    for( int i=0; i<skipListRecords.size(); i++ ) {
+                  ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:48:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<skipListRecords.size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:13: note: Assuming the condition is false
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:9: note: Taking false branch
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:54:18: note: Assuming the condition is true
+        else if( curTime - r->lastUpdateTime > 7200 ) {
+                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:54:14: note: Taking true branch
+        else if( curTime - r->lastUpdateTime > 7200 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:56:13: note: Calling 'freeRecordMembers'
+            freeRecordMembers( r );
+            ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:20:5: note: Memory is released
+    delete inR->skippedLineageList;
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:56:13: note: Returning; memory was released
+            freeRecordMembers( r );
+            ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:48:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<skipListRecords.size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:51:9: note: Taking true branch
+        if( strcmp( r->babyEmail, inBabyEmail ) == 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:100:31: note: Returning; memory was released
+    FamilySkipListRecord *r = findRecord( inBabyEmail );
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:102:9: note: 'r' is not equal to NULL
+    if( r == NULL ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:102:5: note: Taking false branch
+    if( r == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/familySkipList.cpp:106:9: note: Use of memory after it is freed
+    if( r->skippedLineageList->getElementIndex( inLineageEveID ) != -1 ) {
+        ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:147:23: warning: Attempt to delete released memory [clang-analyzer-cplusplus.NewDelete]
+            delete e->times;
+                      ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:9: note: Assuming 'inMurdered' is 0
+    if( inMurdered || inCommittedMurderOrSID ) {
+        ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:9: note: Left side of '||' is false
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:23: note: Assuming 'inCommittedMurderOrSID' is 0
+    if( inMurdered || inCommittedMurderOrSID ) {
+                      ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:5: note: Taking false branch
+    if( inMurdered || inCommittedMurderOrSID ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:249:9: note: 'inMurdered' is 0
+    if( inMurdered ) {
+        ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:249:5: note: Taking false branch
+    if( inMurdered ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:257:25: note: Calling 'lookup'
+    HashTableEntry *e = lookup( inPlayerEmail );
+                        ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:141:19: note: Assuming the condition is true
+    for( int i=0; i<bin->size(); i++ ) {
+                  ^~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:141:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<bin->size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:13: note: Assuming 'staleTime' is > field 'freshestTime'
+        if( e->freshestTime < staleTime ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:9: note: Taking true branch
+        if( e->freshestTime < staleTime ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:147:13: note: Memory is released
+            delete e->times;
+            ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:141:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<bin->size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:13: note: Assuming 'staleTime' is > field 'freshestTime'
+        if( e->freshestTime < staleTime ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:9: note: Taking true branch
+        if( e->freshestTime < staleTime ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:147:23: note: Attempt to delete released memory
+            delete e->times;
+                      ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:270:21: warning: Use of memory after it is freed [clang-analyzer-cplusplus.NewDelete]
+    for( int i=0; i<e->times->size(); i++ ) {
+                    ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:9: note: Assuming 'inMurdered' is 0
+    if( inMurdered || inCommittedMurderOrSID ) {
+        ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:9: note: Left side of '||' is false
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:23: note: Assuming 'inCommittedMurderOrSID' is 0
+    if( inMurdered || inCommittedMurderOrSID ) {
+                      ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:243:5: note: Taking false branch
+    if( inMurdered || inCommittedMurderOrSID ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:249:9: note: 'inMurdered' is 0
+    if( inMurdered ) {
+        ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:249:5: note: Taking false branch
+    if( inMurdered ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:257:25: note: Calling 'lookup'
+    HashTableEntry *e = lookup( inPlayerEmail );
+                        ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:141:19: note: Assuming the condition is true
+    for( int i=0; i<bin->size(); i++ ) {
+                  ^~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:141:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<bin->size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:13: note: Assuming 'staleTime' is > field 'freshestTime'
+        if( e->freshestTime < staleTime ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:9: note: Taking true branch
+        if( e->freshestTime < staleTime ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:147:13: note: Memory is released
+            delete e->times;
+            ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:141:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<bin->size(); i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:13: note: Assuming 'staleTime' is <= field 'freshestTime'
+        if( e->freshestTime < staleTime ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:144:9: note: Taking false branch
+        if( e->freshestTime < staleTime ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:151:14: note: Taking true branch
+        else if( strcmp( e->email, inPlayerEmail ) == 0 ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:257:25: note: Returning; memory was released
+    HashTableEntry *e = lookup( inPlayerEmail );
+                        ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:259:9: note: 'e' is not equal to NULL
+    if( e == NULL ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:259:5: note: Taking false branch
+    if( e == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/lineageLimit.cpp:270:21: note: Use of memory after it is freed
+    for( int i=0; i<e->times->size(); i++ ) {
+                    ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:852:5: warning: Value stored to 'pickedBiome' is never read [clang-analyzer-deadcode.DeadStores]
+    pickedBiome = -1;
+    ^             ~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:852:5: note: Value stored to 'pickedBiome' is never read
+    pickedBiome = -1;
+    ^             ~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:1059:12: warning: unused function 'computeMapBiomeIndexOld' [clang-diagnostic-unused-function]
+static int computeMapBiomeIndexOld( int inX, int inY,
+           ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:1568:5: warning: non-void function does not return a value in all control paths [clang-diagnostic-return-type]
+    }
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5168:9: warning: Value stored to 'movingObjID' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+    int movingObjID = newID;
+        ^~~~~~~~~~~   ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5168:9: note: Value stored to 'movingObjID' during its initialization is never read
+    int movingObjID = newID;
+        ^~~~~~~~~~~   ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5814:39: warning: Potential leak of memory pointed to by 'contEta' [clang-analyzer-cplusplus.NewDeleteLeaks]
+                    double moveDist = sqrt( (newX - inX) * (newX - inX) +
+                                      ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5153:9: note: Assuming 'inID' is not equal to 0
+    if( inID == 0 ) {
+        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5153:5: note: Taking false branch
+    if( inID == 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5159:9: note: Assuming 't' is not equal to NULL
+    if( t == NULL ) {
+        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5159:5: note: Taking false branch
+    if( t == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5179:9: note: Assuming 'mapETA' is not equal to 0
+    if( mapETA != 0 ) {
+        ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5179:5: note: Taking true branch
+    if( mapETA != 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5181:13: note: Assuming the condition is true
+        if( (int)mapETA <= MAP_TIMESEC ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5181:9: note: Taking true branch
+        if( (int)mapETA <= MAP_TIMESEC ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5193:17: note: Assuming 'newSlots' is >= 'oldSlots'
+            if( newSlots < oldSlots ) {
+                ^~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5193:13: note: Taking false branch
+            if( newSlots < oldSlots ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5196:17: note: Assuming 'newSlots' is <= 0
+            if( newSlots > 0 ) {    
+                ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5196:13: note: Taking false branch
+            if( newSlots > 0 ) {    
+            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5202:17: note: Assuming field 'move' is not equal to 0
+            if( t->move != 0 ) {
+                ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5202:13: note: Taking true branch
+            if( t->move != 0 ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5214:21: note: Assuming field 'newTarget' is <= 0
+                if( t->newTarget > 0 &&
+                    ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5214:38: note: Left side of '&&' is false
+                if( t->newTarget > 0 &&
+                                     ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5221:21: note: Assuming field 'move' is >= 3
+                if( t->move < 3 ) {
+                    ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5221:17: note: Taking false branch
+                if( t->move < 3 ) {
+                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5261:26: note: Assuming field 'move' is <= 3
+                else if( t->move > 3 && t->move < 8 ) {
+                         ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5261:38: note: Left side of '&&' is false
+                else if( t->move > 3 && t->move < 8 ) {
+                                     ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5303:29: note: Field 'move' is not equal to 8
+                else if( t->move == 8 ) {
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5303:22: note: Taking false branch
+                else if( t->move == 8 ) {
+                     ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5398:21: note: Assuming field 'x' is not equal to 0
+                if( dir.x == 0 && dir.y == 0 ) {
+                    ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5398:32: note: Left side of '&&' is false
+                if( dir.x == 0 && dir.y == 0 ) {
+                               ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5434:21: note: Assuming field 'x' is equal to 0
+                if( dir.x != 0 && dir.y != 0 ) {
+                    ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5434:32: note: Left side of '&&' is false
+                if( dir.x != 0 && dir.y != 0 ) {
+                               ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5459:21: note: Assuming 'tryDist' is >= 1
+                if( tryDist < 1 ) {
+                    ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5459:17: note: Taking false branch
+                if( tryDist < 1 ) {
+                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5465:24: note: Field 'move' is <= 3
+                if( t->move > 3 && tryDist == 1 ) {
+                       ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5465:33: note: Left side of '&&' is false
+                if( t->move > 3 && tryDist == 1 ) {
+                                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:24: note: 'newX' is equal to 'inX'
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                       ^~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:24: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:39: note: 'newY' is equal to 'inY'
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                                      ^~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:24: note: Left side of '&&' is true
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                       ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:54: note: 'tryDist' is > 0
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                                                     ^~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:17: note: Loop condition is true.  Entering loop body
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5478:35: note: Assuming the condition is true
+                    for( int i=1; i<=tryDist + tryRadius; i++ ) {
+                                  ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5478:21: note: Loop condition is true.  Entering loop body
+                    for( int i=1; i<=tryDist + tryRadius; i++ ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5488:29: note: Assuming 'oID' is <= 0
+                        if( oID > 0 ) {
+                            ^~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5488:25: note: Taking false branch
+                        if( oID > 0 ) {
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5497:34: note: Assuming 'oID' is equal to 0
+                        else if( oID == 0 ) {
+                                 ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5497:30: note: Taking true branch
+                        else if( oID == 0 ) {
+                             ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5501:33: note: Assuming 'trans' is not equal to NULL
+                            if( trans == NULL ) {
+                                ^~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5501:29: note: Taking false branch
+                            if( trans == NULL ) {
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5511:29: note: 'oID' is equal to 0
+                        if( oID == 0 &&
+                            ^~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5511:29: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5512:29: note: 'avoidFloor' is 0
+                            avoidFloor ) {
+                            ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5511:25: note: Taking false branch
+                        if( oID == 0 &&
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5521:29: note: Assuming 'i' is >= 'tryDist'
+                        if( i >= tryDist && oID == 0 ) {
+                            ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5521:29: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5521:45: note: 'oID' is equal to 0
+                        if( i >= tryDist && oID == 0 ) {
+                                            ^~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5521:25: note: Taking true branch
+                        if( i >= tryDist && oID == 0 ) {
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5522:35: note: 'blockedByFloor' is 0
+                            if( ! blockedByFloor ) {
+                                  ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5522:29: note: Taking true branch
+                            if( ! blockedByFloor ) {
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5528:33: note:  Execution continues on line 5545
+                                break;
+                                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5547:25: note: 'tryRadius' is not equal to 0
+                    if( tryRadius != 0 ) {
+                        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5547:21: note: Taking true branch
+                    if( tryRadius != 0 ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:24: note: Assuming 'newX' is not equal to 'inX'
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                       ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5473:36: note: Left side of '&&' is false
+                while( newX == inX && newY == inY && tryDist > 0 ) {
+                                   ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5556:21: note: 'stayInBiome' is 0
+                if( stayInBiome ) {
+                    ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5556:17: note: Taking false branch
+                if( stayInBiome ) {
+                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5577:21: note: 'destTrans' is not equal to NULL
+                if( destTrans != NULL ) {
+                    ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5577:17: note: Taking true branch
+                if( destTrans != NULL ) {
+                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5583:35: note: Assuming 'i' is >= 'numMoving'
+                    for( int i=0; i<numMoving; i++ ) {
+                                  ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5583:21: note: Loop condition is false. Execution continues on line 5597
+                    for( int i=0; i<numMoving; i++ ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5597:21: note: 'newX' is not equal to 'inX'
+                if( newX == inX && newY == inY &&
+                    ^~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5597:33: note: Left side of '&&' is false
+                if( newX == inX && newY == inY &&
+                                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5693:21: note: 'newX' is not equal to 'inX'
+                if( newX != inX || newY != inY ) {
+                    ^~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5693:33: note: Left side of '||' is true
+                if( newX != inX || newY != inY ) {
+                                ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5701:25: note: 'destTrans' is not equal to NULL
+                    if( destTrans != NULL ) {
+                        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5701:21: note: Taking true branch
+                    if( destTrans != NULL ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5712:25: note: 'destTrans' is not equal to NULL
+                    if( destTrans == NULL || destTrans->newActor == 0 ) {
+                        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5712:25: note: Left side of '||' is false
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5712:46: note: Assuming field 'newActor' is not equal to 0
+                    if( destTrans == NULL || destTrans->newActor == 0 ) {
+                                             ^~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5712:21: note: Taking false branch
+                    if( destTrans == NULL || destTrans->newActor == 0 ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5732:25: note: 'destTrans' is not equal to NULL
+                    if( destTrans != NULL ) {
+                        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5732:21: note: Taking true branch
+                    if( destTrans != NULL ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5746:29: note: Assuming 'leftDecayT' is equal to NULL
+                        if( leftDecayT != NULL ) {
+                            ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5746:25: note: Taking false branch
+                        if( leftDecayT != NULL ) {
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5780:25: note: Calling 'getContainedEtaDecay'
+                        getContainedEtaDecay( inX, inY, &numCont );
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5079:9: note: Assuming 'num' is not equal to 0
+    if( num == 0 ) {
+        ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5079:5: note: Taking false branch
+    if( num == 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5083:31: note: Memory is allocated
+    timeSec_t *containedEta = new timeSec_t[ num ];
+                              ^
+../../minorGems/util/development/memory/debugMemory.h:114:13: note: expanded from macro 'new'
+#define new DEBUG_NEW
+            ^
+../../minorGems/util/development/memory/debugMemory.h:109:19: note: expanded from macro 'DEBUG_NEW'
+#define DEBUG_NEW new
+                  ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5085:19: note: Assuming 'i' is >= 'num'
+    for( int i=0; i<num; i++ ) {
+                  ^~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5085:5: note: Loop condition is false. Execution continues on line 5092
+    for( int i=0; i<num; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5780:25: note: Returned allocated memory
+                        getContainedEtaDecay( inX, inY, &numCont );
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5782:25: note: 'numCont' is <= 0
+                    if( numCont > 0 ) {
+                        ^~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5782:21: note: Taking false branch
+                    if( numCont > 0 ) {
+                    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5814:39: note: Potential leak of memory pointed to by 'contEta'
+                    double moveDist = sqrt( (newX - inX) * (newX - inX) +
+                                      ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5921:26: warning: Value stored to 'cont' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                    int *cont = getContained( inX, inY, &numContained );
+                         ^~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5921:26: note: Value stored to 'cont' during its initialization is never read
+                    int *cont = getContained( inX, inY, &numContained );
+                         ^~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5921:26: warning: unused variable 'cont' [clang-diagnostic-unused-variable]
+                    int *cont = getContained( inX, inY, &numContained );
+                         ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5936:43: warning: Value stored to 'containedObj' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                            ObjectRecord *containedObj = getObject( contained );
+                                          ^~~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5936:43: note: Value stored to 'containedObj' during its initialization is never read
+                            ObjectRecord *containedObj = getObject( contained );
+                                          ^~~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5936:43: warning: unused variable 'containedObj' [clang-diagnostic-unused-variable]
+                            ObjectRecord *containedObj = getObject( contained );
+                                          ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5938:42: warning: Value stored to 'contTrans' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                            TransRecord *contTrans = getPTrans( newID, contained );
+                                         ^~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5938:42: note: Value stored to 'contTrans' during its initialization is never read
+                            TransRecord *contTrans = getPTrans( newID, contained );
+                                         ^~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:5938:42: warning: unused variable 'contTrans' [clang-diagnostic-unused-variable]
+                            TransRecord *contTrans = getPTrans( newID, contained );
+                                         ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6178:25: warning: Value stored to 'containedID' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                    int containedID = newID;
+                        ^~~~~~~~~~~   ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6178:25: note: Value stored to 'containedID' during its initialization is never read
+                    int containedID = newID;
+                        ^~~~~~~~~~~   ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6178:25: warning: unused variable 'containedID' [clang-diagnostic-unused-variable]
+                    int containedID = newID;
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6205:29: warning: Value stored to 'newNumSlots' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                        int newNumSlots = getNumContainerSlots( contTrans->newTarget );
+                            ^~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6205:29: note: Value stored to 'newNumSlots' during its initialization is never read
+                        int newNumSlots = getNumContainerSlots( contTrans->newTarget );
+                            ^~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6205:29: warning: unused variable 'newNumSlots' [clang-diagnostic-unused-variable]
+                        int newNumSlots = getNumContainerSlots( contTrans->newTarget );
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6270:29: warning: Value stored to 'newNumSlots' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                        int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                            ^~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6270:29: note: Value stored to 'newNumSlots' during its initialization is never read
+                        int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                            ^~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:6270:29: warning: unused variable 'newNumSlots' [clang-diagnostic-unused-variable]
+                        int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7455:17: warning: Value stored to 'pID' is never read [clang-analyzer-deadcode.DeadStores]
+                pID = -pID;
+                ^     ~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7455:17: note: Value stored to 'pID' is never read
+                pID = -pID;
+                ^     ~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7760:20: warning: Use of memory allocated with size zero [clang-analyzer-cplusplus.NewDelete]
+                   inContainedEtaDecay[i], inSubCont );
+                   ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7805:9: note: Assuming 'num' is not equal to 0
+    if( num == 0 ) {
+        ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7805:5: note: Taking false branch
+    if( num == 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7809:9: note: Assuming the condition is false
+    if( inSlot == -1 || inSlot > num - 1 ) {
+        ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7809:9: note: Left side of '||' is false
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7809:25: note: Assuming the condition is false
+    if( inSlot == -1 || inSlot > num - 1 ) {
+                        ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7809:5: note: Taking false branch
+    if( inSlot == -1 || inSlot > num - 1 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7823:9: note: Assuming 'resultEta' is equal to 0
+    if( resultEta != 0 ) {    
+        ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7823:5: note: Taking false branch
+    if( resultEta != 0 ) {    
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7847:19: note: 'i' is >= 'oldNum'
+    for( int i=0; i<oldNum; i++ ) {
+                  ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7847:5: note: Loop condition is false. Execution continues on line 7864
+    for( int i=0; i<oldNum; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7867:34: note: Calling 'SimpleVector::getElementArray'
+    timeSec_t *newContainedETA = newContainedETAList.getElementArray();
+                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../../minorGems/util/SimpleVector.h:685:22: note: Memory is allocated
+    Type *newAlloc = new Type[ numFilledElements ];
+                     ^
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/util/development/memory/debugMemory.h:114:13: note: expanded from macro 'new'
+#define new DEBUG_NEW
+            ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/../../minorGems/util/development/memory/debugMemory.h:109:19: note: expanded from macro 'DEBUG_NEW'
+#define DEBUG_NEW new
+                  ^~~
+../../minorGems/util/SimpleVector.h:697:5: note: Loop condition is false. Execution continues on line 701
+    for( int i=0; i<numFilledElements; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7867:34: note: Returned allocated memory
+    timeSec_t *newContainedETA = newContainedETAList.getElementArray();
+                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7872:5: note: Calling 'setContainedEtaDecay'
+    setContainedEtaDecay( inX, inY, newNum, newContainedETA, inSubCont );
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7756:19: note: Assuming 'i' is < 'inNumContained'
+    for( int i=0; i<inNumContained; i++ ) {
+                  ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7756:5: note: Loop condition is true.  Entering loop body
+    for( int i=0; i<inNumContained; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:7760:20: note: Use of memory allocated with size zero
+                   inContainedEtaDecay[i], inSubCont );
+                   ^
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:8560:9: warning: Value stored to 'currentEveRadius' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+    int currentEveRadius = eveRadius;
+        ^~~~~~~~~~~~~~~~   ~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/map.cpp:8560:9: note: Value stored to 'currentEveRadius' during its initialization is never read
+    int currentEveRadius = eveRadius;
+        ^~~~~~~~~~~~~~~~   ~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:337:5: warning: Undefined or garbage value returned to caller [clang-analyzer-core.uninitialized.UndefReturn]
+    return i;
+    ^      ~
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:334:5: note: 'i' declared without an initial value
+    int i;
+    ^~~~~
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:335:5: note: Calling 'findCloseName'
+    findCloseName( inLastName, lastNames, lastNamesLen, &i );
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:140:9: note: Assuming 'inNameList' is equal to NULL
+    if( inNameList == NULL ) {
+        ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:140:5: note: Taking true branch
+    if( inNameList == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:141:9: note: Returning without writing to '*outIndex'
+        return defaultName;
+        ^
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:335:5: note: Returning from 'findCloseName'
+    findCloseName( inLastName, lastNames, lastNamesLen, &i );
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/names.cpp:337:5: note: Undefined or garbage value returned to caller
+    return i;
+    ^      ~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:451:16: warning: Excessive padding in 'struct LiveObject' (143 padding bytes, where 7 is optimal). 
+Optimal fields order: 
+email, 
+origEmail, 
+name, 
+displayedName, 
+familyName, 
+lastSay, 
+saidPassword, 
+assignedPassword, 
+lineage, 
+ancestorIDs, 
+ancestorEmails, 
+ancestorRelNames, 
+ancestorLifeStartTimeSeconds, 
+ancestorLifeEndTimeSeconds, 
+lifeStartTimeSeconds, 
+deathTimeSeconds, 
+trueStartTimeSeconds, 
+lastSayTimeSeconds, 
+lastFlipTime, 
+pathToDest, 
+moveTotalSeconds, 
+moveStartTime, 
+holdingEtaDecay, 
+containedIDs, 
+containedEtaDecays, 
+subContainedIDs, 
+subContainedEtaDecays, 
+embeddedWeaponEtaDecay, 
+murderPerpEmail, 
+sock, 
+sockBuffer, 
+dyingETA, 
+emotUnfreezeETA, 
+errorCauseString, 
+deathReason, 
+deleteSentDoneETA, 
+lastHeatUpdate, 
+foodCapModifier, 
+drunkenness, 
+drunkennessEffectETA, 
+trippingEffectStartTime, 
+trippingEffectETA, 
+fever, 
+foodDecrementETASeconds, 
+babyBirthTimes, 
+babyIDs, 
+lastBabyEmail, 
+birthCoolDown, 
+lastRegionLookTime, 
+playerCrossingCheckTime, 
+lastSidsBabyEmail, 
+lastWrittenObjectScanTime, 
+lastActionTime, 
+yummyFoodChain, 
+ownedPositions, 
+knownOwnedPositions, 
+readPositions, 
+readPositionsETA, 
+permanentEmots, 
+clothing, 
+clothingEtaDecay, 
+tutorialLoad, 
+clothingContained, 
+clothingContainedEtaDecays, 
+id, 
+fitnessScore, 
+displayID, 
+curseTokenCount, 
+parentID, 
+parentChainLength, 
+lineageEveID, 
+heldByOtherID, 
+responsiblePlayerID, 
+xs, 
+ys, 
+xd, 
+yd, 
+lastMoveSequenceNumber, 
+facingLeft, 
+pathLength, 
+lastSentMapX, 
+lastSentMapY, 
+facingOverride, 
+actionAttempt, 
+holdingID, 
+heldOriginX, 
+heldOriginY, 
+heldGraveOriginX, 
+heldGraveOriginY, 
+heldGravePlayerID, 
+heldTransitionSourceID, 
+numContained, 
+embeddedWeaponID, 
+murderSourceID, 
+murderPerpID, 
+deathSourceID, 
+emotFrozenIndex, 
+customGraveID, 
+envHeat, 
+bodyHeat, 
+biomeHeat, 
+lastBiomeHeat, 
+heat, 
+foodStore, 
+lastAteID, 
+lastAteFillMax, 
+justAteID, 
+yummyBonusStore, 
+lastMonumentID, 
+vogJumpIndex, 
+cravingFoodYumIncrement, 
+curseStatus, 
+birthPos, 
+originalBirthPos, 
+actionTarget, 
+lastMonumentPos, 
+preVogPos, 
+preVogBirthPos, 
+lastWrittenObjectScanPos, 
+cravingFood, 
+heatMap, 
+nameHasSuffix, 
+curseTokenUpdate, 
+isEve, 
+isTutorial, 
+heldByOther, 
+everHeldByParent, 
+posForced, 
+waitingForForceResponse, 
+pathTruncated, 
+firstMapSent, 
+heldOriginValid, 
+holdingWound, 
+everKilledAnyone, 
+suicide, 
+gotPartOfThisFrame, 
+isNew, 
+isNewCursed, 
+firstMessageSent, 
+inFlight, 
+dying, 
+emotFrozen, 
+starving, 
+connected, 
+error, 
+deleteSent, 
+deathLogged, 
+newMove, 
+heatUpdate, 
+isIndoors, 
+drunkennessEffect, 
+tripping, 
+gonnaBeTripping, 
+foodUpdate, 
+justAte, 
+needsUpdate, 
+updateSent, 
+updateGlobal, 
+declaredInfertile, 
+monumentPosSet, 
+monumentPosSent, 
+holdingFlightObject, 
+vogMode, 
+postVogMode, 
+isAFK, 
+cravingKnown, 
+consider reordering the fields or adding explicit padding members [clang-analyzer-optin.performance.Padding]
+typedef struct LiveObject {
+        ~~~~~~~^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:451:16: note: Excessive padding in 'struct LiveObject' (143 padding bytes, where 7 is optimal). Optimal fields order: email, origEmail, name, displayedName, familyName, lastSay, saidPassword, assignedPassword, lineage, ancestorIDs, ancestorEmails, ancestorRelNames, ancestorLifeStartTimeSeconds, ancestorLifeEndTimeSeconds, lifeStartTimeSeconds, deathTimeSeconds, trueStartTimeSeconds, lastSayTimeSeconds, lastFlipTime, pathToDest, moveTotalSeconds, moveStartTime, holdingEtaDecay, containedIDs, containedEtaDecays, subContainedIDs, subContainedEtaDecays, embeddedWeaponEtaDecay, murderPerpEmail, sock, sockBuffer, dyingETA, emotUnfreezeETA, errorCauseString, deathReason, deleteSentDoneETA, lastHeatUpdate, foodCapModifier, drunkenness, drunkennessEffectETA, trippingEffectStartTime, trippingEffectETA, fever, foodDecrementETASeconds, babyBirthTimes, babyIDs, lastBabyEmail, birthCoolDown, lastRegionLookTime, playerCrossingCheckTime, lastSidsBabyEmail, lastWrittenObjectScanTime, lastActionTime, yummyFoodChain, ownedPositions, knownOwnedPositions, readPositions, readPositionsETA, permanentEmots, clothing, clothingEtaDecay, tutorialLoad, clothingContained, clothingContainedEtaDecays, id, fitnessScore, displayID, curseTokenCount, parentID, parentChainLength, lineageEveID, heldByOtherID, responsiblePlayerID, xs, ys, xd, yd, lastMoveSequenceNumber, facingLeft, pathLength, lastSentMapX, lastSentMapY, facingOverride, actionAttempt, holdingID, heldOriginX, heldOriginY, heldGraveOriginX, heldGraveOriginY, heldGravePlayerID, heldTransitionSourceID, numContained, embeddedWeaponID, murderSourceID, murderPerpID, deathSourceID, emotFrozenIndex, customGraveID, envHeat, bodyHeat, biomeHeat, lastBiomeHeat, heat, foodStore, lastAteID, lastAteFillMax, justAteID, yummyBonusStore, lastMonumentID, vogJumpIndex, cravingFoodYumIncrement, curseStatus, birthPos, originalBirthPos, actionTarget, lastMonumentPos, preVogPos, preVogBirthPos, lastWrittenObjectScanPos, cravingFood, heatMap, nameHasSuffix, curseTokenUpdate, isEve, isTutorial, heldByOther, everHeldByParent, posForced, waitingForForceResponse, pathTruncated, firstMapSent, heldOriginValid, holdingWound, everKilledAnyone, suicide, gotPartOfThisFrame, isNew, isNewCursed, firstMessageSent, inFlight, dying, emotFrozen, starving, connected, error, deleteSent, deathLogged, newMove, heatUpdate, isIndoors, drunkennessEffect, tripping, gonnaBeTripping, foodUpdate, justAte, needsUpdate, updateSent, updateGlobal, declaredInfertile, monumentPosSet, monumentPosSent, holdingFlightObject, vogMode, postVogMode, isAFK, cravingKnown, consider reordering the fields or adding explicit padding members
+typedef struct LiveObject {
+        ~~~~~~~^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:4285:13: warning: Value stored to 'horBarH' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+        int horBarH = chunkDimensionY;
+            ^~~~~~~   ~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:4285:13: note: Value stored to 'horBarH' during its initialization is never read
+        int horBarH = chunkDimensionY;
+            ^~~~~~~   ~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:4300:13: warning: Value stored to 'vertBarW' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+        int vertBarW = chunkDimensionX;
+            ^~~~~~~~   ~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:4300:13: note: Value stored to 'vertBarW' during its initialization is never read
+        int vertBarW = chunkDimensionX;
+            ^~~~~~~~   ~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7615:27: warning: variable 'choseSeed' is used uninitialized whenever 'for' loop exits because its condition is false [clang-diagnostic-sometimes-uninitialized]
+            for( int i=0; i<list->size(); i++ ) {
+                          ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7622:31: note: uninitialized use occurs here
+            std::string seed( choseSeed );
+                              ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7615:27: note: remove the condition if it is always true
+            for( int i=0; i<list->size(); i++ ) {
+                          ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7614:28: note: initialize the variable 'choseSeed' to silence this warning
+            char *choseSeed;
+                           ^
+                            = nullptr
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7669:10: warning: variable 'randomObject' is used uninitialized whenever 'if' condition is true [clang-diagnostic-sometimes-uninitialized]
+    if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
+         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7671:17: note: uninitialized use occurs here
+        while ( randomObject == NULL ) {
+                ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7669:5: note: remove the 'if' if its condition is always false
+    if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:7670:35: note: initialize the variable 'randomObject' to silence this warning
+        ObjectRecord *randomObject;
+                                  ^
+                                   = nullptr
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:8736:11: warning: Value stored to 'slotSize' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+    float slotSize =
+          ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:8736:11: note: Value stored to 'slotSize' during its initialization is never read
+    float slotSize =
+          ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:8736:11: warning: unused variable 'slotSize' [clang-diagnostic-unused-variable]
+    float slotSize =
+          ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:8739:11: warning: Value stored to 'containSize' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+    float containSize =
+          ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:8739:11: note: Value stored to 'containSize' during its initialization is never read
+    float containSize =
+          ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:8739:11: warning: unused variable 'containSize' [clang-diagnostic-unused-variable]
+    float containSize =
+          ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9159:25: warning: Value stored to 'newNumSlots' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                    int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                        ^~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9159:25: note: Value stored to 'newNumSlots' during its initialization is never read
+                    int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                        ^~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9159:25: warning: unused variable 'newNumSlots' [clang-diagnostic-unused-variable]
+                    int newNumSlots = getNumContainerSlots( contTrans->newActor );
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9310:15: warning: Value stored to 'slotSize' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+        float slotSize =
+              ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9310:15: note: Value stored to 'slotSize' during its initialization is never read
+        float slotSize =
+              ^~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9310:15: warning: unused variable 'slotSize' [clang-diagnostic-unused-variable]
+        float slotSize =
+              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9313:15: warning: Value stored to 'containSize' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+        float containSize =
+              ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9313:15: note: Value stored to 'containSize' during its initialization is never read
+        float containSize =
+              ^~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9313:15: warning: unused variable 'containSize' [clang-diagnostic-unused-variable]
+        float containSize =
+              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9351:17: warning: Value stored to 'idToAdd' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+            int idToAdd = inPlayer->holdingID;
+                ^~~~~~~   ~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9351:17: note: Value stored to 'idToAdd' during its initialization is never read
+            int idToAdd = inPlayer->holdingID;
+                ^~~~~~~   ~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9351:17: warning: unused variable 'idToAdd' [clang-diagnostic-unused-variable]
+            int idToAdd = inPlayer->holdingID;
+                ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9570:27: warning: Access to field 'id' results in a dereference of a null pointer (loaded from variable 'cObj') [clang-analyzer-core.NullDereference]
+        int containerID = cObj->id;
+                          ^~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9477:5: note: 'cObj' initialized here
+    ObjectRecord *cObj = 
+    ^~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9483:9: note: Assuming 'cObj' is equal to NULL
+    if( cObj != NULL ) {
+        ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9483:5: note: Taking false branch
+    if( cObj != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9495:9: note: Assuming 'slotToRemove' is >= 0
+    if( slotToRemove < 0 ) {
+        ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9495:5: note: Taking false branch
+    if( slotToRemove < 0 ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9518:9: note: Assuming 'oldNumContained' is > 0
+    if( oldNumContained > 0 &&
+        ^~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9518:9: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9519:9: note: Assuming 'oldNumContained' is > 'slotToRemove'
+        oldNumContained > slotToRemove &&
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9518:9: note: Left side of '&&' is true
+    if( oldNumContained > 0 &&
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9520:9: note: 'slotToRemove' is >= 0
+        slotToRemove >= 0 ) {
+        ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9518:5: note: Taking true branch
+    if( oldNumContained > 0 &&
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9529:9: note: Assuming 'pickUpTrans' is equal to NULL
+        pickUpTrans != NULL && 
+        ^~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9529:29: note: Left side of '&&' is false
+        pickUpTrans != NULL && 
+                            ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9532:9: note: 'oldNumContained' is > 0
+    if( oldNumContained > 0 &&
+        ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9532:9: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9533:9: note: 'oldNumContained' is > 'slotToRemove'
+        oldNumContained > slotToRemove &&
+        ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9532:9: note: Left side of '&&' is true
+    if( oldNumContained > 0 &&
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9534:9: note: 'slotToRemove' is >= 0
+        slotToRemove >= 0 &&
+        ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9532:9: note: Left side of '&&' is true
+    if( oldNumContained > 0 &&
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9536:9: note: Assuming 'playerAge' is >= field 'minPickupAge'
+        getObject( toRemoveID )->minPickupAge <= playerAge &&
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9532:9: note: Left side of '&&' is true
+    if( oldNumContained > 0 &&
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9539:11: note: Assuming field 'permanent' is 0
+        ( !getObject( toRemoveID )->permanent ||
+          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9539:47: note: Left side of '||' is true
+        ( !getObject( toRemoveID )->permanent ||
+                                              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9556:13: note: Assuming field 'holdingEtaDecay' is equal to 0
+        if( inPlayer->holdingEtaDecay != 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9556:9: note: Taking false branch
+        if( inPlayer->holdingEtaDecay != 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:9570:27: note: Access to field 'id' results in a dereference of a null pointer (loaded from variable 'cObj')
+        int containerID = cObj->id;
+                          ^~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:10609:21: warning: Value stored to 'dup' is never read [clang-analyzer-deadcode.DeadStores]
+                    dup = true;
+                    ^     ~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:10609:21: note: Value stored to 'dup' is never read
+                    dup = true;
+                    ^     ~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12669:21: warning: Attempt to free released memory [clang-analyzer-cplusplus.NewDelete]
+                    delete [] o->name;
+                    ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12234:5: note: Taking false branch
+    if( checkReadOnly() ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12241:9: note: Assuming 'familyDataLogFile' is equal to NULL
+    if( familyDataLogFile != NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12241:5: note: Taking false branch
+    if( familyDataLogFile != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12250:19: note: Assuming 'i' is >= 'numAllowed'
+    for( int i=0; i<numAllowed; i++ ) {
+                  ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12250:5: note: Loop condition is false. Execution continues on line 12256
+    for( int i=0; i<numAllowed; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12267:5: note: Control jumps to the 'default' case at line 12277
+    switch(logLevel) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12309:9: note: 'codVer' is <= 'versionNumber'
+    if( codVer > versionNumber ) {
+        ^~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12309:5: note: Taking false branch
+    if( codVer > versionNumber ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12339:9: note: Assuming 'clientPassword' is not equal to NULL
+    if( clientPassword == NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12339:5: note: Taking false branch
+    if( clientPassword == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12348:9: note: Assuming 'ticketServerURL' is not equal to NULL
+    if( ticketServerURL == NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12348:5: note: Taking false branch
+    if( ticketServerURL == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12389:9: note: Assuming the condition is false
+    if (passwordOverhearRadius == -1) { passwordSilent = 1; }
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12389:5: note: Taking false branch
+    if (passwordOverhearRadius == -1) { passwordSilent = 1; }
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12451:9: note: Assuming 'f' is equal to NULL
+    if( f != NULL ) {
+        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12451:5: note: Taking false branch
+    if( f != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12505:5: note: Loop condition is false. Execution continues on line 12506
+    while( initAnimationBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12510:5: note: Loop condition is false. Execution continues on line 12511
+    while( initObjectBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12515:5: note: Loop condition is false. Execution continues on line 12516
+    while( initCategoryBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12521:5: note: Loop condition is false. Execution continues on line 12522
+    while( initTransBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12544:9: note: Assuming the condition is false
+    if( initMap() != true ) {
+        ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12544:5: note: Taking false branch
+    if( initMap() != true ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12551:5: note: Taking false branch
+    if( false ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12652:12: note: Assuming 'quit' is 0
+    while( !quit ) {
+           ^~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12652:5: note: Loop condition is true.  Entering loop body
+    while( !quit ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12657:13: note: Assuming the condition is true
+        if( curStepTime - lastPastPlayerFlushTime > 3600 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12657:9: note: Taking true branch
+        if( curStepTime - lastPastPlayerFlushTime > 3600 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12663:27: note: Assuming the condition is true
+            for( int i=0; i<pastPlayers.size(); i++ ) {
+                          ^~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12663:13: note: Loop condition is true.  Entering loop body
+            for( int i=0; i<pastPlayers.size(); i++ ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12666:21: note: Assuming the condition is true
+                if( curStepTime - o->lifeStartTimeSeconds > 
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12666:17: note: Taking true branch
+                if( curStepTime - o->lifeStartTimeSeconds > 
+                ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12669:21: note: Memory is released
+                    delete [] o->name;
+                    ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12663:13: note: Loop condition is true.  Entering loop body
+            for( int i=0; i<pastPlayers.size(); i++ ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12666:21: note: Assuming the condition is true
+                if( curStepTime - o->lifeStartTimeSeconds > 
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12666:17: note: Taking true branch
+                if( curStepTime - o->lifeStartTimeSeconds > 
+                ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12669:21: note: Attempt to free released memory
+                    delete [] o->name;
+                    ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12921:20: warning: Value stored to 'timeLeft' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+            double timeLeft = minMoveTime;
+                   ^~~~~~~~   ~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12921:20: note: Value stored to 'timeLeft' during its initialization is never read
+            double timeLeft = minMoveTime;
+                   ^~~~~~~~   ~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13322:25: warning: Null pointer passed to 2nd parameter expecting 'nonnull' [clang-analyzer-core.NonNullParamChecker]
+                        strcmp( o->email, 
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12234:9: note: Calling 'checkReadOnly'
+    if( checkReadOnly() ) {
+        ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:1045:9: note: Assuming 'testFile' is not equal to NULL
+    if( testFile != NULL ) {
+        ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:1045:5: note: Taking true branch
+    if( testFile != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:1049:9: note: Returning zero, which participates in a condition later
+        return false;
+        ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12234:9: note: Returning from 'checkReadOnly'
+    if( checkReadOnly() ) {
+        ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12234:5: note: Taking false branch
+    if( checkReadOnly() ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12241:9: note: Assuming 'familyDataLogFile' is equal to NULL
+    if( familyDataLogFile != NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12241:5: note: Taking false branch
+    if( familyDataLogFile != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12250:19: note: Assuming 'i' is >= 'numAllowed'
+    for( int i=0; i<numAllowed; i++ ) {
+                  ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12250:5: note: Loop condition is false. Execution continues on line 12256
+    for( int i=0; i<numAllowed; i++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12267:5: note: Control jumps to the 'default' case at line 12277
+    switch(logLevel) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12309:9: note: 'codVer' is <= 'versionNumber'
+    if( codVer > versionNumber ) {
+        ^~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12309:5: note: Taking false branch
+    if( codVer > versionNumber ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12339:9: note: Assuming 'clientPassword' is not equal to NULL
+    if( clientPassword == NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12339:5: note: Taking false branch
+    if( clientPassword == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12348:9: note: Assuming 'ticketServerURL' is not equal to NULL
+    if( ticketServerURL == NULL ) {
+        ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12348:5: note: Taking false branch
+    if( ticketServerURL == NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12389:9: note: Assuming the condition is false
+    if (passwordOverhearRadius == -1) { passwordSilent = 1; }
+        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12389:5: note: Taking false branch
+    if (passwordOverhearRadius == -1) { passwordSilent = 1; }
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12451:9: note: Assuming 'f' is equal to NULL
+    if( f != NULL ) {
+        ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12451:5: note: Taking false branch
+    if( f != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12505:5: note: Loop condition is false. Execution continues on line 12506
+    while( initAnimationBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12510:5: note: Loop condition is false. Execution continues on line 12511
+    while( initObjectBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12515:5: note: Loop condition is false. Execution continues on line 12516
+    while( initCategoryBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12521:5: note: Loop condition is false. Execution continues on line 12522
+    while( initTransBankStep() < 1.0 );
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12544:9: note: Assuming the condition is false
+    if( initMap() != true ) {
+        ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12544:5: note: Taking false branch
+    if( initMap() != true ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12551:5: note: Taking false branch
+    if( false ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12652:12: note: Assuming 'quit' is 0
+    while( !quit ) {
+           ^~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12652:5: note: Loop condition is true.  Entering loop body
+    while( !quit ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12657:13: note: Assuming the condition is false
+        if( curStepTime - lastPastPlayerFlushTime > 3600 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12657:9: note: Taking false branch
+        if( curStepTime - lastPastPlayerFlushTime > 3600 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12682:13: note: Assuming the condition is false
+        if( curStepTime - lastPeriodicStepTime > periodicStepTime ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12682:9: note: Taking false branch
+        if( curStepTime - lastPeriodicStepTime > periodicStepTime ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12688:13: note: 'periodicStepThisStep' is 0
+        if( periodicStepThisStep ) {
+            ^~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12688:9: note: Taking false branch
+        if( periodicStepThisStep ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12728:13: note: Assuming 'forceShutdownMode' is 0
+        if( forceShutdownMode ) {
+            ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12728:9: note: Taking false branch
+        if( forceShutdownMode ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12760:18: note: Assuming 'shutdownMode' is 0
+        else if( shutdownMode ) {
+                 ^~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12760:14: note: Taking false branch
+        else if( shutdownMode ) {
+             ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12777:13: note: 'periodicStepThisStep' is 0
+        if( periodicStepThisStep ) {
+            ^~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12777:9: note: Taking false branch
+        if( periodicStepThisStep ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12864:13: note: Assuming the condition is false
+        if( shouldRunObjectSurvey() ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12864:9: note: Taking false branch
+        if( shouldRunObjectSurvey() ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12894:23: note: Assuming 'i' is >= 'numLive'
+        for( int i=0; i<numLive; i++ ) {
+                      ^~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:12894:9: note: Loop condition is false. Execution continues on line 13001
+        for( int i=0; i<numLive; i++ ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13005:13: note: Assuming 'minMoveTime' is >= 'pollTimeout'
+        if( minMoveTime < pollTimeout ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13005:9: note: Taking false branch
+        if( minMoveTime < pollTimeout ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13014:13: note: Assuming 'pollTimeout' is <= 0
+        if( pollTimeout > 0 ) {
+            ^~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13014:9: note: Taking false branch
+        if( pollTimeout > 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13028:23: note: Assuming the condition is false
+        for( int i=0; i<newConnections.size(); i++ ) {
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13028:9: note: Loop condition is false. Execution continues on line 13038
+        for( int i=0; i<newConnections.size(); i++ ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13038:13: note: 'anyTicketServerRequestsOut' is 0
+        if( anyTicketServerRequestsOut ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13038:9: note: Taking false branch
+        if( anyTicketServerRequestsOut ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13045:13: note: Assuming the condition is false
+        if( areTriggersEnabled() ) {
+            ^~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13045:9: note: Taking false branch
+        if( areTriggersEnabled() ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13050:13: note: 'someClientMessageReceived' is 0
+        if( someClientMessageReceived ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13050:9: note: Taking false branch
+        if( someClientMessageReceived ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13056:13: note: Assuming the condition is false
+        if( tutorialLoadingPlayers.size() > 0 ) {
+            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13056:9: note: Taking false branch
+        if( tutorialLoadingPlayers.size() > 0 ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13062:13: note: Assuming the condition is false
+        if( pollTimeout > 0.1 && activeKillStates.size() > 0 ) {
+            ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13062:31: note: Left side of '&&' is false
+        if( pollTimeout > 0.1 && activeKillStates.size() > 0 ) {
+                              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13079:13: note: Assuming 'readySock' is equal to NULL
+        if( readySock != NULL && !readySock->isSocket ) {
+            ^~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13079:31: note: Left side of '&&' is false
+        if( readySock != NULL && !readySock->isSocket ) {
+                              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13238:23: note: Assuming the condition is true
+        for( int i=0; i<newConnections.size(); i++ ) {
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13238:9: note: Loop condition is true.  Entering loop body
+        for( int i=0; i<newConnections.size(); i++ ) {
+        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13242:17: note: Assuming field 'error' is 0
+            if( nextConnection->error ) {
+                ^~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13242:13: note: Taking false branch
+            if( nextConnection->error ) {
+            ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13246:17: note: Assuming field 'email' is equal to NULL
+            if( nextConnection->email != NULL &&
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13246:47: note: Left side of '&&' is false
+            if( nextConnection->email != NULL &&
+                                              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13261:22: note: Assuming field 'ticketServerRequest' is not equal to NULL
+            else if( nextConnection->ticketServerRequest != NULL &&
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13261:22: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13262:22: note: Assuming field 'ticketServerAccepted' is not equal to 0
+                     ! nextConnection->ticketServerAccepted ) {
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13261:18: note: Taking false branch
+            else if( nextConnection->ticketServerRequest != NULL &&
+                 ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13312:38: note: Field 'ticketServerRequest' is not equal to NULL
+            else if( nextConnection->ticketServerRequest != NULL &&
+                                     ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13312:22: note: Left side of '&&' is true
+            else if( nextConnection->ticketServerRequest != NULL &&
+                     ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13313:38: note: Field 'ticketServerAccepted' is not equal to 0
+                     nextConnection->ticketServerAccepted &&
+                                     ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13312:22: note: Left side of '&&' is true
+            else if( nextConnection->ticketServerRequest != NULL &&
+                     ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13314:22: note: Assuming field 'lifeTokenSpent' is 0
+                     ! nextConnection->lifeTokenSpent ) {
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13312:18: note: Taking true branch
+            else if( nextConnection->ticketServerRequest != NULL &&
+                 ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13318:31: note: Assuming the condition is true
+                for( int p=0; p<players.size(); p++ ) {
+                              ^~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13318:17: note: Loop condition is true.  Entering loop body
+                for( int p=0; p<players.size(); p++ ) {
+                ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13320:25: note: Assuming field 'error' is 0
+                    if( ! o->error && 
+                        ^~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13320:25: note: Left side of '&&' is true
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13321:25: note: Assuming field 'connected' is 0
+                        ! o->connected && 
+                        ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13320:25: note: Left side of '&&' is true
+                    if( ! o->error && 
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13322:25: note: Null pointer passed to 2nd parameter expecting 'nonnull'
+                        strcmp( o->email, 
+                        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:13523:44: warning: ISO C++11 does not allow conversion from string literal to 'char *' [clang-diagnostic-writable-strings]
+                                    name = "";
+                                           ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16627:49: warning: Value stored to 'heldCanBeUsed' is never read [clang-analyzer-deadcode.DeadStores]
+                                                heldCanBeUsed = false;
+                                                ^               ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16627:49: note: Value stored to 'heldCanBeUsed' is never read
+                                                heldCanBeUsed = false;
+                                                ^               ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16672:41: warning: Value stored to 'heldCanBeUsed' is never read [clang-analyzer-deadcode.DeadStores]
+                                        heldCanBeUsed = false;
+                                        ^               ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16672:41: note: Value stored to 'heldCanBeUsed' is never read
+                                        heldCanBeUsed = false;
+                                        ^               ~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16931:63: warning: Value stored to 'containedObj' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                                                ObjectRecord *containedObj = getObject( contained );
+                                                              ^~~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16931:63: note: Value stored to 'containedObj' during its initialization is never read
+                                                ObjectRecord *containedObj = getObject( contained );
+                                                              ^~~~~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16931:63: warning: unused variable 'containedObj' [clang-diagnostic-unused-variable]
+                                                ObjectRecord *containedObj = getObject( contained );
+                                                              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16933:62: warning: Value stored to 'contTrans' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                                                TransRecord *contTrans = getPTrans( r->newTarget, contained );
+                                                             ^~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16933:62: note: Value stored to 'contTrans' during its initialization is never read
+                                                TransRecord *contTrans = getPTrans( r->newTarget, contained );
+                                                             ^~~~~~~~~   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:16933:62: warning: unused variable 'contTrans' [clang-diagnostic-unused-variable]
+                                                TransRecord *contTrans = getPTrans( r->newTarget, contained );
+                                                             ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:18928:41: warning: Value stored to 'oldHeld' during its initialization is never read [clang-analyzer-deadcode.DeadStores]
+                                    int oldHeld = nextPlayer->holdingID;
+                                        ^~~~~~~   ~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:18928:41: note: Value stored to 'oldHeld' during its initialization is never read
+                                    int oldHeld = nextPlayer->holdingID;
+                                        ^~~~~~~   ~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:18928:41: warning: unused variable 'oldHeld' [clang-diagnostic-unused-variable]
+                                    int oldHeld = nextPlayer->holdingID;
+                                        ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:19066:47: warning: variable 'targetSlotSize' set but not used [clang-diagnostic-unused-but-set-variable]
+                                        float targetSlotSize = 0;
+                                              ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:19069:45: warning: Value stored to 'targetSlotSize' is never read [clang-analyzer-deadcode.DeadStores]
+                                            targetSlotSize =
+                                            ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:19069:45: note: Value stored to 'targetSlotSize' is never read
+                                            targetSlotSize =
+                                            ^
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:20026:33: warning: Value stored to 'oldObject' is never read [clang-analyzer-deadcode.DeadStores]
+                                oldObject = 0;
+                                ^           ~
+/home/bakkar/programming/2hol/OneLife/server/server.cpp:20026:33: note: Value stored to 'oldObject' is never read
+                                oldObject = 0;
+                                ^           ~
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:183:5: warning: Called C++ object pointer is null [clang-analyzer-core.CallAndMessage]
+    s.sock->send( (unsigned char*)message, 
+    ^
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:379:5: note: Calling 'customTrigger'
+    customTrigger( inTriggerNumber );
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:92:9: note: Assuming the condition is false
+    if( inTriggerNumber == t++ ) {
+        ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:92:5: note: Taking false branch
+    if( inTriggerNumber == t++ ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:327:14: note: Assuming the condition is false
+    else if( inTriggerNumber == t++ ) {
+             ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:327:10: note: Taking false branch
+    else if( inTriggerNumber == t++ ) {
+         ^
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:339:14: note: Assuming the condition is true
+    else if( inTriggerNumber == t++ ) {
+             ^~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:339:10: note: Taking true branch
+    else if( inTriggerNumber == t++ ) {
+         ^
+/home/bakkar/programming/2hol/OneLife/server/triggers/trailerVideo.cpp:343:21: note: Calling 'newDummyPlayer'
+        firstBaby = newDummyPlayer( "dummy5@test.com", 350, 0,
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:170:5: note: Value assigned to 's.sock'
+    s.sock = SocketClient::connectToServer( &a, 100, &timeout );
+    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:172:9: note: Assuming field 'sock' is equal to NULL
+    if( s.sock != NULL ) {
+        ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:172:9: note: Assuming pointer value is null
+    if( s.sock != NULL ) {
+        ^~~~~~~~~~~~~~
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:172:5: note: Taking false branch
+    if( s.sock != NULL ) {
+    ^
+/home/bakkar/programming/2hol/OneLife/server/triggers.cpp:183:5: note: Called C++ object pointer is null
+    s.sock->send( (unsigned char*)message, 
+    ^~~~~~
