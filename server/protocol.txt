@@ -127,7 +127,7 @@ where
 num_connected: number of connected players (count of next lines)
 gender: F or M
 age: player age with 1 decimal
-name: player full name or "(null)" can include the word "EVE"
+name: player full name can include the word "EVE", empty if player is nameless.
 delcaredInfertile: 1 if player is infertile else 0 (note: will not count player age, only checks if player said one of infertilityDeclaringPhrases.ini)
 if <secret> differs from playerListSecret.ini REJECTED response will be sent.
 if playerListSecret.ini is empty the request can just be PLAYER_LIST# without a secret.

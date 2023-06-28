@@ -13525,8 +13525,8 @@ int main() {
                                 age = (float) computeAge( player->lifeStartTimeSeconds );
                                 name = player->name;
                                 if(name == NULL) {
-                                    // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it
-                                    name = "(null)";
+                                    // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it to empty string.
+                                    name = "";
                                     }
                                 char *playerLine = autoSprintf("%c %.1f %s %d\n", gender, age, name, player->declaredInfertile);
                                 int playerLineLen = strlen(playerLine);
