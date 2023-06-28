@@ -13488,6 +13488,8 @@ int main() {
                             delete a;
                             }
                         AppLog::infoF( "invalid secret for request PLAYER_LIST from address: %s", address );
+                        nextConnection->error = true;
+                        nextConnection->errorCauseString = "Bad secret for PLAYER_LIST message";
                     }
                     if(passedSecret || nextConnection->playerListSent) {
                         // request for player list https://github.com/twohoursonelife/OneLife/issues/202
