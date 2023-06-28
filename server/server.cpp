@@ -13815,7 +13815,8 @@ int main() {
                     delete [] message;
                     }
                 else if(nextConnection->playerListSent) {
-                    if(currentTime - nextConnection->connectionStartTimeSeconds > 15) {
+                    int timeToClose = playerListSecret != NULL && 0 != strlen( playerListSecret ) ? 10 : 4; // give more time if it is private.
+                    if(currentTime - nextConnection->connectionStartTimeSeconds > timeToClose) {
                         HostAddress *a = nextConnection->sock->getRemoteHostAddress();
                         char address[100];
                         if( a == NULL ) {    
