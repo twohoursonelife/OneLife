@@ -13503,45 +13503,39 @@ int main() {
                                 }
                             AppLog::infoF( "Got PLAYER_LIST request from address: %s", address );
                             int numLive = players.size();
-                            // 4 for count(3 characters+newline) + estimated line size for each player(1 for gender, 5 for age(3chars+1 dot+1 decimal), 15 longest seen in firstNames.txt, 15 longest seen in lastNames.txt, 1 for fertility status, 4 for spaces, 1 for newline)
-                            int buffSize = (4 + numLive * (1 + 5 + 15 + 15 + 1 + 4)) * sizeof(char);
-                            // also make sure buffer does not exceed 5MB
-                            if(buffSize > 5 * 1024)
-                                buffSize = 5 * 1024;
-                            
+                            int buffSize = 32 * 1024; // NOTE: this can fit 800 players in the worst case, message will be truncated if more than that(and # wont be sent).
                             char messageBuff[buffSize];
                             messageBuff[0] = '\0';
-                            char *numLinesStr = autoSprintf("%d\n", numLive);
-                            strncat(messageBuff, numLinesStr, strlen(numLinesStr));
+                            sprintf(messageBuff, "%d\n", numLive);
                             // -2 here is for \0 and #
-                            int remainingLen = buffSize - 2 - strlen(numLinesStr);
-                            delete[] numLinesStr;
+                            int remainingLen = buffSize - 2 - strlen(messageBuff);
                             float age;
                             char gender, *name;
-			    char finished = true;
+			                char finished = true;
+                            char *playerLine;
                             for( int i=0; i<numLive; i++ ) {
                                 LiveObject *player = players.getElement( i );
                                 gender = getFemale( player ) ? 'F' : 'M';
-                                age = (float) computeAge( player->lifeStartTimeSeconds );
+                                age = (float) computeAge( player->lifeStartTimeSeconds ); // TODO: does "players" variable still contain a player if they died (we might get age > 120)?
                                 name = player->name;
                                 if(name == NULL) {
                                     // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it to empty string.
                                     name = "";
                                     }
-                                char *playerLine = autoSprintf("%c %.1f %s %d\n", gender, age, name, player->declaredInfertile);
+                                playerLine = autoSprintf("%c %.1f %s %d\n", gender, age, name, player->declaredInfertile);
                                 int playerLineLen = strlen(playerLine);
                                 if(playerLineLen + 2 > remainingLen) {
                                     delete[] playerLine;
-				    finished = false;
+				                    finished = false;
                                     break;
                                 }
                                 strncat(messageBuff, playerLine, playerLineLen);
                                 remainingLen -= playerLineLen;
                                 delete[] playerLine;
                                 }
-			    if(finished) {
-                            	strncat(messageBuff, "#", 1);
-			    	}
+                            if(finished) {
+                                strncat(messageBuff, "#", 1);
+                                }
                             nextConnection->sock->send( (unsigned char*)messageBuff, strlen( messageBuff ), false, false);
                             nextConnection->playerListSent = true;
                             AppLog::infoF("PLAYER_LIST response-message sent to: %s", address);
