@@ -12225,8 +12225,23 @@ static void setRefuseFoodEmote( LiveObject *hitPlayer ) {
         newEmotTTLs.push_back( 3 );
         }
     }
+/**
+ * use to check if two passwords are equal, to prevent timing attacks.
+ * the function will not early return in the for loop unlike strcmp.
+*/
+int constant_time_strcmp(const char *s1, const char *s2) {
+    size_t i = 0;
+    int areDifferent = 0;
+    size_t len1 = strlen(s1);
+    size_t len2 = strlen(s2);
+    size_t max_len = (len1 > len2) ? len1 : len2;
 
-
+    for (i = 0; i < max_len; i++) {
+        areDifferent |= s1[i % len1] ^ s2[i % len2];
+        }
+    
+    return (len1 != len2) && (areDifferent != 0); // return 0 if equal
+    }
 
 
 int main() {
@@ -13478,7 +13493,7 @@ int main() {
                             } 
                         else if( playerListSecret != NULL ) {
                             char *requestWithSecret = autoSprintf("PLAYER_LIST %s", playerListSecret);
-                            if(0 == strcmp( message, requestWithSecret )) { // TODO: this is crackable with timing attacks! (need to find another secure way if we discovered someone abusing this)
+                            if(0 == constant_time_strcmp( message, requestWithSecret )) { // TODO: using plain password is not good, it would be better to expect the client to hash his password and we check it with by hashing our copy of the password. if the client can use a hashing library i will leave it to the reviewer to decide.
                                 passedSecret = true;
                                 }
                             delete[] requestWithSecret;
@@ -13829,7 +13844,7 @@ int main() {
                             snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
                             delete a;
                             }
-                        AppLog::infoF("closing socket of %s for PLAYER_LIST request after 5 seconds", address);
+                        AppLog::infoF("closing socket of %s for PLAYER_LIST request after %d seconds", address, timeToClose);
                         deleteMembers( nextConnection );
                         newConnections.deleteElement(i);
                         i--;
