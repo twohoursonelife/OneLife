@@ -13499,20 +13499,6 @@ int main() {
                             delete[] requestWithSecret;
                             }
                         }
-                    if( !passedSecret && stringStartsWith( message, "PLAYER_LIST" ) ) {
-                        HostAddress *a = nextConnection->sock->getRemoteHostAddress();
-                        char address[100];
-                        if( a == NULL ) {    
-                            sprintf(address, "%s", "unknown");
-                            }
-                        else {
-                            snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
-                            delete a;
-                            }
-                        AppLog::infoF( "invalid secret for request PLAYER_LIST from address: %s", address );
-                        nextConnection->error = true;
-                        nextConnection->errorCauseString = "Bad secret for PLAYER_LIST message";
-                    }
                     if(passedSecret || nextConnection->playerListSent) {
                         // request for player list https://github.com/twohoursonelife/OneLife/issues/202
                         if( !nextConnection->playerListSent ) {
@@ -13565,6 +13551,20 @@ int main() {
                             AppLog::infoF("PLAYER_LIST response-message sent to: %s", address);
                             }
                         }
+                    else if( !passedSecret && stringStartsWith( message, "PLAYER_LIST" ) ) {
+                        HostAddress *a = nextConnection->sock->getRemoteHostAddress();
+                        char address[100];
+                        if( a == NULL ) {    
+                            sprintf(address, "%s", "unknown");
+                            }
+                        else {
+                            snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
+                            delete a;
+                            }
+                        AppLog::infoF( "Invalid secret for request PLAYER_LIST from address: %s", address );
+                        nextConnection->error = true;
+                        nextConnection->errorCauseString = "Bad secret for PLAYER_LIST message";
+                    }
                     else if( strstr( message, "LOGIN" ) != NULL ) {
                         
                         SimpleVector<char *> *tokens =
@@ -13844,7 +13844,7 @@ int main() {
                             snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
                             delete a;
                             }
-                        AppLog::infoF("closing socket of %s for PLAYER_LIST request after %d seconds", address, timeToClose);
+                        AppLog::infoF("Closing socket of %s for PLAYER_LIST request after %d seconds", address, timeToClose);
                         deleteMembers( nextConnection );
                         newConnections.deleteElement(i);
                         i--;
