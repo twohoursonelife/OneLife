@@ -16450,7 +16450,8 @@ int main() {
                             }
                         
                         if( otherToForgive != NULL ) {
-                            clearDBCurse( nextPlayer->email, 
+                            clearDBCurse( nextPlayer->id, 
+                                          nextPlayer->email, 
                                           otherToForgive->email );
                             
                             char *message = 
