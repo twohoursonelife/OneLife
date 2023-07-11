@@ -13516,7 +13516,13 @@ int main() {
                                 delete a;
                                 }
                             AppLog::infoF( "Got PLAYER_LIST request from address: %s", address );
-                            int numLive = players.size();
+                            int numLive = 0;
+                            for( int i=0; i<players.size(); i++ ) {
+                                LiveObject *player = players.getElement( i );
+                                if( ! player->error ) {
+                                    numLive += 1;
+                                    }
+                                }
                             int buffSize = 32 * 1024; // NOTE: this can fit 800 players in the worst case, message will be truncated if more than that(and # wont be sent).
                             char messageBuff[buffSize];
                             messageBuff[0] = '\0';
@@ -13527,8 +13533,11 @@ int main() {
                             char gender, *name;
 			                char finished = true;
                             char *playerLine;
-                            for( int i=0; i<numLive; i++ ) {
+                            for( int i=0; i<players.size(); i++ ) {
                                 LiveObject *player = players.getElement( i );
+                                if( player->error ) {
+                                    continue;
+                                }
                                 gender = getFemale( player ) ? 'F' : 'M';
                                 age = (float) computeAge( player->lifeStartTimeSeconds ); // TODO: does "players" variable still contain a player if they died (we might get age > 120)?
                                 name = player->name;
