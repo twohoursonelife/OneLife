@@ -13545,13 +13545,13 @@ int main() {
                                     // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it to empty string.
                                     name = "";
                                     }
-                                playerLine = autoSprintf("%c %.1f %s %d\n", gender, age, name, player->declaredInfertile);
+                                playerLine = autoSprintf("%c %.1f %d %s\n", gender, age, player->declaredInfertile, name);
                                 int playerLineLen = strlen(playerLine);
                                 if(playerLineLen + 2 > remainingLen) {
                                     delete[] playerLine;
 				                    finished = false;
                                     break;
-                                }
+                                    }
                                 strncat(messageBuff, playerLine, playerLineLen);
                                 remainingLen -= playerLineLen;
                                 delete[] playerLine;

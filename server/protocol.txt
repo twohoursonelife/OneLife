@@ -116,19 +116,20 @@ An outside application can also respond with the message PLAYER_LIST <secret># i
 will then send a list of connected players gender age name and fertilityStatus in the format
 ----
 num_connected
-gender age name delcaredInfertile
-gender age name delcaredInfertile
-gender age name delcaredInfertile
+gender age delcaredInfertile name
+gender age delcaredInfertile name
+gender age delcaredInfertile name
 ....
-gender age name delcaredInfertile
+gender age delcaredInfertile name
 #
 ----
 where
 num_connected: number of connected players (count of next lines).
 gender: F or M.
 age: player age with 1 decimal.
-name: player full name can include the word "EVE", empty if player is nameless.
 declaredInfertile: 1 if the player has declared themselves as infertile, otherwise 0 (if player said one of infertilityDeclaringPhrases.ini).
+name: player full name can include the word "EVE", empty if player is nameless.
+
 if <secret> differs from playerListSecret.ini REJECTED response will be sent.
 if playerListSecret.ini is empty the request can just be PLAYER_LIST# without a secret.
 
