@@ -113,22 +113,26 @@ After REJECTED, the server will close the connection to the client.
 
 PLAYER_LIST:
 An outside application can also respond with the message PLAYER_LIST <secret># instead of the previous LOGIN message in this case the server
-will then send a list of connected players gender age name and fertilityStatus in the format
+will then send a list of players status in the format
 ----
-num_connected
-gender age delcaredInfertile name
-gender age delcaredInfertile name
-gender age delcaredInfertile name
+num_players
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
 ....
-gender age delcaredInfertile name
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
 #
 ----
 where
-num_connected: number of connected players (count of next lines).
+num_players: number of players (count of next lines).
+p_id: player id
+eve_id: the player id of the player's EVE
+parent_id: the player id of the player's parent
 gender: F or M.
 age: player age with 1 decimal.
 declaredInfertile: 1 if the player has declared themselves as infertile, otherwise 0 (if player said one of infertilityDeclaringPhrases.ini).
 name: player full name can include the word "EVE", empty if player is nameless.
+familyName: player's family name, assigned at birth if mother has familyName, can be assigned for an orphaned baby if another family names them, NOTE: EVE without a name has no familyName. until she declares her name all her babies will have familyName null.
 
 if <secret> differs from playerListSecret.ini REJECTED response will be sent.
 if playerListSecret.ini is empty the request can just be PLAYER_LIST# without a secret.

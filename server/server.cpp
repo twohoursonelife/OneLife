@@ -109,7 +109,7 @@ double forceDeathAge = 120;
 // UncleGus Custom Variables
 double adultAge = 20;
 double oldAge = 104;
-double fertileAge = 15;
+double fertileAge = 0;
 // End UncleGus Custom Variables
 double minSayGapInSeconds = 1.0;
 
@@ -13530,22 +13530,33 @@ int main() {
                             // -2 here is for \0 and #
                             int remainingLen = buffSize - 2 - strlen(messageBuff);
                             float age;
-                            char gender, *name;
+                            char gender, *name, *familyName;
 			                char finished = true;
                             char *playerLine;
-                            for( int i=0; i<players.size(); i++ ) {
+                            for( int i = 0; i < players.size(); i++ ) {
                                 LiveObject *player = players.getElement( i );
                                 if( player->error ) {
                                     continue;
                                 }
                                 gender = getFemale( player ) ? 'F' : 'M';
-                                age = (float) computeAge( player->lifeStartTimeSeconds ); // TODO: does "players" variable still contain a player if they died (we might get age > 120)?
-                                name = player->name;
-                                if(name == NULL) {
+                                age = (float) computeAge( player->lifeStartTimeSeconds );
+                                if(player->name == NULL) {
                                     // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it to empty string.
                                     name = "";
                                     }
-                                playerLine = autoSprintf("%c %.1f %d %s\n", gender, age, player->declaredInfertile, name);
+                                else {
+                                    name = player->name;
+                                    }
+                                if(player->familyName == NULL) {
+                                    familyName = "";
+                                    }
+                                else {
+                                    familyName = player->familyName;
+                                    }
+                                playerLine = autoSprintf("%d,%d,%d,%c,%.1f,%d,%d,%s,%s\n",
+                                                        player->id, player->lineageEveID, player->parentID,
+                                                        gender, age, player->declaredInfertile, player->isTutorial
+                                                        name, familyName);
                                 int playerLineLen = strlen(playerLine);
                                 if(playerLineLen + 2 > remainingLen) {
                                     delete[] playerLine;
@@ -13557,7 +13568,7 @@ int main() {
                                 delete[] playerLine;
                                 }
                             if(finished) {
-                                strncat(messageBuff, "#", 1);
+                                strncat(messageBuff, "#", 2);
                                 }
                             nextConnection->sock->send( (unsigned char*)messageBuff, strlen( messageBuff ), false, false);
                             nextConnection->playerListSent = true;
