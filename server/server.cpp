@@ -437,6 +437,7 @@ typedef struct FreshConnection {
         
         char *twinCode;
         int twinCount;
+        char playerListSent;
 
     } FreshConnection;
 
@@ -1573,8 +1574,7 @@ static SimpleVector<char *> curseWords;
 
 static char *curseSecret = NULL;
 
-
-
+static char *playerListSecret = NULL;
 
 void quitCleanup() {
     AppLog::info( "Cleaning up on quit..." );
@@ -12225,8 +12225,27 @@ static void setRefuseFoodEmote( LiveObject *hitPlayer ) {
         newEmotTTLs.push_back( 3 );
         }
     }
+/**
+ * use to check if two passwords are equal, to prevent timing attacks.
+ * the function will not early return in the for loop unlike strcmp.
+*/
+int constant_time_strcmp(const char *s1, const char *s2) {
+    size_t i = 0;
+    int areDifferent = 0;
+    size_t len1 = strlen(s1);
+    size_t len2 = strlen(s2);
+    size_t max_len = (len1 > len2) ? len1 : len2;
 
-
+    for (i = 0; i < max_len; i++) {
+        areDifferent |= s1[i % len1] ^ s2[i % len2];
+        }
+    // return 0 if equal, return 1 if not equal
+    if(len1 != len2)
+        return 1;
+    if(areDifferent)
+        return 1;
+    return 0;
+    }
 
 
 int main() {
@@ -12607,10 +12626,18 @@ int main() {
     int port = 
         SettingsManager::getIntSetting( "port", 5077 );
     
-    
-    
-    SocketServer *server = new SocketServer( port, 256 );
-    
+    char *toTrim = SettingsManager::getStringSetting("playerListSecret", "");
+    char *trimmed = trimWhitespace(toTrim);
+    delete [] toTrim;
+    if(strlen(trimmed) > 0) {
+        playerListSecret = trimmed;
+        }
+    else {
+        playerListSecret = NULL;
+        delete[] trimmed;
+        }
+    SocketServer *server = new SocketServer(port, 256);
+
     sockPoll.addSocketServer( server );
     
     AppLog::infoF( "Listening for connection on port %d", port );
@@ -13191,7 +13218,7 @@ int main() {
                 newConnection.error = false;
                 newConnection.errorCauseString = "";
                 newConnection.rejectedSendTime = 0;
-                
+                newConnection.playerListSent = false;
                 int messageLength = strlen( message );
                 
                 int numSent = 
@@ -13463,9 +13490,106 @@ int main() {
                     }
                 
                 if( message != NULL ) {
-                    
-                    
-                    if( strstr( message, "LOGIN" ) != NULL ) {
+                    char passedSecret = false;
+                    if(!nextConnection->playerListSent) {
+                        if( (playerListSecret == NULL) && 0 == strcmp( message, "PLAYER_LIST" ) ) {
+                            passedSecret = true;
+                            } 
+                        else if( playerListSecret != NULL ) {
+                            char *requestWithSecret = autoSprintf("PLAYER_LIST %s", playerListSecret);
+                            if(0 == constant_time_strcmp( message, requestWithSecret )) { // TODO: using plain password is not good, it would be better to expect the client to hash his password and we check it with by hashing our copy of the password. if the client can use a hashing library i will leave it to the reviewer to decide.
+                                passedSecret = true;
+                                }
+                            delete[] requestWithSecret;
+                            }
+                        }
+                    if(passedSecret || nextConnection->playerListSent) {
+                        // request for player list https://github.com/twohoursonelife/OneLife/issues/202
+                        if( !nextConnection->playerListSent ) {
+                            HostAddress *a = nextConnection->sock->getRemoteHostAddress();
+                            char address[100];
+                            if( a == NULL ) {    
+                                sprintf(address, "%s", "unknown");
+                                }
+                            else {
+                                snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
+                                delete a;
+                                }
+                            AppLog::infoF( "Got PLAYER_LIST request from address: %s", address );
+                            int numLive = 0;
+                            for( int i=0; i<players.size(); i++ ) {
+                                LiveObject *player = players.getElement( i );
+                                if( ! player->error ) {
+                                    numLive += 1;
+                                    }
+                                }
+                            int buffSize = 32 * 1024; // NOTE: this can fit 800 players in the worst case, message will be truncated if more than that(and # wont be sent).
+                            char messageBuff[buffSize];
+                            messageBuff[0] = '\0';
+                            sprintf(messageBuff, "%d\n", numLive);
+                            // -2 here is for \0 and #
+                            int remainingLen = buffSize - 2 - strlen(messageBuff);
+                            float age;
+                            char gender, *name, *familyName;
+			                char finished = true;
+                            char *playerLine;
+                            for( int i = 0; i < players.size(); i++ ) {
+                                LiveObject *player = players.getElement( i );
+                                if( player->error ) {
+                                    continue;
+                                }
+                                gender = getFemale( player ) ? 'F' : 'M';
+                                age = (float) computeAge( player->lifeStartTimeSeconds );
+                                if(player->name == NULL) {
+                                    // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it to empty string.
+                                    name = (char*)"";
+                                    }
+                                else {
+                                    name = player->name;
+                                    }
+                                if(player->familyName == NULL) {
+                                    familyName = (char*)"";
+                                    }
+                                else {
+                                    familyName = player->familyName;
+                                    }
+                                playerLine = autoSprintf("%d,%d,%d,%c,%.1f,%d,%d,%s,%s\n",
+                                                        player->id, player->lineageEveID, player->parentID,
+                                                        gender, age, player->declaredInfertile, player->isTutorial,
+                                                        name, familyName);
+                                int playerLineLen = strlen(playerLine);
+                                if(playerLineLen + 2 > remainingLen) {
+                                    delete[] playerLine;
+				                    finished = false;
+                                    break;
+                                    }
+                                strncat(messageBuff, playerLine, playerLineLen);
+                                remainingLen -= playerLineLen;
+                                delete[] playerLine;
+                                }
+                            if(finished) {
+                                strncat(messageBuff, "#", 2);
+                                }
+                            nextConnection->sock->send( (unsigned char*)messageBuff, strlen( messageBuff ), false, false);
+                            nextConnection->playerListSent = true;
+                            AppLog::infoF("PLAYER_LIST response-message sent to: %s", address);
+                            }
+                        }
+                    else if( !passedSecret && stringStartsWith( message, "PLAYER_LIST" ) ) {
+                        HostAddress *a = nextConnection->sock->getRemoteHostAddress();
+                        char address[100];
+                        if( a == NULL ) {    
+                            sprintf(address, "%s", "unknown");
+                            }
+                        else {
+                            snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
+                            delete a;
+                            }
+                        AppLog::infoF( "Invalid secret for request PLAYER_LIST from address: %s", address );
+                        nextConnection->error = true;
+                        nextConnection->errorCauseString = "Bad secret for PLAYER_LIST message";
+                    }
+                    else if( strstr( message, "LOGIN" ) != NULL ) {
                         
                         SimpleVector<char *> *tokens =
                             tokenizeString( message );
@@ -13731,6 +13855,24 @@ int main() {
                         }
                     
                     delete [] message;
+                    }
+                else if(nextConnection->playerListSent) {
+                    int timeToClose = playerListSecret != NULL ? 10 : 4; // give more time if it is private.
+                    if(currentTime - nextConnection->connectionStartTimeSeconds > timeToClose) {
+                        HostAddress *a = nextConnection->sock->getRemoteHostAddress();
+                        char address[100];
+                        if( a == NULL ) {    
+                            sprintf(address, "%s", "unknown");
+                            }
+                        else {
+                            snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
+                            delete a;
+                            }
+                        AppLog::infoF("Closing socket of %s for PLAYER_LIST request after %d seconds", address, timeToClose);
+                        deleteMembers( nextConnection );
+                        newConnections.deleteElement(i);
+                        i--;
+                        }
                     }
                 else if( timeDelta > timeLimit ) {
                     if( nextConnection->shutdownMode ) {
