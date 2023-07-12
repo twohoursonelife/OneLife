@@ -13542,20 +13542,20 @@ int main() {
                                 age = (float) computeAge( player->lifeStartTimeSeconds );
                                 if(player->name == NULL) {
                                     // on linux NULL is printed as "(null)" but i belive on windows it is treated as NULL character (empty), here we standaradize it to empty string.
-                                    name = "";
+                                    name = (char*)"";
                                     }
                                 else {
                                     name = player->name;
                                     }
                                 if(player->familyName == NULL) {
-                                    familyName = "";
+                                    familyName = (char*)"";
                                     }
                                 else {
                                     familyName = player->familyName;
                                     }
                                 playerLine = autoSprintf("%d,%d,%d,%c,%.1f,%d,%d,%s,%s\n",
                                                         player->id, player->lineageEveID, player->parentID,
-                                                        gender, age, player->declaredInfertile, player->isTutorial
+                                                        gender, age, player->declaredInfertile, player->isTutorial,
                                                         name, familyName);
                                 int playerLineLen = strlen(playerLine);
                                 if(playerLineLen + 2 > remainingLen) {
