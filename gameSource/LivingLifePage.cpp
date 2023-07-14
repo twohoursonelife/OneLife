@@ -15324,8 +15324,10 @@ void LivingLifePage::step() {
                             // floor changed
                             
                             ObjectRecord *obj = getObject( floorID );
-                            if( obj->creationSound.numSubSounds > 0 ) {    
-                                    
+                            if( obj->creationSound.numSubSounds > 0 &&
+                                shouldCreationSoundPlay( oldFloor, 
+                                                         floorID ) ) {    
+                                
                                 playSound( obj->creationSound,
                                            getVectorFromCamera( x, y ) );
                                 }
