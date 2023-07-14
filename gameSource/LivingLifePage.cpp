@@ -209,7 +209,10 @@ static double emotDuration = 10;
 
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
-static int trippingEffectDisabled = 0;
+
+//defined in animationBank
+extern bool isTrippingEffectOn;
+extern bool trippingEffectDisabled;
 
 static int historyGraphLength = 100;
 
@@ -320,7 +323,6 @@ static SimpleVector<HomePos> oldHomePosStack;
 static int lastPlayerID = -1;
 
 
-static bool isTrippingEffectOn;
 
 
 
@@ -5593,13 +5595,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
     int xStartFloor = gridCenterX - (int)(ceil(6 * gui_fov_scale));
     int xEndFloor = gridCenterX + (int)(ceil(6 * gui_fov_scale) + 1);
 
-    
-	
-	// For tripping color effect
-	isTrippingEffectOn = isTripping() && !trippingEffectDisabled;
-    setObjectBankTrippingEffect( isTrippingEffectOn );
-	setAnimationBankTrippingEffect( isTrippingEffectOn );
-	
 
 
     int numCells = mMapD * mMapD;
@@ -5743,11 +5738,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         doublePair sheetPos = mult( add( pos, lastCornerPos ),
                                                     0.5 );
 
-                        if( !isTrippingEffectOn ) {// All tiles are drawn to change color independently
+                        if( !isTrippingEffectOn || trippingEffectDisabled ) {// All tiles are drawn to change color independently
                             drawSprite( s->wholeSheet, sheetPos );
                             }
                         
-						if( !isTrippingEffectOn ) {
+						if( !isTrippingEffectOn || trippingEffectDisabled ) {
                         // mark all cells under sheet as drawn
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
@@ -5804,9 +5799,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-					if( isTrippingEffectOn ) setTrippingColor( pos.x, pos.y );
+					if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
 					
-                    if( !isTrippingEffectOn && // All tiles are drawn to change color independently
+                    if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
 					    leftB == b &&
                         aboveB == b &&
                         diagB == b ) {
@@ -17673,6 +17668,15 @@ void LivingLifePage::step() {
                                         }
                                     }
                                 }
+                            
+                            LiveObject *ourLiveObject = getOurLiveObject();
+                            if( ourLiveObject != NULL &&
+                                existing->id == ourLiveObject->id ) {
+                                
+                                isTrippingEffectOn = isTripping();
+                                
+                                }
+                            
                             // found matching player, done
                             break;
                             }

@@ -25,6 +25,7 @@ CUSTOM_LINUX_LINK_FLAGS =
 LAYER_SOURCE = \
 server.cpp \
 map.cpp \
+dbShrink.cpp \
 ../gameSource/transitionBank.cpp \
 ../gameSource/categoryBank.cpp \
 ../gameSource/objectBank.cpp \

@@ -18,6 +18,10 @@ void setDrawColor( FloatRGB inColor );
 //defined in animationBank
 extern int NudeToggle;
 
+//defined in animationBank
+extern bool isTrippingEffectOn;
+extern bool trippingEffectDisabled;
+
 
 // tracks when creation of an object taps out nearby objects on a grid
 typedef struct TapoutRecord {
@@ -509,12 +513,6 @@ int initObjectBankStart( char *outRebuildingCache,
 float initObjectBankStep();
 void initObjectBankFinish();
 
-
-
-// Used in hue shifting objects, animaionts and ground sprites
-// when the character is tripping
-// to be called in livingLifePage
-void setObjectBankTrippingEffect( bool isTripping );
 
 void setTrippingColor( double x, double y );
 

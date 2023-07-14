@@ -78,6 +78,7 @@ SettingsPage::SettingsPage()
           mRedetectButton( mainFont, 153, 249, translate( "redetectButton" ) ),
           mFullscreenBox( 0, 128, 4 ),
           mBorderlessBox( 0, 168, 4 ),
+          mTrippingEffectDisabledBox( 0, 168, 4 ),
           
           // Sound
           mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
@@ -109,6 +110,8 @@ SettingsPage::SettingsPage()
     mMusicLoudnessSlider.addActionListener( this );
     
     // Screen
+    addComponent( &mTrippingEffectDisabledBox );
+    mTrippingEffectDisabledBox.addActionListener( this );
     addComponent( &mBorderlessBox );
     mBorderlessBox.addActionListener( this );
     addComponent( &mFullscreenBox );
@@ -201,16 +204,16 @@ SettingsPage::SettingsPage()
 
 #ifdef USE_DISCORD
     // Discord
-    addComponent(&mEnableDiscordRichPresence);
-    mEnableDiscordRichPresence.addActionListener(this);
-    addComponent(&mEnableDiscordRichPresenceStatus);
-    mEnableDiscordRichPresenceStatus.addActionListener(this);
-    addComponent(&mEnableDiscordShowAgeInStatus);
-    mEnableDiscordShowAgeInStatus.addActionListener(this);
-    addComponent(&mEnableDiscordRichPresenceDetails);
-    mEnableDiscordRichPresenceDetails.addActionListener(this);
     addComponent(&mDiscordHideFirstNameInDetails);
     mDiscordHideFirstNameInDetails.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresenceDetails);
+    mEnableDiscordRichPresenceDetails.addActionListener(this);
+    addComponent(&mEnableDiscordShowAgeInStatus);
+    mEnableDiscordShowAgeInStatus.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresenceStatus);
+    mEnableDiscordRichPresenceStatus.addActionListener(this);
+    addComponent(&mEnableDiscordRichPresence);
+    mEnableDiscordRichPresence.addActionListener(this);
 #endif // USE_DISCORD
 
     // Not in use
@@ -244,6 +247,7 @@ SettingsPage::SettingsPage()
     mRedetectButton.setCursorTip( "RESTART THE GAME TO REDETECT FRAME RATE" );
     mFullscreenBox.setCursorTip( "TOGGLE BETWEEN FULLSCREEN AND WINDOWED MODE" );
     mBorderlessBox.setCursorTip( "ALLOW CURSOR TO MOVE OUTSIDE THE GAME WINDOW" );
+    mTrippingEffectDisabledBox.setCursorTip( "DISABLE THE TRIPPING VISUAL EFFECT" );
 
 #ifdef USE_DISCORD
     // Discord
@@ -270,6 +274,11 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "borderless", 0 );
 
     mBorderlessBox.setToggled( mOldBorderlessSetting );
+    
+    mTrippingEffectDisabledSetting =
+        SettingsManager::getIntSetting( "trippingEffectDisabled", 1 );
+
+    mTrippingEffectDisabledBox.setToggled( mTrippingEffectDisabledSetting );
 
     mEnableNudeSetting =
         SettingsManager::getIntSetting( "nudeEnabled", 1 );
@@ -370,6 +379,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         int newSetting = mBorderlessBox.getToggled();
         
         SettingsManager::setSetting( "borderless", newSetting );
+        }
+    else if( inTarget == &mTrippingEffectDisabledBox ) {
+        int newSetting = mTrippingEffectDisabledBox.getToggled();
+        
+        SettingsManager::setSetting( "trippingEffectDisabled", newSetting );
+        
+        trippingEffectDisabled = newSetting;
         }
 	else if( inTarget == &mEnableNudeBox ) {
         int newSetting = mEnableNudeBox.getToggled();
@@ -621,6 +637,16 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.y -= 2;
             
             mainFont->drawString( translate( "borderless" ), pos, alignRight );
+            }
+
+
+        if( mTrippingEffectDisabledBox.isVisible() ) {
+            pos = mTrippingEffectDisabledBox.getPosition();
+        
+            pos.x -= 30;
+            pos.y -= 2;
+            
+            mainFont->drawString( "DISABLE FLASH EFFECT", pos, alignRight );
             }
         
 
@@ -904,6 +930,7 @@ void SettingsPage::updatePage() {
     
     mFullscreenBox.setPosition( 0, -lineSpacing );
     mBorderlessBox.setPosition( 0, -lineSpacing * 2 );
+    mTrippingEffectDisabledBox.setPosition( 0, -lineSpacing * 3 );
     mRedetectButton.setPosition( 160, lineSpacing * 2 );
     mRedetectButton.setPadding( 8, 4 );
 
@@ -932,6 +959,7 @@ void SettingsPage::updatePage() {
 
     mFullscreenBox.setVisible( mPage == 2 );
     mBorderlessBox.setVisible( mPage == 2 && mFullscreenBox.getToggled() );
+    mTrippingEffectDisabledBox.setVisible( mPage == 2 );
     mRedetectButton.setVisible( mPage == 2 );
 
     mMusicLoudnessSlider.setVisible( mPage == 3 );

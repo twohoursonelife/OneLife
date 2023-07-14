@@ -70,7 +70,8 @@ ExistingAccountPage::ExistingAccountPage()
                        NULL,
                        // forbid only spaces and backslash and 
                        // single/double quotes 
-                       "\"' \\" ),
+                       // also pipe and colon, reserved as separators for spawn code and family name target
+                       "\"' \\|:" ),
           mEmailLockButton( mainFont, -108, 96, "!" ),
           mPasteEmailButton( mainFont, 0, 68, translate( "paste" ) ),
                        
