@@ -4623,6 +4623,33 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             }
         }
     
+    if( inObj->holdingID > 0 && getObject( inObj->holdingID )->rideable &&
+        getObject( inObj->holdingID )->ridingAnimationIndex == biking ) {
+            
+        // biking animation
+        // replace moving with biking
+        // and replace ground2 with biking with timeVal = 0
+        // show limbs when riding a bike
+            
+        if( curType == moving ) curType = biking;
+        if( fadeTargetType == moving ) fadeTargetType = biking;
+        if( frozenArmType == moving ) frozenArmType = biking;
+        if( frozenArmFadeTargetType == moving ) frozenArmFadeTargetType = biking;
+        
+        if( curType == ground2 ) {
+            curType = biking;
+            timeVal = 0;
+            }
+        if( fadeTargetType == ground2 ) {
+            fadeTargetType = biking;
+            targetTimeVal = 0;
+            }
+        if( frozenArmType == ground2 ) frozenArmType = biking;
+        if( frozenArmFadeTargetType == ground2 ) frozenArmFadeTargetType = biking;
+        
+        hideAllLimbs = false;
+        }
+    
     char alreadyDrawnPerson = false;
     
     HoldingPos holdingPos;
