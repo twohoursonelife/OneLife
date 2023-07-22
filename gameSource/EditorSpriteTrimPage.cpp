@@ -595,6 +595,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        3,
                        false,
                        false,
+                       -1,
                        false,
                        0, 0,
                        false,

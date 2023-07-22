@@ -163,6 +163,10 @@ EditorObjectPage::EditorObjectPage()
           mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
           mRideableCheckbox( 290, 16, 2 ),
+          mRidingAnimationIndexField( smallFont, 
+                                    315,  16, 2,
+                                    false,
+                                    "", "-0123456789", NULL ),
           mBlocksWalkingCheckbox( 290, -4, 2 ),
           
           mDrawBehindPlayerCheckbox( 635, -90, 2 ),
@@ -639,9 +643,13 @@ EditorObjectPage::EditorObjectPage()
 
     addComponent( &mRideableCheckbox );
     mRideableCheckbox.setVisible( true );
+    
+    addComponent( &mRidingAnimationIndexField );
+    mRidingAnimationIndexField.setVisible( false );
 
     mHeldInHandCheckbox.addActionListener( this );
     mRideableCheckbox.addActionListener( this );
+    mRidingAnimationIndexField.addActionListener( this );
     
 
     addComponent( &mBlocksWalkingCheckbox );
@@ -956,6 +964,8 @@ void EditorObjectPage::updateAgingPanel() {
         
         mHeldInHandCheckbox.setVisible( true );
         mRideableCheckbox.setVisible( true );
+        if( mRideableCheckbox.getToggled() )
+            mRidingAnimationIndexField.setVisible( true );
         mBlocksWalkingCheckbox.setVisible( true );
 
         mNumUsesField.setVisible( true );
@@ -1005,11 +1015,9 @@ void EditorObjectPage::updateAgingPanel() {
 
         mHeldInHandCheckbox.setVisible( false );
         mRideableCheckbox.setVisible( false );
+        mRidingAnimationIndexField.setVisible( false );
+        mRidingAnimationIndexField.setInt( -1 );
         mBlocksWalkingCheckbox.setVisible( false );
-
-        mHeldInHandCheckbox.setToggled( false );
-        mRideableCheckbox.setToggled( false );
-        mBlocksWalkingCheckbox.setToggled( false );
         
         if( mPickedObjectLayer != -1 ) {
             mAgingLayerCheckbox.setVisible( true );
@@ -1490,6 +1498,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mMinPickupAgeField.getFloat(),
                    mHeldInHandCheckbox.getToggled(),
                    mRideableCheckbox.getToggled(),
+                   mRidingAnimationIndexField.getInt(),
                    mBlocksWalkingCheckbox.getToggled(),
                    mLeftBlockingRadiusField.getInt(),
                    mRightBlockingRadiusField.getInt(),
@@ -1650,6 +1659,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mMinPickupAgeField.getFloat(),
                    mHeldInHandCheckbox.getToggled(),
                    mRideableCheckbox.getToggled(),
+                   mRidingAnimationIndexField.getInt(),
                    mBlocksWalkingCheckbox.getToggled(),
                    mLeftBlockingRadiusField.getInt(),
                    mRightBlockingRadiusField.getInt(),
@@ -2329,11 +2339,17 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
     else if( inTarget == &mHeldInHandCheckbox ) {
         if( mHeldInHandCheckbox.getToggled() ) {
             mRideableCheckbox.setToggled( false );
+            mRidingAnimationIndexField.setInt( -1 );
             }
         }
     else if( inTarget == &mRideableCheckbox ) {
         if( mRideableCheckbox.getToggled() ) {
             mHeldInHandCheckbox.setToggled( false );
+            mRidingAnimationIndexField.setVisible( true );
+            }
+        else {
+            mRidingAnimationIndexField.setVisible( false );
+            mRidingAnimationIndexField.setInt( -1 );
             }
         }
     else if( inTarget == &mDeathMarkerCheckbox ) {
@@ -3226,6 +3242,14 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
 
             mHeldInHandCheckbox.setToggled( pickedRecord->heldInHand );
             mRideableCheckbox.setToggled( pickedRecord->rideable );
+            if( mRideableCheckbox.getToggled() ) {
+                mRidingAnimationIndexField.setVisible( true );
+                mRidingAnimationIndexField.setInt( pickedRecord->ridingAnimationIndex );
+                }
+            else {
+                mRidingAnimationIndexField.setVisible( false );
+                mRidingAnimationIndexField.setInt( -1 );
+                }
             mBlocksWalkingCheckbox.setToggled( pickedRecord->blocksWalking );
             
             mLeftBlockingRadiusField.setInt( pickedRecord->leftBlockingRadius );
@@ -3280,9 +3304,13 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             
             if( mRideableCheckbox.getToggled() ) {
                 mHeldInHandCheckbox.setToggled( false );
+                mRidingAnimationIndexField.setVisible( true );
+                mRidingAnimationIndexField.setInt( pickedRecord->ridingAnimationIndex );
                 }
             else if( mHeldInHandCheckbox.getToggled() ) {
                 mRideableCheckbox.setToggled( false );
+                mRidingAnimationIndexField.setVisible( false );
+                mRidingAnimationIndexField.setInt( -1 );
                 }
 
 
@@ -3885,6 +3913,7 @@ void EditorObjectPage::draw( doublePair inViewCenter,
             hideClosestArm = 0;
             }
         else if( mRideableCheckbox.getToggled() ) {
+            
             hideAllLimbs = true;
             hideClosestArm = 0;
 

@@ -167,6 +167,7 @@ class EditorObjectPage : public GamePage, public ActionListener {
 
         CheckboxButton mHeldInHandCheckbox;
         CheckboxButton mRideableCheckbox;
+        TextField mRidingAnimationIndexField;
         CheckboxButton mBlocksWalkingCheckbox;
         CheckboxButton mDrawBehindPlayerCheckbox;
         CheckboxButton mFloorHuggingCheckbox;

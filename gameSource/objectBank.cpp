@@ -923,6 +923,21 @@ float initObjectBankStep() {
                     }
 
                 next++;
+                
+                r->ridingAnimationIndex = -1;
+                
+                if( strstr( lines[next], "ridingAnimationIndex=" ) != NULL ) {
+                    // ridingAnimationIndex flag present
+                    
+                    int ridingAnimationIndex = -1;
+                    sscanf( lines[next], "ridingAnimationIndex=%d", &(ridingAnimationIndex) );
+                    
+                    r->ridingAnimationIndex = ridingAnimationIndex;
+                    
+                    next++;
+                    }
+                
+                
 
 
                 int blocksWalkingRead = 0;                            
@@ -2571,6 +2586,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->minPickupAge,
                         inObject->heldInHand,
                         inObject->rideable,
+                        inObject->ridingAnimationIndex,
                         inObject->blocksWalking,
                         inObject->leftBlockingRadius,
                         inObject->rightBlockingRadius,
@@ -2890,6 +2906,7 @@ int addObject( const char *inDescription,
                int inMinPickupAge,
                char inHeldInHand,
                char inRideable,
+               int inRidingAnimationIndex,
                char inBlocksWalking,
                int inLeftBlockingRadius, int inRightBlockingRadius,
                char inDrawBehindPlayer,
@@ -3068,6 +3085,8 @@ int addObject( const char *inDescription,
             }
 
         lines.push_back( autoSprintf( "heldInHand=%d", heldInHandNumber ) );
+        
+        if( inRidingAnimationIndex > -1 ) lines.push_back( autoSprintf( "ridingAnimationIndex=%d", inRidingAnimationIndex ) );
         
         lines.push_back( autoSprintf( 
                              "blocksWalking=%d,"
@@ -3349,6 +3368,7 @@ int addObject( const char *inDescription,
     r->minPickupAge = inMinPickupAge;
     r->heldInHand = inHeldInHand;
     r->rideable = inRideable;
+    r->ridingAnimationIndex = inRidingAnimationIndex;
     
     if( r->heldInHand && r->rideable ) {
         r->heldInHand = false;
