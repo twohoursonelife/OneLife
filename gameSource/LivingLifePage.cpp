@@ -21057,6 +21057,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
     LiveObject *ourLiveObject = getOurLiveObject();
     
+    // allow this now, there could be ways other than 
+    // bare-ground transition to drop the object
+    if( false )
     if( ourLiveObject->holdingID > 0 &&
         getObject( ourLiveObject->holdingID )->speedMult == 0 ) {
         // holding something that stops movement entirely, ignore click
@@ -21915,6 +21918,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         char canExecute = false;
         char sideAccess = false;
 		char noBackAccess = false;
+        char requireExactTileUsage = false;
         
         if( destID > 0 && getObject( destID )->sideAccess ) {
             sideAccess = true;
@@ -21924,6 +21928,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             noBackAccess = true;
             }
         
+        if( destID > 0 && getObject( destID )->useDistance == 0 ) {
+            requireExactTileUsage = true;
+            }
 
         // direct click on adjacent cells or self cell?
         if( isGridAdjacent( clickDestX, clickDestY,
@@ -21943,6 +21950,13 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( noBackAccess &&
                 ( clickDestY < ourLiveObject->yd ) ) {
                 // trying to access noBackAccess object from N
+                canExecute = false;
+                }
+            if( requireExactTileUsage &&
+                ( clickDestY != ourLiveObject->yd ||
+                  clickDestX != ourLiveObject->xd ) ) {
+                // using a 0 useDistance object while not standing
+                // on the exact same tile
                 canExecute = false;
                 }
 
@@ -21999,6 +22013,11 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             else if( noBackAccess ) {
                 // don't consider N neighbor
                 nLimit = 4;
+                }
+            else if( requireExactTileUsage ) {
+                // object needs to be used while
+                // standing on the exact same tile
+                nStart = 0;
                 }
             else if( destID > 0 &&
                      ourLiveObject->holdingID == 0 && 
