@@ -27,6 +27,7 @@ typedef enum AnimType {
     eating,
     doing,
     biking,
+    sitting,
     endAnimType,
     // arbitrary number of extra animation slots
     // indexed by calling setExtraIndex or setExtraIndexB before calling

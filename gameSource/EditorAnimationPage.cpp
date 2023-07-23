@@ -380,7 +380,8 @@ EditorAnimationPage::EditorAnimationPage()
     mCheckboxNames[3] = "Eating";
     mCheckboxNames[4] = "Doing";
     mCheckboxNames[5] = "Biking";
-    mCheckboxNames[6] = "Extra";
+    mCheckboxNames[6] = "Sitting";
+    mCheckboxNames[7] = "Extra";
 
     mCheckboxAnimTypes[0] = ground;
     mCheckboxAnimTypes[1] = held;
@@ -388,13 +389,15 @@ EditorAnimationPage::EditorAnimationPage()
     mCheckboxAnimTypes[3] = eating;
     mCheckboxAnimTypes[4] = doing;
     mCheckboxAnimTypes[5] = biking;
-    mCheckboxAnimTypes[6] = extra;
+    mCheckboxAnimTypes[6] = sitting;
+    mCheckboxAnimTypes[7] = extra;
 
     mCheckboxes[0]->setToggled( true );
     
     mCheckboxes[3]->setVisible( false );
     mCheckboxes[4]->setVisible( false );
     mCheckboxes[5]->setVisible( false );
+    mCheckboxes[6]->setVisible( false );
 
 
     boxY = 220;
@@ -1863,7 +1866,7 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
 
         // if extra currently checked, we don't know that an extra anim
         // exists in the new object that we picked
-        if( mCheckboxes[5]->getToggled() ) {
+        if( mCheckboxes[7]->getToggled() ) {
             actionPerformed( mCheckboxes[0] );
             mLastType = ground;
             }
@@ -2004,6 +2007,7 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
                     mCheckboxes[3]->setVisible( true );
                     mCheckboxes[4]->setVisible( true );
                     mCheckboxes[5]->setVisible( true );
+                    mCheckboxes[6]->setVisible( true );
                     }
                 else {
                     mPersonAgeSlider.setVisible( false );
@@ -2012,13 +2016,15 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
                     
                     if( mCheckboxes[3]->getToggled() || 
                         mCheckboxes[4]->getToggled() ||
-                        mCheckboxes[5]->getToggled() ) {
+                        mCheckboxes[5]->getToggled() ||
+                        mCheckboxes[6]->getToggled() ) {
                         
                         actionPerformed( mCheckboxes[0] );
                         }
                     mCheckboxes[3]->setVisible( false );
                     mCheckboxes[4]->setVisible( false );
                     mCheckboxes[5]->setVisible( false );
+                    mCheckboxes[6]->setVisible( false );
                     }
                 }
             }
