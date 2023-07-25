@@ -114,7 +114,7 @@ EditorObjectPage::EditorObjectPage()
           mMinPickupAgeField( smallFont, 
                               300,  -220, 4,
                               false,
-                              "Pickup Age", "0123456789.", NULL ),
+                              "Pickup Age", "0123456789,", NULL ),
           mRaceField( smallFont, 
                       150, -120, 2,
                       true,
@@ -1486,6 +1486,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         int foodValue = 0;
         int bonusValue = 0;
         sscanf( foodValueText, "%d,%d", &( foodValue ), &( bonusValue ) );
+        
+        char *pickupAgeText = mMinPickupAgeField.getText();
+        int minPickupAge = 3;
+        int maxPickupAge = 9999999;
+        sscanf( pickupAgeText, "%d,%d", &( minPickupAge ), &( maxPickupAge ) );
 
         int newID =
         addObject( text,
@@ -1495,7 +1500,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mCheckboxes[1]->getToggled(),
                    mNoFlipCheckbox.getToggled(),
                    mSideAccessCheckbox.getToggled(),
-                   mMinPickupAgeField.getFloat(),
+                   minPickupAge,
+                   maxPickupAge,
                    mHeldInHandCheckbox.getToggled(),
                    mRideableCheckbox.getToggled(),
                    mRidingAnimationIndexField.getInt(),
@@ -1647,6 +1653,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         int foodValue = 0;
         int bonusValue = 0;
         sscanf( foodValueText, "%d,%d", &( foodValue ), &( bonusValue ) );
+        
+        char *pickupAgeText = mMinPickupAgeField.getText();
+        int minPickupAge = 3;
+        int maxPickupAge = 9999999;
+        sscanf( pickupAgeText, "%d,%d", &( minPickupAge ), &( maxPickupAge ) );
 
 
         addObject( text,
@@ -1656,7 +1667,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mCheckboxes[1]->getToggled(),
                    mNoFlipCheckbox.getToggled(),
                    mSideAccessCheckbox.getToggled(),
-                   mMinPickupAgeField.getFloat(),
+                   minPickupAge,
+                   maxPickupAge,
                    mHeldInHandCheckbox.getToggled(),
                    mRideableCheckbox.getToggled(),
                    mRidingAnimationIndexField.getInt(),
@@ -2945,7 +2957,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDeadlyDistanceField.setInt( pickedRecord->deadlyDistance );
             mUseDistanceField.setInt( pickedRecord->useDistance );
             
-            mMinPickupAgeField.setInt( pickedRecord->minPickupAge );
+            if( pickedRecord->maxPickupAge != 9999999 ) {
+                mMinPickupAgeField.setText( autoSprintf( "%d,%d", pickedRecord->minPickupAge, pickedRecord->maxPickupAge ) );
+                }
+            else {
+                mMinPickupAgeField.setInt( pickedRecord->minPickupAge );
+                }
 
             mCurrentObject.containable = pickedRecord->containable;
             mCurrentObject.vertContainRotationOffset = 
