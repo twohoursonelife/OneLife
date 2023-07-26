@@ -2553,6 +2553,10 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
                 // jump right to start of new animation with no fade
                 mLastTypeFade = 0;
                 }
+            
+            
+            mRandomStartPhaseCheckbox.setToggled( mCurrentAnim[ mCurrentType ]->randomStartPhase );
+            mForceZeroStartCheckbox.setToggled( mCurrentAnim[ mCurrentType ]->forceZeroStart );
 
             
             checkNextPrevVisible();
