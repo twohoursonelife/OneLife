@@ -267,6 +267,9 @@ static char takingPhotoFlip = false;
 static int photoSequenceNumber = -1;
 static char waitingForPhotoSig = false;
 static char *photoSig = NULL;
+static char waitingForPhotoID = false;
+
+
 
 
 static double emotDuration = 10;
@@ -10596,7 +10599,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             waitingForPhotoSig = true;
             delete [] message;
             }
-        else if( photoSig != NULL ) {
+        else if( photoSig != NULL && ! waitingForPhotoID ) {
             float currentFOV = gui_fov_scale;
             changeFOV( 1.0f ); // reset fov for photo taking temporarily
 
@@ -10674,13 +10677,40 @@ void LivingLifePage::draw( doublePair inViewCenter,
                        &subjectIDs,
                        &subjectNames );
             
-            takingPhoto = false;
-            delete [] photoSig;
-            photoSig = NULL;
-            photoSequenceNumber = -1;
-            waitingForPhotoSig = false;
+            waitingForPhotoID = true;
 
             changeFOV( currentFOV ); // restore fov after photo taking
+            }
+        else if( waitingForPhotoID ) {
+            // is our photo ID ready yet?
+            
+            char *photoID = getPostedPhotoID();
+            
+            if( photoID != NULL ) {
+                
+                // empty string means error in submitting photo
+                if( strcmp( photoID, "" ) != 0 ) {
+                    char *message = 
+                        autoSprintf( "PHOID %d %d %s#",
+                                     takingPhotoGlobalPos.x, 
+                                     takingPhotoGlobalPos.y,
+                                     photoID );
+                
+                    sendToServerSocket( message );
+                    delete [] message;
+                    }
+                
+                delete [] photoID;
+                
+
+                delete [] photoSig;
+                photoSig = NULL;
+                photoSequenceNumber = -1;
+                waitingForPhotoSig = false;
+                waitingForPhotoID = false;
+                
+                takingPhoto = false;
+                }
             }
         }
     
@@ -23890,6 +23920,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     takingPhoto = false;
     photoSequenceNumber = -1;
     waitingForPhotoSig = false;
+    waitingForPhotoID = false;
+    
     if( photoSig != NULL ) {
         delete [] photoSig;
         photoSig = NULL;

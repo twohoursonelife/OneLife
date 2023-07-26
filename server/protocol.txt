@@ -926,6 +926,8 @@ VOGI x y id#
 VOGT x y text# 
 VOGX x y#
 PHOTO x y seq#
+PHOID x y photo_id_string#
+FLIP x y#
 
 KA   is a keep-alive message used to keep the connection alive when the client
      is idle and not sending any other messages (NATs and other routers can
@@ -1020,6 +1022,12 @@ PING is used to request a PONG response fromt the server.  The x and y
 
 PHOTO is used to request a photo approval and signature for position
       x y and sequence number seq
+
+PHOID is used to post a photo id string for position x y
+      photo_id_string is 40 digits of lowercase ascii hex   
+
+FLIP requests flip to player's orientation, new facing toward x y
+
 
 
 This one is more complicated:
