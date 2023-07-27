@@ -138,7 +138,10 @@ graphics/background.tga \
 graphics/logo.tga \
 graphics/yumIcon.tga \
 graphics/mehIcon.tga \
-graphics/photoDisplay.tga \
+graphics/photoDisplay1.tga \
+graphics/photoDisplay2.tga \
+graphics/photoDisplay3.tga \
+graphics/photoDisplay4.tga \
 
 
 
