@@ -87,6 +87,9 @@ static int holdingYumOrMeh = 0;
 
 static char shouldMoveCamera = true;
 
+bool ShowUseOnObjectHoverSettingToggle = false;
+bool isShowUseOnObjectHoverKeybindEnabled = false;
+
 
 extern double viewWidth;
 extern double viewHeight;
@@ -111,8 +114,6 @@ static char vogModeActuallyOn = false;
 static doublePair vogPos = { 0, 0 };
 
 static char vogPickerOn = false;
-
-    
 
 extern float musicLoudness;
 
@@ -446,6 +447,9 @@ static int getHomeDir( doublePair inCurrentPlayerPos,
     }
 
 
+bool isStrAllDigits(std::string &str) {
+    return std::all_of(str.begin(), str.end(), ::isdigit);
+    }
 
 
 
@@ -2451,7 +2455,6 @@ void LivingLifePage::clearMap() {
         mMapPlayerPlacedFlags[i] = false;
         }
     }
-
 
 
 LivingLifePage::LivingLifePage() 
@@ -9771,7 +9774,40 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 drawChalkBackgroundString( 
                     {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
                     stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+
+                if (ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled) {
+                    if (mCurMouseOverID > 0) {
+                        ObjectRecord *o = getObject(mCurMouseOverID);
+                        std::string fullDesc(stringToUpperCase(o->description));
+                        int poundPos = fullDesc.find("#");
+                        
+                        if (poundPos != -1) {
+                            std::string description(fullDesc.substr(poundPos + 1));
+                            std::vector<std::string> parts = minitech::Tokenize(description, "[#]+");
+
+                            std::string displayUseCaption = "";
+                            for (long unsigned int i = 0; i < parts.size(); i++) {
+                                std::string tag = " USE";
+                                if (parts[i].rfind(tag.c_str(), 0) == 0) {
+                                    displayUseCaption = parts[i].substr(tag.size() + 1);
+                                } else {
+                                    displayUseCaption = description;
+                                }
+                            }
+
+                            if (displayUseCaption != "") {
+                                if (isStrAllDigits(displayUseCaption)) {
+                                    char *displayStr = autoSprintf("USE: %s", displayUseCaption.c_str());
+                                    drawChalkBackgroundString( 
+                                    {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud}, 
+                                    displayStr, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+                                }
+                            }
+                        }
+                    }
                 }
+                
+            }
             
             delete [] stringUpper;
             }
@@ -22686,7 +22722,22 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
 	bool commandKey = isCommandKeyDown();
 	bool shiftKey = isShiftKeyDown();
-    
+
+    if (!vogMode && !vogPickerOn) {
+        int keyCode_u = 85;
+        if (shiftKey && inASCII == keyCode_u) {
+            bool isSettingEnabled = 
+                SettingsManager::getIntSetting("advanced/showUseOnObjectHoverKeybind", 0);
+            ShowUseOnObjectHoverSettingToggle = isSettingEnabled;
+
+            if (isSettingEnabled) {
+                isShowUseOnObjectHoverKeybindEnabled = !isShowUseOnObjectHoverKeybindEnabled;
+            } else {
+                isShowUseOnObjectHoverKeybindEnabled = false;
+            }
+        }
+    }
+
     if( vogMode && vogPickerOn ) {
         //Picker keybinds
         if( !commandKey && inASCII == 9 ) { // TAB

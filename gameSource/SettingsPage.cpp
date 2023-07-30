@@ -13,6 +13,7 @@
 #include "musicPlayer.h"
 #include "soundBank.h"
 #include "objectBank.h"
+#include "LivingLifePage.h"
 #include "buttonStyle.h"
 
 #ifdef USE_DISCORD
@@ -639,6 +640,7 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         mAdvancedShowUseOnObjectHoverKeybindSetting = newSetting;
         SettingsManager::setSetting("advanced/showUseOnObjectHoverKeybind",
                                     newSetting);
+        ShowUseOnObjectHoverSettingToggle = (bool)newSetting;
     }
 
     checkRestartRequired();
