@@ -48,9 +48,9 @@ SettingsPage::SettingsPage()
 #ifdef USE_DISCORD
           mDiscordButton( mainFont, -452.5, -96, "DISCORD" ),
 #endif // USE_DISCORD
-          mAdvancedButton( mainFont, -452.5, -190, "ADVANCED" ),
+          mAdvancedButton( mainFont, -452.5, -192, "ADVANCED" ),
 
-          mBackButton( mainFont, -452.5, -272, translate( "backButton" ) ),
+          mBackButton( mainFont, -452.5, -288, translate( "backButton" ) ),
           
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
 

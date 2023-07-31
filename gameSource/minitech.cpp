@@ -1502,31 +1502,19 @@ void minitech::updateDrawTwoTech() {
 				string objName = livingLifePage->minitechGetDisplayObjectDescription(id);
 				drawStr(objName, captionPos, "tinyHandwritten", true, true);
 				
-				ObjectRecord* o = getObject(id);
-				string objFullDesc(stringToUpperCase(o->description));
-                int poundPos = objFullDesc.find("#");
-                if (poundPos != -1) {
-                    string displayedComments = "";
-                    string objDesc(objFullDesc.substr(poundPos + 1));
-                    
-                    if( !showCommentsAndTagsInObjectDescription ) {
-                        std::vector<std::string> parts = Tokenize( objDesc, "[#]+" );
-                        for ( int j=0; j<(int)parts.size(); j++ ) {
-                            // if( parts[j].find(" USE") != std::string::npos ) {
-                            if( parts[j].rfind(" USE", 0) == 0 ) {
-                                displayedComments = parts[j];
-                            }
-                        }
-                    } else {
-                        displayedComments = objDesc;
-                    }
-                    if( displayedComments != "" ) {
-                        captionPos.y -= tinyLineHeight*2;
-                        drawStr(displayedComments, captionPos, "tinyHandwritten", true, true);
-                    }
-                }
+				string objComment = livingLifePage->minitechGetObjectDescriptionComment(currentHintObjId);
+				if (!objComment.empty()) {
+					string displayedComment = objComment;
+					if( !showCommentsAndTagsInObjectDescription ) {
+						string tagData = livingLifePage->minitechGetObjectDescriptionTagData(objComment);
+						if (!tagData.empty()) { displayedComment = tagData; }
+						}
+
+					captionPos.y -= tinyLineHeight*2;
+					drawStr(displayedComment, captionPos, "tinyHandwritten", true, true);
+					}
+				}
 			}
-		}
 	}
 
 
@@ -1598,29 +1586,17 @@ void minitech::updateDrawTwoTech() {
 		string objName = livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId);
 		drawStr(objName, captionPos, "tinyHandwritten", true, true);
 		
-		ObjectRecord* o = getObject(currentHintObjId);
-		string objFullDesc(stringToUpperCase(o->description));
-		int poundPos = objFullDesc.find("#");
-		if (poundPos != -1) {
-            string displayedComments = "";
-            string objDesc(objFullDesc.substr(poundPos + 1));
-            
-            if( !showCommentsAndTagsInObjectDescription ) {
-                std::vector<std::string> parts = Tokenize( objDesc, "[#]+" );
-                for ( int j=0; j<(int)parts.size(); j++ ) {
-                    // if( parts[j].find(" USE") != std::string::npos ) {
-                    if( parts[j].rfind(" USE", 0) == 0 ) {
-                        displayedComments = parts[j];
-                    }
-                }
-            } else {
-                displayedComments = objDesc;
-            }
-            if( displayedComments != "" ) {
-                captionPos.y -= tinyLineHeight*2;
-                drawStr(displayedComments, captionPos, "tinyHandwritten", true, true);
-            }
-		}
+		string objComment = livingLifePage->minitechGetObjectDescriptionComment(currentHintObjId);
+		if (!objComment.empty()) {
+			string displayedComment = objComment;
+			if( !showCommentsAndTagsInObjectDescription ) {
+				string tagData = livingLifePage->minitechGetObjectDescriptionTagData(objComment);
+				if (!tagData.empty()) { displayedComment = tagData; }
+				}
+
+			captionPos.y -= tinyLineHeight*2;
+			drawStr(displayedComment, captionPos, "tinyHandwritten", true, true);
+			}
 	}
 	
     topBarPos = {9999, 9999};
