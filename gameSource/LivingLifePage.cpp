@@ -1028,7 +1028,7 @@ static std::string minitechGetFullObjectDescription( int objID ) {
     return s;
     }
 
-std::string LivingLifePage::minitechGetObjectDescriptionComment(int objID ) {
+std::string LivingLifePage::minitechGetObjectDescriptionComment( int objID ) {
     std::string objFullDesc = minitechGetFullObjectDescription(objID);
     int poundPos = objFullDesc.find("#");
     if (poundPos != -1) {
@@ -1037,19 +1037,21 @@ std::string LivingLifePage::minitechGetObjectDescriptionComment(int objID ) {
     return "";
     }
 
-std::string LivingLifePage::minitechGetObjectDescriptionTagData( std::string &objDesc) {
+std::string LivingLifePage::minitechGetObjectDescriptionTagData( 
+    std::string &objComment, const char* tagName ) {
+
     std::string tagData = "";
-    std::vector<std::string> parts = minitech::Tokenize( objDesc, "[#]+" );
+    std::vector<std::string> parts = minitech::Tokenize( objComment, "[#]+" );
     for ( int j=0; j<(int)parts.size(); j++ ) {
-        if( parts[j].rfind(" USE", 0) == 0 ) {
+        if( parts[j].rfind(tagName, 0) == 0 ) {
             tagData = parts[j];
             }
         }
 
-        return tagData;
+    return tagData;
     }
 
-static bool isAllDigits(std::string &str) {
+static bool isAllDigits( std::string &str ) {
     return std::all_of(str.begin(), str.end(), ::isdigit);
     }
 
@@ -9823,15 +9825,20 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 if(isShowUseOnObjectHoverIsActive && mCurMouseOverID > 0) {      
                     std::string objComment = minitechGetObjectDescriptionComment(mCurMouseOverID);
                     std::string displayedComment = objComment;
-                    std::string tagData = minitechGetObjectDescriptionTagData(objComment);
-
                     std::string tagName = " USE";
-                    if(!tagData.empty()) { displayedComment = tagData.substr(tagName.size() + 1); }
+                    std::string tagData = minitechGetObjectDescriptionTagData(objComment, tagName.c_str());
+
+                    if(!tagData.empty()) { 
+                        std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
+                        displayedComment = remainingUseCount;
+                        }
                     if(!displayedComment.empty() && isAllDigits(displayedComment)) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
                         drawChalkBackgroundString( 
                         {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud}, 
                         display, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );                        
+                        
+                        delete [] display;
                     }                
                 }
             }

@@ -529,7 +529,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 		doublePair minitechGetLastScreenViewCenter();
 		std::string minitechGetDisplayObjectDescription(int objId);
         std::string minitechGetObjectDescriptionComment(int objId);
-        std::string minitechGetObjectDescriptionTagData(std::string &objComment);
+        std::string minitechGetObjectDescriptionTagData(
+            std::string &objComment, const char *tagName);
 		bool minitechSayFieldIsFocused() { return mSayField.isFocused(); }
 
         virtual void actionPerformed( GUIComponent *inTarget );
