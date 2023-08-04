@@ -1007,6 +1007,14 @@ static char *getDisplayObjectDescription( int inID ) {
     return desc;
     }
 
+std::string LivingLifePage::minitechGetFullObjectDescription( int objID ) {
+    char *desc = getFullUpperCasedObjectDescription(objID);
+    if (desc == NULL) {
+        return "";
+        }
+    std::string s = desc;
+    return s;
+    }
 
 std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) { 
     ObjectRecord *o = getObject( objId );
@@ -1018,38 +1026,6 @@ std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) {
 	delete [] descriptionChars;
 	return description;
 }
-
-static std::string minitechGetFullObjectDescription( int objID ) {
-    char *desc = getFullUpperCasedObjectDescription(objID);
-    if (desc == NULL) {
-        return "";
-        }
-    std::string s = desc;
-    return s;
-    }
-
-std::string LivingLifePage::minitechGetObjectDescriptionComment( int objID ) {
-    std::string objFullDesc = minitechGetFullObjectDescription(objID);
-    int poundPos = objFullDesc.find("#");
-    if (poundPos != -1) {
-        return objFullDesc.substr(poundPos + 1);
-        }
-    return "";
-    }
-
-std::string LivingLifePage::minitechGetObjectDescriptionTagData( 
-    std::string &objComment, const char* tagName ) {
-
-    std::string tagData = "";
-    std::vector<std::string> parts = minitech::Tokenize( objComment, "[#]+" );
-    for ( int j=0; j<(int)parts.size(); j++ ) {
-        if( parts[j].rfind(tagName, 0) == 0 ) {
-            tagData = parts[j];
-            }
-        }
-
-    return tagData;
-    }
 
 static bool isAllDigits( std::string &str ) {
     return std::all_of(str.begin(), str.end(), ::isdigit);
@@ -9823,10 +9799,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     ShowUseOnObjectHoverSettingToggle  && isShowUseOnObjectHoverKeybindEnabled;
 
                 if(isShowUseOnObjectHoverIsActive && mCurMouseOverID > 0) {      
-                    std::string objComment = minitechGetObjectDescriptionComment(mCurMouseOverID);
+                    std::string objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
                     std::string displayedComment = objComment;
                     std::string tagName = " USE";
-                    std::string tagData = minitechGetObjectDescriptionTagData(objComment, tagName.c_str());
+                    std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
 
                     if(!tagData.empty()) { 
                         std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
@@ -9835,8 +9811,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     if(!displayedComment.empty() && isAllDigits(displayedComment)) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
                         drawChalkBackgroundString( 
-                        {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud}, 
-                        display, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );                        
+                            {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud},
+                            display, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
                         
                         delete [] display;
                     }                
