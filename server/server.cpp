@@ -7099,6 +7099,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     
+    if( !newObject.isTutorial )
     if( connection->famTarget != NULL && parentChoices.size() == 0 ) {
         // -2 means failure to be born due to famTarget restriction
         return -2;
