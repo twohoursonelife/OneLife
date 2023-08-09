@@ -116,11 +116,11 @@ An outside application can also respond with the message PLAYER_LIST <secret># i
 will then send a list of players status in the format
 ----
 num_players
-p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
-p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
-p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,isTutorial,name,familyName
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,isTutorial,name,familyName
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,isTutorial,name,familyName
 ....
-p_id,eve_id,parent_id,gender,age,delcaredInfertile,name,familyName
+p_id,eve_id,parent_id,gender,age,delcaredInfertile,isTutorial,name,familyName
 #
 ----
 where
@@ -131,6 +131,7 @@ parent_id: the player id of the player's parent
 gender: F or M.
 age: player age with 1 decimal.
 declaredInfertile: 1 if the player has declared themselves as infertile, otherwise 0 (if player said one of infertilityDeclaringPhrases.ini).
+isTutorial: 1 if player is playing Tutorial
 name: player full name can include the word "EVE", empty if player is nameless.
 familyName: player's family name, assigned at birth if mother has familyName, can be assigned for an orphaned baby if another family names them, NOTE: EVE without a name has no familyName. until she declares her name all her babies will have familyName null.
 
