@@ -276,7 +276,7 @@ SettingsPage::SettingsPage()
 #endif // USE_DISCORD
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
-      "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+U TO ENABLE/DISABLE IN-GAME");
+      "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
