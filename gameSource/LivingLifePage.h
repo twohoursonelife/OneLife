@@ -41,8 +41,6 @@
 
 #define NUM_YUM_SLIPS 4
 
-extern bool ShowUseOnObjectHoverSettingToggle;
-
 namespace fovmod {
     extern float gui_fov_scale;
     extern int gui_fov_scale_hud;

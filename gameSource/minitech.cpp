@@ -1002,7 +1002,7 @@ vector<TransRecord*> minitech::sortProdTrans(vector<TransRecord*> unsortedTrans)
 
 static void drawUseCaption( int objId, doublePair &captionPos, int tinyLineHeight ) {
 
-    string objComment = minitech::getObjDescriptionComment(objId);
+	string objComment = minitech::getObjDescriptionComment(objId);
 	string displayComment = objComment;
 	string tagData = minitech::getObjDescriptionTagData(objComment, " USE");
 
