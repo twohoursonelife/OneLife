@@ -13,6 +13,7 @@
 #include "musicPlayer.h"
 #include "soundBank.h"
 #include "objectBank.h"
+#include "LivingLifePage.h"
 #include "buttonStyle.h"
 
 #ifdef USE_DISCORD
@@ -40,14 +41,16 @@ SettingsPage::SettingsPage()
           // Left Pane
           mRestartButton( mainFont, 360, -272, translate( "restartButton" ) ),
           
-          mGameplayButton( mainFont, -452.5, 208, "GAMEPLAY" ),
-          mControlButton( mainFont, -452.5, 112, "CONTROL" ),
-          mScreenButton( mainFont, -452.5, 16, "SCREEN" ),
-          mSoundButton( mainFont, -452.5, -80, "SOUND" ),
+          mGameplayButton( mainFont, -452.5, 288, "GAMEPLAY" ),
+          mControlButton( mainFont, -452.5, 192, "CONTROL" ),
+          mScreenButton( mainFont, -452.5, 96, "SCREEN" ),
+          mSoundButton( mainFont, -452.5, 0, "SOUND" ),
 #ifdef USE_DISCORD
-          mDiscordButton( mainFont, -452.5, -176, "DISCORD" ),
+          mDiscordButton( mainFont, -452.5, -96, "DISCORD" ),
 #endif // USE_DISCORD
-          mBackButton( mainFont, -452.5, -272, translate( "backButton" ) ),
+          mAdvancedButton( mainFont, -452.5, -192, "ADVANCED" ),
+
+          mBackButton( mainFont, -452.5, -288, translate( "backButton" ) ),
           
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
 
@@ -94,7 +97,7 @@ SettingsPage::SettingsPage()
           mEnableDiscordRichPresenceDetails(0, 48, 4),
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
-                                                        {
+        , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4) {
                             
 
     
@@ -196,6 +199,11 @@ SettingsPage::SettingsPage()
     mDiscordButton.addActionListener(this);
 #endif // USE_DISCORD
 
+    setButtonStyle(&mAdvancedButton);
+    mAdvancedButton.setSize(175, 60);
+    addComponent(&mAdvancedButton);
+    mAdvancedButton.addActionListener(this);
+
     setButtonStyle( &mRestartButton );
     mRestartButton.setSize( 175, 60 );
     addComponent( &mRestartButton );
@@ -216,11 +224,13 @@ SettingsPage::SettingsPage()
     mEnableDiscordRichPresence.addActionListener(this);
 #endif // USE_DISCORD
 
+    addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
+    mEnableAdvancedShowUseOnObjectHoverKeybind.addActionListener(this);
+
     // Not in use
     setButtonStyle( &mEditAccountButton );
     // addComponent( &mEditAccountButton );
     mEditAccountButton.addActionListener( this );
-
     
     mRestartButton.setCursorTip( "RESTART THE GAME" );
     
@@ -231,6 +241,9 @@ SettingsPage::SettingsPage()
 #ifdef USE_DISCORD
     mDiscordButton.setCursorTip("DISCORD RICH PRESENCE SETTINGS");
 #endif // USE_DISCORD
+
+    mAdvancedButton.setCursorTip("ADVANCED GAMEPLAY SETTINGS");
+
     mBackButton.setCursorTip( "GO BACK" );
     
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
@@ -258,6 +271,9 @@ SettingsPage::SettingsPage()
     mDiscordHideFirstNameInDetails.setCursorTip("HIDE FIRST NAME IN THE STATUS");
 #endif // USE_DISCORD
 
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
+      "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+U TO ENABLE/DISABLE IN-GAME");
+    
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
     
@@ -326,6 +342,12 @@ SettingsPage::SettingsPage()
 
     mDiscordHideFirstNameInDetails.setToggled(mDiscordHideFirstNameInDetailsSetting);
 #endif // USE_DISCORD
+
+    mAdvancedShowUseOnObjectHoverKeybindSetting = 
+        SettingsManager::getIntSetting("advanced/showUseOnObjectHoverKeybind", 0);
+
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setToggled(
+        mAdvancedShowUseOnObjectHoverKeybindSetting);
 
     mPage = 0;
     
@@ -609,6 +631,18 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             }
         }        
 #endif // USE_DISCORD
+
+    else if ( inTarget == &mAdvancedButton ) {
+        mPage = 5;
+    }
+    else if ( inTarget == &mEnableAdvancedShowUseOnObjectHoverKeybind ) {
+        int newSetting = mEnableAdvancedShowUseOnObjectHoverKeybind.getToggled();
+        mAdvancedShowUseOnObjectHoverKeybindSetting = newSetting;
+        SettingsManager::setSetting("advanced/showUseOnObjectHoverKeybind",
+                                    newSetting);
+        ShowUseOnObjectHoverSettingToggle = (bool)newSetting;
+    }
+
     checkRestartRequired();
     updatePage();
     }
@@ -814,7 +848,15 @@ void SettingsPage::draw( doublePair inViewCenter,
     mEnableDiscordRichPresenceDetails.setActive(time(0) - last_discord_setting_change > 2);
     mDiscordHideFirstNameInDetails.setActive(time(0) - last_discord_setting_change > 2);
 #endif // USE_DISCORD
+
+    if (mEnableAdvancedShowUseOnObjectHoverKeybind.isVisible()) {
+        doublePair pos = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("SHOW USE ON HOVER", pos, alignRight);
     }
+}
 
 
 
@@ -942,6 +984,7 @@ void SettingsPage::updatePage() {
     mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, 3 * lineSpacing);
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
     mEnableNudeBox.setVisible( mPage == 0 );
@@ -980,6 +1023,7 @@ void SettingsPage::updatePage() {
                                         && mEnableDiscordRichPresenceStatus.getToggled());
 #endif // USE_DISCORD
 
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
     mScreenButton.setActive( mPage != 2 );
@@ -988,6 +1032,8 @@ void SettingsPage::updatePage() {
 #ifdef USE_DISCORD
     mDiscordButton.setActive( mPage != 4 );
 #endif // USE_DISCORD
+
+    mAdvancedButton.setActive( mPage != 5 );
 
 }
 

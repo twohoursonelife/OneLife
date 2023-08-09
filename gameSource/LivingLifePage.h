@@ -41,6 +41,8 @@
 
 #define NUM_YUM_SLIPS 4
 
+extern bool ShowUseOnObjectHoverSettingToggle;
+
 namespace fovmod {
     extern float gui_fov_scale;
     extern int gui_fov_scale_hud;
@@ -525,6 +527,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 
 		doublePair minitechGetLastScreenViewCenter();
+        std::string minitechGetFullObjectDescription(int objId);
 		std::string minitechGetDisplayObjectDescription(int objId);
 		bool minitechSayFieldIsFocused() { return mSayField.isFocused(); }
 

@@ -87,6 +87,9 @@ static int holdingYumOrMeh = 0;
 
 static char shouldMoveCamera = true;
 
+bool ShowUseOnObjectHoverSettingToggle = false;
+static bool isShowUseOnObjectHoverKeybindEnabled = false;
+
 
 extern double viewWidth;
 extern double viewHeight;
@@ -110,9 +113,9 @@ static char vogModeActuallyOn = false;
 
 static doublePair vogPos = { 0, 0 };
 
-static char vogPickerOn = false;
 
-    
+
+static char vogPickerOn = false;
 
 extern float musicLoudness;
 
@@ -986,27 +989,47 @@ static void stripDescriptionComment( char *inString ) {
     }
 
 
-
-static char *getDisplayObjectDescription( int inID ) {
+static char *getFullUpperCasedObjectDescription( int inID ) {
     ObjectRecord *o = getObject( inID );
     if( o == NULL ) {
         return NULL;
         }
-    char *upper = stringToUpperCase( o->description );
-    stripDescriptionComment( upper );
-    return upper;
+    return stringToUpperCase( o->description );
+}
+
+
+static char *getDisplayObjectDescription( int inID ) {
+    char *desc = getFullUpperCasedObjectDescription(inID);
+    if(desc == NULL) {
+        return NULL;
+        }
+    stripDescriptionComment( desc );
+    return desc;
+    }
+
+std::string LivingLifePage::minitechGetFullObjectDescription( int objID ) {
+    char *desc = getFullUpperCasedObjectDescription(objID);
+    if (desc == NULL) {
+        return "";
+        }
+    std::string s = desc;
+    return s;
     }
 
 std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) { 
     ObjectRecord *o = getObject( objId );
     if( o == NULL ) {
 		return "";
-    }
+        }
 	char *descriptionChars = getDisplayObjectDescription(objId);
 	std::string description(descriptionChars);
 	delete [] descriptionChars;
 	return description;
 }
+
+static bool isAllDigits( std::string &str ) {
+    return std::all_of(str.begin(), str.end(), ::isdigit);
+    }
 
 // Checks for a potential container change caused by containment transitions
 // We could check all the changed contained objects and all the IN and OUT transitions
@@ -9771,7 +9794,30 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 drawChalkBackgroundString( 
                     {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
                     stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+
+                const bool isShowUseOnObjectHoverIsActive = 
+                    ShowUseOnObjectHoverSettingToggle  && isShowUseOnObjectHoverKeybindEnabled;
+
+                if(isShowUseOnObjectHoverIsActive && mCurMouseOverID > 0) {      
+                    std::string objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
+                    std::string displayedComment = objComment;
+                    std::string tagName = " USE";
+                    std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
+
+                    if(!tagData.empty()) { 
+                        std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
+                        displayedComment = remainingUseCount;
+                        }
+                    if(!displayedComment.empty() && isAllDigits(displayedComment)) {
+                        char *display = autoSprintf("USE: %s", displayedComment.c_str());
+                        drawChalkBackgroundString( 
+                            {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud},
+                            display, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+                        
+                        delete [] display;
+                    }                
                 }
+            }
             
             delete [] stringUpper;
             }
@@ -22686,7 +22732,23 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
 	bool commandKey = isCommandKeyDown();
 	bool shiftKey = isShiftKeyDown();
-    
+
+
+    if (!vogMode && !vogPickerOn) {
+        int keyCode_u = 85;
+        if (shiftKey && inASCII == keyCode_u) {
+            bool isSettingEnabled = 
+                SettingsManager::getIntSetting("advanced/showUseOnObjectHoverKeybind", 0);
+            ShowUseOnObjectHoverSettingToggle = isSettingEnabled;
+
+            if (isSettingEnabled) {
+                isShowUseOnObjectHoverKeybindEnabled = !isShowUseOnObjectHoverKeybindEnabled;
+            } else {
+                isShowUseOnObjectHoverKeybindEnabled = false;
+            }
+        }
+    }
+
     if( vogMode && vogPickerOn ) {
         //Picker keybinds
         if( !commandKey && inASCII == 9 ) { // TAB

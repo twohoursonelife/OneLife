@@ -507,6 +507,29 @@ vector<bool> minitech::getObjIsCloseVector() {
 	return objIsClose;
 }
 
+string minitech::getObjDescriptionComment(int objId) {
+    string objFullDesc = livingLifePage->minitechGetFullObjectDescription(objId);
+    int poundPos = objFullDesc.find("#");
+    if (poundPos != -1) {
+        return objFullDesc.substr(poundPos + 1);
+    }
+    return "";
+}
+
+string minitech::getObjDescriptionTagData( const string &objComment, const char* tagName ) {
+
+    string tagData = "";
+    vector<string> parts = Tokenize( objComment, "[#]+" );
+    for ( int j=0; j<(int)parts.size(); j++ ) {
+        if( parts[j].rfind(tagName, 0) == 0 ) {
+            tagData = parts[j];
+        }
+    }
+
+    return tagData;
+}
+
+
 bool minitech::isUncraftable(int objId) {
     if( objId <= 0 ) return false;
     int d = getObjectDepth( objId );
@@ -975,6 +998,21 @@ vector<TransRecord*> minitech::sortProdTrans(vector<TransRecord*> unsortedTrans)
 		temp[i] = unsortedTrans[index[i]];
 	}
 	return temp;
+}
+
+static void drawUseCaption( int objId, doublePair &captionPos, int tinyLineHeight ) {
+
+    string objComment = minitech::getObjDescriptionComment(objId);
+	string displayComment = objComment;
+	string tagData = minitech::getObjDescriptionTagData(objComment, " USE");
+
+	if( !tagData.empty() && !minitech::showCommentsAndTagsInObjectDescription ) { 
+		displayComment = tagData; 
+	}
+	if(!displayComment.empty()) {
+		captionPos.y -= tinyLineHeight*2;
+		minitech::drawStr(displayComment, captionPos, "tinyHandwritten", true, true);
+	}
 }
 
 void minitech::updateDrawTwoTech() {
@@ -1501,32 +1539,9 @@ void minitech::updateDrawTwoTech() {
 				
 				string objName = livingLifePage->minitechGetDisplayObjectDescription(id);
 				drawStr(objName, captionPos, "tinyHandwritten", true, true);
-				
-				ObjectRecord* o = getObject(id);
-				string objFullDesc(stringToUpperCase(o->description));
-                int poundPos = objFullDesc.find("#");
-                if (poundPos != -1) {
-                    string displayedComments = "";
-                    string objDesc(objFullDesc.substr(poundPos + 1));
-                    
-                    if( !showCommentsAndTagsInObjectDescription ) {
-                        std::vector<std::string> parts = Tokenize( objDesc, "[#]+" );
-                        for ( int j=0; j<(int)parts.size(); j++ ) {
-                            // if( parts[j].find(" USE") != std::string::npos ) {
-                            if( parts[j].rfind(" USE", 0) == 0 ) {
-                                displayedComments = parts[j];
-                            }
-                        }
-                    } else {
-                        displayedComments = objDesc;
-                    }
-                    if( displayedComments != "" ) {
-                        captionPos.y -= tinyLineHeight*2;
-                        drawStr(displayedComments, captionPos, "tinyHandwritten", true, true);
-                    }
-                }
+				drawUseCaption(id, captionPos, tinyLineHeight);
+				}
 			}
-		}
 	}
 
 
@@ -1597,30 +1612,7 @@ void minitech::updateDrawTwoTech() {
 		doublePair captionPos = {iconCen.x, iconCen.y + iconCaptionYOffset};
 		string objName = livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId);
 		drawStr(objName, captionPos, "tinyHandwritten", true, true);
-		
-		ObjectRecord* o = getObject(currentHintObjId);
-		string objFullDesc(stringToUpperCase(o->description));
-		int poundPos = objFullDesc.find("#");
-		if (poundPos != -1) {
-            string displayedComments = "";
-            string objDesc(objFullDesc.substr(poundPos + 1));
-            
-            if( !showCommentsAndTagsInObjectDescription ) {
-                std::vector<std::string> parts = Tokenize( objDesc, "[#]+" );
-                for ( int j=0; j<(int)parts.size(); j++ ) {
-                    // if( parts[j].find(" USE") != std::string::npos ) {
-                    if( parts[j].rfind(" USE", 0) == 0 ) {
-                        displayedComments = parts[j];
-                    }
-                }
-            } else {
-                displayedComments = objDesc;
-            }
-            if( displayedComments != "" ) {
-                captionPos.y -= tinyLineHeight*2;
-                drawStr(displayedComments, captionPos, "tinyHandwritten", true, true);
-            }
-		}
+		drawUseCaption(currentHintObjId, captionPos, tinyLineHeight);
 	}
 	
     topBarPos = {9999, 9999};
