@@ -5026,7 +5026,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
  
            
-            if( t->move != 0 ) {
+            if( t->move != 0 && t->desiredMoveDist > 0 ) {
                 // moving
                 doublePair dir = { 0, 0 };
                

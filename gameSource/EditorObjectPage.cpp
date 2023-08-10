@@ -114,7 +114,7 @@ EditorObjectPage::EditorObjectPage()
           mMinPickupAgeField( smallFont, 
                               300,  -220, 4,
                               false,
-                              "Pickup Age", "0123456789.", NULL ),
+                              "Pickup Age", "0123456789,", NULL ),
           mRaceField( smallFont, 
                       150, -120, 2,
                       true,
@@ -163,6 +163,10 @@ EditorObjectPage::EditorObjectPage()
           mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
           mRideableCheckbox( 290, 16, 2 ),
+          mRidingAnimationIndexField( smallFont, 
+                                    315,  16, 2,
+                                    false,
+                                    "", "-0123456789", NULL ),
           mBlocksWalkingCheckbox( 290, -4, 2 ),
           
           mDrawBehindPlayerCheckbox( 635, -90, 2 ),
@@ -639,9 +643,13 @@ EditorObjectPage::EditorObjectPage()
 
     addComponent( &mRideableCheckbox );
     mRideableCheckbox.setVisible( true );
+    
+    addComponent( &mRidingAnimationIndexField );
+    mRidingAnimationIndexField.setVisible( false );
 
     mHeldInHandCheckbox.addActionListener( this );
     mRideableCheckbox.addActionListener( this );
+    mRidingAnimationIndexField.addActionListener( this );
     
 
     addComponent( &mBlocksWalkingCheckbox );
@@ -956,6 +964,8 @@ void EditorObjectPage::updateAgingPanel() {
         
         mHeldInHandCheckbox.setVisible( true );
         mRideableCheckbox.setVisible( true );
+        if( mRideableCheckbox.getToggled() )
+            mRidingAnimationIndexField.setVisible( true );
         mBlocksWalkingCheckbox.setVisible( true );
 
         mNumUsesField.setVisible( true );
@@ -1005,11 +1015,9 @@ void EditorObjectPage::updateAgingPanel() {
 
         mHeldInHandCheckbox.setVisible( false );
         mRideableCheckbox.setVisible( false );
+        mRidingAnimationIndexField.setVisible( false );
+        mRidingAnimationIndexField.setInt( -1 );
         mBlocksWalkingCheckbox.setVisible( false );
-
-        mHeldInHandCheckbox.setToggled( false );
-        mRideableCheckbox.setToggled( false );
-        mBlocksWalkingCheckbox.setToggled( false );
         
         if( mPickedObjectLayer != -1 ) {
             mAgingLayerCheckbox.setVisible( true );
@@ -1478,6 +1486,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         int foodValue = 0;
         int bonusValue = 0;
         sscanf( foodValueText, "%d,%d", &( foodValue ), &( bonusValue ) );
+        
+        char *pickupAgeText = mMinPickupAgeField.getText();
+        int minPickupAge = 3;
+        int maxPickupAge = 9999999;
+        sscanf( pickupAgeText, "%d,%d", &( minPickupAge ), &( maxPickupAge ) );
 
         int newID =
         addObject( text,
@@ -1487,9 +1500,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mCheckboxes[1]->getToggled(),
                    mNoFlipCheckbox.getToggled(),
                    mSideAccessCheckbox.getToggled(),
-                   mMinPickupAgeField.getFloat(),
+                   minPickupAge,
+                   maxPickupAge,
                    mHeldInHandCheckbox.getToggled(),
                    mRideableCheckbox.getToggled(),
+                   mRidingAnimationIndexField.getInt(),
                    mBlocksWalkingCheckbox.getToggled(),
                    mLeftBlockingRadiusField.getInt(),
                    mRightBlockingRadiusField.getInt(),
@@ -1638,6 +1653,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         int foodValue = 0;
         int bonusValue = 0;
         sscanf( foodValueText, "%d,%d", &( foodValue ), &( bonusValue ) );
+        
+        char *pickupAgeText = mMinPickupAgeField.getText();
+        int minPickupAge = 3;
+        int maxPickupAge = 9999999;
+        sscanf( pickupAgeText, "%d,%d", &( minPickupAge ), &( maxPickupAge ) );
 
 
         addObject( text,
@@ -1647,9 +1667,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mCheckboxes[1]->getToggled(),
                    mNoFlipCheckbox.getToggled(),
                    mSideAccessCheckbox.getToggled(),
-                   mMinPickupAgeField.getFloat(),
+                   minPickupAge,
+                   maxPickupAge,
                    mHeldInHandCheckbox.getToggled(),
                    mRideableCheckbox.getToggled(),
+                   mRidingAnimationIndexField.getInt(),
                    mBlocksWalkingCheckbox.getToggled(),
                    mLeftBlockingRadiusField.getInt(),
                    mRightBlockingRadiusField.getInt(),
@@ -2329,11 +2351,17 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
     else if( inTarget == &mHeldInHandCheckbox ) {
         if( mHeldInHandCheckbox.getToggled() ) {
             mRideableCheckbox.setToggled( false );
+            mRidingAnimationIndexField.setInt( -1 );
             }
         }
     else if( inTarget == &mRideableCheckbox ) {
         if( mRideableCheckbox.getToggled() ) {
             mHeldInHandCheckbox.setToggled( false );
+            mRidingAnimationIndexField.setVisible( true );
+            }
+        else {
+            mRidingAnimationIndexField.setVisible( false );
+            mRidingAnimationIndexField.setInt( -1 );
             }
         }
     else if( inTarget == &mDeathMarkerCheckbox ) {
@@ -2929,7 +2957,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDeadlyDistanceField.setInt( pickedRecord->deadlyDistance );
             mUseDistanceField.setInt( pickedRecord->useDistance );
             
-            mMinPickupAgeField.setInt( pickedRecord->minPickupAge );
+            if( pickedRecord->maxPickupAge != 9999999 ) {
+                mMinPickupAgeField.setText( autoSprintf( "%d,%d", pickedRecord->minPickupAge, pickedRecord->maxPickupAge ) );
+                }
+            else {
+                mMinPickupAgeField.setInt( pickedRecord->minPickupAge );
+                }
 
             mCurrentObject.containable = pickedRecord->containable;
             mCurrentObject.vertContainRotationOffset = 
@@ -3226,6 +3259,14 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
 
             mHeldInHandCheckbox.setToggled( pickedRecord->heldInHand );
             mRideableCheckbox.setToggled( pickedRecord->rideable );
+            if( mRideableCheckbox.getToggled() ) {
+                mRidingAnimationIndexField.setVisible( true );
+                mRidingAnimationIndexField.setInt( pickedRecord->ridingAnimationIndex );
+                }
+            else {
+                mRidingAnimationIndexField.setVisible( false );
+                mRidingAnimationIndexField.setInt( -1 );
+                }
             mBlocksWalkingCheckbox.setToggled( pickedRecord->blocksWalking );
             
             mLeftBlockingRadiusField.setInt( pickedRecord->leftBlockingRadius );
@@ -3280,9 +3321,13 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             
             if( mRideableCheckbox.getToggled() ) {
                 mHeldInHandCheckbox.setToggled( false );
+                mRidingAnimationIndexField.setVisible( true );
+                mRidingAnimationIndexField.setInt( pickedRecord->ridingAnimationIndex );
                 }
             else if( mHeldInHandCheckbox.getToggled() ) {
                 mRideableCheckbox.setToggled( false );
+                mRidingAnimationIndexField.setVisible( false );
+                mRidingAnimationIndexField.setInt( -1 );
                 }
 
 
@@ -3885,6 +3930,7 @@ void EditorObjectPage::draw( doublePair inViewCenter,
             hideClosestArm = 0;
             }
         else if( mRideableCheckbox.getToggled() ) {
+            
             hideAllLimbs = true;
             hideClosestArm = 0;
 

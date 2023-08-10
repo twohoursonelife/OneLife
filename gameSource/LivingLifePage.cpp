@@ -4646,6 +4646,45 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             }
         }
     
+    if( inObj->holdingID > 0 && getObject( inObj->holdingID )->rideable ) {
+        if( getObject( inObj->holdingID )->ridingAnimationIndex == biking ) {
+            // biking animation
+            // replace moving with biking
+            // and replace ground2 with biking with timeVal = 0
+            // show limbs when riding a bike
+                
+            if( curType == moving ) curType = biking;
+            if( fadeTargetType == moving ) fadeTargetType = biking;
+            if( frozenArmType == moving ) frozenArmType = biking;
+            if( frozenArmFadeTargetType == moving ) frozenArmFadeTargetType = biking;
+            
+            if( curType == ground2 ) {
+                curType = biking;
+                timeVal = 0;
+                }
+            if( fadeTargetType == ground2 ) {
+                fadeTargetType = biking;
+                targetTimeVal = 0;
+                }
+            if( frozenArmType == ground2 ) frozenArmType = biking;
+            if( frozenArmFadeTargetType == ground2 ) frozenArmFadeTargetType = biking;
+            
+            hideAllLimbs = false;
+            }
+        else if( getObject( inObj->holdingID )->ridingAnimationIndex == sitting ) {
+            // sitting animation
+            // replace everything with sitting type
+            // show limbs when seated
+            
+            curType = sitting;
+            fadeTargetType = sitting;
+            frozenArmType = sitting;
+            frozenArmFadeTargetType = sitting;
+            
+            hideAllLimbs = false;
+            }
+        }
+    
     char alreadyDrawnPerson = false;
     
     HoldingPos holdingPos;
@@ -18761,6 +18800,11 @@ void LivingLifePage::step() {
                 // but DO slow animations down
                 animSpeed /= heldObj->speedMult;
                 }
+            else if( heldObj->speedMult == 0.0 ) {
+                // keep playing animations at normal speed
+                // if the object stops movement entirely
+                animSpeed = BASE_SPEED;
+                }
             }
 
         double oldFrameCount = o->animationFrameCount;
@@ -21064,6 +21108,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
     LiveObject *ourLiveObject = getOurLiveObject();
     
+    // allow this now, there could be ways other than 
+    // bare-ground transition to drop the object
+    if( false )
     if( ourLiveObject->holdingID > 0 &&
         getObject( ourLiveObject->holdingID )->speedMult == 0 ) {
         // holding something that stops movement entirely, ignore click
@@ -21922,6 +21969,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         char canExecute = false;
         char sideAccess = false;
 		char noBackAccess = false;
+        char requireExactTileUsage = false;
         
         if( destID > 0 && getObject( destID )->sideAccess ) {
             sideAccess = true;
@@ -21931,6 +21979,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             noBackAccess = true;
             }
         
+        if( destID > 0 && getObject( destID )->useDistance == 0 ) {
+            requireExactTileUsage = true;
+            }
 
         // direct click on adjacent cells or self cell?
         if( isGridAdjacent( clickDestX, clickDestY,
@@ -21950,6 +22001,13 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( noBackAccess &&
                 ( clickDestY < ourLiveObject->yd ) ) {
                 // trying to access noBackAccess object from N
+                canExecute = false;
+                }
+            if( requireExactTileUsage &&
+                ( clickDestY != ourLiveObject->yd ||
+                  clickDestX != ourLiveObject->xd ) ) {
+                // using a 0 useDistance object while not standing
+                // on the exact same tile
                 canExecute = false;
                 }
 
@@ -22006,6 +22064,11 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             else if( noBackAccess ) {
                 // don't consider N neighbor
                 nLimit = 4;
+                }
+            else if( requireExactTileUsage ) {
+                // object needs to be used while
+                // standing on the exact same tile
+                nStart = 0;
                 }
             else if( destID > 0 &&
                      ourLiveObject->holdingID == 0 && 

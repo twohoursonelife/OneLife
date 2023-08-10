@@ -631,7 +631,7 @@ static void setupNoHighlight( ObjectRecord *inR ) {
 
 
 static void setupMaxPickupAge( ObjectRecord *inR ) {
-    inR->maxPickupAge = 9999999;
+    // inR->maxPickupAge = 9999999;
     
 
     const char *key = "maxPickupAge_";
@@ -867,11 +867,13 @@ float initObjectBankStep() {
                             
                 next++;
                             
-                int permRead = 0;                 
+                int permRead = 0;
                 r->minPickupAge = 3;
-                sscanf( lines[next], "permanent=%d,minPickupAge=%d", 
+                r->maxPickupAge = 9999999;
+                sscanf( lines[next], "permanent=%d,minPickupAge=%d,%d", 
                         &( permRead ),
-                        &( r->minPickupAge ) );
+                        &( r->minPickupAge ),
+                        &( r->maxPickupAge ) );
                             
                 r->permanent = permRead;
 
@@ -923,6 +925,21 @@ float initObjectBankStep() {
                     }
 
                 next++;
+                
+                r->ridingAnimationIndex = -1;
+                
+                if( strstr( lines[next], "ridingAnimationIndex=" ) != NULL ) {
+                    // ridingAnimationIndex flag present
+                    
+                    int ridingAnimationIndex = -1;
+                    sscanf( lines[next], "ridingAnimationIndex=%d", &(ridingAnimationIndex) );
+                    
+                    r->ridingAnimationIndex = ridingAnimationIndex;
+                    
+                    next++;
+                    }
+                
+                
 
 
                 int blocksWalkingRead = 0;                            
@@ -2569,8 +2586,10 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->noFlip,
                         inObject->sideAccess,
                         inObject->minPickupAge,
+                        inObject->maxPickupAge,
                         inObject->heldInHand,
                         inObject->rideable,
+                        inObject->ridingAnimationIndex,
                         inObject->blocksWalking,
                         inObject->leftBlockingRadius,
                         inObject->rightBlockingRadius,
@@ -2888,8 +2907,10 @@ int addObject( const char *inDescription,
                char inNoFlip,
                char inSideAccess,
                int inMinPickupAge,
+               int inMaxPickupAge,
                char inHeldInHand,
                char inRideable,
+               int inRidingAnimationIndex,
                char inBlocksWalking,
                int inLeftBlockingRadius, int inRightBlockingRadius,
                char inDrawBehindPlayer,
@@ -3049,9 +3070,17 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "containSize=%f,vertSlotRot=%f", 
                                       inContainSize,
                                       inVertContainRotationOffset ) );
-        lines.push_back( autoSprintf( "permanent=%d,minPickupAge=%d", 
-                                      (int)inPermanent,
-                                      inMinPickupAge ) );
+        if( inMaxPickupAge != 9999999 ) {
+            lines.push_back( autoSprintf( "permanent=%d,minPickupAge=%d,%d", 
+                                          (int)inPermanent,
+                                          inMinPickupAge,
+                                          inMaxPickupAge ) );
+            }
+        else {
+            lines.push_back( autoSprintf( "permanent=%d,minPickupAge=%d", 
+                                          (int)inPermanent,
+                                          inMinPickupAge ) );
+            }
         
         lines.push_back( autoSprintf( "noFlip=%d", (int)inNoFlip ) );
         lines.push_back( autoSprintf( "sideAccess=%d", (int)inSideAccess ) );
@@ -3068,6 +3097,8 @@ int addObject( const char *inDescription,
             }
 
         lines.push_back( autoSprintf( "heldInHand=%d", heldInHandNumber ) );
+        
+        if( inRidingAnimationIndex > -1 ) lines.push_back( autoSprintf( "ridingAnimationIndex=%d", inRidingAnimationIndex ) );
         
         lines.push_back( autoSprintf( 
                              "blocksWalking=%d,"
@@ -3347,8 +3378,10 @@ int addObject( const char *inDescription,
     r->sideAccess = inSideAccess;
     
     r->minPickupAge = inMinPickupAge;
+    r->maxPickupAge = inMaxPickupAge;
     r->heldInHand = inHeldInHand;
     r->rideable = inRideable;
+    r->ridingAnimationIndex = inRidingAnimationIndex;
     
     if( r->heldInHand && r->rideable ) {
         r->heldInHand = false;

@@ -7099,6 +7099,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     
+    if( !newObject.isTutorial )
     if( connection->famTarget != NULL && parentChoices.size() == 0 ) {
         // -2 means failure to be born due to famTarget restriction
         return -2;
@@ -11966,6 +11967,7 @@ static char isAccessBlocked( LiveObject *inPlayer,
     char ownershipBlocked = false;
 	//2HOL additions for: password-protected objects
 	char blockedByPassword = false;
+    char notStandingOnSameTile = false;
     
     if( target > 0 ) {
         ObjectRecord *targetObj = getObject( target );
@@ -11973,6 +11975,12 @@ static char isAccessBlocked( LiveObject *inPlayer,
         if( isGridAdjacent( x, y,
                             inPlayer->xd, 
                             inPlayer->yd ) ) {
+            
+            if( targetObj->useDistance == 0 &&
+                ( inTargetY != inPlayer->yd ||
+                  inTargetX != inPlayer->xd ) ) {
+                notStandingOnSameTile = true;
+                }
             
             if( targetObj->sideAccess ) {
                 
@@ -12032,7 +12040,7 @@ static char isAccessBlocked( LiveObject *inPlayer,
 				}
 			}
         }
-    return wrongSide || ownershipBlocked || blockedByPassword;
+    return wrongSide || ownershipBlocked || blockedByPassword || notStandingOnSameTile;
     }
 
 
@@ -16266,6 +16274,7 @@ int main() {
                         
 
                         char distanceUseAllowed = false;
+                        char requireExactTileUsage = false;
                         
                         if( nextPlayer->holdingID > 0 ) {
                             
@@ -16273,7 +16282,10 @@ int main() {
                             ObjectRecord *heldObj = 
                                 getObject( nextPlayer->holdingID );
                             
-                            if( heldObj->useDistance > 1 ) {
+                            if( heldObj->useDistance == 0 ) {
+                                requireExactTileUsage = true;
+                                }
+                            else if( heldObj->useDistance > 1 ) {
                                 // it's long-distance
 
                                 GridPos targetPos = { m.x, m.y };
@@ -16294,9 +16306,10 @@ int main() {
 
                         if( distanceUseAllowed 
                             ||
-                            isGridAdjacent( m.x, m.y,
+                            ( isGridAdjacent( m.x, m.y,
                                             nextPlayer->xd, 
-                                            nextPlayer->yd ) 
+                                            nextPlayer->yd ) &&
+                              !requireExactTileUsage )
                             ||
                             ( m.x == nextPlayer->xd &&
                               m.y == nextPlayer->yd ) ) {
@@ -18907,6 +18920,16 @@ int main() {
                             }
 							
                         int target = getMapObject( m.x, m.y );
+                        
+                        if( nextPlayer->holdingID > 0 &&
+                            getObject( nextPlayer->holdingID )->useDistance == 0 &&
+                            ( m.x != nextPlayer->xd ||
+                              m.y != nextPlayer->yd ) ) {
+                            // trying to drop a 0-useDistance object
+                            // while not standing on
+                            // the exact same tile, blocked
+                            canDrop = false;
+                            }
 
                         // Log for moderation
                         AppLog::infoF( "modLog id:%d %d %d DROP x:%d y:%d h:%d t:%d",

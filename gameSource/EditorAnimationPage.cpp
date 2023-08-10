@@ -77,9 +77,9 @@ EditorAnimationPage::EditorAnimationPage()
                             100, 20,
                             0, 1, "Test Speed" ),
           
-          mPrevExtraButton( smallFont, 250, -65, "<" ), 
-          mNextExtraButton( smallFont, 310, -65, ">" ), 
-          mDelExtraButton( smallFont, 280, -65, "x" ), 
+          mPrevExtraButton( smallFont, 250, -85, "<" ), 
+          mNextExtraButton( smallFont, 310, -85, ">" ), 
+          mDelExtraButton( smallFont, 280, -85, "x" ), 
 
           mReverseRotationCheckbox( 0, 0, 2 ),
           mRandomStartPhaseCheckbox( -80, 200, 2 ),
@@ -108,10 +108,10 @@ EditorAnimationPage::EditorAnimationPage()
           mPickClothingButton( smallFont, 280, 100, "+ Clothes" ),
           mPickingClothing( false ),
           mClearClothingButton( smallFont, 280, 140, "X Clothes" ),
-          mPickHeldButton( smallFont, 280, -100, "+ Held" ),
+          mPickHeldButton( smallFont, 280, -120, "+ Held" ),
           mPickingHeld( false ),
           mHeldID( -1 ),
-          mClearHeldButton( smallFont, 280, -140, "X Held" ),
+          mClearHeldButton( smallFont, 280, -160, "X Held" ),
           mPickSceneryButton( smallFont, 280, 180, "+ Scenery" ),
           mPickingScenery( false ),
           mSceneryID( -1 ),
@@ -379,19 +379,25 @@ EditorAnimationPage::EditorAnimationPage()
     mCheckboxNames[2] = "Moving";
     mCheckboxNames[3] = "Eating";
     mCheckboxNames[4] = "Doing";
-    mCheckboxNames[5] = "Extra";
+    mCheckboxNames[5] = "Biking";
+    mCheckboxNames[6] = "Sitting";
+    mCheckboxNames[7] = "Extra";
 
     mCheckboxAnimTypes[0] = ground;
     mCheckboxAnimTypes[1] = held;
     mCheckboxAnimTypes[2] = moving;
     mCheckboxAnimTypes[3] = eating;
     mCheckboxAnimTypes[4] = doing;
-    mCheckboxAnimTypes[5] = extra;
+    mCheckboxAnimTypes[5] = biking;
+    mCheckboxAnimTypes[6] = sitting;
+    mCheckboxAnimTypes[7] = extra;
 
     mCheckboxes[0]->setToggled( true );
     
     mCheckboxes[3]->setVisible( false );
     mCheckboxes[4]->setVisible( false );
+    mCheckboxes[5]->setVisible( false );
+    mCheckboxes[6]->setVisible( false );
 
 
     boxY = 220;
@@ -1860,7 +1866,7 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
 
         // if extra currently checked, we don't know that an extra anim
         // exists in the new object that we picked
-        if( mCheckboxes[5]->getToggled() ) {
+        if( mCheckboxes[7]->getToggled() ) {
             actionPerformed( mCheckboxes[0] );
             mLastType = ground;
             }
@@ -2000,6 +2006,8 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
                     mPlayAgeButton.setVisible( true );
                     mCheckboxes[3]->setVisible( true );
                     mCheckboxes[4]->setVisible( true );
+                    mCheckboxes[5]->setVisible( true );
+                    mCheckboxes[6]->setVisible( true );
                     }
                 else {
                     mPersonAgeSlider.setVisible( false );
@@ -2007,12 +2015,16 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
                     mPlayingAge = false;
                     
                     if( mCheckboxes[3]->getToggled() || 
-                        mCheckboxes[4]->getToggled() ) {
+                        mCheckboxes[4]->getToggled() ||
+                        mCheckboxes[5]->getToggled() ||
+                        mCheckboxes[6]->getToggled() ) {
                         
                         actionPerformed( mCheckboxes[0] );
                         }
                     mCheckboxes[3]->setVisible( false );
                     mCheckboxes[4]->setVisible( false );
+                    mCheckboxes[5]->setVisible( false );
+                    mCheckboxes[6]->setVisible( false );
                     }
                 }
             }
@@ -2541,6 +2553,10 @@ void EditorAnimationPage::actionPerformed( GUIComponent *inTarget ) {
                 // jump right to start of new animation with no fade
                 mLastTypeFade = 0;
                 }
+            
+            
+            mRandomStartPhaseCheckbox.setToggled( mCurrentAnim[ mCurrentType ]->randomStartPhase );
+            mForceZeroStartCheckbox.setToggled( mCurrentAnim[ mCurrentType ]->forceZeroStart );
 
             
             checkNextPrevVisible();
