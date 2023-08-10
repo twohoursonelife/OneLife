@@ -12755,6 +12755,16 @@ int main() {
                 shutdownMode = 1;
                 forceShutdownMode = 1;
                 }
+            char *toTrim = SettingsManager::getStringSetting("playerListSecret", "");
+            char *trimmed = trimWhitespace(toTrim);
+            delete [] toTrim;
+            if(strlen(trimmed) > 0) {
+                playerListSecret = trimmed;
+                }
+            else {
+                playerListSecret = NULL;
+                delete[] trimmed;
+                }
             }
         
         
