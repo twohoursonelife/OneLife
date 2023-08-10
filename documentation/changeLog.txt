@@ -18,6 +18,9 @@ Version 326     ???
   leaving only the boot).  Fixes #388
 
 
+--Fixed display of numbers of years above 1000, which didn't zero-pad
+  correctly, and displayed 1,054 as 1,54.  Fixes #904
+
 
 
 --Added support for +frontWall object tag, to fix glitch with open door behind

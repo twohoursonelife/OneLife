@@ -9577,18 +9577,22 @@ void LivingLifePage::draw( doublePair inViewCenter,
                             char *yearsString;
                             
                             if( years > 20 ) {
+                                // this stops behaving above 999,999,999 years
+                                // but each in-game year is 1 minute,
+                                // so this stops behaving after 1902 real-life
+                                // years.
                                 if( years > 1000000 ) {
                                     int mil = years / 1000000;
                                     int remain = years % 1000000;
                                     int thou = remain / 1000;
                                     int extra = remain % 1000;
                                     yearsString = 
-                                        autoSprintf( "%d,%d,%d", 
+                                        autoSprintf( "%d,%03d,%03d", 
                                                      mil, thou, extra );
                                     }
                                 else if( years > 1000 ) {
                                     yearsString = 
-                                        autoSprintf( "%d,%d", 
+                                        autoSprintf( "%d,%03d", 
                                                      years / 1000,
                                                      years % 1000 );
                                     }
