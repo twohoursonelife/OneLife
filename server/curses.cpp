@@ -739,7 +739,7 @@ void logPlayerNameForCurses( char *inPlayerEmail, char *inPlayerName,
                            stringDuplicate( inPlayerEmail ),
                            Time::getCurrentTime(),
                            inLineageEveID,
-                           false,
+                           true,
                            { 0, 0 } };
     
     playerNames.push_back( r );
