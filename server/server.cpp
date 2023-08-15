@@ -5246,8 +5246,17 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             for( int i=0; i<pipesOut->size(); i++ ) {
                 GridPos outPos = pipesOut->getElementDirect( i );
                 
-                newLocationSpeech.push_back( stringDuplicate( inToSay ) );
+                char *newSpeech = stringDuplicate( inToSay );
                 
+                // trim off any metadata so it doesn't go through
+                char *starLoc = strstr( newSpeech, " *" );
+                
+                if( starLoc != NULL ) {
+                    starLoc[0] = '\0';
+                    }
+
+                newLocationSpeech.push_back( newSpeech );
+            
                 ChangePosition outChangePos = { outPos.x, outPos.y, false, -1 };
                 newLocationSpeechPos.push_back( outChangePos );
                 }
