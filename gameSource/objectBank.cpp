@@ -740,6 +740,40 @@ static void setupDefaultObject( ObjectRecord *inR ) {
     }
 
 
+static void setupContainOffset( ObjectRecord *inR ) {
+    inR->containOffsetX = 0;
+    inR->containOffsetY = 0;
+    inR->containOffsetBottomX = 0;
+    inR->containOffsetBottomY = 0;
+    
+    char *pos = strstr( inR->description, "+containOffsetX_" );
+
+    if( pos != NULL ) {
+        sscanf( pos, "+containOffsetX_%d", &( inR->containOffsetX ) );
+        }
+
+    pos = strstr( inR->description, "+containOffsetY_" );
+
+    if( pos != NULL ) {
+        sscanf( pos, "+containOffsetY_%d", &( inR->containOffsetY ) );
+        }
+
+    pos = strstr( inR->description, "+containOffsetBottomX_" );
+
+    if( pos != NULL ) {
+        sscanf( pos, "+containOffsetBottomX_%d", 
+                &( inR->containOffsetBottomX ) );
+        }
+
+    pos = strstr( inR->description, "+containOffsetBottomY_" );
+
+    if( pos != NULL ) {
+        sscanf( pos, "+containOffsetBottomY_%d", 
+                &( inR->containOffsetBottomY ) );
+        }
+    }
+
+
 
 
 int getMaxSpeechPipeIndex() {
@@ -958,6 +992,7 @@ float initObjectBankStep() {
                 
                 setupBlocksMoving( r );
 
+                setupContainOffset( r );
                 
                 
                 r->mapChance = 0;      
@@ -3717,6 +3752,9 @@ int addObject( const char *inDescription,
     setupWall( r );
 
     setupBlocksMoving( r );
+    
+    setupContainOffset( r );
+    
 
     r->horizontalVersionID = -1;
     r->verticalVersionID = -1;
@@ -5887,7 +5925,8 @@ doublePair getObjectCenterOffset( ObjectRecord *inObject ) {
     
 
     if( widestRecord == NULL ) {
-        doublePair result = { 0, 0 };
+        doublePair result = { (double) inObject->containOffsetX, 
+                              (double) inObject->containOffsetY };
         return result;
         }
     
@@ -5901,6 +5940,9 @@ doublePair getObjectCenterOffset( ObjectRecord *inObject ) {
 
     doublePair spriteCenter = add( inObject->spritePos[widestIndex], 
                                    centerOffset );
+
+    spriteCenter.x += inObject->containOffsetX;
+    spriteCenter.y += inObject->containOffsetY;
 
     return spriteCenter;
     
@@ -5983,7 +6025,8 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
     
 
     if( lowestRecord == NULL ) {
-        doublePair result = { 0, 0 };
+        doublePair result = { (double) inObject->containOffsetBottomX, 
+                              (double) inObject->containOffsetBottomY };
         return result;
         }
 
@@ -5996,6 +6039,9 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 	
 	wideCenter.y = lowestYPos + 8.0; //slot has height of 16.0
 
+
+    wideCenter.x += inObject->containOffsetBottomX;
+    wideCenter.y += inObject->containOffsetBottomY;
 
     return wideCenter;    
     }

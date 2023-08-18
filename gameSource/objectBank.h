@@ -451,6 +451,18 @@ typedef struct ObjectRecord {
         // for floor objects that don't completely cover ground
         char noCover;
 
+
+        // optional offset to default contained position for an object
+        // Code estimates an ideal contained position based on widest sprite,
+        // but this produces weird results in some cases.
+        // applied to results of getObjectCenterOffset
+        int containOffsetX;
+        int containOffsetY;
+
+        // applied to results of getObjectBottomCenterOffset
+        int containOffsetBottomX;
+        int containOffsetBottomY;
+
     } ObjectRecord;
 
 
@@ -860,11 +872,17 @@ float getBiomeHeatValue( int inBiome );
 
 
 
+
+// these are meant to be used to compute contained positions only
+// they incorporate any extra offset set in containOffsetX, containOffsetY
+
 // offset of object pixel center from 0,0
 // note that this is computed based on the center of the widest sprite
 doublePair getObjectCenterOffset( ObjectRecord *inObject );
 
 
+// this incorporates any offset set in 
+//     containOffsetBottomX, containOffsetBottomY
 // this is computed based on the center of the lower-most sprite
 // in the object
 doublePair getObjectBottomCenterOffset( ObjectRecord *inObject );
