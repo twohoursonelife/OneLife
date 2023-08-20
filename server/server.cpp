@@ -6083,7 +6083,9 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         inPlayer->yummyBonusStore += currentBonus;
         }
         
-    if( wasYummy || o->permanent ) {
+    if( wasYummy ||
+        strstr( o->description, "modTool" )
+    ) {
         // bonus part of foodValue goes into the yum bonus if yummy (or is craved)
         // or if food is permanent, special case for testing/mod objects
         inPlayer->yummyBonusStore += o->bonusValue;
@@ -8083,6 +8085,8 @@ int processLoggedInPlayer( char inAllowReconnect,
             getObject( forceSpawnInfo.backShoeID, true );
         newObject.clothing.backpack = 
             getObject( forceSpawnInfo.backpackID, true );
+        
+        newObject.yummyBonusStore = 999;
         
         newObject.holdingID = getObject( forceSpawnInfo.holdingID, false )->id;
 
@@ -18730,7 +18734,7 @@ int main() {
                                 // next case, holding food
                                 // that couldn't be put into clicked clothing
                                 else if( (obj->foodValue > 0 || obj->bonusValue > 0) && 
-                                         targetPlayer->foodStore < cap &&
+                                         (targetPlayer->foodStore < cap || strstr( obj->description, "modTool")) &&
                                          ! couldHaveGoneIn ) {
                                     
                                     targetPlayer->justAte = true;
