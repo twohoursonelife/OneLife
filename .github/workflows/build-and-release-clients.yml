@@ -1,8 +1,8 @@
-name: Build and release OneLife client
+name: Build and release OneLife clients
 on:
   push:
     tags:
-      - "*"
+      - "2HOL_v*"
 permissions:
   contents: write
 
@@ -23,8 +23,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: risvh/miniOneLifeCompile
-          # NOTE: Update this accordingly before release!
-          ref: b92fb84ba587e17c3e5758ceb61164a8a9a24b89
           path: ./miniOneLifeCompile
 
       - name: Download third-party dependencies
@@ -66,6 +64,6 @@ jobs:
           file: ./*.zip
           tag: ${{ github.ref }}
           overwrite: true
-          body: "Prereleased linux and unsigned windows 2HOL clients. Update this for actual official release."
+          body: "Pre-released linux and unsigned windows 2HOL clients. Update this for actual official release."
           prerelease: true
           file_glob: true
