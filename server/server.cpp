@@ -6610,6 +6610,8 @@ typedef struct ForceSpawnRecord {
         int bottomID;
         int frontShoeID;
         int backShoeID;
+        int backpackID;
+        int holdingID;
     } ForceSpawnRecord;
 
 
@@ -6648,7 +6650,7 @@ char getForceSpawn( char *inEmail, ForceSpawnRecord *outRecordToFill ) {
 
                 int numRead = sscanf( 
                     lines[i],
-                    "%99s %d %d,%d %lf %19s %19s %d %d %d %d %d %d", 
+                    "%99s %d %d,%d %lf %19s %19s %d %d %d %d %d %d %d %d", 
                     emailBuff, &on,
                     &outRecordToFill->pos.x,
                     &outRecordToFill->pos.y,
@@ -6660,9 +6662,11 @@ char getForceSpawn( char *inEmail, ForceSpawnRecord *outRecordToFill ) {
                     &outRecordToFill->tunicID,
                     &outRecordToFill->bottomID,
                     &outRecordToFill->frontShoeID,
-                    &outRecordToFill->backShoeID );
+                    &outRecordToFill->backShoeID,
+                    &outRecordToFill->backpackID,
+                    &outRecordToFill->holdingID );
                 
-                if( numRead == 13 ) {
+                if( numRead == 15 ) {
                     found = true;
                     }
                 else {
@@ -8077,6 +8081,10 @@ int processLoggedInPlayer( char inAllowReconnect,
             getObject( forceSpawnInfo.frontShoeID, true );
         newObject.clothing.backShoe = 
             getObject( forceSpawnInfo.backShoeID, true );
+        newObject.clothing.backpack = 
+            getObject( forceSpawnInfo.backpackID, true );
+        
+        newObject.holdingID = getObject( forceSpawnInfo.holdingID, false )->id;
 
         delete [] forceSpawnInfo.firstName;
         delete [] forceSpawnInfo.lastName;
