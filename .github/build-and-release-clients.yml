@@ -32,8 +32,8 @@ jobs:
         run: bash ./cloneRepos.sh
           echo 1 > ./PLATFORM_OVERRIDE
 
-          sed -i '/^.+cmd\.exe \/c OneLife.exe$/d' ./compile.sh
-          sed -i '^./OneLife.exe$/d' ./compile.sh
+          sed -i '/^.*cmd\.exe \/c OneLife.exe$/d' ./compile.sh
+          sed -i '/^.*\.\/OneLife$/d' ./compile.sh
 
       - name: Build client executable and release assets
         working-directory: miniOneLifeCompile
