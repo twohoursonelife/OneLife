@@ -1,0 +1,71 @@
+name: Build and release OneLife client
+on:
+  push:
+    tags:
+      - "*"
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Publish clients for Linux and Windows (unsigned)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cache APT packages
+        uses: awalsh128/cache-apt-pkgs-action@v1.2.4
+        with:
+          packages: rsync wget unzip git imagemagick xclip \
+            libglu1-mesa-dev libgl1-mesa-dev libsdl1.2-dev mingw-w64 \
+            build-essential libpng-dev
+
+      - name: Checkout compile scripts repository
+        uses: actions/checkout@v3
+        with:
+          repository: risvh/miniOneLifeCompile
+          # NOTE: Update this accordingly before release!
+          ref: b92fb84ba587e17c3e5758ceb61164a8a9a24b89
+          path: ./miniOneLifeCompile
+
+      - name: Download third-party dependencies
+        working-directory: miniOneLifeCompile
+        run:  bash ./getDependencies.sh
+
+      - name: Clone 2HOL repositories
+        working-directory: miniOneLifeCompile
+        run: bash ./cloneRepos.sh
+
+      - name: Build client executable and release assets for linux
+        working-directory: miniOneLifeCompile
+        run: |
+          LINUX=1
+          bash ./repo/makeFullGameFolderForRelease.sh "${LINUX}"
+
+      - name: Build archive file for linux
+        run: |
+          VERSION="v$(cat ./OneLifeData7/dataVersionNumber.txt)"
+          zip -9 -r "2HOL_${VERSION}_linux.zip" "2HOL_${VERSION}_linux/"
+
+      - name: Build client executable and release assets for windows (unsigned)
+        working-directory: miniOneLifeCompile
+        run: |
+          WINDOWS=5
+          bash ./cleanOldBuildsAndOptionallyCaches.sh
+          rm -rf ../output
+          bash ./repo/makeFullGameFolderForRelease.sh "${WINDOWS}"
+
+      - name: Build archive file for windows (unsigned)
+        run: |
+          VERSION="v$(cat ./OneLifeData7/dataVersionNumber.txt)"
+          zip -9 -r "2HOL_${VERSION}_win.zip" "2HOL_${VERSION}_win/"
+
+      - name: Upload executable archive to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./*.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "Prereleased linux and unsigned windows 2HOL clients. Update this for actual official release."
+          prerelease: true
+          file_glob: true
