@@ -6,13 +6,16 @@ on:
 permissions:
   contents: write
 
+env:
+  COMPILE_SCRIPTS_REPO: miniOneLifeCompile
+
 jobs:
   build:
     name: Publish clients for Linux and Windows (unsigned)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Cache APT packages
+      - name: Install & cache Ubuntu's APT packages
         uses: awalsh128/cache-apt-pkgs-action@v1.2.4
         with:
           packages: rsync wget unzip git imagemagick xclip \
@@ -22,30 +25,39 @@ jobs:
       - name: Checkout compile scripts repository
         uses: actions/checkout@v3
         with:
-          repository: risvh/miniOneLifeCompile
-          path: ./miniOneLifeCompile
+          repository: risvh/${{ env.COMPILE_SCRIPTS_REPO }}
+          path: ${{ env.COMPILE_SCRIPTS_REPO }}
 
-      - name: Download third-party dependencies
-        working-directory: miniOneLifeCompile
+      - name: Download & build third-party dependencies
+        working-directory: ${{ env.COMPILE_SCRIPTS_REPO }}
         run:  bash ./getDependencies.sh
 
       - name: Clone 2HOL repositories
-        working-directory: miniOneLifeCompile
+        working-directory: ${{ env.COMPILE_SCRIPTS_REPO }}
         run: bash ./cloneRepos.sh
 
+      - name: Get OneLifeData7 latest updated tag version from local repo
+        id: get-onelifedata7-version
+        working-directory: OneLifeData7
+        run: echo "OneLifeData7_VERSION="$(git for-each-ref --sort=-authordate --sort=-creatordate --format '%(refname:short)' --count=1 refs/tags/2HOL_v*)"" >> "$GITHUB_OUTPUT"
+
+      - name: Abort Github actions if OneLifeData7 version isn't compatible with current 2HOL tag release
+        env: 
+          OneLifeData7_VERSION: ${{ steps.get-onelifedata7-version.outputs.OneLifeData7_VERSION }}
+        run: if [ "$OneLifeData7_VERSION" != "${{ github.ref_name }}" ];then exit 1; fi
+
+
       - name: Build client executable and release assets for linux
-        working-directory: miniOneLifeCompile
+        working-directory: ${{ env.COMPILE_SCRIPTS_REPO }}
         run: |
           LINUX=1
           bash ./repo/makeFullGameFolderForRelease.sh "${LINUX}"
 
       - name: Build archive file for linux
-        run: |
-          VERSION="v$(cat ./OneLifeData7/dataVersionNumber.txt)"
-          zip -9 -r "2HOL_${VERSION}_linux.zip" "2HOL_${VERSION}_linux/"
+        run: zip -9 -r "${{ github.ref_name }}_linux.zip" "${{ github.ref_name }}_linux/"
 
       - name: Build client executable and release assets for windows (unsigned)
-        working-directory: miniOneLifeCompile
+        working-directory: ${{ env.COMPILE_SCRIPTS_REPO }}
         run: |
           WINDOWS=5
           bash ./cleanOldBuildsAndOptionallyCaches.sh
@@ -53,15 +65,13 @@ jobs:
           bash ./repo/makeFullGameFolderForRelease.sh "${WINDOWS}"
 
       - name: Build archive file for windows (unsigned)
-        run: |
-          VERSION="v$(cat ./OneLifeData7/dataVersionNumber.txt)"
-          zip -9 -r "2HOL_${VERSION}_win.zip" "2HOL_${VERSION}_win/"
+        run: zip -9 -r "${{ github.ref_name }}_win.zip" "${{ github.ref_name }}_win/"
 
-      - name: Upload executable archive to release
+      - name: Upload executable archives to Github's releases page as a pre-release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./*.zip
+          file: ./${{ github.ref_name }}_*.zip
           tag: ${{ github.ref }}
           overwrite: true
           body: "Pre-released linux and unsigned windows 2HOL clients. Update this for actual official release."
