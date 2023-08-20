@@ -1,0 +1,57 @@
+name: Build and release OneLife client
+on:
+  push:
+    tags:
+      - "*"
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Publish clients for Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cache APT packages
+        uses: awalsh128/cache-apt-pkgs-action@v1.2.4
+        with:
+          packages: rsync wget unzip git imagemagick xclip \
+            libglu1-mesa-dev libgl1-mesa-dev libsdl1.2-dev mingw-w64 \
+            build-essential libpng-dev
+
+      - uses: actions/checkout@v3
+        with:
+          name: risvh/miniOneLifeCompile
+
+      - name: Download third-party dependencies
+        working-directory: miniOneLifeCompile
+        run: bash ./getDependencies.sh
+
+      - name: Clone 2HOL repositories & and do initial headless build override
+        working-directory: miniOneLifeCompile
+        run: bash ./cloneRepos.sh
+          echo 1 > ./PLATFORM_OVERRIDE
+
+          sed -i '/^.+cmd\.exe \/c OneLife.exe$/d' ./compile.sh
+          sed -i '^./OneLife.exe$/d' ./compile.sh
+
+      - name: Build client executable and release assets
+        working-directory: miniOneLifeCompile
+        run: bash ./makeFullGameFolderForRelease.sh
+
+      - name: Build archive file
+        run: |
+          VERSION="$(cat ./OneLifeData7/dataVersionNumber.txt)"
+          mv output "2HOL_$VERSION_linux"
+          zip -9 -r "2HOL_$VERSION_linux.zip" "2HOL_$VERSION_linux/"
+
+      - name: Upload executable archive to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./2HOL*.*
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "Released 2HOL clients"
+          prerelease: false
+          file_glob: true
