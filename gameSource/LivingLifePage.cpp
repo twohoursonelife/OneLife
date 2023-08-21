@@ -15588,7 +15588,7 @@ void LivingLifePage::step() {
                             if( r != NULL && r->temporary &&
                                 r->temporaryExpireETA == 0 ) {
                                 r->temporaryExpireETA = 
-                                    game_getCurrentTime() + 60;
+                                    game_getCurrentTime() + 30;
                                 }
                             }
                         
