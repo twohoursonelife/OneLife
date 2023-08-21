@@ -16750,10 +16750,10 @@ int main() {
                                 // and has writing on it.
                                 // if so, read by touching it
                                 
-                                if( targetObj->permanent &&
-                                    targetObj->written ) {
-                                    forcePlayerToRead( nextPlayer, target );
-                                    }
+                                // if( targetObj->permanent &&
+                                    // targetObj->written ) {
+                                    // forcePlayerToRead( nextPlayer, target );
+                                    // }
                                 
 
                                 // try using object on this target 
