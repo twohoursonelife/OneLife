@@ -133,6 +133,7 @@ WebRequest *apocalypseRequest = NULL;
 
 
 
+static int babyInheritMonument = 1;
 char monumentCallPending = false;
 int monumentCallX = 0;
 int monumentCallY = 0;
@@ -8053,11 +8054,13 @@ int processLoggedInPlayer( char inAllowReconnect,
         
 
         // inherit last heard monument, if any, from parent
-        newObject.monumentPosSet = parent->monumentPosSet;
-        newObject.lastMonumentPos = parent->lastMonumentPos;
-        newObject.lastMonumentID = parent->lastMonumentID;
-        if( newObject.monumentPosSet ) {
-            newObject.monumentPosSent = false;
+        if( babyInheritMonument ) {
+            newObject.monumentPosSet = parent->monumentPosSet;
+            newObject.lastMonumentPos = parent->lastMonumentPos;
+            newObject.lastMonumentID = parent->lastMonumentID;
+            if( newObject.monumentPosSet ) {
+                newObject.monumentPosSent = false;
+                }
             }
         
         
@@ -12539,6 +12542,8 @@ int main() {
     
 
 
+    babyInheritMonument = 
+        SettingsManager::getIntSetting( "babyInheritMonument", 1 );
 
     minFoodDecrementSeconds = 
         SettingsManager::getFloatSetting( "minFoodDecrementSeconds", 5.0f );
