@@ -2720,10 +2720,10 @@ LivingLifePage::LivingLifePage()
           mYumIconSprite( loadSprite( "yumIcon.tga" ) ),
           mMehIconSprite( loadSprite( "mehIcon.tga" ) ),
           mHomeSlipSprite( loadSprite( "homeSlip.tga", false ) ),
+          mHomeSlip2Sprite( loadSprite( "homeSlip2.tga", false ) ),
           mOldYumBonusValue( 0 ),
           mFirstYumEaten( false ),
           mYumIncrementFade( 0 ),
-          mHomeSlip2Sprite( loadSprite( "homeSlip2.tga", false ) ),
           mLastMouseOverID( 0 ),
           mCurMouseOverID( 0 ),
           mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
@@ -10277,9 +10277,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             
             
-            doublePair pos = { lastScreenViewCenter.x, 
-                               lastScreenViewCenter.y - ( recalcOffsetY( 313 ) * gui_fov_scale )};
-
             char *des = NULL;
             char *desToDelete = NULL;
             
