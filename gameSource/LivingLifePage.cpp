@@ -10637,12 +10637,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // Moved to be cursor-tips
             if( ! mXKeyDown )
             if( mCurMouseOverID != 0 ) {
+                
                 FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
                 FloatColor txtColor = { 1, 1, 1, 1 };
-                drawChalkBackgroundString( 
-                    {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
-                    stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
-
+                
                 const bool isShowUseOnObjectHoverIsActive = 
                     ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
@@ -10665,6 +10663,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         delete [] display;
                     }                
                 }
+                
+                drawChalkBackgroundString( 
+                    {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
+                    stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
             }
             
             delete [] stringUpper;
