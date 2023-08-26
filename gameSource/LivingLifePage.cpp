@@ -347,6 +347,29 @@ static doublePair recalcOffset( doublePair ofs, bool force = false ) {
     ofs.y = recalcOffsetY( ofs.y );
     return ofs;
     }
+    
+    
+    
+static void drawTileRect( int x, int y, std::string color, bool flashing ) {
+    doublePair pos = { (double)x, (double)y };
+    pos.x *= CELL_D;
+    pos.y *= CELL_D;
+    float alpha = 0.5;
+    if (color == "red") setDrawColor( 1, 0, 0, alpha );
+    if (color == "green") setDrawColor( 0, 1, 0, alpha );
+    if (color == "blue") setDrawColor( 0, 0, 1, alpha );
+    drawRect( pos, CELL_D/2, CELL_D/2 );
+}
+
+static bool isHoveringPicker( float x, float y ) {
+    if( !vogPickerOn ) return false;
+    if( abs(x - (vogPos.x * CELL_D + 510)) <= 90 &&
+        abs(y - (vogPos.y * CELL_D + 90 - 85)) <= 245 ) {
+        return true;
+    }
+    return false;
+}
+    
 
 
 // most recent home at end
@@ -10760,6 +10783,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
 				   &worldMouseX,
 				   &worldMouseY );
 	minitech::livingLifeDraw(worldMouseX, worldMouseY);
+    
+    
+    if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
+        doublePair mousePos = { lastMouseX, lastMouseY };
+        int mouseX = int(round( mousePos.x / (float)CELL_D ));
+        int mouseY = int(round( mousePos.y / (float)CELL_D ));
+        drawTileRect( mouseX, mouseY, "green", false );
+        }
+    
     
     if( vogMode ) {
         // draw again, so we can see picker
@@ -22067,39 +22099,12 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     int mouseButton = getLastMouseButton();
     
-    if (!mForceGroundClick && 
-        !isLastMouseButtonRight() &&
-        !(mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN) &&
-        minitech::livingLifePageMouseDown( inX, inY )) return;
-	
-    lastMouseX = inX;
-    lastMouseY = inY;
-
-    if( showBugMessage ) {
-        return;
-        }
-    
-    if( mServerSocket == -1 ) {
-        // dead
-        return;
-        }
-	
 	bool scaling = false;
     if( !mForceGroundClick ) {
         if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
         }
 	if ( blockMouseScaling ) { scaling = false; }
-	
-    if( vogMode ) {
-        return;
-        }
-
-    char modClick = false;
     
-    if( ( mEKeyDown && mEKeyEnabled ) || ( isLastMouseButtonRight() && !mForceGroundClick ) ) {
-        modClick = true;
-        }
-   
 	//FOV
 	if( scaling ) {
 		float currentScale = SettingsManager::getFloatSetting( "fovScale", 1.0f );
@@ -22116,6 +22121,56 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             }
 		return;
 	}
+    
+    if (!mForceGroundClick && 
+        !isLastMouseButtonRight() &&
+        minitech::livingLifePageMouseDown( inX, inY )) return;
+    
+    if( !mForceGroundClick && vogMode && vogPickerOn && 
+        !isHoveringPicker(inX, inY)
+        ) {
+        GridPos pos;
+        pos.x = int(round( inX / (float)CELL_D ));
+        pos.y = int(round( inY / (float)CELL_D ));
+        
+        char rightClick;
+        int id = mObjectPicker.getSelectedObject( &rightClick );
+        if( isLastMouseButtonRight() ) id = 1938; // Smooth Ground
+        
+        if( id != -1 ) {
+            char *message = autoSprintf( "VOGI %d %d %d#",
+                                         lrint( pos.x ), 
+                                         lrint( pos.y ), id );
+            sendToServerSocket( message );
+            delete [] message;
+            mObjectPicker.usePickable( id );
+            return;
+            }
+        }
+	
+    lastMouseX = inX;
+    lastMouseY = inY;
+
+    if( showBugMessage ) {
+        return;
+        }
+    
+    if( mServerSocket == -1 ) {
+        // dead
+        return;
+        }
+	
+    if( vogMode ) {
+        return;
+        }
+
+    char modClick = false;
+    
+    if( ( mEKeyDown && mEKeyEnabled ) || ( isLastMouseButtonRight() && !mForceGroundClick ) ) {
+        modClick = true;
+        }
+   
+
     
     mLastMouseOverID = 0;
     
@@ -24762,21 +24817,21 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
 
 
 void LivingLifePage::actionPerformed( GUIComponent *inTarget ) {
-    if( vogMode && inTarget == &mObjectPicker ) {
+    // if( vogMode && inTarget == &mObjectPicker ) {
 
-        char rightClick;
-        int objectID = mObjectPicker.getSelectedObject( &rightClick );
+        // char rightClick;
+        // int objectID = mObjectPicker.getSelectedObject( &rightClick );
         
-        if( objectID != -1 ) {
-            char *message = autoSprintf( "VOGI %d %d %d#",
-                                         lrint( vogPos.x ), 
-                                         lrint( vogPos.y ), objectID );
+        // if( objectID != -1 ) {
+            // char *message = autoSprintf( "VOGI %d %d %d#",
+                                         // lrint( vogPos.x ), 
+                                         // lrint( vogPos.y ), objectID );
             
-            sendToServerSocket( message );
+            // sendToServerSocket( message );
             
-            delete [] message;
-            }
-        }
+            // delete [] message;
+            // }
+        // }
     }
 
 
@@ -24863,12 +24918,14 @@ void LivingLifePage::changeFOV( float newScale ) {
 		screenCenterPlayerOffsetX = int( double( screenCenterPlayerOffsetX ) / gui_fov_scale * newScale );
 		screenCenterPlayerOffsetY = int( double( screenCenterPlayerOffsetY ) / gui_fov_scale * newScale );
 
-		doublePair centerOffset = sub( lastScreenViewCenter, mult( ourLiveObject->currentPos, CELL_D ) );
-		centerOffset = mult( centerOffset, 1. / gui_fov_scale );
-		centerOffset = mult( centerOffset, newScale );
-		centerOffset = add( mult( ourLiveObject->currentPos, CELL_D ), centerOffset );
-		lastScreenViewCenter.x = round( centerOffset.x );
-		lastScreenViewCenter.y = round( centerOffset.y );
+		if( !vogMode ) {
+            doublePair centerOffset = sub( lastScreenViewCenter, mult( ourLiveObject->currentPos, CELL_D ) );
+            centerOffset = mult( centerOffset, 1. / gui_fov_scale );
+            centerOffset = mult( centerOffset, newScale );
+            centerOffset = add( mult( ourLiveObject->currentPos, CELL_D ), centerOffset );
+            lastScreenViewCenter.x = round( centerOffset.x );
+            lastScreenViewCenter.y = round( centerOffset.y );
+            }
         }
 
 	calcFontScale( newScale, handwritingFont );
