@@ -71,7 +71,7 @@ ExistingAccountPage::ExistingAccountPage()
                        // forbid only spaces and backslash and 
                        // single/double quotes 
                        // also pipe and colon, reserved as separators for spawn code and family name target
-                       "\"' \\|:" ),
+                       "\"' \\|:#" ),
           mEmailLockButton( mainFont, -108, 96, "!" ),
           mPasteEmailButton( mainFont, 0, 68, translate( "paste" ) ),
                        
@@ -100,14 +100,13 @@ ExistingAccountPage::ExistingAccountPage()
           mSpawnSeed( mainFont, -360, -176, 10, false, 
                                      "SPAWN CODE:",
                                      NULL,
-                                     // forbid spaces
-                                     " " ),
+                                     // forbid spaces and hash
+                                     " #" ),
           mSpawnSeedLockButton( mainFont, -108, -176, "!" ),
           mTargetFamily( mainFont, -360, -176, 10, true, 
                                      "TARGET FAMILY NAME:",
-                                     NULL,
-                                     // forbid spaces
-                                     " " ),
+                                     // allow only alphabets
+                                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
           
           mBackToAccountTabButton( mainFont, 0, 0, "BACK" ),
           mLoginButton( mainFont, 0, 0, "PLAY" ),
