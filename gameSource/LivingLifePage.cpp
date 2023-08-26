@@ -18822,6 +18822,13 @@ void LivingLifePage::step() {
                                         }
                                     }
 
+                                
+                                // for the two blocks below
+                                // we want to know if we are just born as an eve
+                                // but we do not have a way to definitely tell if we are in a new life
+                                // exiting VOG or flight landing both cause the server to resend the lineage message
+                                // hence we use our age to differentiate
+                                
                                 if( id == ourID && !vogMode ) {
                                     int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
                                     // TODO: If fertility age is ever not hard coded, maybe put it here?
@@ -18832,6 +18839,18 @@ void LivingLifePage::step() {
                                         printf("automaticInfertilityAsEve set, making Eve infertile.\n");
                                         }
                                     }
+                                
+                                if( ourID == existing->lineageEveID && existing->age == 14.0 ) {
+                                    // we are an eve
+                                    // no other home markers in birth map chunk
+                                    // a starting home arrow is helpful
+                                    if( homePosStack.size() == 0 ) addHomeLocation( 0, 0 );
+                                    }
+                                // otherwise, we are born
+                                // and we may be born away from home
+                                // so do not give a starting home arrow automatically
+                                // unless there is a marker on birth map chunk
+                                // which is handled elsewhere
                                 
 
                                 
