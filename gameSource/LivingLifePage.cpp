@@ -15256,16 +15256,16 @@ void LivingLifePage::step() {
                                 
                                 char addedOrRemoved = false;
                                 
-                                if( newID > 0 &&
-                                    getObject( newID )->homeMarker ) {
-                                    
-                                    addHomeLocation( x, y );
-                                    addedOrRemoved = true;
-                                    }
-                                else if( old > 0 &&
-                                         getObject( old )->homeMarker ) {
-                                    removeHomeLocation( x, y );
-                                    addedOrRemoved = true;
+                                if( newID > 0 && old > 0 ) {
+                                    if( !getObject( old )->homeMarker && getObject( newID )->homeMarker ) {
+                                        
+                                        addHomeLocation( x, y );
+                                        addedOrRemoved = true;
+                                        }
+                                    else if( getObject( old )->homeMarker && !getObject( newID )->homeMarker ) {
+                                        removeHomeLocation( x, y );
+                                        addedOrRemoved = true;
+                                        }
                                     }
                                 
                                 if( addedOrRemoved ) {
