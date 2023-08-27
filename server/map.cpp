@@ -363,6 +363,10 @@ static char eveDBOpen = false;
  
 static DB metaDB;
 static char metaDBOpen = false;
+
+
+static DB persistentMapDB;
+static char persistentMapDBOpen = false;
  
  
  
@@ -711,6 +715,35 @@ static void eveDBPut( const char *inEmail, int inX, int inY, int inRadius ) {
  
  
 static void dbFloorPut( int inX, int inY, int inValue );
+
+
+
+// returns -1 on failure, 1 on success
+static int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer ) {
+    unsigned char key[16];
+    unsigned char value[50];
+    
+    // last int is not used, always 0
+    intQuadToKey( inX, inY, inFlag, 0, key );
+    
+    int result = DB_get( &persistentMapDB, key, inBuffer );
+    
+    if( result == 0 ) {
+        // found
+        return 1;
+        }
+    else {
+        return -1;
+        }
+    }
+    
+static void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer ) {
+    unsigned char key[16];
+    unsigned char value[50];
+    // last int is not used, always 0
+    intQuadToKey( inX, inY, inFlag, 0, key );
+    DB_put( &persistentMapDB, key, inBuffer );
+    }
  
  
  
@@ -3736,7 +3769,62 @@ char initMap() {
         numMetaRecords, maxMetaID );
    
     setLastMetadataID( maxMetaID );
+    
+    
+ 
+ 
+ 
+    error = DB_open_modeSwitch( &persistentMapDB,
+                         "persistentMap.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         16, // four 32-bit ints, x, y, flag, last int is not used, always 0
+                             // flag = 2, flight landing pos
+                         50 // one 32-bit int, flag of the type of record
+                           // and 50 characters of data, say tile-password
+                         );
    
+    if( error ) {
+        AppLog::errorF( "Error %d opening persistent map KissDB", error );
+        return false;
+        }
+   
+    persistentMapDBOpen = true;
+    
+    DB_Iterator persistentMapDBi;
+    DB_Iterator_init( &persistentMapDB, &persistentMapDBi );
+   
+    unsigned char persistentMapKey[16];
+    unsigned char persistentMapValue[50];
+    
+    int totalRowCount = 0;
+    int blankRowCount = 0;
+    int flightLandingPosRowCount = 0;
+
+    while( DB_Iterator_next( &persistentMapDBi, persistentMapKey, persistentMapValue ) > 0 ) {
+        int x = valueToInt( persistentMapKey );
+        int y = valueToInt( &( persistentMapKey[4] ) );
+        int flag = valueToInt( &( persistentMapKey[8] ) );
+        
+        totalRowCount++;
+        
+        if( persistentMapValue[0] != '\0' ) {
+            if( flag == 2 ) {
+                // flight landing pos
+                GridPos p = { x, y };
+                flightLandingPos.push_back( p );
+                flightLandingPosRowCount++;
+                }
+            }
+        else {
+            // blank row
+            blankRowCount++;
+            }
+        }
+    
+    AppLog::infoF(
+        "persistentMapDB:  Found %d records, %d blank, %d valid flight landing pos.",
+        totalRowCount, blankRowCount, flightLandingPosRowCount );
  
  
    
@@ -4259,6 +4347,11 @@ void freeMap( char inSkipCleanup ) {
     if( metaDBOpen ) {
         DB_close( &metaDB );
         metaDBOpen = false;
+        }
+ 
+    if( persistentMapDBOpen ) {
+        DB_close( &persistentMapDB );
+        persistentMapDBOpen = false;
         }
    
  
@@ -7064,6 +7157,7 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
                
                     // not even a valid landing pos anymore
                     flightLandingPos.deleteElement( i );
+                    persistentMapDBPut( p.x, p.y, 2, "\0" );
                     i--;
                     }
                 else {
@@ -7075,6 +7169,7 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
        
         if( !found ) {
             flightLandingPos.push_back( p );
+            persistentMapDBPut( p.x, p.y, 2, "1" );
             }
         }
    
@@ -9030,6 +9125,7 @@ void removeLandingPos( GridPos inPos ) {
     for( int i=0; i<flightLandingPos.size(); i++ ) {
         if( equal( inPos, flightLandingPos.getElementDirect( i ) ) ) {
             flightLandingPos.deleteElement( i );
+            persistentMapDBPut( inPos.x, inPos.y, 2, "\0" );
             return;
             }
         }
@@ -9087,6 +9183,7 @@ GridPos getNextCloseLandingPos( GridPos inCurPos,
                    
                     // not even a valid landing pos anymore
                     flightLandingPos.deleteElement( i );
+                    persistentMapDBPut( thisPos.x, thisPos.y, 2, "\0" );
                     i--;
                     continue;
                     }
@@ -9131,6 +9228,7 @@ GridPos getClosestLandingPos( GridPos inTargetPos, char *outFound ) {
                 
                 // not even a valid landing pos anymore
                 flightLandingPos.deleteElement( i );
+                persistentMapDBPut( thisPos.x, thisPos.y, 2, "\0" );
                 i--;
                 continue;
                 }
@@ -9195,6 +9293,7 @@ GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
                
                 // not even a valid landing pos anymore
                 flightLandingPos.deleteElement( i );
+                persistentMapDBPut( thisPos.x, thisPos.y, 2, "\0" );
                 i--;
                 continue;
                 }
