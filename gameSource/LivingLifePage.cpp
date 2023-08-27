@@ -13714,22 +13714,40 @@ void LivingLifePage::step() {
                     double d = distance( pos, ourLiveObject->currentPos );
                     
                     if( d > 32 ) {
-                        addAncientHomeLocation( posX, posY );
                         
-                        // play sound in distance
-                        ObjectRecord *monObj = getObject( monumentID );
-                        
-                        if( monObj != NULL && 
-                            monObj->creationSound.numSubSounds > 0 ) {    
-                             
-                            doublePair realVector = 
-                                getVectorFromCamera( lrint( posX ),
-                                                     lrint( posY ) );
-                            // position off camera in that direction
-                            // but fake distance
-                            realVector = mult( normalize( realVector ), 4 );
+                        // ignore ancient monument if we already
+                        // heard another nearby, to avoid bell spam
+                        bool found = false;
+                        for( int i=0; i<homePosStack.size(); i++ ) {
+                            if( homePosStack.getElementDirect( i ).ancient ) {
+                                GridPos homeGridPos = homePosStack.getElementDirect( i ).pos;
+                                doublePair homePos = {(double)homeGridPos.x, (double)homeGridPos.y};
+                                if( distance( pos, homePos ) < 32 ) {
+                                    found = true;
+                                    break;
+                                    }
+                                }
+                            }
                             
-                            playSound( monObj->creationSound, realVector );
+                        if( !found ) {
+                        
+                            addAncientHomeLocation( posX, posY );
+                            
+                            // play sound in distance
+                            ObjectRecord *monObj = getObject( monumentID );
+                            
+                            if( monObj != NULL && 
+                                monObj->creationSound.numSubSounds > 0 ) {    
+                                 
+                                doublePair realVector = 
+                                    getVectorFromCamera( lrint( posX ),
+                                                         lrint( posY ) );
+                                // position off camera in that direction
+                                // but fake distance
+                                realVector = mult( normalize( realVector ), 4 );
+                                
+                                playSound( monObj->creationSound, realVector );
+                                }
                             }
                         }
                     }
