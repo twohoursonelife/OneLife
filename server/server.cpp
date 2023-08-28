@@ -7,9 +7,6 @@
 #include <random>
 #include <string>
 
-//2HOL, password-protected objects: <fstream>, <iostream> added to handle runtime storage of in-game passwords
-#include <fstream>
-#include <iostream>
 //  <time.h> added to add time stamps to recorded data
 #include <time.h>
 
@@ -199,17 +196,30 @@ static SimpleVector<char*> youForgivingPhrases;
 static SimpleVector<char*> youGivingPhrases;
 static SimpleVector<char*> namedGivingPhrases;
 
-//2HOL additions for: password-protected objects
-int passwordTransitionsAllowed = 0;
-int passwordInvocationAndSettingAreSeparated = 0;
-int passwordOverhearRadius = 6;
-int passwordSilent = 0;
 
-static SimpleVector<char*> passwordSettingPhrases;
-static SimpleVector<char*> passwordInvokingPhrases;
+// password-protected objects
+static SimpleVector<char*> passwordProtectingPhrases;
+
+typedef struct passwordRecord {
+        int x;
+        int y;
+        std::string password;
+    } passwordRecord;
+
+static SimpleVector<passwordRecord> passwordRecords;
+
+void restorePasswordRecord( int x, int y, unsigned char* passwordChars ) {
+    std::string password( reinterpret_cast<char*>( passwordChars ) );
+    passwordRecord r = { x, y, password };
+    passwordRecords.push_back( r );
+    }
+
 
 static SimpleVector<char*> infertilityDeclaringPhrases;
 static SimpleVector<char*> fertilityDeclaringPhrases;
+
+
+
 
 static char *eveName = NULL;
 
@@ -473,12 +483,8 @@ typedef struct LiveObject {
 
         char *lastSay;
         
-        //2HOL additions for: password-protected objects
-        
-        //the phrase that player carries as "a secret word"
+        // password-protected objects
         char *saidPassword;
-        //the phrase that player assigns to an object
-        char *assignedPassword;
 
         CurseStatus curseStatus;
         
@@ -1763,9 +1769,8 @@ void quitCleanup() {
 	infertilityDeclaringPhrases.deallocateStringElements();
 	fertilityDeclaringPhrases.deallocateStringElements();
     
-    //2HOL, password-protected objects: maintenance
-    passwordSettingPhrases.deallocateStringElements();
-    passwordInvokingPhrases.deallocateStringElements();
+    // password-protected objects
+    passwordProtectingPhrases.deallocateStringElements();
 	
     if( curseYouPhrase != NULL ) {
         delete [] curseYouPhrase;
@@ -4824,8 +4829,6 @@ SimpleVector<ChangePosition> newSpeechPos;
 SimpleVector<char*> newSpeechPhrases;
 SimpleVector<int> newSpeechPlayerIDs;
 SimpleVector<char> newSpeechCurseFlags;
-//2HOL additions for: password-protected objects
-SimpleVector<char> newSpeechPasswordFlags;
 
 
 
@@ -4842,44 +4845,28 @@ char *isInfertilityDeclaringSay( char *inSaidString );
 char *isFertilityDeclaringSay( char *inSaidString );
 
 
-//2HOL additions for: password-protected objects
-char *isPasswordSettingSay( char *inSaidString );
-char *isPasswordInvokingSay( char *inSaidString );
+// password-protected objects
+char *isPasswordProtectingSay( char *inSaidString );
 
 static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate = false ) {    
 
-    //2HOL additions for: password-protected objects
-    char *sayingPassword = NULL;
-    char *assigningPassword = NULL;
-    if ( passwordTransitionsAllowed ) {
-        
-        if ( passwordInvocationAndSettingAreSeparated ) {
-            sayingPassword = isPasswordInvokingSay( inToSay );
-            if( sayingPassword != NULL ) {
-                // AppLog::infoF( "2HOL DEBUG: Player says password. New password assigned to a player." );
-                inPlayer->saidPassword = stringDuplicate( sayingPassword );
-                // AppLog::infoF( "2HOL DEBUG: Player's password is %s", inPlayer->saidPassword );
-				//if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
-				if( passwordSilent ) { return; }
-                }
-
+    // password-protected objects
+    char *sayingPassword = isPasswordProtectingSay( inToSay );
+    if( sayingPassword != NULL ) {
+        int passwordLen = strlen( sayingPassword );
+        // maximum length is 50
+        // as allowed in persistentMapDB
+        if( passwordLen > 50 ) {
+            // too long, truncate the rest
+            sayingPassword[ 50 ] = '\0';
             }
-    
-    
-        assigningPassword = isPasswordSettingSay( inToSay );
-        if( assigningPassword != NULL ) {
-            // AppLog::infoF( "2HOL DEBUG: Player sets new password for future assignment." );
-            inPlayer->assignedPassword = stringDuplicate( assigningPassword );
-            if ( !passwordInvocationAndSettingAreSeparated ) { inPlayer->saidPassword = stringDuplicate( assigningPassword ); }
-            // AppLog::infoF( "2HOL DEBUG: Password for future assignment password is %s", inPlayer->assignedPassword );
-            //if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
-            if( passwordSilent ) { return; }
-            }
-
+        inPlayer->saidPassword = stringDuplicate( sayingPassword );
+        return; // password is silenced, not visible to other players
         }
         
                         
-    if( sayingPassword == NULL && assigningPassword == NULL ) {
+    if( sayingPassword == NULL ) {
+        // password should not be recorded as last words
         if( inPlayer->lastSay != NULL ) {
             delete [] inPlayer->lastSay;
             inPlayer->lastSay = NULL;
@@ -5195,14 +5182,6 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
     newSpeechPhrases.push_back( stringDuplicate( inToSay ) );
     newSpeechCurseFlags.push_back( curseFlag );
     newSpeechPlayerIDs.push_back( inPlayer->id );
-	
-    //2HOL additions for: password-protected objects
-    //  newSpeechPasswordFlags added to communicate with an algorithm
-    //  which decides whether send the info about something was said
-    //  to neighboring players or not
-    int passwordFlag = 0;
-    if ( sayingPassword || assigningPassword ) { passwordFlag = 1; }
-    newSpeechPasswordFlags.push_back( passwordFlag );
 
                         
     ChangePosition p = { inPlayer->xd, inPlayer->yd, false, -1 };
@@ -7898,9 +7877,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.lastSay = NULL;
     newObject.curseStatus = inCurseStatus;
     
-    //2HOL additions for: password-protected-objects, additional fields initialization
+    // password-protected objects
     newObject.saidPassword = NULL;
-    newObject.assignedPassword = NULL;
     
 
     if( newObject.curseStatus.curseLevel == 0 &&
@@ -10320,12 +10298,9 @@ char *isNamedForgivingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &forgivingPhrases );
     }
 
-//2HOL additions for: password-protected objects
-char *isPasswordSettingSay( char *inSaidString ) {
-    return isNamingSay( inSaidString, &passwordSettingPhrases );
-    }
-char *isPasswordInvokingSay( char *inSaidString ) {
-    return isNamingSay( inSaidString, &passwordInvokingPhrases );
+// password-protected objects
+char *isPasswordProtectingSay( char *inSaidString ) {
+    return isNamingSay( inSaidString, &passwordProtectingPhrases );
     }
     
 
@@ -12163,7 +12138,7 @@ static char isAccessBlocked( LiveObject *inPlayer,
 
     char wrongSide = false;
     char ownershipBlocked = false;
-	//2HOL additions for: password-protected objects
+	// password-protected objects
 	char blockedByPassword = false;
     char notStandingOnSameTile = false;
     
@@ -12201,43 +12176,29 @@ static char isAccessBlocked( LiveObject *inPlayer,
                 ! isOwned( inPlayer, x, y );
             }
 			
-		//2HOL additions for: password-protected objects
-		//the check to block the transition for the object which password was not guessed correctly
-		if( passwordTransitionsAllowed && targetObj->canHaveInGamePassword ) {
-			// AppLog::infoF( "2HOL DEBUG: attempt to interact with an object potentially having password" );
-			// AppLog::infoF( "2HOL DEBUG: there are %i protected tiles with object ID %i in the world", targetObj->IndX.size(), targetObj->id );
-			// AppLog::infoF( "2HOL DEBUG: interaction location, x: %i", x );
-			// AppLog::infoF( "2HOL DEBUG: interaction location, y: %i", y );
-			for( int i=0; i<targetObj->IndX.size(); i++ ) {
-				if ( x == targetObj->IndX.getElementDirect(i) && y == targetObj->IndY.getElementDirect(i) ) {
-					// AppLog::infoF( "2HOL DEBUG: protected tile #%i, password: %s", i, targetObj->IndPass.getElementDirect(i) );
-					if ( inPlayer->saidPassword == NULL ) {
-							// AppLog::infoF( "2HOL DEBUG: player didn't say any password." );
-							blockedByPassword = true;
-					}
-					else {
-						// AppLog::infoF( "2HOL DEBUG: player's password: %s", inPlayer->saidPassword );
-						std::string tryPw( inPlayer->saidPassword );
-						std::string truePw( targetObj->IndPass.getElementDirect(i) );
-						bool pass = tryPw.compare(truePw) == 0;
-						if ( pass ) {
-							// AppLog::infoF( "2HOL DEBUG: passwords match." );
-							blockedByPassword = false;
-							}
-						else {
-							// AppLog::infoF( "2HOL DEBUG: passwords do not match." );
-							blockedByPassword = true;
-							}
-						}
-						break;
-					}
-				}
-			// 2HOL, password-protected objects: or for which the password was not guessed
-			if ( blockedByPassword ) {
-				 // AppLog::infoF( "2HOL DEBUG: attempt to interact was blocked: wrong password." );
-				}
-			}
+		// password-protected objects
+		if( targetObj->passwordProtectable ) {
+            
+            for( int i=0; i<passwordRecords.size(); i++ ) {
+                passwordRecord r = passwordRecords.getElementDirect(i);
+                if( x == r.x && y == r.y ) {
+                    if ( inPlayer->saidPassword == NULL ) {
+                        // player hasn't said any password
+                        blockedByPassword = true;
+                        }
+                    else {                    
+                        std::string tryPw( inPlayer->saidPassword );
+                        if( tryPw.compare( r.password ) != 0 ) {
+                            // passwords do not match
+                            blockedByPassword = true;
+                            }
+                        }
+                    break;
+                    }
+                }
+            }
         }
+            
     return wrongSide || ownershipBlocked || blockedByPassword || notStandingOnSameTile;
     }
 
@@ -12606,17 +12567,8 @@ int main() {
     readPhrases( "youGivingPhrases", &youGivingPhrases );
     readPhrases( "namedGivingPhrases", &namedGivingPhrases );
     
-    //2HOL additions for: password-protected objects
-    passwordTransitionsAllowed =
-        SettingsManager::getIntSetting( "passwordTransitionsAllowed", 0 );
-    passwordInvocationAndSettingAreSeparated =
-        SettingsManager::getIntSetting( "passwordInvocationAndSettingAreSeparated", 0 );
-    passwordOverhearRadius =
-        SettingsManager::getIntSetting( "passwordOverhearRadius", 6 );
-    if (passwordOverhearRadius == -1) { passwordSilent = 1; }
-    else { passwordSilent = 0; }
-    readPhrases( "passwordSettingPhrases", &passwordSettingPhrases );
-    readPhrases( "passwordInvokingPhrases", &passwordInvokingPhrases );
+    // password-protected objects
+    readPhrases( "passwordProtectingPhrases", &passwordProtectingPhrases );
     
 	readPhrases( "infertilityDeclaringPhrases", &infertilityDeclaringPhrases );
 	readPhrases( "fertilityDeclaringPhrases", &fertilityDeclaringPhrases );
@@ -17389,116 +17341,48 @@ int main() {
                                         newOwnerPos.push_back( newPos );
                                         }
 
-                                    //2HOL additions for: password-protected objects
-                                    //  the initial transition from +password-assignable to +password-protected object
-                                    //  "the moment when password attachment to the object (speaking strictly, to the tile where the structure is constructed) happens"
-                                    if ( passwordTransitionsAllowed &&
-                                        ( oldHolding > 0) && ( r->newTarget > 0 ) &&
-                                         getObject( oldHolding )->canGetInGamePassword &&
-                                         getObject( r->newTarget )->canHaveInGamePassword ) {                                           
+                                    // password-protected objects - password creation
+                                    if( oldHolding > 0 &&
+                                        r->newTarget > 0 &&
+                                        getObject( oldHolding )->passwordAssigner &&
+                                        getObject( r->newTarget )->passwordProtectable ) {                                           
 
-                                            // AppLog::infoF( "2HOL DEBUG: retrieving player's password." );
-                                            char *found = nextPlayer->assignedPassword;
+                                        char *found = nextPlayer->saidPassword;
                                             
-                                            // if ( found == NULL ) {AppLog::infoF( "    2HOL DEBUG: password returned NULL." );}
-                                            // else { if ( found[0] == '\0' ) {AppLog::infoF( "    2HOL DEBUG: password string is empty." );} }
+                                        if ( ( found != NULL ) && ( found[0] != '\0') ) {
                                             
-                                            if ( ( found != NULL ) && ( found[0] != '\0') ) {
-												
-												//Clear old passwords before assigning the new one to this tile
-												//These old passwords are from password restoration after server restart, not from players
-												for( int i=0; i<getObject( r->newTarget )->IndX.size(); i++ ) {
-													if ( m.x == getObject( r->newTarget )->IndX.getElementDirect(i) && m.y == getObject( r->newTarget )->IndY.getElementDirect(i) ) {
-														getObject( r->newTarget )->IndPass.deleteElement(i);
-														getObject( r->newTarget )->IndX.deleteElement(i);
-														getObject( r->newTarget )->IndY.deleteElement(i);
-														break;
-													}
-												}
-                                               
-                                                getObject( r->newTarget )->IndX.push_back( m.x );
-                                                getObject( r->newTarget )->IndY.push_back( m.y );
-                                                getObject( r->newTarget )->IndPass.push_back( found );
-                                                
-                                                //adding the coordinates, password and ID to "2HOL passwords.txt" list as soon as it was created,
-                                                //  as well as the date and time of interaction;
-                                                //  After server halt/crash and restart, passwords restoration happens while initalizing objects, in
-                                                //    ..\gameSource\objectBank.cpp : static void setupObjectPasswordStatus( ObjectRecord *inR )
-                                                
-                                                    //determining ID
-                                                    //  no need to check if it's one of stages of multi-stage object, since the password is assigned
-                                                    //  always as a result of structure-making transition, and that is going to be the object at initial stage in any case
-                                                    int tmp;
-                                                    //if ( getObject( r->newTarget )->isUseDummy ) { tmp = getObject( r->newTarget )->useDummyParent; }
-                                                    //else { tmp = getObject( r->newTarget )->id; }
-                                                    tmp = getObject( r->newTarget )->id;
-                                                
-                                                time_t _tm = time(NULL );
-                                                struct tm * curtime = localtime ( &_tm );
-                                                std::fstream file;
-                                                file.open("2HOL passwords.txt",std::ios::app);
-                                                file << '\n' << asctime(curtime) << "        id:" << tmp << "|x:" << m.x << "|y:" << m.y << "|word:" << found;
-                                                file.close();
- 
-                                                //erasing player's password after each successful transition
-                                                nextPlayer->assignedPassword = NULL;
-                                                
-                                                                                              // AppLog::infoF( "2HOL DEBUG: saved password-protected position, x = %i", getObject( r->newTarget )->IndX.getElementDirect(getObject( r->newTarget )->IndX.size()-1));
-                                                // AppLog::infoF( "2HOL DEBUG: saved password-protected position, y = %i", getObject( r->newTarget )->IndY.getElementDirect(getObject( r->newTarget )->IndY.size()-1));
-                                                // AppLog::infoF( "2HOL DEBUG: saved password: %s", getObject( r->newTarget )->IndPass.getElementDirect(getObject( r->newTarget )->IndPass.size()-1));
-                                            }
-                                            else {
-                                                // AppLog::infoF( "2HOL DEBUG: object has no password to copy.");
-                                            }
+                                            std::string password { nextPlayer->saidPassword };
+                                            passwordRecord r = { m.x, m.y, password };
+                                            passwordRecords.push_back( r );
+                                           
+                                            persistentMapDBPut( m.x, m.y, 1, password.c_str() );
                                             
                                         }
-                                        
-                                    //2HOL additions for: password-protected objects
-                                    //variation when oldTarget is protected by password
-                                    //  and that password must be, or must be not transferred into newTarget
-                                    if ( passwordTransitionsAllowed &&
-                                        ( target > 0) && ( r->newTarget > 0 ) && ( target != r->newTarget ) &&
-                                         getObject( target )->canHaveInGamePassword ) {
-                                        
-										//first of all, if transition was allowed, then old object loses the password record in any case
-										
-										//Instead of removing GridPos only from the target object,
-										//we go through all possible pw-protected object and remove such GridPos if we see them
-										//This is because upon server restart, we ignore the saved ids and load all the pw-locked GridPos into all possible pw objects.
-										//See setupObjectPasswordStatus() in objectBank.cpp
-										int maxId = getMaxObjectID();
-										char *pass = NULL;
-
-										for ( int id=0; id<maxId; id++ ) {
-											ObjectRecord *obj = getObject(id);
-											if (obj != NULL && obj->canHaveInGamePassword) {
-												for( int i=0; i<obj->IndX.size(); i++ ) {
-													if ( m.x == obj->IndX.getElementDirect(i) && m.y == obj->IndY.getElementDirect(i) ) {
-														if (targetObj->id == id) pass = obj->IndPass.getElementDirect(i);
-															// AppLog::infoF( "2HOL DEBUG: the password is deleted from the object with ID %i, located at the position (%i,%i).", obj->id, m.x, m.y);
-														obj->IndPass.deleteElement(i);
-														obj->IndX.deleteElement(i);
-														obj->IndY.deleteElement(i);
-														break;
-													}
-												}
-											}
-										}
-                                        
-                                        //then, if the result of the transition isn't protected by password (either newTarget is without password, or there is no newTarget), that's it;
-                                        //otherwise, the password needs to be reapplied to the new object
-                                        if ( ( pass != NULL ) &&
-                                             ( getObject( r->newTarget ) != NULL ) &&
-                                             ( getObject( r->newTarget )->canHaveInGamePassword ) ) {
-                                            getObject( r->newTarget )->IndX.push_back( m.x );
-                                            getObject( r->newTarget )->IndY.push_back( m.y );
-                                            getObject( r->newTarget )->IndPass.push_back( pass );
-                                                
-                                            // AppLog::infoF( "2HOL DEBUG: updated password-protected position, x = %i", getObject( r->newTarget )->IndX.getElementDirect(getObject( r->newTarget )->IndX.size()-1));
-                                            // AppLog::infoF( "2HOL DEBUG: updated password-protected position, y = %i", getObject( r->newTarget )->IndY.getElementDirect(getObject( r->newTarget )->IndY.size()-1));
-                                            // AppLog::infoF( "2HOL DEBUG: password: %s", getObject( r->newTarget )->IndPass.getElementDirect(getObject( r->newTarget )->IndPass.size()-1));
+                                        else {
+                                            // player hasn't said a password
+                                            // this case should not happen
+                                            // it should have been blocked elsewhere
                                         }
+                                        
                                     }
+                                    
+                                    // password-protected objects - deletion
+                                    if( target > 0 &&
+                                        r->newTarget > 0 &&
+                                        target != r->newTarget &&
+                                        getObject( target )->passwordProtectable &&
+                                        !getObject( r->newTarget )->passwordProtectable ) {
+                                        
+                                        for( int i=0; i<passwordRecords.size(); i++ ) {
+                                            passwordRecord r = passwordRecords.getElementDirect(i);
+                                            if( m.x == r.x && m.y == r.y ) {
+                                                passwordRecords.deleteElement( i );
+                                                persistentMapDBPut( m.x, m.y, 1, "\0" );
+                                                break;
+                                                }
+                                            }
+                                            
+                                        }
 
                                     if( r->actor == 0 &&
                                         target > 0 && r->newTarget > 0 &&
@@ -23378,12 +23262,6 @@ int main() {
                             minUpdateDist = d;
                             }
 
-                        //2HOL additions for: password-protected objects
-                        //  if player said password aloud, do not send it to anyone positioned further than passwordOverhearRadius tiles away
-                        int sPassword =
-                                    newSpeechPasswordFlags.getElementDirect( u );
-                        if( sPassword && ( d > passwordOverhearRadius ) ) { minUpdateDist = maxDist + 1; }
-
                         }
 
                     if( minUpdateDist <= maxDist ) {
@@ -24051,10 +23929,6 @@ int main() {
 
         newGraves.deleteAll();
         newGraveMoves.deleteAll();
-        
-		//2HOL additions for: password-protected objects
-		//These flags correspond to newSpeechPos, need to be cleared every loop as well
-        newSpeechPasswordFlags.deleteAll();
         
         newEmotPlayerIDs.deleteAll();
         newEmotIndices.deleteAll();

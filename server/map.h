@@ -32,6 +32,9 @@ typedef struct ChangePosition {
 #include "minorGems/util/SimpleVector.h"
 
 
+int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer );
+void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer );
+
 
 // returns true on success
 char initMap();

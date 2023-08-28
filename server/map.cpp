@@ -367,7 +367,8 @@ static char metaDBOpen = false;
 
 static DB persistentMapDB;
 static char persistentMapDBOpen = false;
- 
+    
+extern void restorePasswordRecord( int x, int y, unsigned char* passwordChars );
  
  
 static int randSeed = 124567;
@@ -719,7 +720,7 @@ static void dbFloorPut( int inX, int inY, int inValue );
 
 
 // returns -1 on failure, 1 on success
-static int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer ) {
+int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer ) {
     unsigned char key[16];
     unsigned char value[50];
     
@@ -737,7 +738,7 @@ static int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBu
         }
     }
     
-static void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer ) {
+void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer ) {
     unsigned char key[16];
     unsigned char value[50];
     // last int is not used, always 0
@@ -3799,6 +3800,7 @@ char initMap() {
     
     int totalRowCount = 0;
     int blankRowCount = 0;
+    int passwordRecordsRowCount = 0;
     int flightLandingPosRowCount = 0;
 
     while( DB_Iterator_next( &persistentMapDBi, persistentMapKey, persistentMapValue ) > 0 ) {
@@ -3809,7 +3811,12 @@ char initMap() {
         totalRowCount++;
         
         if( persistentMapValue[0] != '\0' ) {
-            if( flag == 2 ) {
+            if( flag == 1 ) {
+                // password-protected objects
+                restorePasswordRecord( x, y, persistentMapValue );
+                passwordRecordsRowCount++;
+                }
+            else if( flag == 2 ) {
                 // flight landing pos
                 GridPos p = { x, y };
                 flightLandingPos.push_back( p );
@@ -3823,8 +3830,8 @@ char initMap() {
         }
     
     AppLog::infoF(
-        "persistentMapDB:  Found %d records, %d blank, %d valid flight landing pos.",
-        totalRowCount, blankRowCount, flightLandingPosRowCount );
+        "persistentMapDB:  Found %d records, %d blank, %d password-protected tiles, %d valid flight landing pos.",
+        totalRowCount, blankRowCount, passwordRecordsRowCount, flightLandingPosRowCount );
  
  
    
