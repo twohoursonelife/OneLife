@@ -369,6 +369,7 @@ static DB persistentMapDB;
 static char persistentMapDBOpen = false;
     
 extern void restorePasswordRecord( int x, int y, unsigned char* passwordChars );
+extern void temp_passwordRecordTransfer();
  
  
 static int randSeed = 124567;
@@ -3827,6 +3828,12 @@ char initMap() {
             // blank row
             blankRowCount++;
             }
+        }
+        
+    if( true ) {
+        
+        temp_passwordRecordTransfer();
+        
         }
     
     AppLog::infoF(

@@ -213,6 +213,80 @@ void restorePasswordRecord( int x, int y, unsigned char* passwordChars ) {
     passwordRecord r = { x, y, password };
     passwordRecords.push_back( r );
     }
+    
+//2HOL: <fstream>, <iostream> added to handle restoration of in-game passwords on server restart
+#include <fstream>
+#include <iostream>
+    
+void temp_passwordRecordTransfer() {
+    
+    SimpleVector<passwordRecord> temp_passwordRecords;
+    
+    // look through saved passwords and get ones that belong to the currently processed object kind
+    std::ifstream file;
+    file.open( "2HOL passwords.txt" );
+    if ( !file.is_open() ) return;
+    // parsing 2HOL passwords.txt, the expected format is "id:%i|x:%i|y:%i|word:%s"
+    for ( std::string line; std::getline(file, line); ) {
+        
+        if ( line.find("id:") == std::string::npos ) continue;
+        
+        // int posId = line.find("id:") + 3;
+        // int lenId = line.find("|", posId) - posId;
+        int posX = line.find("x:") + 2;
+        int lenX = line.find("|", posX) - posX;
+        int posY = line.find("y:") + 2;
+        int lenY = line.find("|", posY) - posY;
+        int posPw = line.find("word:") + 5;
+        
+        // int id = stoi(line.substr(posId, lenId));
+        int x = stoi(line.substr(posX, lenX));
+        int y = stoi(line.substr(posY, lenY));
+        std::string pw = line.substr(posPw, line.length());
+        
+        
+        // remove duplicated saved passwords
+        // so only the last row counts
+        for( int i=0; i<temp_passwordRecords.size(); i++ ) {
+            passwordRecord r = temp_passwordRecords.getElementDirect(i);
+            if ( x == r.x && y == r.y ) {
+                temp_passwordRecords.deleteElement(i);
+                break;
+                }
+            }
+        
+        // std::cout << "\nRestoring secret word for object with ID:" << inR->id;
+        
+        char* pwc = new char[48];
+        strcpy (pwc, pw.c_str());
+        
+        passwordRecord r = { x, y, pw };
+        
+        temp_passwordRecords.push_back( r );
+
+        }
+    file.close();
+    
+    for( int i=0; i<temp_passwordRecords.size(); i++ ) {
+        passwordRecord r = temp_passwordRecords.getElementDirect(i);
+        
+        int id = getMapObject( r.x, r.y );
+        ObjectRecord *o = getObject( id );
+        
+        int b = 0;
+        if( o->passwordProtectable ) b = 1;
+        
+        printf( " ========================= %d %d %d %d %s\n", b, id, r.x, r.y, r.password.c_str() );
+        
+        if( o == NULL ) continue;
+        if( !o->passwordProtectable ) continue;
+        
+        passwordRecords.push_back( r );
+        
+        persistentMapDBPut( r.x, r.y, 1, r.password.c_str() );
+        }
+    
+    }    
 
 
 static SimpleVector<char*> infertilityDeclaringPhrases;
