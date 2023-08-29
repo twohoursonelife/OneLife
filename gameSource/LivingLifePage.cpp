@@ -22861,7 +22861,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         ourLiveObject->holdingID > 0 &&
         getObject( ourLiveObject->holdingID )->useDistance > 1 &&
         destID == 0 && modClick && 
-        getTrans( ourLiveObject->holdingID, -1 ) != NULL;
+        getTrans( ourLiveObject->holdingID, -1 ) != NULL &&
+        getTrans( ourLiveObject->holdingID, -1 )->newTarget != 0;
     
     if( (destID != 0 &&
         ! modClick &&
