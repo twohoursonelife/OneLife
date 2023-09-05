@@ -4935,6 +4935,10 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             sayingPassword[ 50 ] = '\0';
             }
         inPlayer->saidPassword = stringDuplicate( sayingPassword );
+        
+        // give feedback to player that a password is said
+        sendGlobalMessage( (char*)"A PASSWORD HAS BEEN SAID.", inPlayer );
+        
         return; // password is silenced, not visible to other players
         }
         
@@ -12259,12 +12263,18 @@ static char isAccessBlocked( LiveObject *inPlayer,
                     if ( inPlayer->saidPassword == NULL ) {
                         // player hasn't said any password
                         blockedByPassword = true;
+                        
+                        sendGlobalMessage( (char*)"SAY A PASSWORD FIRST.**"
+                            "SAY   PASSWORD IS XXX   TO SET YOUR PASSWORD."
+                            , inPlayer );
                         }
                     else {                    
                         std::string tryPw( inPlayer->saidPassword );
                         if( tryPw.compare( r.password ) != 0 ) {
                             // passwords do not match
                             blockedByPassword = true;
+                            
+                            sendGlobalMessage( (char*)"WRONG PASSWORD.", inPlayer );
                             }
                         }
                     break;
@@ -17146,6 +17156,26 @@ int main() {
                                         }
                                     }
 
+
+                                    // password-protected objects - password creation without saying password first
+                                    if( r != NULL &&
+                                        oldHolding > 0 &&
+                                        r->newTarget > 0 &&
+                                        getObject( oldHolding )->passwordAssigner &&
+                                        getObject( r->newTarget )->passwordProtectable ) {
+                                        
+                                        char *found = nextPlayer->saidPassword;
+                                        if ( ( found == NULL ) || ( found[0] == '\0') ) {
+                                            
+                                            // block it
+                                            r = NULL;
+                                            
+                                            // make it clear why the transition didn't go through
+                                            sendGlobalMessage( (char*)"SAY A PASSWORD FIRST.**"
+                                                "SAY   PASSWORD IS XXX   TO SET YOUR PASSWORD."
+                                                , nextPlayer );
+                                            }
+                                        }
 
 
                                 if( r != NULL && containmentTransfer ) {
