@@ -21137,6 +21137,7 @@ int main() {
                                     }
 
                                 GridPos destPos = { -1, -1 };
+                                std::string message = "";
                                 
                                 char foundMap = false;
                                 if( Time::getCurrentTime() - 
@@ -21148,6 +21149,13 @@ int main() {
                                     destPos = getClosestLandingPos( 
                                         nextPlayer->forceFlightDest,
                                         &foundMap );
+                                        
+                                    if( foundMap ) {
+                                        message = "LANDED AT THE TARGET LOCATION ON THE MAP.";
+                                        }
+                                    else {
+                                        message += "NO LANDING STRIPS ARE FOUND NEAR THE MAP LOCATION.**";
+                                        }
                                     
                                     // find strip closest to last
                                     // read map position
@@ -21164,11 +21172,28 @@ int main() {
                                 if( ! foundMap ) {
                                     // find strip in flight direction
                                     
+                                    int flightOutcomeFlag = -1;
+                                    
                                     destPos = getNextFlightLandingPos(
                                         nextPlayer->xs,
                                         nextPlayer->ys,
                                         takeOffDir,
+                                        &flightOutcomeFlag,
                                         radiusLimit );
+                                        
+                                    if( flightOutcomeFlag == 0 ) {
+                                        message = "YOU HAVE CRASH LANDED.**"
+                                                  "NO LANDING STRIPS ARE AVAILABLE ANYWHERE.";
+                                        }
+                                    else if( flightOutcomeFlag == 1 ) {
+                                        message += "LANDED AT THE CLOSEST STRIP IN THE TAKE-OFF DIRECTION.";
+                                        }
+                                    else if( flightOutcomeFlag == 2 ) {
+                                        message = "LANDED AT THE ONLY LANDING STRIP AVAILABLE ANYWHERE.";
+                                        }
+                                    else if( flightOutcomeFlag == 3 ) {
+                                        message += "LANDED AT THE CLOSEST STRIP. NONE AVAILABLE IN TAKE-OFF DIRECTION.";
+                                        }
                                     
                                     AppLog::infoF( 
                                     "Player %d non-map flight taking off "
@@ -21181,6 +21206,9 @@ int main() {
                                     }
                                 
                                 
+                                sendGlobalMessage( 
+                                    (char*)message.c_str(),
+                                    nextPlayer );
                                 
                             
                                 // send them a brand new map chunk

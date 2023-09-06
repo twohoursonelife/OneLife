@@ -298,6 +298,7 @@ int getMapObjectRaw( int inX, int inY );
 // from leaving (though flights from outside are unrestriced)
 GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
                                  doublePair inDir,
+                                 int *outFlightOutcomeFlag,
                                  int inRadiusLimit = -1 );
 
 

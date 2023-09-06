@@ -9230,6 +9230,11 @@ GridPos getClosestLandingPos( GridPos inTargetPos, char *outFound ) {
     for( int i=0; i<flightLandingPos.size(); i++ ) {
         GridPos thisPos = flightLandingPos.getElementDirect( i );
 
+        if( !tooClose( inTargetPos, thisPos, 250 ) ) {
+            // don't consider landing at spots further than 250,250 manhattan
+            // to target landing spot
+            continue;
+            }
         
         double dist = distSquared( inTargetPos, thisPos );
         
@@ -9268,6 +9273,7 @@ GridPos getClosestLandingPos( GridPos inTargetPos, char *outFound ) {
 
 GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY, 
                                  doublePair inDir, 
+                                 int *outFlightOutcomeFlag,
                                  int inRadiusLimit ) {
     int closestIndex = -1;
     GridPos closestPos;
@@ -9328,15 +9334,18 @@ GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
         GridPos nextPos = getNextCloseLandingPos( curPos, inDir, &found );
        
         if( found ) {
+            *outFlightOutcomeFlag = 1;
             return nextPos;
             }
  
         // if we got here, we never found a nextPos that was valid
         // closestPos is only option
+        *outFlightOutcomeFlag = 3;
         return closestPos;
         }
     else if( closestIndex != -1 && flightLandingPos.size() == 1 ) {
         // land at closest, only option
+        *outFlightOutcomeFlag = 2;
         return closestPos;
         }
    
@@ -9365,6 +9374,8 @@ GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
          
  
  
+    *outFlightOutcomeFlag = 0;
+    
     return returnVal;
     }
  
