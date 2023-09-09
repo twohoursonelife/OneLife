@@ -3781,9 +3781,9 @@ char initMap() {
                          KISSDB_OPEN_MODE_RWCREAT,
                          80000,
                          16, // four 32-bit ints, x, y, flag, last int is not used, always 0
+                             // flag = 1, password-protected objects
                              // flag = 2, flight landing pos
-                         50 // one 32-bit int, flag of the type of record
-                           // and 50 characters of data, say tile-password
+                         50 // 50 characters of data, say tile-password
                          );
    
     if( error ) {
