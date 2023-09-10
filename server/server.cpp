@@ -12271,7 +12271,7 @@ static char isAccessBlocked( LiveObject *inPlayer,
 		// password-protected objects
 		if( targetObj->passwordProtectable ) {
             
-            for( int i=0; i<passwordRecords.size(); i++ ) {
+            for( int i=passwordRecords.size()-1; i>=0; i-- ) {
                 passwordRecord r = passwordRecords.getElementDirect(i);
                 if( x == r.x && y == r.y ) {
                     if ( inPlayer->saidPassword == NULL ) {
@@ -17496,7 +17496,10 @@ int main() {
                                             if( m.x == r.x && m.y == r.y ) {
                                                 passwordRecords.deleteElement( i );
                                                 persistentMapDBPut( m.x, m.y, 1, "\0" );
-                                                break;
+                                                
+                                                // keep looking, there may be old passwords
+                                                // leftover from vog-deleting password-protected objects
+                                                // break; 
                                                 }
                                             }
                                             
