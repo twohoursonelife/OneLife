@@ -416,6 +416,8 @@ and " AND"
 
 metersAway "METERS AWAY"
 
+map "MAP"
+
 
 
 dieCommand "/DIE"
