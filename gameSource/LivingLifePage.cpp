@@ -14595,6 +14595,8 @@ void LivingLifePage::step() {
                     
                     newbieTips::drawTipsArrow = false;
                     
+                    isTrippingEffectOn = isTripping();
+                    
 					//reset fov on birth
 					if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
 						changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
