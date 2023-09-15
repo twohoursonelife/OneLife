@@ -23955,21 +23955,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 	bool shiftKey = isShiftKeyDown();
 
 
-    if (!vogMode && !vogPickerOn) {
-        int keyCode_b = 66;
-        if (shiftKey && inASCII == keyCode_b) {
-            bool isSettingEnabled = 
-                SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
-            ShowUseOnObjectHoverSettingToggle = isSettingEnabled;
-
-            if (isSettingEnabled) {
-                isShowUseOnObjectHoverKeybindEnabled = !isShowUseOnObjectHoverKeybindEnabled;
-            } else {
-                isShowUseOnObjectHoverKeybindEnabled = false;
-            }
-        }
-    }
-
     if( vogMode && vogPickerOn ) {
         //Picker keybinds
         if( !commandKey && inASCII == 9 ) { // TAB
@@ -24239,6 +24224,19 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 savingSpeechMask = false;
                 savingSpeech = true;
                 }
+            break;
+        case 'B': {
+            const bool isSettingEnabled =
+                SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
+            if( isSettingEnabled && ! mSayField.isFocused() && ! vogMode ) {
+                ShowUseOnObjectHoverSettingToggle = isSettingEnabled;
+
+                if( isSettingEnabled ) {
+                    isShowUseOnObjectHoverKeybindEnabled = ! isShowUseOnObjectHoverKeybindEnabled;
+                    }
+                else { isShowUseOnObjectHoverKeybindEnabled = false; }
+                }
+            }
             break;
         case 'x':
         case 'X':
