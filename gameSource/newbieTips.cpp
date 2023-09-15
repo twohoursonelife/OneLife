@@ -434,17 +434,17 @@ int newbieTips::getObjId( int tileX, int tileY ) {
 
 
 bool newbieTips::isEasyFood( int id ) {
-	if (id < 0 || id >= getMaxObjectID() + 1) return false;
-	ObjectRecord* o = getObject(id);
+	if (id <= 0 || id >= getMaxObjectID() + 1) return false;
+	ObjectRecord* o = getObject(id, true);
 	if( o == NULL ) return false;
-	if( o->foodValue > 0 ) return true;
+	if( o->foodValue > 0 || o->bonusValue > 0 ) return true;
 	TransRecord* pick_trans = getTrans( 0, id );
 	if (pick_trans == NULL) return false;
 	int food_id = pick_trans->newActor;
 	if (food_id == 837) return false; //We dont eat mushroom...
-	ObjectRecord* food = getObject(food_id);
+	ObjectRecord* food = getObject(food_id, true);
 	if (food == NULL) return false;
-	if (food->foodValue > 0) return true;
+	if (food->foodValue > 0 || food->bonusValue > 0) return true;
 	return false;
 }
 

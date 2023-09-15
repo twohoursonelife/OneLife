@@ -336,7 +336,7 @@ cousin "COUSIN"
 18th "EIGHTEENTH"
 19th "NINETEENTH"
 20th "TWENTIETH"
-twenty "TWENTY-"
+twentyHyphen "TWENTY-"
 
 distant "DISTANT"
 
@@ -366,9 +366,13 @@ unknownPerson "UNKNOWN PERSON"
 yearAgo "YEAR AGO"
 yearsAgo "YEARS AGO"
 
+decadesAgo "DECADES AGO"
+
 centuriesAgo "CENTURIES AGO"
 
 millenniaAgo "MILLENNIA AGO"
+
+made "MADE"
 
 
 died "DIED"
@@ -395,6 +399,25 @@ eighteen "EIGHTEEN"
 nineteen "NINETEEN"
 twenty "TWENTY"
 
+thirty "THIRTY"
+forty "FORTY"
+fifty "FIFTY"
+sixty "SIXTY"
+seventy "SEVENTY"
+eighty "EIGHTY"
+ninety "NINETY"
+
+hundred "HUNDRED"
+thousand "THOUSAND"
+million "MILLION"
+billion "BILLION"
+
+and " AND"
+
+metersAway "METERS AWAY"
+
+map "MAP"
+
 
 
 dieCommand "/DIE"
@@ -413,6 +436,10 @@ helpCommand "/HELP"
 fps "FPS"
 
 fpsPending "FPS..."
+
+spritesDrawn       "spt drw"
+uniqueSprites "unq drw"
+pixelsDrawn "pixels"
 
 netPending "NET..."
 netStringA "MSG/SEC:   %3d UP : %4d DN" 

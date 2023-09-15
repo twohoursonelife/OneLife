@@ -7,9 +7,6 @@
 #include <random>
 #include <string>
 
-//2HOL, password-protected objects: <fstream>, <iostream> added to handle runtime storage of in-game passwords
-#include <fstream>
-#include <iostream>
 //  <time.h> added to add time stamps to recorded data
 #include <time.h>
 
@@ -133,6 +130,7 @@ WebRequest *apocalypseRequest = NULL;
 
 
 
+static int babyInheritMonument = 1;
 char monumentCallPending = false;
 int monumentCallX = 0;
 int monumentCallY = 0;
@@ -198,17 +196,104 @@ static SimpleVector<char*> youForgivingPhrases;
 static SimpleVector<char*> youGivingPhrases;
 static SimpleVector<char*> namedGivingPhrases;
 
-//2HOL additions for: password-protected objects
-int passwordTransitionsAllowed = 0;
-int passwordInvocationAndSettingAreSeparated = 0;
-int passwordOverhearRadius = 6;
-int passwordSilent = 0;
 
-static SimpleVector<char*> passwordSettingPhrases;
-static SimpleVector<char*> passwordInvokingPhrases;
+// password-protected objects
+static SimpleVector<char*> passwordProtectingPhrases;
+
+typedef struct passwordRecord {
+        int x;
+        int y;
+        std::string password;
+    } passwordRecord;
+
+static SimpleVector<passwordRecord> passwordRecords;
+
+void restorePasswordRecord( int x, int y, unsigned char* passwordChars ) {
+    std::string password( reinterpret_cast<char*>( passwordChars ) );
+    passwordRecord r = { x, y, password };
+    passwordRecords.push_back( r );
+    }
+    
+//2HOL: <fstream>, <iostream> added to handle restoration of in-game passwords on server restart
+#include <fstream>
+#include <iostream>
+    
+void temp_passwordRecordTransfer() {
+    
+    SimpleVector<passwordRecord> temp_passwordRecords;
+    
+    // look through saved passwords and get ones that belong to the currently processed object kind
+    std::ifstream file;
+    file.open( "2HOL passwords.txt" );
+    if ( !file.is_open() ) return;
+    // parsing 2HOL passwords.txt, the expected format is "id:%i|x:%i|y:%i|word:%s"
+    for ( std::string line; std::getline(file, line); ) {
+        
+        if ( line.find("id:") == std::string::npos ) continue;
+        
+        // int posId = line.find("id:") + 3;
+        // int lenId = line.find("|", posId) - posId;
+        int posX = line.find("x:") + 2;
+        int lenX = line.find("|", posX) - posX;
+        int posY = line.find("y:") + 2;
+        int lenY = line.find("|", posY) - posY;
+        int posPw = line.find("word:") + 5;
+        
+        // int id = stoi(line.substr(posId, lenId));
+        int x = stoi(line.substr(posX, lenX));
+        int y = stoi(line.substr(posY, lenY));
+        std::string pw = line.substr(posPw, line.length());
+        
+        
+        // remove duplicated saved passwords
+        // so only the last row counts
+        for( int i=0; i<temp_passwordRecords.size(); i++ ) {
+            passwordRecord r = temp_passwordRecords.getElementDirect(i);
+            if ( x == r.x && y == r.y ) {
+                temp_passwordRecords.deleteElement(i);
+                break;
+                }
+            }
+        
+        // std::cout << "\nRestoring secret word for object with ID:" << inR->id;
+        
+        char* pwc = new char[48];
+        strcpy (pwc, pw.c_str());
+        
+        passwordRecord r = { x, y, pw };
+        
+        temp_passwordRecords.push_back( r );
+
+        }
+    file.close();
+    
+    for( int i=0; i<temp_passwordRecords.size(); i++ ) {
+        passwordRecord r = temp_passwordRecords.getElementDirect(i);
+        
+        int id = getMapObject( r.x, r.y );
+        ObjectRecord *o = getObject( id );
+        
+        int b = 0;
+        if( o->passwordProtectable ) b = 1;
+        
+        printf( " ========================= %d %d %d %d %s\n", b, id, r.x, r.y, r.password.c_str() );
+        
+        if( o == NULL ) continue;
+        if( !o->passwordProtectable ) continue;
+        
+        passwordRecords.push_back( r );
+        
+        persistentMapDBPut( r.x, r.y, 1, r.password.c_str() );
+        }
+    
+    }    
+
 
 static SimpleVector<char*> infertilityDeclaringPhrases;
 static SimpleVector<char*> fertilityDeclaringPhrases;
+
+
+
 
 static char *eveName = NULL;
 
@@ -472,12 +557,8 @@ typedef struct LiveObject {
 
         char *lastSay;
         
-        //2HOL additions for: password-protected objects
-        
-        //the phrase that player carries as "a secret word"
+        // password-protected objects
         char *saidPassword;
-        //the phrase that player assigns to an object
-        char *assignedPassword;
 
         CurseStatus curseStatus;
         
@@ -804,6 +885,8 @@ typedef struct LiveObject {
         int vogJumpIndex;
         char postVogMode;
         
+        char forceSpawn;
+        
 
         // list of positions owned by this player
         SimpleVector<GridPos> ownedPositions;
@@ -835,6 +918,9 @@ typedef struct LiveObject {
         int cravingFoodYumIncrement;
         char cravingKnown;
 
+        GridPos forceFlightDest;
+        double forceFlightDestSetTime;
+        
     } LiveObject;
 
 
@@ -1757,9 +1843,8 @@ void quitCleanup() {
 	infertilityDeclaringPhrases.deallocateStringElements();
 	fertilityDeclaringPhrases.deallocateStringElements();
     
-    //2HOL, password-protected objects: maintenance
-    passwordSettingPhrases.deallocateStringElements();
-    passwordInvokingPhrases.deallocateStringElements();
+    // password-protected objects
+    passwordProtectingPhrases.deallocateStringElements();
 	
     if( curseYouPhrase != NULL ) {
         delete [] curseYouPhrase;
@@ -4031,8 +4116,9 @@ static void setPlayerDisconnected( LiveObject *inPlayer,
 
 
 
-
-static void sendGlobalMessage( char *inMessage ) {
+// if inOnePlayerOnly set, we only send to that player
+static void sendGlobalMessage( char *inMessage,
+                               LiveObject *inOnePlayerOnly = NULL ) {
     char found;
     char *noSpaceMessage = replaceAll( inMessage, " ", "_", &found );
 
@@ -4045,6 +4131,10 @@ static void sendGlobalMessage( char *inMessage ) {
     for( int i=0; i<players.size(); i++ ) {
         LiveObject *o = players.getElement( i );
         
+        if( inOnePlayerOnly != NULL && o != inOnePlayerOnly ) {
+            continue;
+            }
+
         if( ! o->error && ! o->isTutorial && o->connected ) {
             int numSent = 
                 o->sock->send( (unsigned char*)fullMessage, 
@@ -4818,8 +4908,6 @@ SimpleVector<ChangePosition> newSpeechPos;
 SimpleVector<char*> newSpeechPhrases;
 SimpleVector<int> newSpeechPlayerIDs;
 SimpleVector<char> newSpeechCurseFlags;
-//2HOL additions for: password-protected objects
-SimpleVector<char> newSpeechPasswordFlags;
 
 
 
@@ -4836,44 +4924,32 @@ char *isInfertilityDeclaringSay( char *inSaidString );
 char *isFertilityDeclaringSay( char *inSaidString );
 
 
-//2HOL additions for: password-protected objects
-char *isPasswordSettingSay( char *inSaidString );
-char *isPasswordInvokingSay( char *inSaidString );
+// password-protected objects
+char *isPasswordProtectingSay( char *inSaidString );
 
 static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate = false ) {    
 
-    //2HOL additions for: password-protected objects
-    char *sayingPassword = NULL;
-    char *assigningPassword = NULL;
-    if ( passwordTransitionsAllowed ) {
+    // password-protected objects
+    char *sayingPassword = isPasswordProtectingSay( inToSay );
+    if( sayingPassword != NULL ) {
+        int passwordLen = strlen( sayingPassword );
+        // maximum length is 50
+        // as allowed in persistentMapDB
+        if( passwordLen > 50 ) {
+            // too long, truncate the rest
+            sayingPassword[ 50 ] = '\0';
+            }
+        inPlayer->saidPassword = stringDuplicate( sayingPassword );
         
-        if ( passwordInvocationAndSettingAreSeparated ) {
-            sayingPassword = isPasswordInvokingSay( inToSay );
-            if( sayingPassword != NULL ) {
-                // AppLog::infoF( "2HOL DEBUG: Player says password. New password assigned to a player." );
-                inPlayer->saidPassword = stringDuplicate( sayingPassword );
-                // AppLog::infoF( "2HOL DEBUG: Player's password is %s", inPlayer->saidPassword );
-				//if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
-				if( passwordSilent ) { return; }
-                }
-
-            }
-    
-    
-        assigningPassword = isPasswordSettingSay( inToSay );
-        if( assigningPassword != NULL ) {
-            // AppLog::infoF( "2HOL DEBUG: Player sets new password for future assignment." );
-            inPlayer->assignedPassword = stringDuplicate( assigningPassword );
-            if ( !passwordInvocationAndSettingAreSeparated ) { inPlayer->saidPassword = stringDuplicate( assigningPassword ); }
-            // AppLog::infoF( "2HOL DEBUG: Password for future assignment password is %s", inPlayer->assignedPassword );
-            //if passwordSilent = true, no need to display anything, as well as make any further checks, just cut it after the assignment is done
-            if( passwordSilent ) { return; }
-            }
-
+        // give feedback to player that a password is said
+        sendGlobalMessage( (char*)"A PASSWORD HAS BEEN SAID.", inPlayer );
+        
+        return; // password is silenced, not visible to other players
         }
         
                         
-    if( sayingPassword == NULL && assigningPassword == NULL ) {
+    if( sayingPassword == NULL ) {
+        // password should not be recorded as last words
         if( inPlayer->lastSay != NULL ) {
             delete [] inPlayer->lastSay;
             inPlayer->lastSay = NULL;
@@ -5189,14 +5265,6 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
     newSpeechPhrases.push_back( stringDuplicate( inToSay ) );
     newSpeechCurseFlags.push_back( curseFlag );
     newSpeechPlayerIDs.push_back( inPlayer->id );
-	
-    //2HOL additions for: password-protected objects
-    //  newSpeechPasswordFlags added to communicate with an algorithm
-    //  which decides whether send the info about something was said
-    //  to neighboring players or not
-    int passwordFlag = 0;
-    if ( sayingPassword || assigningPassword ) { passwordFlag = 1; }
-    newSpeechPasswordFlags.push_back( passwordFlag );
 
                         
     ChangePosition p = { inPlayer->xd, inPlayer->yd, false, -1 };
@@ -5241,8 +5309,17 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             for( int i=0; i<pipesOut->size(); i++ ) {
                 GridPos outPos = pipesOut->getElementDirect( i );
                 
-                newLocationSpeech.push_back( stringDuplicate( inToSay ) );
+                char *newSpeech = stringDuplicate( inToSay );
                 
+                // trim off any metadata so it doesn't go through
+                char *starLoc = strstr( newSpeech, " *" );
+                
+                if( starLoc != NULL ) {
+                    starLoc[0] = '\0';
+                    }
+
+                newLocationSpeech.push_back( newSpeech );
+            
                 ChangePosition outChangePos = { outPos.x, outPos.y, false, -1 };
                 newLocationSpeechPos.push_back( outChangePos );
                 }
@@ -6081,7 +6158,9 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         inPlayer->yummyBonusStore += currentBonus;
         }
         
-    if( wasYummy || o->permanent ) {
+    if( wasYummy ||
+        strstr( o->description, "modTool" )
+    ) {
         // bonus part of foodValue goes into the yum bonus if yummy (or is craved)
         // or if food is permanent, special case for testing/mod objects
         inPlayer->yummyBonusStore += o->bonusValue;
@@ -6595,6 +6674,96 @@ static int countLivingChildren( int inMotherID ) {
         }
     return count;
     }
+
+
+typedef struct ForceSpawnRecord {
+        GridPos pos;
+        double age;
+        char *firstName;
+        char *lastName;
+        int displayID;
+        int hatID;
+        int tunicID;
+        int bottomID;
+        int frontShoeID;
+        int backShoeID;
+        int backpackID;
+        int holdingID;
+    } ForceSpawnRecord;
+
+
+
+// strings in outRecordToFill destroyed by caller
+char getForceSpawn( char *inEmail, ForceSpawnRecord *outRecordToFill ) {
+    char *cont = SettingsManager::getSettingContents( "forceSpawnAccounts" );
+    
+    if( cont == NULL ) {
+        return false;
+        }
+    int numParts;
+    char **lines = split( cont, "\n", &numParts );
+
+    delete [] cont;
+    
+    char found = false;
+
+    for( int i=0; i<numParts; i++ ) {
+        
+        if( strstr( lines[i], inEmail ) == lines[i] ) {
+            // matches email
+
+            char emailBuff[100];
+            
+            int on = 0;
+            
+            sscanf( lines[i],
+                    "%99s %d", emailBuff, &on );
+
+            if( on == 1 ) {
+                
+                outRecordToFill->firstName = new char[20];
+                outRecordToFill->lastName = new char[20];
+                
+
+                int numRead = sscanf( 
+                    lines[i],
+                    "%99s %d %d,%d %lf %19s %19s %d %d %d %d %d %d %d %d", 
+                    emailBuff, &on,
+                    &outRecordToFill->pos.x,
+                    &outRecordToFill->pos.y,
+                    &outRecordToFill->age,
+                    outRecordToFill->firstName,
+                    outRecordToFill->lastName,
+                    &outRecordToFill->displayID,
+                    &outRecordToFill->hatID,
+                    &outRecordToFill->tunicID,
+                    &outRecordToFill->bottomID,
+                    &outRecordToFill->frontShoeID,
+                    &outRecordToFill->backShoeID,
+                    &outRecordToFill->backpackID,
+                    &outRecordToFill->holdingID );
+                
+                if( numRead == 15 ) {
+                    found = true;
+                    }
+                else {
+                    delete [] outRecordToFill->firstName;
+                    delete [] outRecordToFill->lastName;
+                    }
+                }
+            break;
+            }
+        }
+
+
+    for( int i=0; i<numParts; i++ ) {
+        delete [] lines[i];
+        }
+    delete [] lines;
+    
+    return found;
+    }
+
 
 
 
@@ -7138,8 +7307,18 @@ int processLoggedInPlayer( char inAllowReconnect,
         return -2;
         }
     
+    char forceSpawn = false;
+    ForceSpawnRecord forceSpawnInfo;
+    
     if( SettingsManager::getIntSetting( "forceAllPlayersEve", 0 ) ) {
         parentChoices.deleteAll();
+        }
+    else {
+        forceSpawn = getForceSpawn( inEmail, &forceSpawnInfo );
+    
+        if( forceSpawn ) {
+            parentChoices.deleteAll();
+            }
         }
 		
     if( connection->hashedSpawnSeed != 0 && SettingsManager::getIntSetting( "forceEveOnSeededSpawn", 0 ) ) {
@@ -7319,11 +7498,13 @@ int processLoggedInPlayer( char inAllowReconnect,
 
             double totalWeight = 0;
             
+            SimpleVector<double> filteredParentChoiceWeights;
+            
             for( int i=0; i<filteredParentChoices.size(); i++ ) {
                 LiveObject *p = filteredParentChoices.getElementDirect( i );
 
                 // temp part of weight
-                totalWeight += 0.5 - fabs( p->heat - 0.5 );
+                double thisMotherWeight = 0.5 - fabs( p->heat - 0.5 );
                 
 
                 int yumMult = p->yummyFoodChain.size() - 1;
@@ -7333,7 +7514,11 @@ int processLoggedInPlayer( char inAllowReconnect,
                     }
 
                 // yum mult part of weight
-                totalWeight += 0.5 * yumMult / (double) maxYumMult;
+                thisMotherWeight += 0.5 * yumMult / (double) maxYumMult;
+                
+                filteredParentChoiceWeights.push_back( thisMotherWeight );
+                
+                totalWeight += thisMotherWeight;
                 }
 
             double choice = 
@@ -7344,18 +7529,9 @@ int processLoggedInPlayer( char inAllowReconnect,
             
             for( int i=0; i<filteredParentChoices.size(); i++ ) {
                 LiveObject *p = filteredParentChoices.getElementDirect( i );
-
-                totalWeight += 0.5 - fabs( p->heat - 0.5 );
-
-
-                int yumMult = p->yummyFoodChain.size() - 1;
-                                
-                if( yumMult < 0 ) {
-                    yumMult = 0;
-                    }
-
-                // yum mult part of weight
-                totalWeight += 0.5 * yumMult / (double) maxYumMult;
+                
+                totalWeight += 
+                    filteredParentChoiceWeights.getElementDirect( i );
 
                 if( totalWeight >= choice ) {
                     parent = p;
@@ -7784,9 +7960,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.lastSay = NULL;
     newObject.curseStatus = inCurseStatus;
     
-    //2HOL additions for: password-protected-objects, additional fields initialization
+    // password-protected objects
     newObject.saidPassword = NULL;
-    newObject.assignedPassword = NULL;
     
 
     if( newObject.curseStatus.curseLevel == 0 &&
@@ -7903,6 +8078,9 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.postVogMode = false;
     newObject.vogJumpIndex = 0;
     
+    newObject.forceSpawn = false;
+
+    newObject.forceFlightDestSetTime = 0;
                 
     for( int i=0; i<HEAT_MAP_D * HEAT_MAP_D; i++ ) {
         newObject.heatMap[i] = 0;
@@ -7937,11 +8115,13 @@ int processLoggedInPlayer( char inAllowReconnect,
         
 
         // inherit last heard monument, if any, from parent
-        newObject.monumentPosSet = parent->monumentPosSet;
-        newObject.lastMonumentPos = parent->lastMonumentPos;
-        newObject.lastMonumentID = parent->lastMonumentID;
-        if( newObject.monumentPosSet ) {
-            newObject.monumentPosSent = false;
+        if( babyInheritMonument ) {
+            newObject.monumentPosSet = parent->monumentPosSet;
+            newObject.lastMonumentPos = parent->lastMonumentPos;
+            newObject.lastMonumentID = parent->lastMonumentID;
+            if( newObject.monumentPosSet ) {
+                newObject.monumentPosSent = false;
+                }
             }
         
         
@@ -7953,7 +8133,53 @@ int processLoggedInPlayer( char inAllowReconnect,
             newObject.lineage->push_back( 
                 parent->lineage->getElementDirect( i ) );
             }
+
+        if( strstr( newObject.email, "paxkiosk" ) ) {
+            // whoa, this baby is a PAX player!
+            // let the mother know
+            sendGlobalMessage( 
+                (char*)"YOUR BABY IS A NEW PLAYER FROM THE PAX EXPO BOOTH.**"
+                "PLEASE HELP THEM LEARN THE GAME.  THANKS!  -JASON",
+                parent );
+            }
         }
+
+    if( forceSpawn ) {
+        newObject.forceSpawn = true;
+        newObject.xs = forceSpawnInfo.pos.x;
+        newObject.ys = forceSpawnInfo.pos.y;
+        newObject.xd = forceSpawnInfo.pos.x;
+        newObject.yd = forceSpawnInfo.pos.y;
+        
+        newObject.birthPos = forceSpawnInfo.pos;
+        
+        newObject.lifeStartTimeSeconds = 
+            Time::getCurrentTime() -
+            forceSpawnInfo.age * ( 1.0 / getAgeRate() );
+        
+        newObject.displayedName = autoSprintf( "%s %s", 
+                                      forceSpawnInfo.firstName,
+                                      forceSpawnInfo.lastName );
+        newObject.displayID = forceSpawnInfo.displayID;
+        
+        newObject.clothing.hat = getObject( forceSpawnInfo.hatID, true );
+        newObject.clothing.tunic = getObject( forceSpawnInfo.tunicID, true );
+        newObject.clothing.bottom = getObject( forceSpawnInfo.bottomID, true );
+        newObject.clothing.frontShoe = 
+            getObject( forceSpawnInfo.frontShoeID, true );
+        newObject.clothing.backShoe = 
+            getObject( forceSpawnInfo.backShoeID, true );
+        newObject.clothing.backpack = 
+            getObject( forceSpawnInfo.backpackID, true );
+        
+        newObject.yummyBonusStore = 999;
+        
+        newObject.holdingID = getObject( forceSpawnInfo.holdingID, false )->id;
+
+        delete [] forceSpawnInfo.firstName;
+        delete [] forceSpawnInfo.lastName;
+        }
+    
 
     newObject.birthPos.x = newObject.xd;
     newObject.birthPos.y = newObject.yd;
@@ -10164,12 +10390,9 @@ char *isNamedForgivingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &forgivingPhrases );
     }
 
-//2HOL additions for: password-protected objects
-char *isPasswordSettingSay( char *inSaidString ) {
-    return isNamingSay( inSaidString, &passwordSettingPhrases );
-    }
-char *isPasswordInvokingSay( char *inSaidString ) {
-    return isNamingSay( inSaidString, &passwordInvokingPhrases );
+// password-protected objects
+char *isPasswordProtectingSay( char *inSaidString ) {
+    return isNamingSay( inSaidString, &passwordProtectingPhrases );
     }
     
 
@@ -10498,9 +10721,9 @@ void apocalypseStep() {
                 AppLog::infoF( "Apocalypse wipeMapFiles took %f sec",
                                Time::getCurrentTime() - startTime );
                 
-                reseedMap( true );
-                
                 initMap();
+
+                reseedMap( true );
                 
                 AppLog::infoF( "Apocalypse initMap took %f sec",
                                Time::getCurrentTime() - startTime );
@@ -12007,7 +12230,7 @@ static char isAccessBlocked( LiveObject *inPlayer,
 
     char wrongSide = false;
     char ownershipBlocked = false;
-	//2HOL additions for: password-protected objects
+	// password-protected objects
 	char blockedByPassword = false;
     char notStandingOnSameTile = false;
     
@@ -12045,43 +12268,35 @@ static char isAccessBlocked( LiveObject *inPlayer,
                 ! isOwned( inPlayer, x, y );
             }
 			
-		//2HOL additions for: password-protected objects
-		//the check to block the transition for the object which password was not guessed correctly
-		if( passwordTransitionsAllowed && targetObj->canHaveInGamePassword ) {
-			// AppLog::infoF( "2HOL DEBUG: attempt to interact with an object potentially having password" );
-			// AppLog::infoF( "2HOL DEBUG: there are %i protected tiles with object ID %i in the world", targetObj->IndX.size(), targetObj->id );
-			// AppLog::infoF( "2HOL DEBUG: interaction location, x: %i", x );
-			// AppLog::infoF( "2HOL DEBUG: interaction location, y: %i", y );
-			for( int i=0; i<targetObj->IndX.size(); i++ ) {
-				if ( x == targetObj->IndX.getElementDirect(i) && y == targetObj->IndY.getElementDirect(i) ) {
-					// AppLog::infoF( "2HOL DEBUG: protected tile #%i, password: %s", i, targetObj->IndPass.getElementDirect(i) );
-					if ( inPlayer->saidPassword == NULL ) {
-							// AppLog::infoF( "2HOL DEBUG: player didn't say any password." );
-							blockedByPassword = true;
-					}
-					else {
-						// AppLog::infoF( "2HOL DEBUG: player's password: %s", inPlayer->saidPassword );
-						std::string tryPw( inPlayer->saidPassword );
-						std::string truePw( targetObj->IndPass.getElementDirect(i) );
-						bool pass = tryPw.compare(truePw) == 0;
-						if ( pass ) {
-							// AppLog::infoF( "2HOL DEBUG: passwords match." );
-							blockedByPassword = false;
-							}
-						else {
-							// AppLog::infoF( "2HOL DEBUG: passwords do not match." );
-							blockedByPassword = true;
-							}
-						}
-						break;
-					}
-				}
-			// 2HOL, password-protected objects: or for which the password was not guessed
-			if ( blockedByPassword ) {
-				 // AppLog::infoF( "2HOL DEBUG: attempt to interact was blocked: wrong password." );
-				}
-			}
+		// password-protected objects
+		if( targetObj->passwordProtectable ) {
+            
+            for( int i=passwordRecords.size()-1; i>=0; i-- ) {
+                passwordRecord r = passwordRecords.getElementDirect(i);
+                if( x == r.x && y == r.y ) {
+                    if ( inPlayer->saidPassword == NULL ) {
+                        // player hasn't said any password
+                        blockedByPassword = true;
+                        
+                        sendGlobalMessage( (char*)"SAY A PASSWORD FIRST.**"
+                            "SAY   PASSWORD IS XXX   TO SET YOUR PASSWORD."
+                            , inPlayer );
+                        }
+                    else {                    
+                        std::string tryPw( inPlayer->saidPassword );
+                        if( tryPw.compare( r.password ) != 0 ) {
+                            // passwords do not match
+                            blockedByPassword = true;
+                            
+                            sendGlobalMessage( (char*)"WRONG PASSWORD.", inPlayer );
+                            }
+                        }
+                    break;
+                    }
+                }
+            }
         }
+            
     return wrongSide || ownershipBlocked || blockedByPassword || notStandingOnSameTile;
     }
 
@@ -12386,6 +12601,8 @@ int main() {
     
 
 
+    babyInheritMonument = 
+        SettingsManager::getIntSetting( "babyInheritMonument", 1 );
 
     minFoodDecrementSeconds = 
         SettingsManager::getFloatSetting( "minFoodDecrementSeconds", 5.0f );
@@ -12448,17 +12665,8 @@ int main() {
     readPhrases( "youGivingPhrases", &youGivingPhrases );
     readPhrases( "namedGivingPhrases", &namedGivingPhrases );
     
-    //2HOL additions for: password-protected objects
-    passwordTransitionsAllowed =
-        SettingsManager::getIntSetting( "passwordTransitionsAllowed", 0 );
-    passwordInvocationAndSettingAreSeparated =
-        SettingsManager::getIntSetting( "passwordInvocationAndSettingAreSeparated", 0 );
-    passwordOverhearRadius =
-        SettingsManager::getIntSetting( "passwordOverhearRadius", 6 );
-    if (passwordOverhearRadius == -1) { passwordSilent = 1; }
-    else { passwordSilent = 0; }
-    readPhrases( "passwordSettingPhrases", &passwordSettingPhrases );
-    readPhrases( "passwordInvokingPhrases", &passwordInvokingPhrases );
+    // password-protected objects
+    readPhrases( "passwordProtectingPhrases", &passwordProtectingPhrases );
     
 	readPhrases( "infertilityDeclaringPhrases", &infertilityDeclaringPhrases );
 	readPhrases( "fertilityDeclaringPhrases", &fertilityDeclaringPhrases );
@@ -16182,9 +16390,65 @@ int main() {
                                 ! getMetadata( nextPlayer->holdingID, 
                                                metaData ) ) {
 
-                                memset( metaData, 0, MAP_METADATA_LENGTH );
-                                memcpy( metaData, m.saidText, len + 1 );
+                                char *textToAdd = NULL;
                                 
+
+                                if( strstr( 
+                                        getObject( nextPlayer->holdingID )->
+                                        description,
+                                        "+map" ) != NULL ) {
+                                    // holding a potential map
+                                    // add coordinates to where we're standing
+                                    GridPos p = getPlayerPos( nextPlayer );
+                                    
+                                    char *mapStuff = autoSprintf( 
+                                        " *map %d %d %.f",
+                                        p.x, p.y, Time::timeSec() );
+                                    
+                                    int mapStuffLen = strlen( mapStuff );
+                                    
+                                    char *saidText = 
+                                        stringDuplicate( m.saidText );
+                                    
+                                    int saidLen = strlen( saidText );
+                                    
+                                    int extra = saidLen + mapStuffLen
+                                        - ( MAP_METADATA_LENGTH - 1 );
+
+                                    if( extra > 0 ) {
+                                        // too long to fit in metadata,
+                                        // trim speech, not map data
+                                        
+                                        saidLen = saidLen - extra;
+                                        
+                                        // truncate
+                                        saidText[ saidLen ] = '\0';
+                                        }                                    
+                                    
+                                    textToAdd = autoSprintf( 
+                                        "%s%s", saidText, mapStuff );
+                                    
+                                    delete [] saidText;
+                                    delete [] mapStuff;
+                                    }
+                                else {
+                                    textToAdd = stringDuplicate( m.saidText );
+                                    }
+
+                                int lenToAdd = strlen( textToAdd );
+                                
+                                // leave room for null char at end
+                                if( lenToAdd > MAP_METADATA_LENGTH - 1 ) {
+                                    lenToAdd = MAP_METADATA_LENGTH - 1;
+                                    }
+
+                                memset( metaData, 0, MAP_METADATA_LENGTH );
+                                // this will leave 0 null character at end
+                                // left over from memset of full length
+                                memcpy( metaData, textToAdd, lenToAdd );
+                                
+                                delete [] textToAdd;
+
                                 nextPlayer->holdingID = 
                                     addMetadata( nextPlayer->holdingID,
                                                  metaData );
@@ -16571,6 +16835,16 @@ int main() {
                                     forceObjectToRead( nextPlayer, target, readPos, false );
                                     }
                                 
+                                // see if target object is permanent
+                                // and has writing on it.
+                                // if so, read by touching it
+                                
+                                // if( targetObj->permanent &&
+                                    // targetObj->written ) {
+                                    // forcePlayerToRead( nextPlayer, target );
+                                    // }
+                                
+
                                 // try using object on this target 
                                 
                                 TransRecord *r = NULL;
@@ -16897,6 +17171,26 @@ int main() {
                                     }
 
 
+                                    // password-protected objects - password creation without saying password first
+                                    if( r != NULL &&
+                                        oldHolding > 0 &&
+                                        r->newTarget > 0 &&
+                                        getObject( oldHolding )->passwordAssigner &&
+                                        getObject( r->newTarget )->passwordProtectable ) {
+                                        
+                                        char *found = nextPlayer->saidPassword;
+                                        if ( ( found == NULL ) || ( found[0] == '\0') ) {
+                                            
+                                            // block it
+                                            r = NULL;
+                                            
+                                            // make it clear why the transition didn't go through
+                                            sendGlobalMessage( (char*)"SAY A PASSWORD FIRST.**"
+                                                "SAY   PASSWORD IS XXX   TO SET YOUR PASSWORD."
+                                                , nextPlayer );
+                                            }
+                                        }
+
 
                                 if( r != NULL && containmentTransfer ) {
                                     // special case contained items
@@ -17165,116 +17459,51 @@ int main() {
                                         newOwnerPos.push_back( newPos );
                                         }
 
-                                    //2HOL additions for: password-protected objects
-                                    //  the initial transition from +password-assignable to +password-protected object
-                                    //  "the moment when password attachment to the object (speaking strictly, to the tile where the structure is constructed) happens"
-                                    if ( passwordTransitionsAllowed &&
-                                        ( oldHolding > 0) && ( r->newTarget > 0 ) &&
-                                         getObject( oldHolding )->canGetInGamePassword &&
-                                         getObject( r->newTarget )->canHaveInGamePassword ) {                                           
+                                    // password-protected objects - password creation
+                                    if( oldHolding > 0 &&
+                                        r->newTarget > 0 &&
+                                        getObject( oldHolding )->passwordAssigner &&
+                                        getObject( r->newTarget )->passwordProtectable ) {                                           
 
-                                            // AppLog::infoF( "2HOL DEBUG: retrieving player's password." );
-                                            char *found = nextPlayer->assignedPassword;
+                                        char *found = nextPlayer->saidPassword;
                                             
-                                            // if ( found == NULL ) {AppLog::infoF( "    2HOL DEBUG: password returned NULL." );}
-                                            // else { if ( found[0] == '\0' ) {AppLog::infoF( "    2HOL DEBUG: password string is empty." );} }
+                                        if ( ( found != NULL ) && ( found[0] != '\0') ) {
                                             
-                                            if ( ( found != NULL ) && ( found[0] != '\0') ) {
-												
-												//Clear old passwords before assigning the new one to this tile
-												//These old passwords are from password restoration after server restart, not from players
-												for( int i=0; i<getObject( r->newTarget )->IndX.size(); i++ ) {
-													if ( m.x == getObject( r->newTarget )->IndX.getElementDirect(i) && m.y == getObject( r->newTarget )->IndY.getElementDirect(i) ) {
-														getObject( r->newTarget )->IndPass.deleteElement(i);
-														getObject( r->newTarget )->IndX.deleteElement(i);
-														getObject( r->newTarget )->IndY.deleteElement(i);
-														break;
-													}
-												}
-                                               
-                                                getObject( r->newTarget )->IndX.push_back( m.x );
-                                                getObject( r->newTarget )->IndY.push_back( m.y );
-                                                getObject( r->newTarget )->IndPass.push_back( found );
-                                                
-                                                //adding the coordinates, password and ID to "2HOL passwords.txt" list as soon as it was created,
-                                                //  as well as the date and time of interaction;
-                                                //  After server halt/crash and restart, passwords restoration happens while initalizing objects, in
-                                                //    ..\gameSource\objectBank.cpp : static void setupObjectPasswordStatus( ObjectRecord *inR )
-                                                
-                                                    //determining ID
-                                                    //  no need to check if it's one of stages of multi-stage object, since the password is assigned
-                                                    //  always as a result of structure-making transition, and that is going to be the object at initial stage in any case
-                                                    int tmp;
-                                                    //if ( getObject( r->newTarget )->isUseDummy ) { tmp = getObject( r->newTarget )->useDummyParent; }
-                                                    //else { tmp = getObject( r->newTarget )->id; }
-                                                    tmp = getObject( r->newTarget )->id;
-                                                
-                                                time_t _tm = time(NULL );
-                                                struct tm * curtime = localtime ( &_tm );
-                                                std::fstream file;
-                                                file.open("2HOL passwords.txt",std::ios::app);
-                                                file << '\n' << asctime(curtime) << "        id:" << tmp << "|x:" << m.x << "|y:" << m.y << "|word:" << found;
-                                                file.close();
- 
-                                                //erasing player's password after each successful transition
-                                                nextPlayer->assignedPassword = NULL;
-                                                
-                                                                                              // AppLog::infoF( "2HOL DEBUG: saved password-protected position, x = %i", getObject( r->newTarget )->IndX.getElementDirect(getObject( r->newTarget )->IndX.size()-1));
-                                                // AppLog::infoF( "2HOL DEBUG: saved password-protected position, y = %i", getObject( r->newTarget )->IndY.getElementDirect(getObject( r->newTarget )->IndY.size()-1));
-                                                // AppLog::infoF( "2HOL DEBUG: saved password: %s", getObject( r->newTarget )->IndPass.getElementDirect(getObject( r->newTarget )->IndPass.size()-1));
-                                            }
-                                            else {
-                                                // AppLog::infoF( "2HOL DEBUG: object has no password to copy.");
-                                            }
+                                            std::string password { nextPlayer->saidPassword };
+                                            passwordRecord r = { m.x, m.y, password };
+                                            passwordRecords.push_back( r );
+                                           
+                                            persistentMapDBPut( m.x, m.y, 1, password.c_str() );
                                             
                                         }
-                                        
-                                    //2HOL additions for: password-protected objects
-                                    //variation when oldTarget is protected by password
-                                    //  and that password must be, or must be not transferred into newTarget
-                                    if ( passwordTransitionsAllowed &&
-                                        ( target > 0) && ( r->newTarget > 0 ) && ( target != r->newTarget ) &&
-                                         getObject( target )->canHaveInGamePassword ) {
-                                        
-										//first of all, if transition was allowed, then old object loses the password record in any case
-										
-										//Instead of removing GridPos only from the target object,
-										//we go through all possible pw-protected object and remove such GridPos if we see them
-										//This is because upon server restart, we ignore the saved ids and load all the pw-locked GridPos into all possible pw objects.
-										//See setupObjectPasswordStatus() in objectBank.cpp
-										int maxId = getMaxObjectID();
-										char *pass = NULL;
-
-										for ( int id=0; id<maxId; id++ ) {
-											ObjectRecord *obj = getObject(id);
-											if (obj != NULL && obj->canHaveInGamePassword) {
-												for( int i=0; i<obj->IndX.size(); i++ ) {
-													if ( m.x == obj->IndX.getElementDirect(i) && m.y == obj->IndY.getElementDirect(i) ) {
-														if (targetObj->id == id) pass = obj->IndPass.getElementDirect(i);
-															// AppLog::infoF( "2HOL DEBUG: the password is deleted from the object with ID %i, located at the position (%i,%i).", obj->id, m.x, m.y);
-														obj->IndPass.deleteElement(i);
-														obj->IndX.deleteElement(i);
-														obj->IndY.deleteElement(i);
-														break;
-													}
-												}
-											}
-										}
-                                        
-                                        //then, if the result of the transition isn't protected by password (either newTarget is without password, or there is no newTarget), that's it;
-                                        //otherwise, the password needs to be reapplied to the new object
-                                        if ( ( pass != NULL ) &&
-                                             ( getObject( r->newTarget ) != NULL ) &&
-                                             ( getObject( r->newTarget )->canHaveInGamePassword ) ) {
-                                            getObject( r->newTarget )->IndX.push_back( m.x );
-                                            getObject( r->newTarget )->IndY.push_back( m.y );
-                                            getObject( r->newTarget )->IndPass.push_back( pass );
-                                                
-                                            // AppLog::infoF( "2HOL DEBUG: updated password-protected position, x = %i", getObject( r->newTarget )->IndX.getElementDirect(getObject( r->newTarget )->IndX.size()-1));
-                                            // AppLog::infoF( "2HOL DEBUG: updated password-protected position, y = %i", getObject( r->newTarget )->IndY.getElementDirect(getObject( r->newTarget )->IndY.size()-1));
-                                            // AppLog::infoF( "2HOL DEBUG: password: %s", getObject( r->newTarget )->IndPass.getElementDirect(getObject( r->newTarget )->IndPass.size()-1));
+                                        else {
+                                            // player hasn't said a password
+                                            // this case should not happen
+                                            // it should have been blocked elsewhere
                                         }
+                                        
                                     }
+                                    
+                                    // password-protected objects - deletion
+                                    if( target > 0 &&
+                                        r->newTarget > 0 &&
+                                        target != r->newTarget &&
+                                        getObject( target )->passwordProtectable &&
+                                        !getObject( r->newTarget )->passwordProtectable ) {
+                                        
+                                        for( int i=0; i<passwordRecords.size(); i++ ) {
+                                            passwordRecord r = passwordRecords.getElementDirect(i);
+                                            if( m.x == r.x && m.y == r.y ) {
+                                                passwordRecords.deleteElement( i );
+                                                persistentMapDBPut( m.x, m.y, 1, "\0" );
+                                                
+                                                // keep looking, there may be old passwords
+                                                // leftover from vog-deleting password-protected objects
+                                                // break; 
+                                                }
+                                            }
+                                            
+                                        }
 
                                     if( r->actor == 0 &&
                                         target > 0 && r->newTarget > 0 &&
@@ -18594,7 +18823,7 @@ int main() {
                                 // next case, holding food
                                 // that couldn't be put into clicked clothing
                                 else if( (obj->foodValue > 0 || obj->bonusValue > 0) && 
-                                         targetPlayer->foodStore < cap &&
+                                         (targetPlayer->foodStore < cap || strstr( obj->description, "modTool")) &&
                                          ! couldHaveGoneIn ) {
                                     
                                     targetPlayer->justAte = true;
@@ -20910,21 +21139,79 @@ int main() {
                                     radiusLimit = barrierRadius;
                                     }
 
-                                GridPos destPos = 
-                                    getNextFlightLandingPos(
+                                GridPos destPos = { -1, -1 };
+                                std::string message = "";
+                                
+                                char foundMap = false;
+                                if( Time::getCurrentTime() - 
+                                    nextPlayer->forceFlightDestSetTime
+                                    < 30 ) {
+                                    // map fresh in memory
+
+                                    
+                                    destPos = getClosestLandingPos( 
+                                        nextPlayer->forceFlightDest,
+                                        &foundMap );
+                                        
+                                    if( foundMap ) {
+                                        message = "LANDED AT THE TARGET LOCATION ON THE MAP.";
+                                        }
+                                    else {
+                                        message += "NO LANDING STRIPS ARE FOUND NEAR THE MAP LOCATION.**";
+                                        }
+                                    
+                                    // find strip closest to last
+                                    // read map position
+                                    AppLog::infoF( 
+                                    "Player %d flight taking off from (%d,%d), "
+                                    "map dest (%d,%d), found=%d, found (%d,%d)",
+                                    nextPlayer->id,
+                                    nextPlayer->xs, nextPlayer->ys,
+                                    nextPlayer->forceFlightDest.x,
+                                    nextPlayer->forceFlightDest.y,
+                                    foundMap,
+                                    destPos.x, destPos.y );
+                                    }                                
+                                if( ! foundMap ) {
+                                    // find strip in flight direction
+                                    
+                                    int flightOutcomeFlag = -1;
+                                    
+                                    destPos = getNextFlightLandingPos(
                                         nextPlayer->xs,
                                         nextPlayer->ys,
                                         takeOffDir,
+                                        &flightOutcomeFlag,
                                         radiusLimit );
-                            
-                                AppLog::infoF( 
-                                    "Player %d flight taking off from (%d,%d), "
+                                        
+                                    if( flightOutcomeFlag == 0 ) {
+                                        message = "YOU HAVE CRASH LANDED.**"
+                                                  "NO LANDING STRIPS ARE AVAILABLE ANYWHERE.";
+                                        }
+                                    else if( flightOutcomeFlag == 1 ) {
+                                        message += "LANDED AT THE CLOSEST STRIP IN THE TAKE-OFF DIRECTION.";
+                                        }
+                                    else if( flightOutcomeFlag == 2 ) {
+                                        message = "LANDED AT THE ONLY LANDING STRIP AVAILABLE ANYWHERE.";
+                                        }
+                                    else if( flightOutcomeFlag == 3 ) {
+                                        message += "LANDED AT THE CLOSEST STRIP. NONE AVAILABLE IN TAKE-OFF DIRECTION.";
+                                        }
+                                    
+                                    AppLog::infoF( 
+                                    "Player %d non-map flight taking off "
+                                    "from (%d,%d), "
                                     "flightDir (%f,%f), dest (%d,%d)",
                                     nextPlayer->id,
                                     nextPlayer->xs, nextPlayer->ys,
                                     xDir, yDir,
                                     destPos.x, destPos.y );
+                                    }
                                 
+                                
+                                sendGlobalMessage( 
+                                    (char*)message.c_str(),
+                                    nextPlayer );
                                 
                             
                                 // send them a brand new map chunk
@@ -23124,12 +23411,6 @@ int main() {
                             minUpdateDist = d;
                             }
 
-                        //2HOL additions for: password-protected objects
-                        //  if player said password aloud, do not send it to anyone positioned further than passwordOverhearRadius tiles away
-                        int sPassword =
-                                    newSpeechPasswordFlags.getElementDirect( u );
-                        if( sPassword && ( d > passwordOverhearRadius ) ) { minUpdateDist = maxDist + 1; }
-
                         }
 
                     if( minUpdateDist <= maxDist ) {
@@ -23181,16 +23462,80 @@ int main() {
                                     speakerAge = listenerAge;
                                     }
                                 
+
+                                char *trimmedPhrase =
+                                    stringDuplicate( newSpeechPhrases.
+                                                     getElementDirect( u ) );
+
+                                char *starLoc = 
+                                    strstr( trimmedPhrase, " *map" );
+                                    
+                                if( starLoc != NULL ) {
+                                    if( speakerID != listenerID ) {
+                                        // only send map metadata through
+                                        // if we picked up the map ourselves
+                                        // trim it otherwise
+                                        
+                                        starLoc[0] = '\0';
+                                        }
+                                    else {
+                                        // make coords birth-relative
+                                        // to person reading map
+                                        int mapX, mapY;
+
+                                        // turn time into relative age in sec
+                                        timeSec_t mapT = 0;
+                                        
+                                        int numRead = 
+                                            sscanf( starLoc, 
+                                                    " *map %d %d %lf",
+                                                    &mapX, &mapY, &mapT );
+                                        if( numRead == 2 || numRead == 3 ) {
+                                            starLoc[0] = '\0';
+
+                                            timeSec_t age = 0;
+                                            
+                                            if( numRead == 3 ) {
+                                                age = Time::timeSec() - mapT;
+                                                }
+
+                                            char *newTrimmed = autoSprintf( 
+                                                "%s *map %d %d %.f",
+                                                trimmedPhrase,
+                                                mapX - nextPlayer->birthPos.x, 
+                                                mapY - nextPlayer->birthPos.y,
+                                                age );
+                                            
+                                            delete [] trimmedPhrase;
+                                            trimmedPhrase = newTrimmed;
+
+                                            if( speakerObj != NULL ) {
+                                                speakerObj->forceFlightDest.x
+                                                    = mapX;
+                                                speakerObj->forceFlightDest.y
+                                                    = mapY;
+                                                speakerObj->
+                                                    forceFlightDestSetTime
+                                                    = Time::getCurrentTime();
+                                                }
+                                            }
+                                        }
+                                    }
+
                                 
                                 char *translatedPhrase;
                                 
                                 // skip language filtering in some cases
                                 // VOG can talk to anyone
+                                // so can force spawns
                                 // also, skip in on very low pop servers
                                 // (just let everyone talk together)
                                 if( nextPlayer->vogMode || 
+                                    nextPlayer->forceSpawn || 
                                     ( speakerObj != NULL &&
                                       speakerObj->vogMode ) ||
+                                    ( speakerObj != NULL &&
+                                      speakerObj->forceSpawn ) ||
                                     players.size() < 
                                     minActivePlayersForLanguages ||
 									strlen( newSpeechPhrases.getElementDirect( u ) ) == 0 ||
@@ -23198,9 +23543,7 @@ int main() {
 									newSpeechPhrases.getElementDirect( u )[0] == '+' ) {
                                     
                                     translatedPhrase =
-                                        stringDuplicate( 
-                                            newSpeechPhrases.
-                                            getElementDirect( u ) );
+                                        stringDuplicate( trimmedPhrase );
                                     }
                                 else {
                                     // int speakerDrunkenness = 0;
@@ -23212,8 +23555,7 @@ int main() {
 
                                     translatedPhrase =
                                         mapLanguagePhrase( 
-                                            newSpeechPhrases.
-                                                getElementDirect( u ),
+                                            trimmedPhrase,
                                             speakerEveID,
                                             listenerEveID,
                                             speakerID,
@@ -23285,6 +23627,7 @@ int main() {
                                                           curseFlag,
                                                           translatedPhrase );
                                 delete [] translatedPhrase;
+                                delete [] trimmedPhrase;
                                 
                                 messageWorking.appendElementString( line );
                                 
@@ -23735,10 +24078,6 @@ int main() {
 
         newGraves.deleteAll();
         newGraveMoves.deleteAll();
-        
-		//2HOL additions for: password-protected objects
-		//These flags correspond to newSpeechPos, need to be cleared every loop as well
-        newSpeechPasswordFlags.deleteAll();
         
         newEmotPlayerIDs.deleteAll();
         newEmotIndices.deleteAll();
