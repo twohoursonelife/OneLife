@@ -428,14 +428,10 @@ typedef struct ObjectRecord {
 
         char noBackAccess;
         
-        //2HOL additions for: password-protected doors      
-        //true for object that can transition into password-bearer, similar to how "writtable" and "written" flags are related
-        char canGetInGamePassword;
-        //true for object that can potentially be protected by a password
-        char canHaveInGamePassword;
-        //true for object actually protected by password
-        char hasInGamePassword;
-        int passID;
+        // password-protected objects      
+        // below are similar to how "writable" and "written" flags are related
+        char passwordAssigner;
+        char passwordProtectable;
         
 		//2HOL mechanics to read written objects
 		char clickToRead;
@@ -540,7 +536,8 @@ int reAddObject( ObjectRecord *inObject,
 
 
 
-ObjectRecord *getObject( int inID );
+// if inID doesn't exist, returns default object, unless inNoDefault is set
+ObjectRecord *getObject( int inID, char inNoDefault = false );
 
 
 // return array destroyed by caller, NULL if none found

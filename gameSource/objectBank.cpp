@@ -1,7 +1,3 @@
-//2HOL: <fstream>, <iostream> added to handle restoration of in-game passwords on server restart
-#include <fstream>
-#include <iostream>
-
 #include "objectBank.h"
 
 #include "minorGems/util/StringTree.h"
@@ -31,6 +27,10 @@ static int mapSize;
 // maps IDs to records
 // sparse, so some entries are NULL
 static ObjectRecord **idMap;
+
+
+// what object to return
+static int defaultObjectID = -1;
 
 
 static StringTree tree;
@@ -426,7 +426,8 @@ static void setupObjectWritingStatus( ObjectRecord *inR ) {
             }
         if( strstr( inR->description, "&writable" ) != NULL ) {
             inR->writable = true;
-            inR->mayHaveMetadata = true;
+            // writable objects don't have metadata yet
+            // inR->mayHaveMetadata = true;
             }
         }
 	
@@ -537,88 +538,22 @@ static void setupOwned( ObjectRecord *inR ) {
         }
     }
 
-//2HOL additions for: password-protected doors
-//  added fields initialization coded by analogue with setupObjectWritingStatus;
-//  fetching the previously saved passwords happens here as well
+// password-protected objects
 static void setupObjectPasswordStatus( ObjectRecord *inR ) {
     
-    inR->canGetInGamePassword = false;
-    inR->hasInGamePassword = false;
-    inR->canHaveInGamePassword = false;
-    inR->passID = 0;
+    inR->passwordAssigner = false;
+    inR->passwordProtectable = false;
                 
     if( strstr( inR->description, "+" ) != NULL ) {
-        if( strstr( inR->description, "+password-protected" ) != NULL ) {
-            inR->canHaveInGamePassword = true;
+        if( strstr( inR->description, "+password-protectable" ) != NULL ) {
+            inR->passwordProtectable = true;
             }
-        if( strstr( inR->description, "+password-assignable" ) != NULL ) {
-            inR->canGetInGamePassword = true;
+        if( strstr( inR->description, "+password-assigner" ) != NULL ) {
+            inR->passwordAssigner = true;
             }
         }
-        
-    //look through saved passwords and get ones that belong to the currently processed object kind
-    std::ifstream file;
-    file.open( "2HOL passwords.txt" );
-    if ( !file.is_open() ) return;
-    //parsing 2HOL passwords.txt, the expected format is "x:%i|y:%i|word:%s|id:%i"
-	for ( std::string line; std::getline(file, line); ) {
-		
-		if ( line.find("id:") == std::string::npos ) continue;
-		
-		//int posId = line.find("id:") + 3;
-		//int lenId = line.find("|", posId) - posId;
-		int posX = line.find("x:") + 2;
-		int lenX = line.find("|", posX) - posX;
-		int posY = line.find("y:") + 2;
-		int lenY = line.find("|", posY) - posY;
-		int posPw = line.find("word:") + 5;
-		
-		//int id = stoi(line.substr(posId, lenId));
-		int x = stoi(line.substr(posX, lenX));
-		int y = stoi(line.substr(posY, lenY));
-		std::string pw = line.substr(posPw, line.length());
-		
-		//The saved objId may not be accruate e.g. we assign pw to opened door, but we usually leave the door closed
-		//Therefore we ignore the saved id here, and assign the pw and GridPos to all possible password-protected objects
-		//This should not cause problems unless multiple pw-protected objects are in the same tile,
-		//which would not be possible in the current system anyway.
-		//The duplicated GridPos on the irrelevant objects will be removed when the GridPos is being interacted with 
-		//(either open/close door or password removal)
-		if ( inR->canHaveInGamePassword ) {
-			
-			//remove duplicated saved passwords for the same GridPos
-			//so only the last row counts
-			for( int i=0; i<inR->IndX.size(); i++ ) {
-				if ( x == inR->IndX.getElementDirect(i) && y == inR->IndY.getElementDirect(i) ) {
-					inR->IndPass.deleteElement(i);
-					inR->IndX.deleteElement(i);
-					inR->IndY.deleteElement(i);
-					break;
-					}
-				}
-			
-			// std::cout << "\nRestoring secret word for object with ID:" << inR->id;
-			
-			char* pwc = new char[48];
-			strcpy (pwc, pw.c_str());
-			inR->IndPass.push_back( pwc );
-			// std::cout << ", secret word: " << pwc;
-			
-			inR->IndY.push_back( y );
-			// std::cout << "; coordinates: y:" << y;
-			
-			inR->IndX.push_back( x );
-			// std::cout << "; x:" << x << ".\n";
-			
-			}
-        }
-    file.close();
     
     }
-
-//IndX.push_back( m.x );
-//IndY.push_back( m.y );
-//IndPass.push_back( found );
 
 static void setupNoHighlight( ObjectRecord *inR ) {
     inR->noHighlight = false;
@@ -765,6 +700,15 @@ static void setupAlcohol( ObjectRecord *inR ) {
 
 
 
+static void setupDefaultObject( ObjectRecord *inR ) {
+    if( strstr( inR->description, "+default" ) ) {
+        defaultObjectID = inR->id;
+        }
+    }
+
+
+
+
 int getMaxSpeechPipeIndex() {
     return maxSpeechPipeIndex;
     }
@@ -817,7 +761,7 @@ float initObjectBankStep() {
 
                 setupObjectWritingStatus( r );
                 
-                //2HOL additions for: password-protected doors
+                // password-protected objects
                 setupObjectPasswordStatus( r );
 
                 setupObjectGlobalTriggers( r );
@@ -2133,7 +2077,27 @@ void initObjectBankFinish() {
             setupTapout( o );
             }
         }
-	
+    
+    // setup default object
+    for( int i=0; i<mapSize; i++ ) {
+        if( idMap[i] != NULL ) {
+            ObjectRecord *o = idMap[i];
+            setupDefaultObject( o );
+            }
+        }
+    
+    
+    if( defaultObjectID == -1 ) {
+        // no default defined
+        // pick first object
+        for( int i=0; i<mapSize; i++ ) {
+            if( idMap[i] != NULL ) {
+                defaultObjectID = i;
+                break;
+                }
+            }
+        }
+    
 
     for( int i=0; i<=MAX_BIOME; i++ ) {
         biomeHeatMap[ i ] = 0;
@@ -2701,7 +2665,7 @@ void resaveAll() {
 #include "objectMetadata.h"
 
 
-ObjectRecord *getObject( int inID ) {
+ObjectRecord *getObject( int inID, char inNoDefault ) {
     inID = extractObjectID( inID );
     
     if( inID < mapSize ) {
@@ -2709,6 +2673,15 @@ ObjectRecord *getObject( int inID ) {
             return idMap[inID];
             }
         }
+
+    if( ! inNoDefault && defaultObjectID != -1 ) {
+        if( defaultObjectID < mapSize ) {
+            if( idMap[ defaultObjectID ] != NULL ) {
+                return idMap[ defaultObjectID ];
+                }
+            }
+        }
+    
     return NULL;
     }
 
@@ -3580,7 +3553,7 @@ int addObject( const char *inDescription,
 
     setupObjectWritingStatus( r );
     
-    //2HOL additions for: password-protected doors
+    // password-protected objects
     setupObjectPasswordStatus( r );
     
     setupObjectGlobalTriggers( r );

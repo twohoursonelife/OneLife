@@ -32,6 +32,9 @@ typedef struct ChangePosition {
 #include "minorGems/util/SimpleVector.h"
 
 
+int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer );
+void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer );
+
 
 // returns true on success
 char initMap();
@@ -295,7 +298,14 @@ int getMapObjectRaw( int inX, int inY );
 // from leaving (though flights from outside are unrestriced)
 GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
                                  doublePair inDir,
+                                 int *outFlightOutcomeFlag,
                                  int inRadiusLimit = -1 );
+
+
+
+GridPos getClosestLandingPos( GridPos inTargetPos, char *outFound );
+
+
 
 
 // get and set player ID for grave on map

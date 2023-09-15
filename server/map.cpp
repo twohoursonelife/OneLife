@@ -363,7 +363,13 @@ static char eveDBOpen = false;
  
 static DB metaDB;
 static char metaDBOpen = false;
- 
+
+
+static DB persistentMapDB;
+static char persistentMapDBOpen = false;
+    
+extern void restorePasswordRecord( int x, int y, unsigned char* passwordChars );
+extern void temp_passwordRecordTransfer();
  
  
 static int randSeed = 124567;
@@ -711,6 +717,35 @@ static void eveDBPut( const char *inEmail, int inX, int inY, int inRadius ) {
  
  
 static void dbFloorPut( int inX, int inY, int inValue );
+
+
+
+// returns -1 on failure, 1 on success
+int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer ) {
+    unsigned char key[16];
+    unsigned char value[50];
+    
+    // last int is not used, always 0
+    intQuadToKey( inX, inY, inFlag, 0, key );
+    
+    int result = DB_get( &persistentMapDB, key, inBuffer );
+    
+    if( result == 0 ) {
+        // found
+        return 1;
+        }
+    else {
+        return -1;
+        }
+    }
+    
+void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer ) {
+    unsigned char key[16];
+    unsigned char value[50];
+    // last int is not used, always 0
+    intQuadToKey( inX, inY, inFlag, 0, key );
+    DB_put( &persistentMapDB, key, inBuffer );
+    }
  
  
  
@@ -3736,7 +3771,74 @@ char initMap() {
         numMetaRecords, maxMetaID );
    
     setLastMetadataID( maxMetaID );
+    
+    
+ 
+ 
+ 
+    error = DB_open_modeSwitch( &persistentMapDB,
+                         "persistentMap.db",
+                         KISSDB_OPEN_MODE_RWCREAT,
+                         80000,
+                         16, // four 32-bit ints, x, y, flag, last int is not used, always 0
+                             // flag = 1, password-protected objects
+                             // flag = 2, flight landing pos
+                         50 // 50 characters of data, say tile-password
+                         );
    
+    if( error ) {
+        AppLog::errorF( "Error %d opening persistent map KissDB", error );
+        return false;
+        }
+   
+    persistentMapDBOpen = true;
+    
+    DB_Iterator persistentMapDBi;
+    DB_Iterator_init( &persistentMapDB, &persistentMapDBi );
+   
+    unsigned char persistentMapKey[16];
+    unsigned char persistentMapValue[50];
+    
+    int totalRowCount = 0;
+    int blankRowCount = 0;
+    int passwordRecordsRowCount = 0;
+    int flightLandingPosRowCount = 0;
+
+    while( DB_Iterator_next( &persistentMapDBi, persistentMapKey, persistentMapValue ) > 0 ) {
+        int x = valueToInt( persistentMapKey );
+        int y = valueToInt( &( persistentMapKey[4] ) );
+        int flag = valueToInt( &( persistentMapKey[8] ) );
+        
+        totalRowCount++;
+        
+        if( persistentMapValue[0] != '\0' ) {
+            if( flag == 1 ) {
+                // password-protected objects
+                restorePasswordRecord( x, y, persistentMapValue );
+                passwordRecordsRowCount++;
+                }
+            else if( flag == 2 ) {
+                // flight landing pos
+                GridPos p = { x, y };
+                flightLandingPos.push_back( p );
+                flightLandingPosRowCount++;
+                }
+            }
+        else {
+            // blank row
+            blankRowCount++;
+            }
+        }
+        
+    if( true ) {
+        
+        temp_passwordRecordTransfer();
+        
+        }
+    
+    AppLog::infoF(
+        "persistentMapDB:  Found %d records, %d blank, %d password-protected tiles, %d valid flight landing pos.",
+        totalRowCount, blankRowCount, passwordRecordsRowCount, flightLandingPosRowCount );
  
  
    
@@ -4259,6 +4361,11 @@ void freeMap( char inSkipCleanup ) {
     if( metaDBOpen ) {
         DB_close( &metaDB );
         metaDBOpen = false;
+        }
+ 
+    if( persistentMapDBOpen ) {
+        DB_close( &persistentMapDB );
+        persistentMapDBOpen = false;
         }
    
  
@@ -7064,6 +7171,7 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
                
                     // not even a valid landing pos anymore
                     flightLandingPos.deleteElement( i );
+                    persistentMapDBPut( p.x, p.y, 2, "\0" );
                     i--;
                     }
                 else {
@@ -7075,6 +7183,7 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
        
         if( !found ) {
             flightLandingPos.push_back( p );
+            persistentMapDBPut( p.x, p.y, 2, "1" );
             }
         }
    
@@ -9030,6 +9139,7 @@ void removeLandingPos( GridPos inPos ) {
     for( int i=0; i<flightLandingPos.size(); i++ ) {
         if( equal( inPos, flightLandingPos.getElementDirect( i ) ) ) {
             flightLandingPos.deleteElement( i );
+            persistentMapDBPut( inPos.x, inPos.y, 2, "\0" );
             return;
             }
         }
@@ -9087,6 +9197,7 @@ GridPos getNextCloseLandingPos( GridPos inCurPos,
                    
                     // not even a valid landing pos anymore
                     flightLandingPos.deleteElement( i );
+                    persistentMapDBPut( thisPos.x, thisPos.y, 2, "\0" );
                     i--;
                     continue;
                     }
@@ -9106,13 +9217,63 @@ GridPos getNextCloseLandingPos( GridPos inCurPos,
    
     return closestPos;
     }
- 
-               
- 
- 
- 
-GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
-                                 doublePair inDir,
+
+
+
+
+GridPos getClosestLandingPos( GridPos inTargetPos, char *outFound ) {
+
+    int closestIndex = -1;
+    GridPos closestPos;
+    double closestDist = DBL_MAX;
+    
+    for( int i=0; i<flightLandingPos.size(); i++ ) {
+        GridPos thisPos = flightLandingPos.getElementDirect( i );
+
+        if( !tooClose( inTargetPos, thisPos, 250 ) ) {
+            // don't consider landing at spots further than 250,250 manhattan
+            // to target landing spot
+            continue;
+            }
+        
+        double dist = distSquared( inTargetPos, thisPos );
+        
+        if( dist < closestDist ) {
+            // check if this is still a valid landing pos
+            int oID = getMapObject( thisPos.x, thisPos.y );
+            
+            if( oID <=0 ||
+                ! getObject( oID )->isFlightLanding ) {
+                
+                // not even a valid landing pos anymore
+                flightLandingPos.deleteElement( i );
+                persistentMapDBPut( thisPos.x, thisPos.y, 2, "\0" );
+                i--;
+                continue;
+                }
+            closestDist = dist;
+            closestPos = thisPos;
+            closestIndex = i;
+            }
+        }
+    
+    if( closestIndex == -1 ) {
+        *outFound = false;
+        }
+    else {
+        *outFound = true;
+        }
+    
+    return closestPos;
+    }
+
+                
+
+
+
+GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY, 
+                                 doublePair inDir, 
+                                 int *outFlightOutcomeFlag,
                                  int inRadiusLimit ) {
     int closestIndex = -1;
     GridPos closestPos;
@@ -9152,6 +9313,7 @@ GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
                
                 // not even a valid landing pos anymore
                 flightLandingPos.deleteElement( i );
+                persistentMapDBPut( thisPos.x, thisPos.y, 2, "\0" );
                 i--;
                 continue;
                 }
@@ -9172,15 +9334,18 @@ GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
         GridPos nextPos = getNextCloseLandingPos( curPos, inDir, &found );
        
         if( found ) {
+            *outFlightOutcomeFlag = 1;
             return nextPos;
             }
  
         // if we got here, we never found a nextPos that was valid
         // closestPos is only option
+        *outFlightOutcomeFlag = 3;
         return closestPos;
         }
     else if( closestIndex != -1 && flightLandingPos.size() == 1 ) {
         // land at closest, only option
+        *outFlightOutcomeFlag = 2;
         return closestPos;
         }
    
@@ -9209,6 +9374,8 @@ GridPos getNextFlightLandingPos( int inCurrentX, int inCurrentY,
          
  
  
+    *outFlightOutcomeFlag = 0;
+    
     return returnVal;
     }
  

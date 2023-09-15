@@ -384,6 +384,7 @@ typedef struct PointerHitRecord {
         // true if hitOurPlacement happened THROUGH another non-person object
         char hitOurPlacementBehind;
         
+        int hitObjectID;
 
     } PointerHitRecord;
 
@@ -678,15 +679,19 @@ class LivingLifePage : public GamePage, public ActionListener {
         
 
         SpriteHandle mHomeSlipSprite;
+        SpriteHandle mHomeSlip2Sprite;
+        
+        SpriteHandle mHomeSlipSprites[2];
+        
         SpriteHandle mHomeArrowSprites[ NUM_HOME_ARROWS ];
         SpriteHandle mHomeArrowErasedSprites[ NUM_HOME_ARROWS ];
         
-        HomeArrow mHomeArrowStates[ NUM_HOME_ARROWS ];
+        HomeArrow mHomeArrowStates[2][ NUM_HOME_ARROWS ];
 
         SimpleVector<int> mCulvertStoneSpriteIDs;
         
-        SimpleVector<char*> mPreviousHomeDistStrings;
-        SimpleVector<float> mPreviousHomeDistFades;
+        SimpleVector<char*> mPreviousHomeDistStrings[2];
+        SimpleVector<float> mPreviousHomeDistFades[2];
         
 
         // offset from current view center
@@ -695,9 +700,11 @@ class LivingLifePage : public GamePage, public ActionListener {
         doublePair mNotePaperPosTargetOffset;
 
 
-        doublePair mHomeSlipHideOffset;
-        doublePair mHomeSlipPosOffset;
-        doublePair mHomeSlipPosTargetOffset;
+        doublePair mHomeSlipHideOffset[2];
+        doublePair mHomeSlipPosOffset[2];
+        doublePair mHomeSlipPosTargetOffset[2];
+
+        double mHomeSlipShowDelta[2];
 
         
         SimpleVector<char*> mLastKnownNoteLines;
@@ -1071,6 +1078,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         // have a +noCover tag
         char isCoveredByFloor( int inTileIndex );
 
+
+        void drawHomeSlip( doublePair inSlipPos, int inIndex = 0 );
 
     };
 
