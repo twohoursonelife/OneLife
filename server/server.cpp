@@ -16400,7 +16400,6 @@ int main() {
                     delete [] message;
                     }
                 else if( m.type == PHOID ) {
-                    // FIXME:  still need to test
                     if( strlen( m.photoIDString ) == 40 ) {
                         
                         int oldObjectID = getMapObject( m.x, m.y );
@@ -16410,8 +16409,14 @@ int main() {
                         if( oldO->writable &&
                             strstr( oldO->description, "+photo" ) ) {
                             
+                            
+                            // camera-on-camera transition specifies
+                            // what should result if the photo succeeds.
+                            // (The player could never cause this transition
+                            //  manually, since the camera is permanent when
+                            //  it's in photo-taking mode)
                             TransRecord *writingHappenTrans =
-                                getMetaTrans( 0, oldObjectID );
+                                getMetaTrans( oldObjectID, oldObjectID );
                                 
                             if( writingHappenTrans != NULL &&
                                 writingHappenTrans->newTarget > 0 &&
