@@ -19467,6 +19467,18 @@ int main() {
                                         
                                         bool containerAllowSwap = !targetObj->slotsNoSwap;
                                         
+                                        bool targetIsTrulyPermanent = false;
+                                        if( targetObj->permanent ) {
+                                            // target is permanent
+                                            // consider swapping if target has a pick-up transition
+                                            TransRecord *pickupTrans = getPTrans( 0, targetObj->id );
+                                            bool targetHasPickupTrans = 
+                                                pickupTrans != NULL &&
+                                                pickupTrans->newActor != 0 &&
+                                                pickupTrans->newTarget == 0;
+                                            targetIsTrulyPermanent = !targetHasPickupTrans;
+                                            }
+                                        
                                         // DROP indicates they 
                                         // right-clicked on container
                                         // so use swap mode
@@ -19482,7 +19494,7 @@ int main() {
                                         else if( forceUse ||
                                                  ( canDrop && 
                                                    ! canGoIn &&
-                                                   targetObj->permanent &&
+                                                   targetIsTrulyPermanent &&
                                                    nextPlayer->numContained 
                                                    == 0 ) ) {
                                             // try treating it like
@@ -19496,7 +19508,7 @@ int main() {
                                             }
                                         else if( canDrop && 
                                                  ! canGoIn &&
-                                                 ! targetObj->permanent 
+                                                 ! targetIsTrulyPermanent 
                                                  &&
                                                  canPickup( 
                                                      targetObj->id,
