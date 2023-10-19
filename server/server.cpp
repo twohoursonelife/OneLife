@@ -19669,8 +19669,13 @@ int main() {
                                 if( target > 0 ) {
                                     ObjectRecord *targetObj = 
                                         getObject( target );
+                                    
+                                    // consider bare-hand action
+                                    TransRecord *handTrans = getPTrans(
+                                        0, target );
                                 
                                     if( ! targetObj->permanent &&
+                                        handTrans == NULL &&
                                         targetObj->minPickupAge <= 
                                         computeAge( nextPlayer ) ) {
                                     
@@ -19678,10 +19683,7 @@ int main() {
                                         pickupToHold( nextPlayer, m.x, m.y, 
                                                       target );
                                         }
-                                    else if( targetObj->permanent ) {
-                                        // consider bare-hand action
-                                        TransRecord *handTrans = getPTrans(
-                                            0, target );
+                                    else {
                                         
                                         if( handTrans == NULL ) {
                                             // check for instant decay
@@ -19702,28 +19704,14 @@ int main() {
                                                 }
                                             }
 
-
-                                        // handle only simplest case here
-                                        // (to avoid side-effects)
-                                        // REMV on container stack
-                                        // (make sure they have the same
-                                        //  use parent)
-                                        if( handTrans != NULL &&
-                                            handTrans->newTarget > 0 &&
-                                            getObject( handTrans->newTarget )->
-                                            numSlots == targetObj->numSlots &&
-                                            handTrans->newActor > 0 &&
-                                            getObject( handTrans->newActor )->
-                                            minPickupAge <= 
-                                            computeAge( nextPlayer ) ) {
-                                        
-                                            handleHoldingChange( 
-                                                nextPlayer,
-                                                handTrans->newActor );
-                                            setMapObject( 
-                                                m.x, m.y, 
-                                                handTrans->newTarget );
-                                            }
+                                        // try treating it like
+                                        // a USE action
+                                        m.type = USE;
+                                        m.id = -1;
+                                        m.c = -1;
+                                        playerIndicesToSendUpdatesAbout.
+                                            deleteElementEqualTo( i );
+                                        goto RESTART_MESSAGE_ACTION;
                                         }
                                     }
                                 }
