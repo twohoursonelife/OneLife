@@ -7877,9 +7877,19 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
+        SimpleVector<int> *objectsPool =
+            SettingsManager::getIntSettingMulti( "randomisePlayersObjectPool" );
         ObjectRecord *randomObject;
+        int randomObjectIndex;
+        int objectPoolSize = objectsPool->size();
         while ( randomObject == NULL ) {
-            randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
+            if( objectPoolSize > 0 ) {
+                randomObjectIndex = randSource.getRandomBoundedInt( 0, objectPoolSize - 1 );
+                randomObject = getObject( objectsPool->getElementDirect( randomObjectIndex ) );
+                }
+            else {
+                randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
+                }
             }
         inForceDisplayID = randomObject->id;
         }    
