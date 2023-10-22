@@ -19679,13 +19679,8 @@ int main() {
                                 if( target > 0 ) {
                                     ObjectRecord *targetObj = 
                                         getObject( target );
-                                    
-                                    // consider bare-hand action
-                                    TransRecord *handTrans = getPTrans(
-                                        0, target );
                                 
                                     if( ! targetObj->permanent &&
-                                        handTrans == NULL &&
                                         targetObj->minPickupAge <= 
                                         computeAge( nextPlayer ) ) {
                                     
@@ -19693,7 +19688,10 @@ int main() {
                                         pickupToHold( nextPlayer, m.x, m.y, 
                                                       target );
                                         }
-                                    else {
+                                    else if( targetObj->permanent ) {
+                                        // consider bare-hand action
+                                        TransRecord *handTrans = getPTrans(
+                                            0, target );
                                         
                                         if( handTrans == NULL ) {
                                             // check for instant decay
@@ -19714,14 +19712,16 @@ int main() {
                                                 }
                                             }
 
-                                        // try treating it like
-                                        // a USE action
-                                        m.type = USE;
-                                        m.id = -1;
-                                        m.c = -1;
-                                        playerIndicesToSendUpdatesAbout.
-                                            deleteElementEqualTo( i );
-                                        goto RESTART_MESSAGE_ACTION;
+                                        if( handTrans != NULL ) {
+                                            // try treating it like
+                                            // a USE action
+                                            m.type = USE;
+                                            m.id = -1;
+                                            m.c = -1;
+                                            playerIndicesToSendUpdatesAbout.
+                                                deleteElementEqualTo( i );
+                                            goto RESTART_MESSAGE_ACTION;
+                                            }
                                         }
                                     }
                                 }
