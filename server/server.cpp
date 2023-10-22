@@ -7877,9 +7877,19 @@ int processLoggedInPlayer( char inAllowReconnect,
         }
     
     if ( SettingsManager::getIntSetting( "randomisePlayersObject", 0 ) ) {
+        SimpleVector<int> *objectsPool =
+            SettingsManager::getIntSettingMulti( "randomisePlayersObjectPool" );
         ObjectRecord *randomObject;
+        int randomObjectIndex;
+        int objectPoolSize = objectsPool->size();
         while ( randomObject == NULL ) {
-            randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
+            if( objectPoolSize > 0 ) {
+                randomObjectIndex = randSource.getRandomBoundedInt( 0, objectPoolSize - 1 );
+                randomObject = getObject( objectsPool->getElementDirect( randomObjectIndex ) );
+                }
+            else {
+                randomObject = getObject( randSource.getRandomBoundedInt( 0, getMaxObjectID() ) );
+                }
             }
         inForceDisplayID = randomObject->id;
         }    
@@ -19467,6 +19477,18 @@ int main() {
                                         
                                         bool containerAllowSwap = !targetObj->slotsNoSwap;
                                         
+                                        bool targetIsTrulyPermanent = false;
+                                        if( targetObj->permanent ) {
+                                            // target is permanent
+                                            // consider swapping if target has a pick-up transition
+                                            TransRecord *pickupTrans = getPTrans( 0, targetObj->id );
+                                            bool targetHasPickupTrans = 
+                                                pickupTrans != NULL &&
+                                                pickupTrans->newActor != 0 &&
+                                                pickupTrans->newTarget == 0;
+                                            targetIsTrulyPermanent = !targetHasPickupTrans;
+                                            }
+                                        
                                         // DROP indicates they 
                                         // right-clicked on container
                                         // so use swap mode
@@ -19482,7 +19504,7 @@ int main() {
                                         else if( forceUse ||
                                                  ( canDrop && 
                                                    ! canGoIn &&
-                                                   targetObj->permanent &&
+                                                   targetIsTrulyPermanent &&
                                                    nextPlayer->numContained 
                                                    == 0 ) ) {
                                             // try treating it like
@@ -19496,7 +19518,7 @@ int main() {
                                             }
                                         else if( canDrop && 
                                                  ! canGoIn &&
-                                                 ! targetObj->permanent 
+                                                 ! targetIsTrulyPermanent 
                                                  &&
                                                  canPickup( 
                                                      targetObj->id,
@@ -19657,8 +19679,13 @@ int main() {
                                 if( target > 0 ) {
                                     ObjectRecord *targetObj = 
                                         getObject( target );
+                                    
+                                    // consider bare-hand action
+                                    TransRecord *handTrans = getPTrans(
+                                        0, target );
                                 
                                     if( ! targetObj->permanent &&
+                                        handTrans == NULL &&
                                         targetObj->minPickupAge <= 
                                         computeAge( nextPlayer ) ) {
                                     
@@ -19666,10 +19693,7 @@ int main() {
                                         pickupToHold( nextPlayer, m.x, m.y, 
                                                       target );
                                         }
-                                    else if( targetObj->permanent ) {
-                                        // consider bare-hand action
-                                        TransRecord *handTrans = getPTrans(
-                                            0, target );
+                                    else {
                                         
                                         if( handTrans == NULL ) {
                                             // check for instant decay
@@ -19690,28 +19714,14 @@ int main() {
                                                 }
                                             }
 
-
-                                        // handle only simplest case here
-                                        // (to avoid side-effects)
-                                        // REMV on container stack
-                                        // (make sure they have the same
-                                        //  use parent)
-                                        if( handTrans != NULL &&
-                                            handTrans->newTarget > 0 &&
-                                            getObject( handTrans->newTarget )->
-                                            numSlots == targetObj->numSlots &&
-                                            handTrans->newActor > 0 &&
-                                            getObject( handTrans->newActor )->
-                                            minPickupAge <= 
-                                            computeAge( nextPlayer ) ) {
-                                        
-                                            handleHoldingChange( 
-                                                nextPlayer,
-                                                handTrans->newActor );
-                                            setMapObject( 
-                                                m.x, m.y, 
-                                                handTrans->newTarget );
-                                            }
+                                        // try treating it like
+                                        // a USE action
+                                        m.type = USE;
+                                        m.id = -1;
+                                        m.c = -1;
+                                        playerIndicesToSendUpdatesAbout.
+                                            deleteElementEqualTo( i );
+                                        goto RESTART_MESSAGE_ACTION;
                                         }
                                     }
                                 }
