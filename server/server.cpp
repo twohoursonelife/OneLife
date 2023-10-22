@@ -7673,10 +7673,10 @@ int processLoggedInPlayer( char inAllowReconnect,
                     }
                 
             
-                if( ( inCurseStatus.curseLevel <= 0 && 
+                if( ( newObject.curseStatus.curseLevel <= 0 && 
                       player->curseStatus.curseLevel <= 0 ) 
                     || 
-                    ( inCurseStatus.curseLevel > 0 && 
+                    ( newObject.curseStatus.curseLevel > 0 && 
                       player->curseStatus.curseLevel > 0 ) ) {
                     // cursed babies only born to cursed mothers
                     // non-cursed babies never born to cursed mothers
@@ -8206,7 +8206,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         // Eve's curse status
         char seekingCursed = false;
         
-        if( inCurseStatus.curseLevel > 0 ) {
+        if( newObject.curseStatus.curseLevel > 0 ) {
             seekingCursed = true;
             }
         
@@ -8239,8 +8239,8 @@ int processLoggedInPlayer( char inAllowReconnect,
                         newObject.id, &startX, &startY, 
                         &otherPeoplePos, allowEveRespawn );
 
-        if( inCurseStatus.curseLevel > 0 ) {
-            // keep cursed players away
+        if( newObject.curseStatus.curseLevel > 0 ) {
+            // keep cursed players away by sticking them in Donkeytown 
 
             // 20K away in X and 20K away in Y, pushing out away from 0
             // in both directions
