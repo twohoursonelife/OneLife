@@ -23361,6 +23361,15 @@ int main() {
                     delete [] emotMessageText;
                     }
                 }
+
+
+            // we have to clear the emotes list NOW, right after composing
+            // this message.  If we wait until later, various actions, below
+            // may add new emotes to the list.  We need to save them for next
+            //  time, when we compose the next PE message
+            newEmotPlayerIDs.deleteAll();
+            newEmotIndices.deleteAll();
+            newEmotTTLs.deleteAll();
             }
 
         
@@ -25393,9 +25402,7 @@ int main() {
         newGraves.deleteAll();
         newGraveMoves.deleteAll();
         
-        newEmotPlayerIDs.deleteAll();
-        newEmotIndices.deleteAll();
-        newEmotTTLs.deleteAll();
+        
         
 
         
