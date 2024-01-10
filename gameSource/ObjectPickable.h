@@ -217,7 +217,7 @@ class ObjectPickable : public Pickable {
         
         
         
-        virtual void *getObjectFromID( int inID ) {
+        virtual void *getItemFromID( int inID ) {
             ObjectRecord *o = getObject( inID, true );
             
             return (void*) o;
