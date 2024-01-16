@@ -1041,6 +1041,12 @@ char isKnownOwned( LiveObject *inPlayer, GridPos inPos ) {
     return isKnownOwned( inPlayer, inPos.x, inPos.y );
     }
 
+
+
+void sendGlobalMessage( char *inMessage,
+                        LiveObject *inOnePlayerOnly = NULL );
+
+
 void sendMessageToPlayer( LiveObject *inPlayer, 
                           char *inMessage, int inLength );
 
@@ -4132,8 +4138,8 @@ static void setPlayerDisconnected( LiveObject *inPlayer,
 
 
 // if inOnePlayerOnly set, we only send to that player
-static void sendGlobalMessage( char *inMessage,
-                               LiveObject *inOnePlayerOnly = NULL ) {
+void sendGlobalMessage( char *inMessage,
+                        LiveObject *inOnePlayerOnly ) {
     char found;
     char *noSpaceMessage = replaceAll( inMessage, " ", "_", &found );
 
