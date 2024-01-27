@@ -11,6 +11,8 @@
 
 Craving noCraving = { -1, -1, 0 };
 
+int eatEverythingModeEnabled = 0;
+
 
 
 
@@ -47,6 +49,11 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
                               Craving inFoodToAvoid = noCraving ) {
 
 	SimpleVector<int> *allFoods = getAllPossibleFoodIDs();
+    
+    if( eatEverythingModeEnabled ) {
+        // everything can be eaten
+        allFoods = getAllPossibleNonPermanentIDs();
+        }
     
     SimpleVector<int> possibleFoods;
     

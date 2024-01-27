@@ -7022,6 +7022,9 @@ int processLoggedInPlayer( char inAllowReconnect,
     
     eatEverythingMode = SettingsManager::getIntSetting( "eatEverythingMode", 0 );
     
+    // change the setting from cravings
+    eatEverythingModeEnabled = eatEverythingMode;
+    
 
     numConnections ++;
                 

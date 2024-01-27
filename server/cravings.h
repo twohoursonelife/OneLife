@@ -9,6 +9,8 @@ typedef struct Craving {
 
 extern Craving noCraving;
 
+extern int eatEverythingModeEnabled;
+
 
 
 Craving getCravedFood( int inLineageEveID, int inPlayerGenerationNumber,
