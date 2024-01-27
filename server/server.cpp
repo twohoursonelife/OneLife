@@ -154,6 +154,8 @@ static int canYumChainBreak = 0;
 
 static double minAgeForCravings = 10;
 
+static int eatEverythingMode = 0;
+
 
 // static double posseSizeSpeedMultipliers[4] = { 0.75, 1.25, 1.5, 2.0 };
 
@@ -6016,7 +6018,7 @@ static char isYummy( LiveObject *inPlayer, int inObjectID ) {
         o = getObject( inObjectID );
         }
 
-    if( o->foodValue == 0 ) {
+    if( o->foodValue == 0 && ! eatEverythingMode ) {
         return false;
         }
 
@@ -6046,7 +6048,7 @@ static char isReallyYummy( LiveObject *inPlayer, int inObjectID ) {
         o = getObject( inObjectID );
         }
 
-    if( o->foodValue == 0 ) {
+    if( o->foodValue == 0 && ! eatEverythingMode ) {
         return false;
         }
 
@@ -7017,6 +7019,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     
     minAgeForCravings = SettingsManager::getDoubleSetting( "minAgeForCravings",
                                                            10 );
+    
+    eatEverythingMode = SettingsManager::getIntSetting( "eatEverythingMode", 0 );
     
 
     numConnections ++;
@@ -18387,7 +18391,7 @@ int main() {
                             ObjectRecord *obj = 
                                 getObject( nextPlayer->holdingID );
                             
-                            if( obj->foodValue > 0 ) {
+                            if( obj->foodValue > 0 || eatEverythingMode ) {
                                 holdingFood = true;
 
                                 if( strstr( obj->description, "noFeeding" )
@@ -18832,7 +18836,7 @@ int main() {
                                     }
                                 // next case, holding food
                                 // that couldn't be put into clicked clothing
-                                else if( (obj->foodValue > 0 || obj->bonusValue > 0) && 
+                                else if( (obj->foodValue > 0 || obj->bonusValue > 0 || eatEverythingMode) && 
                                          (targetPlayer->foodStore < cap || strstr( obj->description, "modTool")) &&
                                          ! couldHaveGoneIn ) {
                                     
@@ -18845,7 +18849,13 @@ int main() {
                                     targetPlayer->lastAteFillMax =
                                         targetPlayer->foodStore;
                                     
-                                    targetPlayer->foodStore += obj->foodValue;
+                                    if ( eatEverythingMode ) {
+                                        // set the sustenance of everything to 1
+                                        targetPlayer->foodStore += 1;
+                                    }
+                                    else {
+                                        targetPlayer->foodStore += obj->foodValue;
+                                    }
                                     
                                     updateYum( targetPlayer, obj->id,
                                                targetPlayer == nextPlayer );
