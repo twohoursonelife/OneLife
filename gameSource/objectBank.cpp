@@ -624,34 +624,43 @@ static void setupTapout( ObjectRecord *inR ) {
     char *triggerPos = strstr( inR->description, "+tapoutTrigger" );
                 
     if( triggerPos != NULL ) {
-        int xGrid, yGrid;
-        int xLimit, yLimit;
-        int buildCountLimit = -1;
-        int postBuildLimitX = 0;
-        int postBuildLimitY = 0;
+        int xGrid = -1;
+        int yGrid = -1;
+        int xLimit = -1;
+        int yLimit = -1;
+        int tapoutCountLimit = -1;
         
         int numRead = sscanf( triggerPos, 
-                              "+tapoutTrigger,%d,%d,%d,%d,"
-                              "%d,%d,%d",
+                              "+tapoutTrigger,%d,%d,%d,%d,%d",
                               &xGrid, &yGrid,
                               &xLimit, &yLimit,
-                              &buildCountLimit,
-                              &postBuildLimitX,
-                              &postBuildLimitY );
-        if( numRead == 4 || numRead == 7 ) {
+                              &tapoutCountLimit );
+        if( numRead == 2 || numRead == 4 || numRead == 5 ) {
             // valid tapout trigger
             TapoutRecord r;
             
             r.triggerID = inR->id;
-            r.gridSpacingX = xGrid;
-            r.gridSpacingY = yGrid;
-            r.limitX = xLimit;
-            r.limitY = yLimit;
             
-            r.buildCountLimit = buildCountLimit;
-            r.buildCount = 0;
-            r.postBuildLimitX = postBuildLimitX;
-            r.postBuildLimitY = postBuildLimitY;
+            r.gridSpacingX = -1;
+            r.gridSpacingY = -1;
+            r.limitX = -1;
+            r.limitY = -1;
+            r.tapoutCountLimit = -1;
+            r.specificX = 9999;
+            r.specificY = 9999;            
+            
+            if( numRead == 2 ) {
+                r.specificX = xGrid;
+                r.specificY = yGrid;
+                }
+            else if( numRead == 4 || numRead == 5 ) {
+                r.gridSpacingX = xGrid;
+                r.gridSpacingY = yGrid;
+                r.limitX = xLimit;
+                r.limitY = yLimit;
+                if( numRead == 5 ) 
+                    r.tapoutCountLimit = tapoutCountLimit;
+                }
             
             tapoutRecords.push_back( r );
             
@@ -6236,13 +6245,4 @@ TapoutRecord *getTapoutRecord( int inObjectID ) {
             }
         }
     return NULL;
-    }
-
-
-
-void clearTapoutCounts() {
-    for( int i=0; i<tapoutRecords.size(); i++ ) {
-        TapoutRecord *r = tapoutRecords.getElement( i );
-        r->buildCount = 0;
-        }
     }

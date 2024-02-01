@@ -7080,15 +7080,34 @@ static int applyTapoutGradientRotate( int inX, int inY,
 
 
 
-// returns true if tapout-triggered a +primaryHomeland object
-static char runTapoutOperation( int inX, int inY, 
-                                int inRadiusX, int inRadiusY,
-                                int inSpacingX, int inSpacingY,
-                                int inTriggerID,
-                                char inPlayerHasPrimaryHomeland,
-                                char inIsPost = false ) {
-
-    char returnVal = false;
+static void runTapoutOperation( int inX, int inY, 
+                                TapoutRecord *inR,
+                                int inTriggerID ) {
+    
+    if( inR->gridSpacingX == -1 && inR->gridSpacingY == -1 ) {
+        
+        int x = inX + inR->specificX;
+        int y = inY + inR->specificY;
+        int id = getMapObjectRaw( x, y );
+        
+        TransRecord *t = getPTrans( inTriggerID, id );
+        
+        if( t != NULL ) {
+            setMapObject( x, y, t->newTarget );
+            }
+        
+        return;
+        
+        }
+    
+    // not a tapout on a specific tile
+    
+    int inRadiusX = inR->limitX;
+    int inRadiusY = inR->limitY;
+    int inSpacingX = inR->gridSpacingX;
+    int inSpacingY = inR->gridSpacingY;
+    
+    int tapoutCount = 0;
     
     for( int y =  inY - inRadiusY; 
          y <= inY + inRadiusY; 
@@ -7112,7 +7131,7 @@ static char runTapoutOperation( int inX, int inY,
             
             int newTarget = -1;
 
-            if( ! inIsPost ) {
+            if( true ) {
                 // last use target signifies what happens in 
                 // same row or column as inX, inY
                 
@@ -7140,55 +7159,44 @@ static char runTapoutOperation( int inX, int inY,
                 }
 
             if( newTarget != -1 ) {
-                ObjectRecord *nt = getObject( newTarget );
+                tapoutCount++;
                 
-                if( strstr( nt->description, "+primaryHomeland" ) != NULL ) {
-                    if( inPlayerHasPrimaryHomeland ) {
-                        // block creation of objects that require 
-                        // +primaryHomeland
-                        // player already has a primary homeland
-                    
-                        newTarget = -1;
-                        }
-                    else {
-                        // created a +primaryHomeland object
-                        returnVal = true;
-                        }
-                    }
-                }
-            
-            if( newTarget != -1 ) {
                 setMapObjectRaw( x, y, newTarget );
-				
-				TransRecord *newDecayT = getMetaTrans( -1, newTarget );
-				
-				timeSec_t mapETA = 0;
-	 
-				if( newDecayT != NULL ) {
-	 
-					// add some random variation to avoid lock-step
-					// especially after a server restart
-					int tweakedSeconds =
-						randSource.getRandomBoundedInt(
-							lrint( newDecayT->autoDecaySeconds * 0.9 ),
-							newDecayT->autoDecaySeconds );
-				   
-					if( tweakedSeconds < 1 ) {
-						tweakedSeconds = 1;
-						}
-					mapETA = MAP_TIMESEC + tweakedSeconds;
-					}
-				else {
-					// no further decay
-					mapETA = 0;
-					}          
-	 
-				setEtaDecay( x, y, mapETA, newDecayT );
+                
+                TransRecord *newDecayT = getMetaTrans( -1, newTarget );
+                
+                timeSec_t mapETA = 0;
+     
+                if( newDecayT != NULL ) {
+     
+                    // add some random variation to avoid lock-step
+                    // especially after a server restart
+                    int tweakedSeconds =
+                        randSource.getRandomBoundedInt(
+                            lrint( newDecayT->autoDecaySeconds * 0.9 ),
+                            newDecayT->autoDecaySeconds );
+                   
+                    if( tweakedSeconds < 1 ) {
+                        tweakedSeconds = 1;
+                        }
+                    mapETA = MAP_TIMESEC + tweakedSeconds;
+                    }
+                else {
+                    // no further decay
+                    mapETA = 0;
+                    }          
+     
+                setEtaDecay( x, y, mapETA, newDecayT );
                 }
+                
+            if( inR->tapoutCountLimit != -1 && tapoutCount >= inR->tapoutCountLimit ) {
+                return;
+                }
+                
             }
         }
     
-    return returnVal;
+    return;
     }
  
  
@@ -7442,20 +7450,12 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
         }
     else if( o->isTapOutTrigger ) {
         // this object, when created, taps out other objects in grid around
-
-        char playerHasPrimaryHomeland = false;
         
         if( currentResponsiblePlayer != -1 ) {
             int pID = currentResponsiblePlayer;
             if( pID < 0 ) {
                 pID = -pID;
                 }
-			//primaryHomeland is not in 2HOL
-            // int lineage = getPlayerLineage( pID );
-            
-            // if( lineage != -1 ) {
-                // playerHasPrimaryHomeland = hasPrimaryHomeland( lineage );
-                // }
             }
         
         // don't make current player responsible for all these changes
@@ -7465,30 +7465,11 @@ void setMapObjectRaw( int inX, int inY, int inID ) {
         TapoutRecord *r = getTapoutRecord( inID );
         
         if( r != NULL ) {
-			
-			// char tappedOutPrimaryHomeland = false; //primaryHomeland is not in 2HOL
 
-            // tappedOutPrimaryHomeland = 
             runTapoutOperation( inX, inY, 
-                                r->limitX, r->limitY,
-                                r->gridSpacingX, r->gridSpacingY, 
-                                inID,
-                                playerHasPrimaryHomeland );
+                                r,
+                                inID );
             
-            
-            r->buildCount++;
-            
-            if( r->buildCountLimit != -1 &&
-                r->buildCount >= r->buildCountLimit ) {
-                // hit limit!
-                // tapout a larger radius now
-                // tappedOutPrimaryHomeland =
-                runTapoutOperation( inX, inY, 
-                                    r->postBuildLimitX, r->postBuildLimitY,
-                                    r->gridSpacingX, r->gridSpacingY, 
-                                    inID, 
-                                    playerHasPrimaryHomeland, true );
-                }
             }
         
         currentResponsiblePlayer = restoreResponsiblePlayer;
