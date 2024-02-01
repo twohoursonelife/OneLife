@@ -24385,6 +24385,8 @@ int main() {
     
     
     AppLog::info( "Done." );
+    
+    SettingsManager::setSetting( "forceShutdownMode", 0 );
 
     return 0;
     }
