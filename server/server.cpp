@@ -13141,8 +13141,6 @@ int main() {
                 nextPlayer->errorCauseString =
                     "Forced server shutdown";
                 }
-                
-            SettingsManager::setSetting( "forceShutdownMode", 0 );
             }
         else if( shutdownMode ) {
             // any disconnected players should be killed now
