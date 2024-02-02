@@ -29,11 +29,10 @@ typedef struct TapoutRecord {
         int gridSpacingX, gridSpacingY;
         // how far to reach in +/- x and y when tapping out
         int limitX, limitY;
-        int buildCount;
-        int buildCountLimit;
-        // how far to reach in +/- x and y when tapping out
-        // after build count limit reached
-        int postBuildLimitX, postBuildLimitY;
+        // 2HOL - can set the max number of objects to be tapped out by one operation
+        int tapoutCountLimit;
+        // 2HOL - can specify coordinates to tap out
+        int specificX, specificY;
     } TapoutRecord;
 
 
@@ -942,9 +941,6 @@ char canPickup( int inObjectID, double inPlayerAge );
 
 
 TapoutRecord *getTapoutRecord( int inObjectID );
-
-
-void clearTapoutCounts();
 
 
 

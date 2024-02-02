@@ -1022,6 +1022,7 @@ static void replaceLastMessageSent( char *inNewMessage ) {
 SimpleVector<unsigned char> serverSocketBuffer;
 
 static char serverSocketConnected = false;
+static char serverSocketHardFail = false;
 static float connectionMessageFade = 1.0f;
 static double connectedTime = 0;
 
@@ -2653,7 +2654,9 @@ void LivingLifePage::setOurSendPosXY(int &x, int &y) {
 
 bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
 	char tKey = key;
-	return (c == key || c == toupper(tKey));
+	return (c == key || c == toupper(tKey) || 
+        c+64 == toupper(tKey) // ctrl + key
+        );
 }
 
 
@@ -12228,17 +12231,42 @@ void LivingLifePage::step() {
         mouseDownFrames++;
         }
     
+    double pageLifeTime = game_getCurrentTime() - mPageStartTime;
+
     if( mServerSocket == -1 ) {
         serverSocketConnected = false;
         connectionMessageFade = 1.0f;
-        mServerSocket = openSocketConnection( serverIP, serverPort );
-        timeLastMessageSent = game_getCurrentTime();
+        
+        // don't keep looping to reconnect on instant hard-fail
+        if( ! serverSocketHardFail ) {    
+            mServerSocket = openSocketConnection( serverIP, serverPort );
+            timeLastMessageSent = game_getCurrentTime();
+            
+            if( mServerSocket == -1 ) {
+                // instant hard-fail, probably from bad hostname that
+                // gets looked up right away.
+                serverSocketHardFail = true;
+                }
+            }
+        
+        
+        if( mServerSocket == -1 ) {
+            // hard fail condition
+            
+            if( pageLifeTime >= 1 ) {
+                // they have seen "CONNECTING" long enough
+                
+                setWaiting( false );
+                setSignal( "connectionFailed" );
+                }
+            }
+        
         
         return;
         }
     
 
-    double pageLifeTime = game_getCurrentTime() - mPageStartTime;
+    
     
     if( pageLifeTime < 1 ) {
         // let them see CONNECTING message for a bit
@@ -16811,7 +16839,8 @@ void LivingLifePage::step() {
                                         getObject( existing->holdingID );
                                     
 
-                                    if( oldHeld > 0 && 
+                                    if( oldHeld > 0 &&
+                                        oldHeld != existing->holdingID &&
                                         heldTransitionSourceID == -1 ) {
                                         // held object auto-decayed from 
                                         // some other object
@@ -16877,7 +16906,8 @@ void LivingLifePage::step() {
                                         }
                                     
                                     
-                                    if( ( ! otherSoundPlayed ||
+                                    if( oldHeld != existing->holdingID &&
+                                        ( ! otherSoundPlayed ||
                                           heldObj->creationSoundForce )
                                           && 
                                         ! clothingChanged &&
@@ -17105,7 +17135,11 @@ void LivingLifePage::step() {
                                           heldTransitionSourceID );
                             
                             if( tr != NULL &&
-                                tr->newActor == existing->holdingID &&
+                                ( tr->newActor == existing->holdingID
+                                  ||
+                                  bothSameUseParent( tr->newActor,
+                                                     existing->holdingID ) )
+                                &&
                                 tr->target == heldTransitionSourceID &&
                                 ( tr->newTarget == tr->target 
                                   ||
@@ -21108,6 +21142,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     waitForFrameMessages = false;
 
     serverSocketConnected = false;
+    serverSocketHardFail = false;
     connectionMessageFade = 1.0f;
     connectedTime = 0;
 
@@ -22146,6 +22181,74 @@ char LivingLifePage::getCellBlocksWalking( int inMapX, int inMapY ) {
 
 
 
+
+static int savedXD = 0;
+static int savedYD = 0;
+static char savedInMotion = false;
+static GridPos *savedPathToDest = NULL;
+static int savedPathLength = 0;
+static int savedCurrentPathStep = 0;
+static char savedOnFinalPathStep = false;
+static int savedNumFramesOnCurrentStep = 0;
+static char savedDestTruncated = false;
+static doublePair savedCurrentMoveDirection = { 0, 0 };
+
+
+// saves path
+// restore or free calls must be used to free memory
+static void savePlayerPath( LiveObject *inObject ) {
+    
+    if( inObject->pathToDest != NULL ) {
+        savedXD = inObject->xd;
+        savedYD = inObject->yd;
+        savedInMotion = inObject->inMotion;
+        
+        savedPathLength = inObject->pathLength;
+        savedPathToDest = new GridPos[ savedPathLength ];
+
+        memcpy( savedPathToDest, inObject->pathToDest,
+                sizeof( GridPos ) * inObject->pathLength );
+        savedCurrentPathStep = inObject->currentPathStep;
+        savedOnFinalPathStep = inObject->onFinalPathStep;
+        savedNumFramesOnCurrentStep = inObject->numFramesOnCurrentStep;
+        savedDestTruncated = inObject->destTruncated;
+        savedCurrentMoveDirection = inObject->currentMoveDirection;
+        }
+    }
+
+
+static void restoreSavedPath( LiveObject *inObject ) {
+
+    if( inObject->pathToDest != NULL ) {
+        delete [] inObject->pathToDest;
+        }
+    
+    inObject->xd = savedXD;
+    inObject->yd = savedYD;
+    inObject->inMotion = savedInMotion;
+    inObject->pathToDest = savedPathToDest;
+    inObject->pathLength = savedPathLength;
+    inObject->currentPathStep = savedCurrentPathStep;
+    inObject->onFinalPathStep = savedOnFinalPathStep;
+    inObject->numFramesOnCurrentStep = savedNumFramesOnCurrentStep;
+    inObject->destTruncated = savedDestTruncated;
+    inObject->currentMoveDirection = savedCurrentMoveDirection;
+    }
+
+
+static void freeSavedPath() {
+    if( savedPathToDest != NULL ) {
+        delete [] savedPathToDest;
+        savedPathToDest = NULL;
+        }
+    }
+
+
+
+
+
+
+
 void LivingLifePage::pointerDown( float inX, float inY ) {
     
     int mouseButton = getLastMouseButton();
@@ -22615,6 +22718,15 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 if( ourLiveObject->holdingID > 0 &&
                     getObject( ourLiveObject->holdingID )->foodValue > 0 ) {
                     nextActionEating = true;
+
+                    if( p.hitClothingIndex >= 0 &&
+                        clothingByIndex( ourLiveObject->clothing,
+                                         p.hitClothingIndex )->numSlots > 0 ) {
+                        // clicked on container clothing
+                        // server interprets this as an insert request, not
+                        // an eat request
+                        nextActionEating = false;
+                        }
                     }
     
                 nextActionMessageToSend = 
@@ -23209,6 +23321,10 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             int closestDist = 9999999;
 
             char oldPathExists = ( ourLiveObject->pathToDest != NULL );
+
+            if( oldPathExists ) {
+                savePlayerPath( ourLiveObject );
+                }
             
             // don't consider dest spot itself generally
             int nStart = 1;
@@ -23353,8 +23469,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             
             
             if( oldPathExists ) {
-                // restore it
-                computePathToDest( ourLiveObject );
+                restoreSavedPath( ourLiveObject );
                 }
 
             if( foundEmpty ) {
@@ -23653,7 +23768,15 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
     
     if( mustMove ) {
+
+        char oldPathExists = ( ourLiveObject->pathToDest != NULL );
         
+        if( oldPathExists ) {
+            savePlayerPath( ourLiveObject );
+            }
+
+
+
         int oldXD = ourLiveObject->xd;
         int oldYD = ourLiveObject->yd;
         
@@ -23661,21 +23784,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         ourLiveObject->yd = moveDestY;
         ourLiveObject->destTruncated = false;
 
-        ourLiveObject->inMotion = true;
 
 
-        GridPos *oldPathToDest = NULL;
-        int oldPathLength = 0;
-        int oldCurrentPathStep = 0;
         
-        if( ourLiveObject->pathToDest != NULL ) {
-            oldPathLength = ourLiveObject->pathLength;
-            oldPathToDest = new GridPos[ oldPathLength ];
-
-            memcpy( oldPathToDest, ourLiveObject->pathToDest,
-                    sizeof( GridPos ) * ourLiveObject->pathLength );
-            oldCurrentPathStep = ourLiveObject->currentPathStep;
-            }
         
 
         computePathToDest( ourLiveObject );
@@ -23690,14 +23801,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( ourLiveObject->xd == oldXD && ourLiveObject->yd == oldYD ) {
                 // completely blocked in, no path at all toward dest
                 
-                if( oldPathToDest != NULL ) {
-                    // restore it
-                    ourLiveObject->pathToDest = oldPathToDest;
-                    ourLiveObject->pathLength = oldPathLength;
-                    ourLiveObject->currentPathStep = oldCurrentPathStep;
-                    oldPathToDest = NULL;
+                if( oldPathExists ) {
+                    restoreSavedPath( ourLiveObject );
                     }
-                
                     
 
                 // ignore click
@@ -23706,13 +23812,13 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                     delete [] nextActionMessageToSend;
                     nextActionMessageToSend = NULL;
                     }
-                ourLiveObject->inMotion = false;
+                
                 return;
                 }
 
-            if( oldPathToDest != NULL ) {
-                delete [] oldPathToDest;
-                oldPathToDest = NULL;
+            if( oldPathExists ) {
+                freeSavedPath();
+                oldPathExists = false;
                 }
             
 
@@ -23802,9 +23908,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             }
         
         
-        if( oldPathToDest != NULL ) {
-            delete [] oldPathToDest;
-            oldPathToDest = NULL;
+        if( oldPathExists ) {
+            freeSavedPath();
             }
             
 		if( drunkEmotionIndex != -1 &&
@@ -23854,6 +23959,10 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         delete [] message;
 
         // start moving before we hear back from server
+
+        
+        ourLiveObject->inMotion = true;
+
 
 
 
@@ -24033,57 +24142,57 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 			}
 			
 			if (!shiftKey && !commandKey) {
-				if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
+				if (isCharKey(inASCII, charKey_Up)) {
 					upKeyDown = true;
 					//stopAutoRoadRun = true;
 					return;
 				}
-				if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
+				if (isCharKey(inASCII, charKey_Left)) {
 					leftKeyDown = true;
 					//stopAutoRoadRun = true;
 					return;
 				}
-				if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
+				if (isCharKey(inASCII, charKey_Down)) {
 					downKeyDown = true;
 					//stopAutoRoadRun = true;
 					return;
 				}
-				if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
+				if (isCharKey(inASCII, charKey_Right)) {
 					rightKeyDown = true;
 					//stopAutoRoadRun = true;
 					return;
 				}
 			} else if (commandKey) {
-				if (inASCII+64 == toupper(charKey_Up)) {
+				if (isCharKey(inASCII, charKey_Up)) {
 					actionBetaRelativeToMe( 0, 1 );
 					return;
 				}
-				if (inASCII+64 == toupper(charKey_Left)) {
+				if (isCharKey(inASCII, charKey_Left)) {
 					actionBetaRelativeToMe( -1, 0 );
 					return;
 				}
-				if (inASCII+64 == toupper(charKey_Down)) {
+				if (isCharKey(inASCII, charKey_Down)) {
 					actionBetaRelativeToMe( 0, -1 );
 					return;
 				}
-				if (inASCII+64 == toupper(charKey_Right)) {
+				if (isCharKey(inASCII, charKey_Right)) {
 					actionBetaRelativeToMe( 1, 0 );
 					return;
 				}
 			} else if (shiftKey) {
-				if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
+				if (isCharKey(inASCII, charKey_Up)) {
 					actionAlphaRelativeToMe( 0, 1 );
 					return;
 				}
-				if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
+				if (isCharKey(inASCII, charKey_Left)) {
 					actionAlphaRelativeToMe( -1, 0 );
 					return;
 				}
-				if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
+				if (isCharKey(inASCII, charKey_Down)) {
 					actionAlphaRelativeToMe( 0, -1 );
 					return;
 				}
-				if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
+				if (isCharKey(inASCII, charKey_Right)) {
 					actionAlphaRelativeToMe( 1, 0 );
 					return;
 				}

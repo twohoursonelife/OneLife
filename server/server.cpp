@@ -837,6 +837,10 @@ typedef struct LiveObject {
         // these are used first before food is decremented
         int yummyBonusStore;
         
+        // last time we told player their capacity in a food update
+        // what did we tell them?
+        int lastReportedFoodCapacity;
+        
 
         ClothingSet clothing;
         
@@ -921,6 +925,14 @@ typedef struct LiveObject {
         GridPos forceFlightDest;
         double forceFlightDestSetTime;
         
+
+        // don't send global messages too quickly
+        // give player chance to read each one
+        double lastGlobalMessageTime;
+        
+        SimpleVector<char*> globalMessageQueue;
+
+
     } LiveObject;
 
 
@@ -1036,6 +1048,16 @@ char isKnownOwned( LiveObject *inPlayer, int inX, int inY ) {
 char isKnownOwned( LiveObject *inPlayer, GridPos inPos ) {
     return isKnownOwned( inPlayer, inPos.x, inPos.y );
     }
+
+
+// messages with no follow-up hang out on client for 10 seconds
+// 7 seconds should be long enough to read if there's a follow-up waiting
+static double minGlobalMessageSpacingSeconds = 7;
+
+
+void sendGlobalMessage( char *inMessage,
+                        LiveObject *inOnePlayerOnly = NULL );
+
 
 void sendMessageToPlayer( LiveObject *inPlayer, 
                           char *inMessage, int inLength );
@@ -1750,7 +1772,9 @@ void quitCleanup() {
             delete [] nextPlayer->murderPerpEmail;
             }
 
-
+        nextPlayer->globalMessageQueue.deallocateStringElements();
+        
+        
         freePlayerContainedArrays( nextPlayer );
         
         
@@ -2154,6 +2178,13 @@ typedef struct ClientMessage {
 static int pathDeltaMax = 16;
 
 
+
+static int stringToInt( char *inString ) {
+    return strtol( inString, NULL, 10 );
+    }
+
+
+
 // if extraPos present in result, destroyed by caller
 // inMessage may be modified by this call
 ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
@@ -2203,11 +2234,11 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
                         }
                     break;
                 case 1:
-                    m.x = atoi( &( inMessage[i] ) );
+                    m.x = stringToInt( &( inMessage[i] ) );
                     numRead++;
                     break;
                 case 2:
-                    m.y = atoi( &( inMessage[i] ) );
+                    m.y = stringToInt( &( inMessage[i] ) );
                     numRead++;
                     break;
                 }
@@ -2271,7 +2302,8 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
         
         if( atPos != NULL ) {
             // skip @ symbol in token and parse int
-            m.sequenceNumber = atoi( &( tokens->getElementDirect( 3 )[1] ) );
+            m.sequenceNumber = 
+                stringToInt( &( tokens->getElementDirect( 3 )[1] ) );
             }
 
         int numTokens = tokens->size();
@@ -2286,12 +2318,12 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
             char *yToken = tokens->getElementDirect( offset + e * 2 + 1 );
             
             // profiler found sscanf is a bottleneck here
-            // try atoi instead
+            // try atoi (stringToInt) instead
             //sscanf( xToken, "%d", &( m.extraPos[e].x ) );
             //sscanf( yToken, "%d", &( m.extraPos[e].y ) );
 
-            m.extraPos[e].x = atoi( xToken );
-            m.extraPos[e].y = atoi( yToken );
+            m.extraPos[e].x = stringToInt( xToken );
+            m.extraPos[e].y = stringToInt( yToken );
             
             
             if( abs( m.extraPos[e].x ) > pathDeltaMax ||
@@ -4027,6 +4059,9 @@ GridPos getClosestPlayerPos( int inX, int inY ) {
         if( o->error ) {
             continue;
             }
+        if( o->heldByOther ) {
+            continue;
+            }
         
         GridPos p;
 
@@ -4117,8 +4152,11 @@ static void setPlayerDisconnected( LiveObject *inPlayer,
 
 
 // if inOnePlayerOnly set, we only send to that player
-static void sendGlobalMessage( char *inMessage,
-                               LiveObject *inOnePlayerOnly = NULL ) {
+void sendGlobalMessage( char *inMessage,
+                        LiveObject *inOnePlayerOnly ) {
+    
+    double curTime = Time::getCurrentTime();
+    
     char found;
     char *noSpaceMessage = replaceAll( inMessage, " ", "_", &found );
 
@@ -4136,13 +4174,26 @@ static void sendGlobalMessage( char *inMessage,
             }
 
         if( ! o->error && ! o->isTutorial && o->connected ) {
-            int numSent = 
-                o->sock->send( (unsigned char*)fullMessage, 
-                               len, 
-                               false, false );
-        
-            if( numSent != len ) {
-                setPlayerDisconnected( o, "Socket write failed" );
+
+
+            if( curTime - o->lastGlobalMessageTime > 
+                minGlobalMessageSpacingSeconds ) {
+                
+                int numSent = 
+                    o->sock->send( (unsigned char*)fullMessage, 
+                                   len, 
+                                   false, false );
+                
+                o->lastGlobalMessageTime = curTime;
+                
+                if( numSent != len ) {
+                    setPlayerDisconnected( o, "Socket write failed" );
+                    }
+                }
+            else {
+                // messages are coming too quickly for this player to read
+                // them, wait before sending this one
+                o->globalMessageQueue.push_back( stringDuplicate( inMessage ) );
                 }
             }
         }
@@ -4383,6 +4434,12 @@ int sendMapChunkMessage( LiveObject *inO,
             // remove top of bar
             horBarH = lastY - yd;
             }
+
+        if( horBarH > chunkDimensionY ) {
+            // don't allow bar to grow too big if we have a huge jump
+            // like from VOG mode
+            horBarH = chunkDimensionY;
+            }
         
 
         int vertBarStartX = fullStartX;
@@ -4399,6 +4456,14 @@ int sendMapChunkMessage( LiveObject *inO,
             // remove right part of bar
             vertBarW = lastX - xd;
             }
+        
+        
+        if( vertBarW > chunkDimensionX ) {
+            // don't allow bar to grow too big if we have a huge jump
+            // like from VOG mode
+            vertBarW = chunkDimensionX;
+            }
+        
         
         // now trim vert bar where it intersects with hor bar
         if( yd > lastY ) {
@@ -6902,6 +6967,8 @@ int processLoggedInPlayer( char inAllowReconnect,
             o->firstMapSent = false;
             o->firstMessageSent = false;
             o->inFlight = false;
+
+            o->foodUpdate = true;
             
             o->connected = true;
             o->cravingKnown = false;
@@ -7397,9 +7464,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.isIndoors = false;
     
 
-    newObject.foodDecrementETASeconds =
-        currentTime + 
-        computeFoodDecrementTimeSeconds( &newObject );
+    
+    
                 
     newObject.foodUpdate = true;
     newObject.lastAteID = 0;
@@ -7408,6 +7474,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.justAteID = 0;
     
     newObject.yummyBonusStore = 0;
+
+    newObject.lastReportedFoodCapacity = 0;
 
     newObject.clothing = getEmptyClothingSet();
 
@@ -8154,6 +8222,11 @@ int processLoggedInPlayer( char inAllowReconnect,
             }
         }
 
+    newObject.foodDecrementETASeconds =
+        currentTime + 
+        computeFoodDecrementTimeSeconds( &newObject );
+
+        
     if( forceSpawn ) {
         newObject.forceSpawn = true;
         newObject.xs = forceSpawnInfo.pos.x;
@@ -8189,6 +8262,9 @@ int processLoggedInPlayer( char inAllowReconnect,
         delete [] forceSpawnInfo.firstName;
         delete [] forceSpawnInfo.lastName;
         }
+    
+
+    newObject.lastGlobalMessageTime = 0;
     
 
     newObject.birthPos.x = newObject.xd;
@@ -9034,6 +9110,12 @@ static char addHeldToContainer( LiveObject *inPlayer,
                 idToAdd = r->newTarget;
                 }
             
+            
+            if( inPlayer->numContained > 0 ) {
+                // negative to indicate sub-container
+                idToAdd *= -1;
+                }
+
             int swapInd = getContainerSwapIndex ( inPlayer,
                                                   idToAdd,
                                                   true,
@@ -13059,8 +13141,6 @@ int main() {
                 nextPlayer->errorCauseString =
                     "Forced server shutdown";
                 }
-                
-            SettingsManager::setSetting( "forceShutdownMode", 0 );
             }
         else if( shutdownMode ) {
             // any disconnected players should be killed now
@@ -13156,6 +13236,21 @@ int main() {
                     nextPlayer->cravingFood.uniqueID < lowestCravingID ) {
                     
                     lowestCravingID = nextPlayer->cravingFood.uniqueID;
+                    }
+
+                // also send queued global messages
+                if( nextPlayer->globalMessageQueue.size() > 0 &&
+                    curStepTime - nextPlayer->lastGlobalMessageTime > 
+                    minGlobalMessageSpacingSeconds ) {
+                    
+                    // send next one
+                    char *message = 
+                        nextPlayer->globalMessageQueue.getElementDirect( 0 );
+                    nextPlayer->globalMessageQueue.deleteElement( 0 );
+                    
+                    sendGlobalMessage( message, nextPlayer );
+                    
+                    delete [] message;
                     }
                 }
             purgeStaleCravings( lowestCravingID );
@@ -13618,12 +13713,14 @@ int main() {
                      nextConnection->ticketServerAccepted &&
                      ! nextConnection->lifeTokenSpent ) {
 
+                // this "butDisconnected" state applies even if
+                // we see them as connected, becasue they are clearly
+                // reconnecting now
                 char liveButDisconnected = false;
                 
                 for( int p=0; p<players.size(); p++ ) {
                     LiveObject *o = players.getElement( p );
                     if( ! o->error && 
-                        ! o->connected && 
                         strcmp( o->email, 
                                 nextConnection->email ) == 0 ) {
                         liveButDisconnected = true;
@@ -15177,10 +15274,6 @@ int main() {
                                         gravePos.x, gravePos.y,
                                         nextPlayer->id );
                                     
-                                    setHeldGraveOrigin( adult, 
-                                                        gravePos.x,
-                                                        gravePos.y,
-                                                        0 );
                                     
                                     playerIndicesToSendUpdatesAbout.push_back(
                                         getLiveObjectIndex( holdingAdultID ) );
@@ -15237,6 +15330,12 @@ int main() {
                                     // in their hands
                                     adult->holdingID = babyBonesID;
                                     
+                                    setHeldGraveOrigin( adult, 
+                                                        gravePos.x,
+                                                        gravePos.y,
+                                                        0 );
+
+
                                     // this works to force client to play
                                     // creation sound for baby bones.
                                     adult->heldTransitionSourceID = 
@@ -17932,11 +18031,8 @@ int main() {
                                     
                                     nextPlayer->foodStore += eatBonus;
 
-                                    checkForFoodEatingEmot( nextPlayer,
-                                                            targetObj->id );
-
-                                    int cap =
-                                        computeFoodCapacity( nextPlayer );
+                                    int cap = 
+                                        nextPlayer->lastReportedFoodCapacity;
                                     
                                     if( nextPlayer->foodStore > cap ) {
     
@@ -18714,7 +18810,14 @@ int main() {
                                 ObjectRecord *obj = 
                                     getObject( nextPlayer->holdingID );
                                 
-                                int cap = computeFoodCapacity( targetPlayer );
+                                // don't use "live" computed capacity here
+                                // because that will allow player to spam
+                                // click to pack in food between food
+                                // decrements when they are growing
+                                // instead, stick to the food cap shown
+                                // in the client (what we last reported
+                                // to them)
+                                int cap = targetPlayer->lastReportedFoodCapacity;
                                 
 
                                 // first case:
@@ -18753,6 +18856,31 @@ int main() {
                                             isContainmentTransition = true;
                                             }
                                         
+                                        if( clickedClothingTrans == NULL ) {
+                                            // check if held has instant-decay
+                                            TransRecord *heldDecay = 
+                                                getPTrans( 
+                                                    -1, 
+                                                    nextPlayer->holdingID );
+                                            if( heldDecay != NULL &&
+                                                heldDecay->autoDecaySeconds
+                                                == 1 &&
+                                                heldDecay->newTarget > 0 ) {
+                                                
+                                                // force decay NOW and try again
+                                                handleHeldDecay(
+                                                nextPlayer,
+                                                i,
+                                                &playerIndicesToSendUpdatesAbout,
+                                                &playerIndicesToSendHealingAbout );
+                                                clickedClothingTrans =
+                                                    getPTrans( 
+                                                        nextPlayer->holdingID,
+                                                        clickedClothing->id );
+                                                }
+                                            }
+                                        
+
                                         if( clickedClothingTrans != NULL ) {
                                             int na =
                                                 clickedClothingTrans->newActor;
@@ -19152,9 +19280,6 @@ int main() {
                                     // correctly.  A naive implementation for
                                     // now.  Works for removing sword
                                     // from backpack
-
-                                    nextPlayer->holdingID =
-                                        bareHandClothingTrans->newActor;
 
                                     handleHoldingChange( 
                                         nextPlayer,
@@ -20127,9 +20252,9 @@ int main() {
                 nextPlayer->isNew = false;
                 
                 nextPlayer->deleteSent = true;
-                // wait 5 seconds before closing their connection
+                // wait 10 seconds before closing their connection
                 // so they can get the message
-                nextPlayer->deleteSentDoneETA = Time::getCurrentTime() + 5;
+                nextPlayer->deleteSentDoneETA = Time::getCurrentTime() + 10;
                 
                 if( areTriggersEnabled() ) {
                     // add extra time so that rest of triggers can be received
@@ -20318,7 +20443,9 @@ int main() {
                                   male,
                                   dropPos.x, dropPos.y,
                                   players.size() - 1,
-                                  disconnect );
+                                  disconnect,
+                                  nextPlayer->murderPerpID,
+                                  nextPlayer->murderPerpEmail );
                     
                         if( shutdownMode ) {
                             handleShutdownDeath( 
@@ -21415,7 +21542,9 @@ int main() {
                                       ! getFemale( decrementedPlayer ),
                                       deathPos.x, deathPos.y,
                                       players.size() - 1,
-                                      false );
+                                      false,
+                                      nextPlayer->murderPerpID,
+                                      nextPlayer->murderPerpEmail );
                             }
                         
                         if( shutdownMode &&
@@ -23900,6 +24029,27 @@ int main() {
                         nextPlayer->foodStore = cap;
                         }
                     
+                    if( cap > nextPlayer->lastReportedFoodCapacity ) {
+                        
+                        // stomach grew
+                        
+                        // fill empty space from bonus store automatically
+                        int extraCap = 
+                            cap - nextPlayer->lastReportedFoodCapacity;
+                        
+                        while( nextPlayer->yummyBonusStore > 0 && 
+                               extraCap > 0 &&
+                               nextPlayer->foodStore < cap ) {
+                            nextPlayer->foodStore ++;
+                            extraCap --;
+                            nextPlayer->yummyBonusStore--;
+                            }
+                        }
+                    
+
+                    nextPlayer->lastReportedFoodCapacity = cap;
+                    
+
                     int yumMult = nextPlayer->yummyFoodChain.size() - 1;
                     
                     if( yumMult < 0 ) {
@@ -24202,6 +24352,8 @@ int main() {
                     delete [] nextPlayer->deathReason;
                     }
                 
+                nextPlayer->globalMessageQueue.deallocateStringElements();
+
                 delete nextPlayer->babyBirthTimes;
                 delete nextPlayer->babyIDs;
 
@@ -24233,6 +24385,8 @@ int main() {
     
     
     AppLog::info( "Done." );
+    
+    SettingsManager::setSetting( "forceShutdownMode", 0 );
 
     return 0;
     }
