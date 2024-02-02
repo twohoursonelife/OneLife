@@ -2631,7 +2631,9 @@ void LivingLifePage::useOnSelf() {
 	sprintf( msg, "SELF %d %d %d#", x, y, -1 );
 	setNextActionMessage( msg, x, y );
 
-	if( getObject( ourLiveObject->holdingID )->foodValue > 0)
+    // this is for eatEverything mode
+    // not sure if these two condition are redundant
+	if( getObject( ourLiveObject->holdingID )->foodValue > 0 || holdingYumOrMeh )
 		nextActionEating = true;
 }
 

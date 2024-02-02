@@ -745,6 +745,8 @@ SimpleVector<int> *getAllPossibleDeathIDs();
 // does NOT included use dummies
 SimpleVector<int> *getAllPossibleFoodIDs();
 
+// NOT destroyed or modified by caller
+SimpleVector<int> *getAllPossibleNonPermanentIDs();
 
 
 

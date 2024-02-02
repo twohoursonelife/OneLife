@@ -55,6 +55,8 @@ static SimpleVector<int> allPossibleDeathMarkerIDs;
 
 static SimpleVector<int> allPossibleFoodIDs;
 
+static SimpleVector<int> allPossibleNonPermanentIDs;
+
 
 static SimpleVector<TapoutRecord> tapoutRecords;
 
@@ -1122,6 +1124,10 @@ float initObjectBankStep() {
                 
                 if( r->foodValue > 0 || r->bonusValue > 0 ) {
                     allPossibleFoodIDs.push_back( r->id );
+                    }
+
+                if( ! r->permanent ) {
+                    allPossibleNonPermanentIDs.push_back( r->id );
                     }
 
                 next++;
@@ -2445,6 +2451,7 @@ static void freeObjectRecord( int inID ) {
             deathMarkerObjectIDs.deleteElementEqualTo( inID );
             allPossibleDeathMarkerIDs.deleteElementEqualTo( inID );
             allPossibleFoodIDs.deleteElementEqualTo( inID );
+            allPossibleNonPermanentIDs.deleteElementEqualTo( inID );
 
             if( race <= MAX_RACE ) {
                 racePersonObjectIDs[ race ].deleteElementEqualTo( inID );
@@ -2534,6 +2541,7 @@ void freeObjectBank() {
     deathMarkerObjectIDs.deleteAll();
     allPossibleDeathMarkerIDs.deleteAll();
     allPossibleFoodIDs.deleteAll();
+    allPossibleNonPermanentIDs.deleteAll();
     
     for( int i=0; i<= MAX_RACE; i++ ) {
         racePersonObjectIDs[i].deleteAll();
@@ -3435,6 +3443,7 @@ int addObject( const char *inDescription,
     deathMarkerObjectIDs.deleteElementEqualTo( newID );
     allPossibleDeathMarkerIDs.deleteElementEqualTo( newID );
     allPossibleFoodIDs.deleteElementEqualTo( newID );
+    allPossibleNonPermanentIDs.deleteElementEqualTo( newID );
     
     if( r->deathMarker ) {
         deathMarkerObjectIDs.push_back( newID );
@@ -4656,6 +4665,12 @@ SimpleVector<int> *getAllPossibleDeathIDs() {
 SimpleVector<int> *getAllPossibleFoodIDs() {
     return &allPossibleFoodIDs;
     }
+
+
+
+SimpleVector<int> *getAllPossibleNonPermanentIDs() {
+    return &allPossibleNonPermanentIDs;
+}
 
 
 
