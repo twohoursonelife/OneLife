@@ -9410,9 +9410,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        if( ! minitech::minitechEnabled ) //minitech
         if( ! equal( mHintPosOffset[i], mHintHideOffset[i] ) 
             &&
-            mHintMessage[i] != NULL && !minitech::minitechEnabled ) {
+            mHintMessage[i] != NULL ) {
             
             doublePair hintPos  = 
                 add( mult( recalcOffset( mHintPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
@@ -9947,7 +9948,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-
+    // draw minitech gui before, to hide the background behind the bottom bar
+    float worldMouseX, worldMouseY;
+    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
+    minitech::livingLifeDraw(worldMouseX, worldMouseY);
 
     // info panel at bottom, over top of all the other slips
     setDrawColor( 1, 1, 1, 1 );
@@ -10822,16 +10827,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 		}
 
 
-	// minitech
-	float worldMouseX, worldMouseY;
-	getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-	screenToWorld( lastScreenMouseX,
-				   lastScreenMouseY,
-				   &worldMouseX,
-				   &worldMouseY );
-	minitech::livingLifeDraw(worldMouseX, worldMouseY);
-    
-    
     if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
         doublePair mousePos = { lastMouseX, lastMouseY };
         int mouseX = int(round( mousePos.x / (float)CELL_D ));

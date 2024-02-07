@@ -91,6 +91,8 @@ static int numBiomes = 9;
 static SpriteHandle mCellFillSprite;
 static SpriteHandle mCellBorderSprite;
 
+SpriteHandle sheet;
+SpriteHandle bigSheet;
 
 void minitech::setLivingLifePage(
 	LivingLifePage *inLivingLifePage, 
@@ -120,6 +122,10 @@ void minitech::setLivingLifePage(
     
     mCellFillSprite = inmCellFillSprite;
     mCellBorderSprite = inmCellBorderSprite;
+	
+    sheet = loadSprite( "hintSheet1.tga", false );
+    bigSheet = loadSprite( "bigHintSheet.tga", false );
+	
 }
 
 void minitech::initOnBirth() { 
@@ -1054,8 +1060,23 @@ void minitech::updateDrawTwoTech() {
 		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};
 		doublePair posBR = {posLT.x + recWidth, posLT.y - recHeight};
 		
-		setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
-		drawRect( posCenter, recWidth/2, recHeight/2);
+		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
+		//drawRect( posCenter, recWidth/2, recHeight/2);
+		
+		
+		//draw sheet background for minitech
+		doublePair sheetPos = {recWidth/2, recHeight/2};
+		doublePair extraOffset = {20, -45};
+		
+		doublePair hintPos = add( posCenter, sheetPos );
+		hintPos = add( hintPos, extraOffset );
+		
+		setDrawColor( 1, 1, 1, 1 );
+		drawSprite( sheet, hintPos );
+		//freeSprite( sheet );
+		
+		
+		
 		drawStr("CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
 		
 		float headerWidth = recWidth;
@@ -1094,9 +1115,15 @@ void minitech::updateDrawTwoTech() {
 			minitechMinimized = false;
 			maxListener->mouseClick = false;
 		}
+		*/
+
 		return;
 		
 	}
+	
+
+	
+	
 	
 	int transSize = currentHintTrans.size();
     
@@ -1111,10 +1138,24 @@ void minitech::updateDrawTwoTech() {
 		posLT.y = posLT.y + recHeight + (50 * guiScale); //panel height = 50
 		posLT.x = posLT.x - recWidth;
 		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};
-		setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
-		drawRect( posCenter, recWidth/2, recHeight/2);
-		drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
 		
+		
+		//sheet background when nothing found
+		doublePair sheetPos = {recWidth/2, recHeight/2};
+		doublePair extraOffset = {-90, -110};
+		
+		doublePair hintPos = add( posCenter, sheetPos );
+		hintPos = add( hintPos, extraOffset );
+		
+		setDrawColor( 1, 1, 1, 1 );
+		drawSprite( bigSheet, hintPos, 1.0, 0.5 );
+		//freeSprite( sheet );
+		
+		
+		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
+		//drawRect( posCenter, recWidth/2, recHeight/2);
+		
+		drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
 	} else {
 		
 		int maxPage = int( ceil( float(transSize) / float(defaultNumOfLines) ) );
@@ -1130,7 +1171,7 @@ void minitech::updateDrawTwoTech() {
 		int numOfLines = endIndex - startIndex;
         
 		
-		if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
+		//if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY + (numOfLines-1)*lineSpacing + numOfLines*iconSize + buttonHeight + paddingY;
@@ -1138,9 +1179,39 @@ void minitech::updateDrawTwoTech() {
 		posLT.y = posLT.y + recHeight + (50 * guiScale); //panel height = 50
 		posLT.x = posLT.x - recWidth;
 		
-		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};
-		setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
-		drawRect( posCenter, recWidth/2, recHeight/2);
+		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};		
+		
+		
+		//sheet background when recipes found
+		float barWidth = recWidth;
+		float barHeight = 0;
+		float barOffsetY = 0;
+		bool showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
+		
+		if (true) {
+			barHeight = tinyLineHeight;
+			barOffsetY = - barHeight/2;
+		}
+
+		float headerWidth = recWidth;
+		float headerHeight = (paddingY + iconSize + barHeight + paddingY);
+		doublePair headerLT = {posLT.x, posLT.y + separatorHeight + headerHeight};
+		doublePair headerCen = {headerLT.x + headerWidth / 2, headerLT.y - headerHeight / 2};
+		
+		doublePair sheetPos = {headerWidth/2, headerHeight/2};
+		doublePair extraOffset = {-90, -195};
+			
+		doublePair hintPos = add( headerCen, sheetPos );
+		hintPos = add( hintPos, extraOffset );
+			
+		setDrawColor( 1, 1, 1, 1 );
+		drawSprite( bigSheet, hintPos, 1.0, 0.5 );
+		//freeSprite( sheet );
+		
+		
+		
+		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
+		//drawRect( posCenter, recWidth/2, recHeight/2);
 		
 		doublePair posLineLCen = {
 			posLT.x + paddingX, 
@@ -1590,8 +1661,9 @@ void minitech::updateDrawTwoTech() {
 	float headerHeight = (paddingY + iconSize + barHeight + paddingY);
 	doublePair headerLT = {posLT.x, posLT.y + separatorHeight + headerHeight};
 	doublePair headerCen = {headerLT.x + headerWidth / 2, headerLT.y - headerHeight / 2};
-	setDrawColor( 1, 1, 1, 0.8 ); //def: 0, 0, 0, 0.8
-	drawRect( headerCen, headerWidth/2, headerHeight/2);
+		
+	//setDrawColor( 1, 1, 1, 0.8 ); //def: 0, 0, 0, 0.8
+	//drawRect( headerCen, headerWidth/2, headerHeight/2);
 
 	string useStr = "HOW DO I USE:";
 	string makeStr = "HOW DO I MAKE:";
@@ -1682,6 +1754,9 @@ void minitech::updateDrawTwoTech() {
 		minitechMinimized = true;
 		minListener->mouseClick = false;
 	}
+	
+	
+
 }
 
 void minitech::inputHintStrToSearch(string hintStr) {
