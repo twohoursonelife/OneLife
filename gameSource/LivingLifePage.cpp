@@ -3471,6 +3471,9 @@ LivingLifePage::~LivingLifePage() {
         delete [] photoSig;
         photoSig = NULL;
         }
+    
+    minitech::clearStep();
+    
     }
 
 

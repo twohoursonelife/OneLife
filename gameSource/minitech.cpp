@@ -123,9 +123,6 @@ void minitech::setLivingLifePage(
     mCellFillSprite = inmCellFillSprite;
     mCellBorderSprite = inmCellBorderSprite;
 	
-    sheet = loadSprite( "hintSheet1.tga", false );
-    bigSheet = loadSprite( "bigHintSheet.tga", false );
-	
 }
 
 void minitech::initOnBirth() { 
@@ -157,10 +154,17 @@ void minitech::initOnBirth() {
 	tinyHandwritingFont->setMinimumPositionPrecision( 1 );
 	tinyMainFont = new Font( getFontTGAFileName(), 6, 16, false, 16/2*guiScale );
 	tinyMainFont->setMinimumPositionPrecision( 1 );
+	
+	//load background sprites
+	sheet = loadSprite( "hintSheet1.tga", false );
+	bigSheet = loadSprite( "bigHintSheet.tga", false );
 
 }
 
-
+void minitech::clearStep(){
+	freeSprite(sheet);
+	freeSprite(bigSheet);
+}
 
 bool minitech::posWithinArea(doublePair pos, doublePair areaTL, doublePair areaBR) {
 	return 
@@ -1063,7 +1067,6 @@ void minitech::updateDrawTwoTech() {
 		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
 		//drawRect( posCenter, recWidth/2, recHeight/2);
 		
-		
 		//draw sheet background for minitech
 		doublePair sheetPos = {recWidth/2, recHeight/2};
 		doublePair extraOffset = {20, -45};
@@ -1073,9 +1076,6 @@ void minitech::updateDrawTwoTech() {
 		
 		setDrawColor( 1, 1, 1, 1 );
 		drawSprite( sheet, hintPos );
-		//freeSprite( sheet );
-		
-		
 		
 		drawStr("CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
 		
@@ -1143,14 +1143,10 @@ void minitech::updateDrawTwoTech() {
 		//sheet background when nothing found
 		doublePair sheetPos = {recWidth/2, recHeight/2};
 		doublePair extraOffset = {-90, -110};
-		
 		doublePair hintPos = add( posCenter, sheetPos );
 		hintPos = add( hintPos, extraOffset );
-		
 		setDrawColor( 1, 1, 1, 1 );
 		drawSprite( bigSheet, hintPos, 1.0, 0.5 );
-		//freeSprite( sheet );
-		
 		
 		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
 		//drawRect( posCenter, recWidth/2, recHeight/2);
@@ -1200,15 +1196,10 @@ void minitech::updateDrawTwoTech() {
 		
 		doublePair sheetPos = {headerWidth/2, headerHeight/2};
 		doublePair extraOffset = {-90, -195};
-			
 		doublePair hintPos = add( headerCen, sheetPos );
 		hintPos = add( hintPos, extraOffset );
-			
 		setDrawColor( 1, 1, 1, 1 );
 		drawSprite( bigSheet, hintPos, 1.0, 0.5 );
-		//freeSprite( sheet );
-		
-		
 		
 		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
 		//drawRect( posCenter, recWidth/2, recHeight/2);
