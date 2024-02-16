@@ -23566,7 +23566,11 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                             }
                         }
 
-                    if( !foundAlt && floorDestID > 0 ) {
+                    if( !foundAlt && floorDestID > 0 &&
+                        // require shift right click to interact
+                        // with floor
+                        isShiftKeyDown()
+                        ) {
                         // check if use on floor exists
                         TransRecord *r = 
                             getTrans( ourLiveObject->holdingID, 
