@@ -7109,6 +7109,10 @@ static void runTapoutOperation( int inX, int inY,
     
     int tapoutCount = 0;
     
+    int totalGridCells = 0;
+    int currentGridCellIndex = -1;
+    
+    // counting total cells in the grid
     for( int y =  inY - inRadiusY; 
          y <= inY + inRadiusY; 
          y += inSpacingY ) {
@@ -7121,6 +7125,26 @@ static void runTapoutOperation( int inX, int inY,
                 // skip center
                 continue;
                 }
+            
+            totalGridCells++;
+            }
+        }
+    
+    
+    for( int y =  inY - inRadiusY; 
+         y <= inY + inRadiusY; 
+         y += inSpacingY ) {
+    
+        for( int x =  inX - inRadiusX; 
+             x <= inX + inRadiusX; 
+             x += inSpacingX ) {
+            
+            if( inX == x && inY == y ) {
+                // skip center
+                continue;
+                }
+            
+            currentGridCellIndex++;
 
             int id = getMapObjectRaw( x, y );
                     
@@ -7130,6 +7154,16 @@ static void runTapoutOperation( int inX, int inY,
             TransRecord *t = NULL;
             
             int newTarget = -1;
+            
+            
+            if( inR->tapoutCountLimit != -1 ) {
+                // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
+                double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
+                
+                double p = randSource.getRandomBoundedDouble( 0, 1 );
+                
+                if( p >= P ) continue;
+                }
 
             if( true ) {
                 // last use target signifies what happens in 
