@@ -21398,6 +21398,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     
     mYumMultiplier = 0;
     
+    holdingYumOrMeh = 0;
+    
     
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
         mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
