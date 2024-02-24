@@ -1080,6 +1080,10 @@ class LivingLifePage : public GamePage, public ActionListener {
 
 
         void drawHomeSlip( doublePair inSlipPos, int inIndex = 0 );
+        
+        
+        void displayGlobalMessage( char *inMessage );
+        
 
     };
 

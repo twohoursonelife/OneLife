@@ -12104,6 +12104,58 @@ doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
     }
 
 
+
+
+void LivingLifePage::displayGlobalMessage( char *inMessage ) {
+    
+    char *upper = stringToUpperCase( inMessage );
+                
+    char found;
+    
+    char *lines = replaceAll( upper, "**", "##", &found );
+    delete [] upper;
+    
+    char *spaces = replaceAll( lines, "_", " ", &found );
+    
+    delete [] lines;
+    
+    
+    mGlobalMessageShowing = true;
+    mGlobalMessageStartTime = game_getCurrentTime();
+    
+    if( mLiveTutorialSheetIndex >= 0 ) {
+        mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
+            mTutorialHideOffset[ mLiveTutorialSheetIndex ];
+        }
+    mLiveTutorialSheetIndex ++;
+    
+    if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
+        mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
+        }
+    mTutorialMessage[ mLiveTutorialSheetIndex ] = 
+        stringDuplicate( spaces );
+    
+    // other tutorial messages don't need to be destroyed
+    mGlobalMessagesToDestroy.push_back( 
+        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
+    
+    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
+        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
+    
+    mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
+    
+    double longestLine = getLongestLine( 
+        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
+    
+    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+    
+    
+    delete [] spaces;
+    }
+
+
+
+
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     char *foodDescription = 
         stringToUpperCase( getObject( inFoodID )->description );
@@ -13440,53 +13492,17 @@ void LivingLifePage::step() {
             if( mTutorialNumber <= 0 ) {
                 // not in tutorial
                 // display this message
-                
-                char messageFromServer[200];
-                sscanf( message, "MS\n%199s", messageFromServer );            
-                
-                char *upper = stringToUpperCase( messageFromServer );
-                
-                char found;
 
-                char *lines = replaceAll( upper, "**", "##", &found );
-                delete [] upper;
+                int numLines;
+                char **lines = split( message, "\n", &numLines );
                 
-                char *spaces = replaceAll( lines, "_", " ", &found );
-                
+                if( numLines > 1 ) {
+                    displayGlobalMessage( lines[1] );
+                    }
+                for( int i=0; i<numLines; i++ ) {
+                    delete [] lines[i];
+                    }
                 delete [] lines;
-                
-
-                mGlobalMessageShowing = true;
-                mGlobalMessageStartTime = game_getCurrentTime();
-                
-                if( mLiveTutorialSheetIndex >= 0 ) {
-                    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-                    mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-                    }
-                mLiveTutorialSheetIndex ++;
-                
-                if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
-                    mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
-                    }
-                mTutorialMessage[ mLiveTutorialSheetIndex ] = 
-                    stringDuplicate( spaces );
-                
-                // other tutorial messages don't need to be destroyed
-                mGlobalMessagesToDestroy.push_back( 
-                    (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-
-                mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-                    mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-                
-                mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
-
-                double longestLine = getLongestLine( 
-                    (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-            
-                mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
-
-                
-                delete [] spaces;
                 }
             }
         else if( type == FLIP ) {
