@@ -261,7 +261,8 @@ void setDrawColor( FloatRGB inColor ) {
 static char shouldFileBeCached( char *inFileName ) {
     if( strstr( inFileName, ".txt" ) != NULL &&
         strstr( inFileName, "groundHeat_" ) == NULL &&
-        strcmp( inFileName, "nextObjectNumber.txt" ) != 0 ) {
+        strcmp( inFileName, "nextObjectNumber.txt" ) != 0 &&
+        strcmp( inFileName, "nextObjectNumberOffset.txt" ) != 0 ) {
         return true;
         }
     return false;
@@ -3052,6 +3053,7 @@ int addObject( const char *inDescription,
 
 
     int nextObjectNumber = 1;
+    int nextObjectNumberOffset = 0;
     
     if( objectsDir.exists() && objectsDir.isDirectory() ) {
                 
@@ -3067,6 +3069,23 @@ int addObject( const char *inDescription,
                 sscanf( nextNumberString, "%d", &nextObjectNumber );
                 
                 delete [] nextNumberString;
+                }
+            }
+            
+        File *nextNumberOffsetFile = 
+            objectsDir.getChildFile( "nextObjectNumberOffset.txt" );
+            
+        if( nextNumberOffsetFile->exists() ) {
+                    
+            char *nextNumberOffsetString = 
+                nextNumberOffsetFile->readFileContents();
+
+            if( nextNumberOffsetString != NULL ) {
+                sscanf( nextNumberOffsetString, "%d", &nextObjectNumberOffset );
+                
+                nextObjectNumber += nextObjectNumberOffset;
+                
+                delete [] nextNumberOffsetString;
                 }
             }
         
@@ -3335,20 +3354,38 @@ int addObject( const char *inDescription,
         delete objectFile;
         
         if( inReplaceID == -1 ) {
-            nextObjectNumber++;
+            if( nextObjectNumberOffset > 0 ) {
+                nextObjectNumberOffset++;
+                
             
-        
-            char *nextNumberString = autoSprintf( "%d", nextObjectNumber );
-        
-            File *nextNumberFile = 
-                objectsDir.getChildFile( "nextObjectNumber.txt" );
+                char *nextNumberOffsetString = autoSprintf( "%d", nextObjectNumberOffset );
             
-            nextNumberFile->writeToFile( nextNumberString );
+                File *nextNumberOffsetFile = 
+                    objectsDir.getChildFile( "nextObjectNumberOffset.txt" );
+                
+                nextNumberOffsetFile->writeToFile( nextNumberOffsetString );
+                
+                delete [] nextNumberOffsetString;
+                
+                
+                delete nextNumberOffsetFile;
+                }
+            else {
+                nextObjectNumber++;
+                
             
-            delete [] nextNumberString;
+                char *nextNumberString = autoSprintf( "%d", nextObjectNumber );
             
-            
-            delete nextNumberFile;
+                File *nextNumberFile = 
+                    objectsDir.getChildFile( "nextObjectNumber.txt" );
+                
+                nextNumberFile->writeToFile( nextNumberString );
+                
+                delete [] nextNumberString;
+                
+                
+                delete nextNumberFile;
+                }
             }
         }
     

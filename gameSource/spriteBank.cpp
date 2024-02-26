@@ -84,7 +84,8 @@ void enableSpriteSearch( char inEnable ) {
 // not bulk data tga files)
 static char shouldFileBeCached( char *inFileName ) {
     if( strstr( inFileName, ".txt" ) != NULL &&
-        strcmp( inFileName, "nextSpriteNumber.txt" ) != 0 ) {
+        strcmp( inFileName, "nextSpriteNumber.txt" ) != 0 &&
+        strcmp( inFileName, "nextSpriteNumberOffset.txt" ) != 0 ) {
         return true;
         }
     return false;
@@ -1013,6 +1014,7 @@ int addSprite( const char *inTag, SpriteHandle inSprite,
                 
                 
         int nextSpriteNumber = 1;
+        int nextSpriteNumberOffset = 0;
                 
         File *nextNumberFile = 
             spritesDir.getChildFile( "nextSpriteNumber.txt" );
@@ -1026,6 +1028,23 @@ int addSprite( const char *inTag, SpriteHandle inSprite,
                 sscanf( nextNumberString, "%d", &nextSpriteNumber );
                 
                 delete [] nextNumberString;
+                }
+            }
+            
+        File *nextNumberOffsetFile = 
+            spritesDir.getChildFile( "nextSpriteNumberOffset.txt" );
+                
+        if( nextNumberOffsetFile->exists() ) {
+                    
+            char *nextNumberOffsetString = 
+                nextNumberOffsetFile->readFileContents();
+
+            if( nextNumberOffsetString != NULL ) {
+                sscanf( nextNumberOffsetString, "%d", &nextSpriteNumberOffset );
+                
+                nextSpriteNumber += nextSpriteNumberOffset;
+                
+                delete [] nextNumberOffsetString;
                 }
             }
                 
@@ -1069,18 +1088,34 @@ int addSprite( const char *inTag, SpriteHandle inSprite,
         delete [] fileNameTXT;
         delete metaFile;
 
-        nextSpriteNumber++;
-        
+        if( nextSpriteNumberOffset > 0 ) {
+            nextSpriteNumberOffset++;
+            
 
-                
-        char *nextNumberString = autoSprintf( "%d", nextSpriteNumber );
-        
-        nextNumberFile->writeToFile( nextNumberString );
-        
-        delete [] nextNumberString;
-                
-        
-        delete nextNumberFile;
+                    
+            char *nextNumberOffsetString = autoSprintf( "%d", nextSpriteNumberOffset );
+            
+            nextNumberOffsetFile->writeToFile( nextNumberOffsetString );
+            
+            delete [] nextNumberOffsetString;
+                    
+            
+            delete nextNumberOffsetFile;
+            }
+        else {
+            nextSpriteNumber++;
+            
+
+                    
+            char *nextNumberString = autoSprintf( "%d", nextSpriteNumber );
+            
+            nextNumberFile->writeToFile( nextNumberString );
+            
+            delete [] nextNumberString;
+                    
+            
+            delete nextNumberFile;
+            }
         }
     
     if( newID == -1 ) {
