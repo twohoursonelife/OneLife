@@ -21752,7 +21752,9 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
                     // AND this object is tall
                     // (don't click through short behind short)
                     if( p->hitOurPlacement &&
-                        getObjectHeight( oID ) > .75 * CELL_D ) {
+                        getObjectHeight( oID ) > .75 * CELL_D &&
+                        !obj->noClickThrough // object prevents click-through
+                        ) {
                         
                         if( p->closestCellY > y ) {
                             p->hitOurPlacementBehind = true;

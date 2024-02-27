@@ -577,6 +577,15 @@ static void setupNoHighlight( ObjectRecord *inR ) {
         inR->noHighlight = true;
         }
     }
+    
+    
+static void setupNoClickThrough( ObjectRecord *inR ) {
+    inR->noClickThrough = false;
+    
+    if( strstr( inR->description, "+noClickThrough" ) != NULL ) {
+        inR->noClickThrough = true;
+        }
+    }
 
 
 
@@ -795,6 +804,8 @@ float initObjectBankStep() {
                 setupOwned( r );
                 
                 setupNoHighlight( r );
+                
+                setupNoClickThrough( r );
                 
                 setupMaxPickupAge( r );
                 
@@ -3660,6 +3671,8 @@ int addObject( const char *inDescription,
     setupOwned( r );
     
     setupNoHighlight( r );
+    
+    setupNoClickThrough( r );
                 
     setupMaxPickupAge( r );
 
