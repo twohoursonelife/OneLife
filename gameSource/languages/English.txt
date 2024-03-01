@@ -273,6 +273,12 @@ bareGroundHint "BARE GROUND"
 nothingHint "NOTHING"
 eventuallyHint "(EVENTUALLY)"
 
+timeHint "(TIME PASSING)"
+
+freshHint "(FRESH)"
+fullHint "(FULL)"
+
+
 
 noHint "NO INFORMATION" 
 

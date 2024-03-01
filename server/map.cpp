@@ -2513,15 +2513,56 @@ static char loadIntoMapFromFile( FILE *inFile,
            Time::getCurrentTime() < startTime + inTimeLimitSec ) {
        
         TestMapRecord r;
-               
-        char stringBuff[1000];
-               
-        int numRead = fscanf( inFile, "%d %d %d %d %999s",
+        
+
+        // read a string of arbitrary length (container with an unknown
+        // number of slots)
+        // Old code used a static buffer of 1000 for this, but
+        // that will fail for longer strings
+        //
+        // For reference, old format string for scanf was "%d %d %d %d %999s"
+
+
+        // read ints first
+        int numRead = fscanf( inFile, "%d %d %d %d", 
                               &(r.x), &(r.y), &(r.biome),
-                              &(r.floor),
-                              stringBuff );
-               
-        if( numRead != 5 ) {
+                              &(r.floor) );
+        
+        if( numRead != 4 ) {
+            moreFileLeft = false;
+            break;
+            }
+        
+        // now skip string and measure position to get max length
+        int posBeforeString = ftell( inFile );
+        
+        // skip string
+        fscanf( inFile, "%*s" );
+
+        int posAfterString = ftell( inFile );
+        
+        // now we know how long string is
+        int stringLength = posAfterString - posBeforeString;
+        
+        if( stringLength <= 0 ) {
+            moreFileLeft = false;
+            break;
+            }
+
+        char *stringBuff = new char[ stringLength + 1 ];
+        
+        // rewind file to scan string
+        fseek( inFile, posBeforeString, SEEK_SET );
+        
+        char *formatString = autoSprintf( "%%%ds", stringLength );
+
+        numRead = fscanf( inFile, formatString, stringBuff );
+        
+        delete [] formatString;
+        
+
+        if( numRead != 1 ) {
+            delete [] stringBuff;
             moreFileLeft = false;
             break;
             }
@@ -2531,7 +2572,10 @@ static char loadIntoMapFromFile( FILE *inFile,
         int numSlots;
                
         char **slots = split( stringBuff, ",", &numSlots );
-               
+                
+        delete [] stringBuff;
+
+
         for( int i=0; i<numSlots; i++ ) {
                    
             if( i == 0 ) {
@@ -7109,6 +7153,10 @@ static void runTapoutOperation( int inX, int inY,
     
     int tapoutCount = 0;
     
+    int totalGridCells = 0;
+    int currentGridCellIndex = -1;
+    
+    // counting total cells in the grid
     for( int y =  inY - inRadiusY; 
          y <= inY + inRadiusY; 
          y += inSpacingY ) {
@@ -7121,6 +7169,26 @@ static void runTapoutOperation( int inX, int inY,
                 // skip center
                 continue;
                 }
+            
+            totalGridCells++;
+            }
+        }
+    
+    
+    for( int y =  inY - inRadiusY; 
+         y <= inY + inRadiusY; 
+         y += inSpacingY ) {
+    
+        for( int x =  inX - inRadiusX; 
+             x <= inX + inRadiusX; 
+             x += inSpacingX ) {
+            
+            if( inX == x && inY == y ) {
+                // skip center
+                continue;
+                }
+            
+            currentGridCellIndex++;
 
             int id = getMapObjectRaw( x, y );
                     
@@ -7130,6 +7198,16 @@ static void runTapoutOperation( int inX, int inY,
             TransRecord *t = NULL;
             
             int newTarget = -1;
+            
+            
+            if( inR->tapoutCountLimit != -1 ) {
+                // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
+                double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
+                
+                double p = randSource.getRandomBoundedDouble( 0, 1 );
+                
+                if( p >= P ) continue;
+                }
 
             if( true ) {
                 // last use target signifies what happens in 

@@ -1076,6 +1076,12 @@ void LivingLifePage::sendToServerSocket( char *inMessage ) {
     timeLastMessageSent = game_getCurrentTime();
     
     printf( "Sending message to server: %s\n", inMessage );
+
+    if( mServerSocket == -1 ) {
+        printf( "Server socket already closed, skipping sending message: %s\n",
+                inMessage );
+        return;
+        }
     
     replaceLastMessageSent( stringDuplicate( inMessage ) );    
 
@@ -3283,6 +3289,7 @@ LivingLifePage::~LivingLifePage() {
     
     if( mServerSocket != -1 ) {
         closeSocket( mServerSocket );
+        mServerSocket = -1;
         }
     
     for( int j=0; j<2; j++ ) {
@@ -9008,12 +9015,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
             pos = mult( pos, CELL_D );
             pos = sub( pos, lastScreenViewCenter );
             
-            int screenWidth, screenHeight;
-            getScreenDimensions( &screenWidth, &screenHeight );
+            // pos is currently in world/pixel coordinates           
             
-            pos.x += screenWidth / 2;
-            pos.y += screenHeight / 2;
-        
+            // do NOT adjust camera pos relative to screen corner yet
+            // we need to take screen scaling into acount
+            // and we don't want to recompute screen scaling here
+            // (we will do that in the photo code)
+            // pos.x += screenWidth / 2;
+            // pos.y += screenHeight / 2;
+
+
             char *ourName;
             
             if( ourLiveObject->name != NULL ) {
@@ -11774,6 +11785,40 @@ static double getLongestLine( char *inMessage ) {
 
 
 
+// tags with new or fresh if needed
+// inBaseString is destroyed internally if it needs to change
+//  and a new string is returned.
+// If it doesn't need to change, inBaseString is returned directly
+static char *tagObjectStringWithQualifier( char *inBaseString,
+                                           ObjectRecord *inO ) {
+    if( inO->useChance == 1.0 ) {
+        // an object that steps through uses
+        // probably something that gets visibly used up
+        // step by step.
+        // actorMinUseFraction == 1.0 means "full"
+        char *taggedString =
+            autoSprintf( "%s %s", inBaseString,
+                         translate( "fullHint" ) );
+        delete [] inBaseString;
+        return taggedString;
+        }
+    else if( inO->useChance < 1.0 &&
+             inO->useChance > 0 ) {
+        // an object that wears out somewhat randomly
+        // actorMinUseFraction == 1.0 means "unused new object"
+        char *taggedString =
+            autoSprintf( "%s %s", inBaseString,
+                         translate( "freshHint" ) );
+        delete [] inBaseString;
+        return taggedString;
+        }
+
+    return inBaseString;
+    }
+
+
+                                           
+
 char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
 
     if( inObjectID != mLastHintSortedSourceID ) {
@@ -11799,11 +11844,24 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
         char *actorString;
         
         if( actor > 0 ) {
-            actorString = stringToUpperCase( getObject( actor )->description );
+            ObjectRecord *actorO = getObject( actor );
+
+            actorString = stringToUpperCase( actorO->description );
             stripDescriptionComment( actorString );
+
+            if( found->actorMinUseFraction == 1.0 &&
+                actorO->numUses > 1 ) {
+                
+                actorString = tagObjectStringWithQualifier( actorString,
+                                                            actorO );
+                }
             }
-        else if( actor == 0 ) {
+        else if( actor == 0 || actor == -2 ) {
+            // show bare hand for default actions too
             actorString = stringDuplicate( translate( "bareHandHint" ) );
+            }
+        else if( actor == -1 ) {
+            actorString = stringDuplicate( translate( "timeHint" ) );
             }
         else {
             actorString = stringDuplicate( "" );
@@ -11816,9 +11874,18 @@ char *LivingLifePage::getHintMessage( int inObjectID, int inIndex ) {
         char *targetString;
         
         if( target > 0 ) {
+            ObjectRecord *targetO = getObject( target );
+
             targetString = 
-                stringToUpperCase( getObject( target )->description );
+                stringToUpperCase( targetO->description );
             stripDescriptionComment( targetString );
+            
+            if( found->targetMinUseFraction == 1.0 &&
+                targetO->numUses > 1 ) {
+                
+                targetString = tagObjectStringWithQualifier( targetString,
+                                                             targetO );
+                }
             }
         else if( target == -1 && actor > 0 ) {
             ObjectRecord *actorObj = getObject( actor );
@@ -12102,6 +12169,58 @@ doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
         }
     return inPlayer->currentPos;
     }
+
+
+
+
+void LivingLifePage::displayGlobalMessage( char *inMessage ) {
+    
+    char *upper = stringToUpperCase( inMessage );
+                
+    char found;
+    
+    char *lines = replaceAll( upper, "**", "##", &found );
+    delete [] upper;
+    
+    char *spaces = replaceAll( lines, "_", " ", &found );
+    
+    delete [] lines;
+    
+    
+    mGlobalMessageShowing = true;
+    mGlobalMessageStartTime = game_getCurrentTime();
+    
+    if( mLiveTutorialSheetIndex >= 0 ) {
+        mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
+            mTutorialHideOffset[ mLiveTutorialSheetIndex ];
+        }
+    mLiveTutorialSheetIndex ++;
+    
+    if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
+        mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
+        }
+    mTutorialMessage[ mLiveTutorialSheetIndex ] = 
+        stringDuplicate( spaces );
+    
+    // other tutorial messages don't need to be destroyed
+    mGlobalMessagesToDestroy.push_back( 
+        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
+    
+    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
+        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
+    
+    mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
+    
+    double longestLine = getLongestLine( 
+        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
+    
+    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+    
+    
+    delete [] spaces;
+    }
+
+
 
 
 void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
@@ -13440,53 +13559,17 @@ void LivingLifePage::step() {
             if( mTutorialNumber <= 0 ) {
                 // not in tutorial
                 // display this message
-                
-                char messageFromServer[200];
-                sscanf( message, "MS\n%199s", messageFromServer );            
-                
-                char *upper = stringToUpperCase( messageFromServer );
-                
-                char found;
 
-                char *lines = replaceAll( upper, "**", "##", &found );
-                delete [] upper;
+                int numLines;
+                char **lines = split( message, "\n", &numLines );
                 
-                char *spaces = replaceAll( lines, "_", " ", &found );
-                
+                if( numLines > 1 ) {
+                    displayGlobalMessage( lines[1] );
+                    }
+                for( int i=0; i<numLines; i++ ) {
+                    delete [] lines[i];
+                    }
                 delete [] lines;
-                
-
-                mGlobalMessageShowing = true;
-                mGlobalMessageStartTime = game_getCurrentTime();
-                
-                if( mLiveTutorialSheetIndex >= 0 ) {
-                    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-                    mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-                    }
-                mLiveTutorialSheetIndex ++;
-                
-                if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
-                    mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
-                    }
-                mTutorialMessage[ mLiveTutorialSheetIndex ] = 
-                    stringDuplicate( spaces );
-                
-                // other tutorial messages don't need to be destroyed
-                mGlobalMessagesToDestroy.push_back( 
-                    (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-
-                mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-                    mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-                
-                mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
-
-                double longestLine = getLongestLine( 
-                    (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-            
-                mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
-
-                
-                delete [] spaces;
                 }
             }
         else if( type == FLIP ) {
@@ -14759,19 +14842,56 @@ void LivingLifePage::step() {
                 delete [] lines[0];
                 }
             
-            char idBuffer[500];
-            
+
             for( int i=1; i<numLines; i++ ) {
                 
                 int x, y, floorID, responsiblePlayerID;
                 int oldX, oldY;
                 float speed = 0;
                                 
+                char *lineCopy = NULL;
                 
-                int numRead = sscanf( lines[i], "%d %d %d %499s %d %d %d %f",
+                // scan everything but 4th token, which is a string of 
+                // unknown length.  %*s will scan it but skip
+                // saving it in a variable
+                // numRead won't include this skipped string in the count
+                int numRead = sscanf( lines[i], "%d %d %d %*s %d %d %d %f",
                                       &x, &y, &floorID, 
-                                      idBuffer, &responsiblePlayerID,
+                                      // skip 4th token
+                                      &responsiblePlayerID,
                                       &oldX, &oldY, &speed );
+                char *idBuffer = NULL;
+                
+                if( numRead >= 4 ) {
+                    // we scanned past the 4th skipped token
+                    // now tokenize to extract it
+                    // do this in place to avoid allocating a bunch
+                    // of strings that we don't need
+
+                    lineCopy = stringDuplicate( lines[i] );
+
+                    SimpleVector<char *> *tokenPointers = 
+                        tokenizeStringInPlace( lineCopy );
+                    
+                    if( tokenPointers->size() >= 4 ) {
+                        idBuffer = tokenPointers->getElementDirect( 3 );
+                        }
+                    
+                    // we can safely delete vector, since it only
+                    // contains pointers into lineCopy
+                    delete tokenPointers;
+                    
+                    // we also don't need to worry about deleting idBuffer
+                    // since it's a pointer into lineCopy
+
+                    // lineCopy is now mangled and full of \0, but that's okay
+                    // because it's a copy
+
+                    // and we just scanned one more token
+                    numRead ++;
+                    }
+                
+
                 if( numRead == 5 || numRead == 8) {
 
                     applyReceiveOffset( &x, &y );
@@ -14819,6 +14939,9 @@ void LivingLifePage::step() {
                                                  lines[i] ) );
                                 
                                 delete [] lines[i];
+                                if( lineCopy != NULL ) {
+                                    delete [] lineCopy;
+                                    }
                                 continue;
                                 }
                             }
@@ -15201,8 +15324,10 @@ void LivingLifePage::step() {
                             // floor changed
                             
                             ObjectRecord *obj = getObject( floorID );
-                            if( obj->creationSound.numSubSounds > 0 ) {    
-                                    
+                            if( obj->creationSound.numSubSounds > 0 &&
+                                shouldCreationSoundPlay( oldFloor, 
+                                                         floorID ) ) {    
+                                
                                 playSound( obj->creationSound,
                                            getVectorFromCamera( x, y ) );
                                 }
@@ -15681,6 +15806,9 @@ void LivingLifePage::step() {
                     }
                 
                 delete [] lines[i];
+                if( lineCopy != NULL ) {
+                    delete [] lineCopy;
+                    }
                 }
             
             delete [] lines;
@@ -15798,12 +15926,12 @@ void LivingLifePage::step() {
                 int forced = 0;
                 int done_moving = 0;
                 
-                char *holdingIDBuffer = new char[500];
+                char *holdingIDBuffer = NULL;
 
                 int heldOriginValid, heldOriginX, heldOriginY,
                     heldTransitionSourceID;
                 
-                char *clothingBuffer = new char[500];
+                char *clothingBuffer = NULL;
                 
                 int justAte = 0;
                 int justAteID = 0;
@@ -15818,22 +15946,27 @@ void LivingLifePage::step() {
                 int responsiblePlayerID = -1;
                 
                 int heldYum = 0;
-
+                int heldLearned = 1;
+                
+                // skip strings of unknown length in middle
+                // 7th string and 20th string
+                // %*s skips them
+                // numRead won't include these skipped strings in the count
                 int numRead = sscanf( lines[i], 
                                       "%d %d "
                                       "%d "
                                       "%d "
                                       "%d %d "
-                                      "%499s %d %d %d %d %f %d %d %d %d "
-                                      "%lf %lf %lf %499s %d %d %d "
-                                      "%d",
+                                      "%*s %d %d %d %d %f %d %d %d %d "
+                                      "%lf %lf %lf %*s %d %d %d "
+                                      "%d %d",
                                       &( o.id ),
                                       &( o.displayID ),
                                       &facingOverride,
                                       &actionAttempt,
                                       &actionTargetX,
                                       &actionTargetY,
-                                      holdingIDBuffer,
+                                      // skip 7th string
                                       &heldOriginValid,
                                       &heldOriginX,
                                       &heldOriginY,
@@ -15846,14 +15979,50 @@ void LivingLifePage::step() {
                                       &( o.age ),
                                       &invAgeRate,
                                       &( o.lastSpeed ),
-                                      clothingBuffer,
+                                      // skip 20th string
                                       &justAte,
                                       &justAteID,
                                       &responsiblePlayerID,
                                       &heldYum);
                 
+                char *lineCopy = NULL;
+                if( numRead >= 21 ) {
+                    // scanned all but skipped strings
+                    
+                    // now tokenize to extract them
+                    // do this in place to avoid allocating a bunch
+                    // of strings that we don't need
+
+                    lineCopy = stringDuplicate( lines[i] );
+
+                    SimpleVector<char *> *tokenPointers = 
+                        tokenizeStringInPlace( lineCopy );
+                    
+                    if( tokenPointers->size() >= 20 ) {
+                        // 7th string
+                        holdingIDBuffer = tokenPointers->getElementDirect( 6 );
+                        // 20th string
+                        clothingBuffer = tokenPointers->getElementDirect( 19 );
+                        }
+                    
+                    // we can safely delete vector, since it only
+                    // contains pointers into lineCopy
+                    delete tokenPointers;
+                    
+                    // we also don't need to worry about deleting either
+                    // id buffer
+                    // since they're pointers into lineCopy
+
+                    // lineCopy is now mangled and full of \0, but that's okay
+                    // because it's a copy
+
+                    // and we just scanned two more tokens
+                    numRead += 2;
+                    }
                 
+
                 // heldYum is 24th value, optional
+                // heldLearned is 25th value, optional
                 if( numRead >= 23 ) {
 
                     applyReceiveOffset( &actionTargetX, &actionTargetY );
@@ -17771,10 +17940,12 @@ void LivingLifePage::step() {
                         }
                     }
                 
-                delete [] holdingIDBuffer;
-                delete [] clothingBuffer;
                 
                 delete [] lines[i];
+                
+                if( lineCopy != NULL ) {
+                    delete [] lineCopy;
+                    }
                 }
             
             for( int i=0; i<unusedHolderID.size(); i++ ) {
@@ -21296,6 +21467,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     
     mYumMultiplier = 0;
     
+    holdingYumOrMeh = 0;
+    
     
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
         mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
@@ -21579,7 +21752,9 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
                     // AND this object is tall
                     // (don't click through short behind short)
                     if( p->hitOurPlacement &&
-                        getObjectHeight( oID ) > .75 * CELL_D ) {
+                        getObjectHeight( oID ) > .75 * CELL_D &&
+                        !obj->noClickThrough // object prevents click-through
+                        ) {
                         
                         if( p->closestCellY > y ) {
                             p->hitOurPlacementBehind = true;
@@ -23566,7 +23741,11 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                             }
                         }
 
-                    if( !foundAlt && floorDestID > 0 ) {
+                    if( !foundAlt && floorDestID > 0 &&
+                        // require shift right click to interact
+                        // with floor
+                        isShiftKeyDown()
+                        ) {
                         // check if use on floor exists
                         TransRecord *r = 
                             getTrans( ourLiveObject->holdingID, 

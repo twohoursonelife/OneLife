@@ -764,6 +764,25 @@ typedef struct LiveObject {
 
         char newMove;
         
+        // Absolute position used when generating last PU sent out about this
+        // player.
+        // If they are making a very long chained move, and their status
+        // isn't changing, they might not generate a PU message for a very
+        // long time.  This becomes a problem when them move out/in range
+        // of another player.  If their status (held item, etc) has changed
+        // while they are out of range, the other player won't see that
+        // status change when they come back in range (because the PU
+        // happened when they were out of range) and the long chained move
+        // isn't generating any PU messages now that they are back in range.
+        // Since modded clients might make very long MOVEs for each part
+        // of a MOVE chain (since they are zoomed out), we can't just count
+        // MOVE messages sent since the las PU message went out.
+        // We use this position to determine how far they've moved away
+        // from their last PU position, and send an intermediary PU if
+        // they get too far away
+        GridPos lastPlayerUpdateAbsolutePos;
+        
+
         // heat map that player carries around with them
         // every time they stop moving, it is updated to compute
         // their local temp
@@ -5041,7 +5060,11 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
     if( strcmp( inToSay, curseYouPhrase ) == 0 ) {
         isYouShortcut = true;
         }
-    if( strcmp( inToSay, curseBabyPhrase ) == 0 ) {
+    
+    if( strcmp( inToSay, curseBabyPhrase ) == 0
+        &&
+        SettingsManager::getIntSetting( "allowBabyCursing", 0 ) ) {
+        
         isBabyShortcut = true;
         }
     
@@ -5244,7 +5267,7 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
         if( isCurse ) {
             char *targetEmail = getCurseReceiverEmail( cursedName );
             if( targetEmail != NULL ) {
-                setDBCurse( inPlayer->email, targetEmail );
+                setDBCurse( inPlayer->id, inPlayer->email, targetEmail );
                 dbCurseTargetEmail = targetEmail;
                 }
             }
@@ -5264,7 +5287,7 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             spendCurseToken( inPlayer->email ) ) {
             
             isCurse = true;
-            setDBCurse( inPlayer->email, youCursePlayer->email );
+            setDBCurse( inPlayer->id, inPlayer->email, youCursePlayer->email );
             dbCurseTargetEmail = youCursePlayer->email;
             }
         else if( isBabyShortcut && babyCursePlayer != NULL &&
@@ -5278,7 +5301,7 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
                 targetEmail = babyCursePlayer->origEmail;
                 }
             if( targetEmail != NULL ) {
-                setDBCurse( inPlayer->email, targetEmail );
+                setDBCurse( inPlayer->id, inPlayer->email, targetEmail );
                 dbCurseTargetEmail = targetEmail;
                 }
             }
@@ -5288,7 +5311,8 @@ static void makePlayerSay( LiveObject *inPlayer, char *inToSay, bool inPrivate =
             
             isCurse = true;
             
-            setDBCurse( inPlayer->email, inPlayer->lastBabyEmail );
+            setDBCurse( inPlayer->id, 
+                        inPlayer->email, inPlayer->lastBabyEmail );
             dbCurseTargetEmail = inPlayer->lastBabyEmail;
             }
         }
@@ -6302,6 +6326,9 @@ static UpdateRecord getUpdateRecord(
                                  inPlayer->posForced );
         r.absolutePosX = x;
         r.absolutePosY = y;
+
+        inPlayer->lastPlayerUpdateAbsolutePos.x = x;
+        inPlayer->lastPlayerUpdateAbsolutePos.y = y;
         }
     
     SimpleVector<char> clothingListBuffer;
@@ -6974,6 +7001,8 @@ int processLoggedInPlayer( char inAllowReconnect,
             
             o->connected = true;
             o->cravingKnown = false;
+            
+            o->curseTokenUpdate = true;
             
             if( o->heldByOther ) {
                 // they're held, so they may have moved far away from their
@@ -8138,6 +8167,10 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.deathLogged = false;
     newObject.newMove = false;
     
+    newObject.lastPlayerUpdateAbsolutePos.x = 0;
+    newObject.lastPlayerUpdateAbsolutePos.y = 0;
+    
+
     newObject.posForced = false;
     newObject.waitingForForceResponse = false;
     
@@ -8416,6 +8449,7 @@ int processLoggedInPlayer( char inAllowReconnect,
               newObject.parentID,
               parentEmail,
               ! getFemale( &newObject ),
+              getObject( newObject.displayID )->race, 
               newObject.xd,
               newObject.yd,
               players.size(),
@@ -8885,54 +8919,77 @@ static char isContainmentWithMatchedTags( int inContainerID, int inContainedID )
         // not a limited containable object
         return false;
         }
+
+    char anyWithLimitNameFound = false;
     
-    char *limitNameLoc = &( contLoc[5] );
+    while( contLoc != NULL ) {
+        
     
-    if( limitNameLoc[0] != ' ' &&
-        limitNameLoc[0] != '\0' ) {
+        char *limitNameLoc = &( contLoc[5] );
+    
+        if( limitNameLoc[0] != ' ' &&
+            limitNameLoc[0] != '\0' ) {
 
-        // there's something after +cont
-        // scan the whole thing, including +cont
+            // there's something after +cont
+            // scan the whole thing, including +cont
+            
+            anyWithLimitNameFound = true;
 
-        char tag[100];
-        
-        int numRead = sscanf( contLoc, "%99s", tag );
-        
-        if( numRead == 1 ) {
+            char tag[100];
             
-            // clean up # character that might delimit end of string
-            int tagLen = strlen( tag );
+            int numRead = sscanf( contLoc, "%99s", tag );
             
-            for( int i=0; i<tagLen; i++ ) {
-                if( tag[i] == '#' ) {
-                    tag[i] = '\0';
-                    tagLen = i;
-                    break;
-                    }
-                }
-
-            char *locInContainerName =
-                strstr( getObject( inContainerID )->description, tag );
-            
-            if( locInContainerName != NULL ) {
-                // skip to end of tag
-                // and make sure tag isn't a sub-tag of container tag
-                // don't want contained to be +contHot
-                // and contaienr to be +contHotPlates
+            if( numRead == 1 ) {
                 
-                char end = locInContainerName[ tagLen ];
+                // clean up # character that might delimit end of string
+                int tagLen = strlen( tag );
                 
-                if( end == ' ' ||
-                    end == '\0'||
-                    end == '#' ) {
-                    return true;
+                for( int i=0; i<tagLen; i++ ) {
+                    if( tag[i] == '#' ) {
+                        tag[i] = '\0';
+                        tagLen = i;
+                        break;
+                        }
                     }
+                
+                char *locInContainerName =
+                    strstr( getObject( inContainerID )->description, tag );
+                
+                if( locInContainerName != NULL ) {
+                    // skip to end of tag
+                    // and make sure tag isn't a sub-tag of container tag
+                    // don't want contained to be +contHot
+                    // and contaienr to be +contHotPlates
+                    
+                    char end = locInContainerName[ tagLen ];
+                    
+                    if( end == ' ' ||
+                        end == '\0'||
+                        end == '#' ) {
+                        return true;
+                        }
+                    }
+                // no match with this container so far, 
+                // but we can keep trying other +cont tags
+                // in our contained object
                 }
-            return false;
             }
+        else {
+            // +cont with nothing after it, no limit based on this tag
+            }
+
+        // keep looking beyond last limit loc
+        contLoc = strstr( limitNameLoc, "+cont" );
+        }
+
+    if( anyWithLimitNameFound ) {
+        // item is limited to some types of container, and this
+        // container didn't match any of the limit names
+        return false;
         }
     
-    // +cont with nothing after it, no limit
+
+    // we get here if we found +cont in the item, but no limit name after it
     return false;
     }
 
@@ -15908,6 +15965,19 @@ int main() {
                         nextPlayer->xd = m.extraPos[ m.numExtraPos - 1].x;
                         nextPlayer->yd = m.extraPos[ m.numExtraPos - 1].y;
                         
+
+                        if( distance( nextPlayer->lastPlayerUpdateAbsolutePos,
+                                      m.extraPos[ m.numExtraPos - 1] ) 
+                            > 
+                            getMaxChunkDimension() / 2 ) {
+                            // they have moved a long way since their
+                            // last PU was sent
+                            // Send one now, mid-move
+                            
+                            playerIndicesToSendUpdatesAbout.push_back( i );
+                            }
+                        
+
                         
                         if( nextPlayer->xd == nextPlayer->xs &&
                             nextPlayer->yd == nextPlayer->ys ) {
@@ -16420,7 +16490,8 @@ int main() {
                             }
                         
                         if( otherToForgive != NULL ) {
-                            clearDBCurse( nextPlayer->email, 
+                            clearDBCurse( nextPlayer->id, 
+                                          nextPlayer->email, 
                                           otherToForgive->email );
                             
                             char *message = 
@@ -20153,6 +20224,19 @@ int main() {
 
                 
                 if( ! nextPlayer->isTutorial ) {
+                    GridPos deathPos = 
+                        getPlayerPos( nextPlayer );
+                    
+                    int killerID = -1;
+                    if( nextPlayer->murderPerpID > 0 ) {
+                        killerID = nextPlayer->murderPerpID;
+                        }
+                    else if( nextPlayer->deathSourceID > 0 ) {
+                        // include as negative of ID
+                        killerID = - nextPlayer->deathSourceID;
+                        }
+                    // never have suicide in this case
+
                     logDeath( nextPlayer->id,
                               nextPlayer->email,
                               nextPlayer->isEve,
@@ -20163,7 +20247,7 @@ int main() {
                               nextPlayer->xd, nextPlayer->yd,
                               players.size() - 1,
                               false,
-                              nextPlayer->murderPerpID,
+                              killerID,
                               nextPlayer->murderPerpEmail );
                                             
                     if( shutdownMode ) {
@@ -20457,7 +20541,7 @@ int main() {
                                   dropPos.x, dropPos.y,
                                   players.size() - 1,
                                   disconnect,
-                                  nextPlayer->murderPerpID,
+                                  killerID,
                                   nextPlayer->murderPerpEmail );
                     
                         if( shutdownMode ) {
@@ -21547,6 +21631,23 @@ int main() {
                         
                         if( ! decrementedPlayer->deathLogged &&
                             ! decrementedPlayer->isTutorial ) {    
+                            
+                            
+                            // yes, they starved to death here
+                            // but also log case where they were wounded
+                            // before starving.  Thus, the true cause
+                            // of death should be the wounding that made
+                            // them helpless and caused them to starve
+                            int killerID = -1;
+                            if( nextPlayer->murderPerpID > 0 ) {
+                                killerID = nextPlayer->murderPerpID;
+                                }
+                            else if( nextPlayer->deathSourceID > 0 ) {
+                                // include as negative of ID
+                                killerID = - nextPlayer->deathSourceID;
+                                }
+                            // never have suicide in this case
+
                             logDeath( decrementedPlayer->id,
                                       decrementedPlayer->email,
                                       decrementedPlayer->isEve,
@@ -21556,7 +21657,7 @@ int main() {
                                       deathPos.x, deathPos.y,
                                       players.size() - 1,
                                       false,
-                                      nextPlayer->murderPerpID,
+                                      killerID,
                                       nextPlayer->murderPerpEmail );
                             }
                         

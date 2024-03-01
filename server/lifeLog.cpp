@@ -7,6 +7,8 @@
 
 #include "curses.h"
 
+#include "../gameSource/objectBank.h"
+
 
 
 #include "minorGems/util/stringUtils.h"
@@ -143,6 +145,7 @@ static void stepLog() {
 void logBirth( int inPlayerID, char *inPlayerEmail,
                int inParentID, char *inParentEmail,
                char inIsMale,
+               int inRace,
                int inMapX, int inMapY,
                int inTotalPopulation,
                int inParentChainLength ) {
@@ -168,12 +171,15 @@ void logBirth( int inPlayerID, char *inPlayerEmail,
             if( inIsMale ) {
                 genderChar = 'M';
                 }
+            
+            char raceChar = (char)( inRace - 1  + 'A' );
 
-            fprintf( logFile, "B %.f %d %s %c (%d,%d) %s pop=%d chain=%d\n",
+            fprintf( logFile, 
+                     "B %.f %d %s %c (%d,%d) %s pop=%d chain=%d race=%c\n",
                      Time::timeSec(),
                      inPlayerID, inPlayerEmail, genderChar, inMapX, inMapY, 
                      parentString,
-                     inTotalPopulation, inParentChainLength );
+                     inTotalPopulation, inParentChainLength, raceChar );
             
             fflush( logFile );
 
@@ -234,12 +240,40 @@ void logDeath( int inPlayerID, char *inPlayerEmail,
             char *causeString;
         
             if( inKillerEmail == NULL ) {
-                if( inDisconnect ) {
-                    causeString = stringDuplicate( "disconnect" );
+                // inDisconnect doesn't mean anything anymore
+                // because no one ever dies from being disconnected
+                // so ignore this signal
+
+                if( inAge >= forceDeathAge ) {
+                    causeString = stringDuplicate( "oldAge" );
                     }
                 else {
-                    if( inAge >= forceDeathAge ) {
-                        causeString = stringDuplicate( "oldAge" );
+                        
+                    if( inKillerID == inPlayerID ) {
+                        causeString = stringDuplicate( "suicide" );
+                        }
+                    else if( inKillerID < -1 ) {
+                        
+                        // use cleaned-up non-human object string
+                        // as cause of death
+                        
+                        ObjectRecord *o = getObject( - inKillerID, true );
+                        if( o != NULL ) {
+                            causeString = 
+                                stringDuplicate( o->description );
+                            
+                            // terminate at comment
+                            char *commentStart = strstr( causeString, "#" );
+                            if( commentStart != NULL ) {
+                                commentStart[0] = '\0';
+                                }
+                            
+                            char *nextSpace = strstr( causeString, " " );
+                            while( nextSpace != NULL ) {
+                                nextSpace[0] = '_';
+                                nextSpace = strstr( nextSpace, " " );
+                                }
+                            }
                         }
                     else {
                         causeString = stringDuplicate( "hunger" );
@@ -278,6 +312,7 @@ void logName( int inPlayerID, char *inEmail, char *inName,
               int inLineageEveID ) {
     if( nameLogFile != NULL ) {
         fprintf( nameLogFile, "%d %s\n", inPlayerID, inName );
+        fflush( nameLogFile );
         }
     logPlayerNameForCurses( inEmail, inName, inLineageEveID );
     }

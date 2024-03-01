@@ -49,9 +49,9 @@ static int maxID;
 
 
 
-static const char *animTypeNames[9] = { "ground", "held", "moving", "ground2",
-                                        "eating", "doing", "endAnimType",
-                                        "extra", "extraB" };
+static const char *animTypeNames[11] = { "ground", "held", "moving", "ground2",
+                                        "eating", "doing", "biking", "sitting",
+                                        "endAnimType", "extra", "extraB" };
 
 
 const char *typeToName( AnimType inAnimType ) {

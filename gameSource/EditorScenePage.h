@@ -116,6 +116,7 @@ class EditorScenePage : public GamePage, public ActionListener {
         TextButton mDeleteButton;
         
         TextButton mSaveTestMapButton;
+        TextButton mLoadTestMapButton;
 
         TextButton mNextSceneButton;
         TextButton mPrevSceneButton;
@@ -220,8 +221,12 @@ class EditorScenePage : public GamePage, public ActionListener {
         File *getSceneFile( int inSceneID );
         
         char tryLoadScene( int inSceneID );
+
+        char tryLoadScene( File *inFile );
         
         void writeSceneToFile( int inIDToUse );
+
+        void writeSceneToFile( File *inFile );
         
         void checkNextPrevVisible();
         

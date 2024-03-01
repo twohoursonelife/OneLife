@@ -414,6 +414,10 @@ typedef struct ObjectRecord {
         
         char noHighlight;
         
+        // tall objects can be clicked through to reach small objects behind
+        // this property disables that
+        char noClickThrough;
+        
         // for auto-orienting fences, walls, etc
         // all three objects know the IDs of all three objects
         int horizontalVersionID;
