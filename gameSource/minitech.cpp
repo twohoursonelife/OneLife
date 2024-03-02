@@ -1167,7 +1167,7 @@ void minitech::updateDrawTwoTech() {
 		int numOfLines = endIndex - startIndex;
         
 		
-		// if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
+		if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY + (numOfLines-1)*lineSpacing + numOfLines*iconSize + buttonHeight + paddingY;
