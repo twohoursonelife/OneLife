@@ -1069,13 +1069,13 @@ void minitech::updateDrawTwoTech() {
 		
 		//draw sheet background for minitech
 		doublePair sheetPos = {recWidth/2, recHeight/2};
-		doublePair extraOffset = {20, -45};
+		doublePair extraOffset = {20*guiScale, -45*guiScale};
 		
 		doublePair hintPos = add( posCenter, sheetPos );
 		hintPos = add( hintPos, extraOffset );
 		
-		setDrawColor( 1, 1, 1, 1 );
-		drawSprite( sheet, hintPos );
+		setDrawColor( 1, 1, 1, 0.9 );
+		drawSprite( sheet, hintPos, guiScale );
 		
 		drawStr("CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
 		
@@ -1084,24 +1084,24 @@ void minitech::updateDrawTwoTech() {
 		
 		doublePair headerLT = {posLT.x, posLT.y + headerHeight};
 		doublePair headerRT = {headerLT.x + headerWidth, headerLT.y};
-		doublePair minRT = {headerRT.x - paddingX/2, headerRT.y - paddingY/2};
-		doublePair minCen = {minRT.x - tinyLineHeight/2, minRT.y - tinyLineHeight/2};
-		doublePair minLT = {minRT.x - iconSize/2, minRT.y};
-		doublePair minBR = {minRT.x, minRT.y - iconSize/2};
+		doublePair maxRT = {headerRT.x - paddingX/2, headerRT.y - paddingY/2};
+		doublePair maxCen = {maxRT.x - tinyLineHeight/2, maxRT.y - tinyLineHeight/2};
+		doublePair maxLT = {maxRT.x - iconSize/2, maxRT.y};
+		doublePair maxBR = {maxRT.x, maxRT.y - iconSize/2};
 		
-		drawStr("[+]", minCen, "tinyHandwritten", false);
+		drawStr("[+]", maxCen, "tinyHandwritten", false);
 		
-		mouseListener* minListener = getMouseListenerByArea(
+		mouseListener* maxListener = getMouseListenerByArea(
 			&twotechMouseListeners, 
-			sub(minLT, screenPos), 
-			sub(minBR, screenPos));
-		if (minListener->mouseHover) {
+			sub(maxLT, screenPos), 
+			sub(maxBR, screenPos));
+		if (maxListener->mouseHover) {
 			setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
-			drawRect(minCen, iconSize/4, iconSize/4);
+			drawRect(maxCen, iconSize/4, iconSize/4);
 		}
-		if (minListener->mouseClick) {
+		if (maxListener->mouseClick) {
 			minitechMinimized = false;
-			minListener->mouseClick = false;
+			maxListener->mouseClick = false;
 		}
 		
 		/*
@@ -1142,11 +1142,11 @@ void minitech::updateDrawTwoTech() {
 		
 		//sheet background when nothing found
 		doublePair sheetPos = {recWidth/2, recHeight/2};
-		doublePair extraOffset = {-90, -110};
+		doublePair extraOffset = {-90*guiScale, -110*guiScale};
 		doublePair hintPos = add( posCenter, sheetPos );
 		hintPos = add( hintPos, extraOffset );
-		setDrawColor( 1, 1, 1, 1 );
-		drawSprite( bigSheet, hintPos, 1.0, 0.5 );
+		setDrawColor( 1, 1, 1, 0.9 );
+		drawSprite( bigSheet, hintPos, guiScale, 0.5 );
 		
 		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
 		//drawRect( posCenter, recWidth/2, recHeight/2);
@@ -1195,11 +1195,11 @@ void minitech::updateDrawTwoTech() {
 		doublePair headerCen = {headerLT.x + headerWidth / 2, headerLT.y - headerHeight / 2};
 		
 		doublePair sheetPos = {headerWidth/2, headerHeight/2};
-		doublePair extraOffset = {-90, -195};
+		doublePair extraOffset = {-90*guiScale, -195*guiScale};
 		doublePair hintPos = add( headerCen, sheetPos );
 		hintPos = add( hintPos, extraOffset );
-		setDrawColor( 1, 1, 1, 1 );
-		drawSprite( bigSheet, hintPos, 1.0, 0.5 );
+		setDrawColor( 1, 1, 1, 0.9 );
+		drawSprite( bigSheet, hintPos, guiScale, 0.5 );
 		
 		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
 		//drawRect( posCenter, recWidth/2, recHeight/2);
