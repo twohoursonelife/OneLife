@@ -2982,6 +2982,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 
             memcpy( mCurrentObject.slotPos, pickedRecord->slotPos,
                     sizeof( doublePair ) * pickedRecord->numSlots );
+                    
+            mCurrentObject.slotStyle = pickedRecord->slotStyle;
 
             mCurrentObject.slotVert = 
                 new char[ pickedRecord->numSlots ];
