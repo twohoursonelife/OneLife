@@ -1167,7 +1167,7 @@ void minitech::updateDrawTwoTech() {
 		int numOfLines = endIndex - startIndex;
         
 		
-		//if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
+		// if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY + (numOfLines-1)*lineSpacing + numOfLines*iconSize + buttonHeight + paddingY;
@@ -1655,6 +1655,12 @@ void minitech::updateDrawTwoTech() {
 		
 	//setDrawColor( 1, 1, 1, 0.8 ); //def: 0, 0, 0, 0.8
 	//drawRect( headerCen, headerWidth/2, headerHeight/2);
+    
+	doublePair separatorCen = headerLT;
+	separatorCen.y -= headerHeight + separatorHeight;
+	separatorCen.x = headerCen.x;
+	drawStr(" -   -   -   -   -   -   -   -   -   -   - ", separatorCen, "tinyHandwritten", false);
+    
 
 	string useStr = "HOW DO I USE:";
 	string makeStr = "HOW DO I MAKE:";
