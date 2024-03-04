@@ -58,6 +58,7 @@ int minitech::currentTwoTechPage;
 int minitech::useOrMake;
 int minitech::lastUseOrMake;
 int minitech::currentHintObjId;
+int minitech::highlightObjId = 0;
 int minitech::lastHintObjId;
 string minitech::lastHintStr;
 bool minitech::lastHintSearchNoResults = false;
@@ -1158,6 +1159,16 @@ void minitech::updateDrawTwoTech() {
 		drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
 	} else {
 		
+        // if there are no results, don't even bother to draw highlighted tile
+        // so this is put here
+		if (highlightObjId > 0) {
+			GridPos currentPos = {currentX, currentY};
+			GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId);
+			if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
+				drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
+			}
+		}
+        
 		int maxPage = int( ceil( float(transSize) / float(defaultNumOfLines) ) );
 		if (currentTwoTechPage < 0) currentTwoTechPage = maxPage - 1;
 		if ( currentTwoTechPage >= maxPage ) currentTwoTechPage = 0;
@@ -1213,7 +1224,7 @@ void minitech::updateDrawTwoTech() {
 			posLT.y - paddingY - contentOffsetY - iconSize/2
 			};
 		
-		int highlightObjId = 0;
+		highlightObjId = 0;
 		vector<pair<mouseListener*,int>> iconListenerIds;
 		for (int i=0; i<numOfLines; i++) {
 			if (i>0) posLineLCen.y -= iconSize+lineSpacing;
@@ -1564,13 +1575,7 @@ void minitech::updateDrawTwoTech() {
 			}
 		}
 		
-		if (highlightObjId > 0) {
-			GridPos currentPos = {currentX, currentY};
-			GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId);
-			if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
-				drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
-			}
-		}
+
 		
 		posLineLCen.y -= buttonHeight; 
 		doublePair pos = posLineLCen;

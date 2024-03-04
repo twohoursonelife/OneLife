@@ -112,6 +112,7 @@ public:
 	static int useOrMake;
 	static int lastUseOrMake;
 	static int currentHintObjId;
+	static int highlightObjId;
 	static int lastHintObjId;
 	static std::string lastHintStr;
     static bool lastHintSearchNoResults;
