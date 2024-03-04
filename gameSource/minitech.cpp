@@ -655,25 +655,25 @@ void minitech::drawStr(
 	float recWidth = textWidth + padding*2;
 	float recHeight = 1 * lineHeight + padding*2;
 	
-	doublePair posLT = {posCen.x - recWidth/2, posCen.y + recHeight/2};	
+	doublePair posTL = {posCen.x - recWidth/2, posCen.y + recHeight/2};	
 	
 	if (avoidOffScreen) {
 		doublePair offset = {0.0, 0.0};
-		if (posLT.x + recWidth > screenCenter.x + viewWidth/2) {
-			offset.x = screenCenter.x + viewWidth/2 - recWidth - posLT.x;
-		} else if (posLT.x < screenCenter.x - viewWidth/2) {
-			offset.x = - posLT.x + screenCenter.x - viewWidth/2;
+		if (posTL.x + recWidth > screenCenter.x + viewWidth/2) {
+			offset.x = screenCenter.x + viewWidth/2 - recWidth - posTL.x;
+		} else if (posTL.x < screenCenter.x - viewWidth/2) {
+			offset.x = - posTL.x + screenCenter.x - viewWidth/2;
 		}
-		if (posLT.y > screenCenter.y + viewHeight/2) {
-			offset.y = screenCenter.y + viewHeight/2 - posLT.y;
-		} else if (posLT.y - recHeight < screenCenter.y - viewHeight/2) {
-			offset.y = recHeight - posLT.y + screenCenter.y - viewHeight/2;
+		if (posTL.y > screenCenter.y + viewHeight/2) {
+			offset.y = screenCenter.y + viewHeight/2 - posTL.y;
+		} else if (posTL.y - recHeight < screenCenter.y - viewHeight/2) {
+			offset.y = recHeight - posTL.y + screenCenter.y - viewHeight/2;
 		}
-		posLT = add(posLT, offset);
+		posTL = add(posTL, offset);
 		posCen = add(posCen, offset);
 	}
 	
-	doublePair textPos = {posLT.x + padding, posCen.y};
+	doublePair textPos = {posTL.x + padding, posCen.y};
 	
 	if (withBackground) {
 		setDrawColor( 0, 0, 0, 0.8 );
@@ -1042,7 +1042,7 @@ void minitech::updateDrawTwoTech() {
 	float lineSpacing = 16.0 *guiScale; //spacing between lines of transition
 	float lineHeight = 24.0 *guiScale; //line height of plus and equal sign, handwriting height = 24
 	
-	float separatorHeight = 12.0 *guiScale; //space between header rect and main rect
+	float separatorHeight = 12.0 *guiScale; //space between header and results
 	float centerXSeparation = 32.0 *guiScale; //space between how-to buttons and item icon in header
 	float tinyLineHeight = 12.0 *guiScale; //line height of how-to buttons, tinyHandwriting height = 12
 	
@@ -1056,71 +1056,48 @@ void minitech::updateDrawTwoTech() {
 	float recWidth;
 	float recHeight;
 	
-	doublePair posLT = livingLifePage->minitechGetLastScreenViewCenter();
-	posLT.x = posLT.x + viewWidth/2;
-	posLT.y = posLT.y - viewHeight/2;
+	doublePair posTL = livingLifePage->minitechGetLastScreenViewCenter();
+	posTL.x = posTL.x + viewWidth/2;
+	posTL.y = posTL.y - viewHeight/2;
 	
 	if (minitechMinimized) {
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY/2 + lineHeight/2 + paddingY/2;
-		posLT.y = posLT.y + recHeight + (50 * guiScale); //panel height = 50
-		posLT.x = posLT.x - recWidth;
-		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};
-		doublePair posBR = {posLT.x + recWidth, posLT.y - recHeight};
+		posTL.y = posTL.y + recHeight + (50 * guiScale); //panel height = 50
+		posTL.x = posTL.x - recWidth;
+		doublePair posCenter = {posTL.x + recWidth / 2, posTL.y - recHeight / 2};
+		doublePair posTR = {posTL.x + recWidth, posTL.y};
 		
-		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
-		//drawRect( posCenter, recWidth/2, recHeight/2);
-		
-		//draw sheet background for minitech
-		doublePair sheetPos = {recWidth/2, recHeight/2};
-		doublePair extraOffset = {20*guiScale, -45*guiScale};
-		
-		doublePair hintPos = add( posCenter, sheetPos );
-		hintPos = add( hintPos, extraOffset );
+		// sheet background
+		doublePair extraOffset = {17*guiScale, -45*guiScale}; // we only use a corner of the hintSheet1
+		doublePair minimizedSheetPos = add( posTR, extraOffset );
 		
 		setDrawColor( 1, 1, 1, 0.9 );
-		drawSprite( sheet, hintPos, guiScale );
+		drawSprite( sheet, minimizedSheetPos, guiScale );
 		
 		drawStr("CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
 		
-		float headerWidth = recWidth;
-		float headerHeight = 0;
-		
-		doublePair headerLT = {posLT.x, posLT.y + headerHeight};
-		doublePair headerRT = {headerLT.x + headerWidth, headerLT.y};
-		doublePair maxRT = {headerRT.x - paddingX/2, headerRT.y - paddingY/2};
-		doublePair maxCen = {maxRT.x - tinyLineHeight/2, maxRT.y - tinyLineHeight/2};
-		doublePair maxLT = {maxRT.x - iconSize/2, maxRT.y};
-		doublePair maxBR = {maxRT.x, maxRT.y - iconSize/2};
+		// max button
+		doublePair maxTR = {posTR.x - paddingX/2, posTR.y - paddingY/2};
+		doublePair maxCen = {maxTR.x - tinyLineHeight/2, maxTR.y - tinyLineHeight/2};
+		doublePair maxTL = {maxTR.x - iconSize/2, maxTR.y};
+		doublePair maxBR = {maxTR.x, maxTR.y - iconSize/2};
 		
 		drawStr("[+]", maxCen, "tinyHandwritten", false);
 		
 		mouseListener* maxListener = getMouseListenerByArea(
 			&twotechMouseListeners, 
-			sub(maxLT, screenPos), 
+			sub(maxTL, screenPos), 
 			sub(maxBR, screenPos));
 		if (maxListener->mouseHover) {
-			setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+			setDrawColor( 0, 0, 0, 0.1 );
 			drawRect(maxCen, iconSize/4, iconSize/4);
 		}
 		if (maxListener->mouseClick) {
 			minitechMinimized = false;
 			maxListener->mouseClick = false;
 		}
-		
-		/*
-		mouseListener* maxListener = getMouseListenerByArea(
-			&twotechMouseListeners, sub(posLT, screenPos), sub(posBR, screenPos));
-		if (maxListener->mouseHover) {
-			setDrawColor( 1, 1, 1, 0.3 );
-			drawRect( posCenter, recWidth/2, recHeight/2);
-		}
-		if (maxListener->mouseClick) {
-			minitechMinimized = false;
-			maxListener->mouseClick = false;
-		}
-		*/
 
 		return;
 		
@@ -1140,27 +1117,23 @@ void minitech::updateDrawTwoTech() {
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY + 1*iconSize + paddingY;
-		posLT.y = posLT.y + recHeight + (50 * guiScale); //panel height = 50
-		posLT.x = posLT.x - recWidth;
-		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};
+		posTL.y = posTL.y + recHeight + (50 * guiScale); //panel height = 50
+		posTL.x = posTL.x - recWidth;
+		doublePair posCenter = {posTL.x + recWidth / 2, posTL.y - recHeight / 2};
+		doublePair posTR = {posTL.x + recWidth, posTL.y};
 		
-		
-		//sheet background when nothing found
-		doublePair sheetPos = {recWidth/2, recHeight/2};
-		doublePair extraOffset = {-90*guiScale, -110*guiScale};
-		doublePair hintPos = add( posCenter, sheetPos );
-		hintPos = add( hintPos, extraOffset );
+		// sheet background when nothing found
+		doublePair extraOffset = {-90*guiScale, -110*guiScale}; // we only use a corner of the bigHintSheet
+		doublePair noResultsSheetPos = add( posTR, extraOffset );
 		setDrawColor( 1, 1, 1, 0.9 );
-		drawSprite( bigSheet, hintPos, guiScale, 0.5 );
-		
-		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
-		//drawRect( posCenter, recWidth/2, recHeight/2);
+		drawSprite( bigSheet, noResultsSheetPos, guiScale, 0.5 );
 		
 		drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
+		
 	} else {
 		
-        // if there are no results, don't even bother to draw highlighted tile
-        // so this is put here
+		// if there are no results, don't even bother to draw highlighted tile
+		// so this is put here
 		if (highlightObjId > 0) {
 			GridPos currentPos = {currentX, currentY};
 			GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId);
@@ -1181,47 +1154,32 @@ void minitech::updateDrawTwoTech() {
 		
 		int numOfLines = endIndex - startIndex;
         
-		
+		// hide the extra space for prev/next buttons if they are not shown
 		if (!showPreviousPageButton && !showNextPageButton) buttonHeight = 0;
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
 		recHeight = paddingY + (numOfLines-1)*lineSpacing + numOfLines*iconSize + buttonHeight + paddingY;
+		posTL.y = posTL.y + recHeight + (50 * guiScale); //panel height = 50
+		posTL.x = posTL.x - recWidth;
+		doublePair posCenter = {posTL.x + recWidth / 2, posTL.y - recHeight / 2};		
 		
-		posLT.y = posLT.y + recHeight + (50 * guiScale); //panel height = 50
-		posLT.x = posLT.x - recWidth;
-		
-		doublePair posCenter = {posLT.x + recWidth / 2, posLT.y - recHeight / 2};		
-		
-		
-		//sheet background when recipes found
-		float barWidth = recWidth;
-		float barHeight = 0;
-		float barOffsetY = 0;
-		bool showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
-		
-		if (true) {
-			barHeight = tinyLineHeight;
-			barOffsetY = - barHeight/2;
-		}
+		// sheet background when recipes found
+		float barHeight = tinyLineHeight;
 
 		float headerWidth = recWidth;
 		float headerHeight = (paddingY + iconSize + barHeight + paddingY);
-		doublePair headerLT = {posLT.x, posLT.y + separatorHeight + headerHeight};
-		doublePair headerCen = {headerLT.x + headerWidth / 2, headerLT.y - headerHeight / 2};
+		doublePair headerTL = {posTL.x, posTL.y + separatorHeight + headerHeight};
+		doublePair headerTR = {headerTL.x + headerWidth, headerTL.y};
 		
-		doublePair sheetPos = {headerWidth/2, headerHeight/2};
-		doublePair extraOffset = {-90*guiScale, -195*guiScale};
-		doublePair hintPos = add( headerCen, sheetPos );
-		hintPos = add( hintPos, extraOffset );
+		doublePair extraOffset = {-90*guiScale, -195*guiScale}; // we only use a corner of the bigHintSheet
+		doublePair mainSheetPos = add( headerTR, extraOffset );
 		setDrawColor( 1, 1, 1, 0.9 );
-		drawSprite( bigSheet, hintPos, guiScale, 0.5 );
+		drawSprite( bigSheet, mainSheetPos, guiScale, 0.5 );
 		
-		//setDrawColor( 0.94, 0.91, 0.87, 0.9 ); //def: 0, 0, 0, 0.8
-		//drawRect( posCenter, recWidth/2, recHeight/2);
 		
 		doublePair posLineLCen = {
-			posLT.x + paddingX, 
-			posLT.y - paddingY - contentOffsetY - iconSize/2
+			posTL.x + paddingX, 
+			posTL.y - paddingY - contentOffsetY - iconSize/2
 			};
 		
 		highlightObjId = 0;
@@ -1311,7 +1269,7 @@ void minitech::updateDrawTwoTech() {
 				&twotechMouseListeners, sub(posLineTL, screenPos), sub(posLineBR, screenPos));
 			if (lineListener->mouseHover) {
 				doublePair posLineCen = {posCenter.x, posLineLCen.y};
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(posLineCen, recWidth/2, iconSize/2 * 1.25);
 				
 				int holdingID = ourLiveObject->holdingID;
@@ -1340,7 +1298,7 @@ void minitech::updateDrawTwoTech() {
 			pair<mouseListener*,int> iconAListenerId(iconAListener, trans->actor);
 			iconListenerIds.push_back(iconAListenerId);
 			if (iconAListener->mouseHover && trans->actor > 0) {
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(pos, iconSize/2, iconSize/2);
 			}
 			if (trans->actor == -1 && trans->autoDecaySeconds != 0) {
@@ -1431,7 +1389,7 @@ void minitech::updateDrawTwoTech() {
 			pair<mouseListener*,int> iconBListenerId(iconBListener, trans->target);
 			iconListenerIds.push_back(iconBListenerId);
 			if (iconBListener->mouseHover && trans->target > 0) {
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(pos, iconSize/2, iconSize/2);
 			}
 			if (trans->target == -1 && trans->contTransFlag == 0) {
@@ -1476,7 +1434,7 @@ void minitech::updateDrawTwoTech() {
 			pair<mouseListener*,int> iconCListenerId(iconCListener, trans->newActor);
 			iconListenerIds.push_back(iconCListenerId);
 			if (iconCListener->mouseHover && trans->newActor > 0) {
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(pos, iconSize/2, iconSize/2);
 			}
 			if (trans->newActor == 0 && trans->contTransFlag != 0) {
@@ -1539,7 +1497,7 @@ void minitech::updateDrawTwoTech() {
 			pair<mouseListener*,int> iconDListenerId(iconDListener, trans->newTarget);
 			iconListenerIds.push_back(iconDListenerId);
 			if (iconDListener->mouseHover && trans->newTarget > 0) {
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(pos, iconSize/2, iconSize/2);
 			}
 			if (trans->newTarget == 0 && trans->contTransFlag != 0) {
@@ -1590,7 +1548,7 @@ void minitech::updateDrawTwoTech() {
 				sub(prevPageButtonTLPos, screenPos), 
 				sub(prevPageButtonBRPos, screenPos));
 			if (prevListener->mouseHover) {
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(pos, iconSize/2, iconSize/2);
 			}
 		} else {
@@ -1608,7 +1566,7 @@ void minitech::updateDrawTwoTech() {
 				sub(nextPageButtonTLPos, screenPos), 
 				sub(nextPageButtonBRPos, screenPos));
 			if (nextListener->mouseHover) {
-				setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+				setDrawColor( 0, 0, 0, 0.1 );
 				drawRect(pos, iconSize/2, iconSize/2);
 			}
 		} else {
@@ -1648,27 +1606,17 @@ void minitech::updateDrawTwoTech() {
 
 
 	float barWidth = recWidth;
-	float barHeight = 0;
-	float barOffsetY = 0;
-	showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
-	
-	if (true) {
-		barHeight = tinyLineHeight;
-		barOffsetY = - barHeight/2;
-	}
+	float barHeight = tinyLineHeight;
+	float barOffsetY = -barHeight/2;
 
 	float headerWidth = recWidth;
 	float headerHeight = (paddingY + iconSize + barHeight + paddingY);
-	doublePair headerLT = {posLT.x, posLT.y + separatorHeight + headerHeight};
-	doublePair headerCen = {headerLT.x + headerWidth / 2, headerLT.y - headerHeight / 2};
-		
-	//setDrawColor( 1, 1, 1, 0.8 ); //def: 0, 0, 0, 0.8
-	//drawRect( headerCen, headerWidth/2, headerHeight/2);
+	doublePair headerTL = {posTL.x, posTL.y + separatorHeight + headerHeight};
+	doublePair headerCen = {headerTL.x + headerWidth / 2, headerTL.y - headerHeight / 2};
     
-	doublePair separatorCen = headerLT;
-	separatorCen.y -= headerHeight + separatorHeight;
-	separatorCen.x = headerCen.x;
-	drawStr(" -   -   -   -   -   -   -   -   -   -   - ", separatorCen, "tinyHandwritten", false);
+	// line separator
+	doublePair lineSeparatorCen = {headerCen.x, headerTL.y - headerHeight - separatorHeight};
+	drawStr(" -   -   -   -   -   -   -   -   -   -   - ", lineSeparatorCen, "tinyHandwritten", false);
     
 
 	string useStr = "HOW DO I USE:";
@@ -1682,9 +1630,9 @@ void minitech::updateDrawTwoTech() {
 	doublePair firstLineBR = {firstLine.x + textWidth/2 + paddingX/2, firstLine.y - tinyLineHeight/2 - paddingY/2};
 	doublePair secondLineLT = {secondLine.x - textWidth/2 - paddingX/2, secondLine.y + tinyLineHeight/2 + paddingY/2};
 	doublePair secondLineBR = {secondLine.x + textWidth/2 + paddingX/2, secondLine.y - tinyLineHeight/2 - paddingY/2};
-    makeUseTogglePos = textCen;
+	makeUseTogglePos = textCen;
 
-	setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+	setDrawColor( 0, 0, 0, 0.1 );
 	if (useOrMake == 0) {
 		drawRect( firstLine, textWidth/2 + paddingX/2, tinyLineHeight/2 + paddingY/2);
 	} else if (useOrMake == 1) {
@@ -1722,6 +1670,7 @@ void minitech::updateDrawTwoTech() {
 		drawUseCaption(currentHintObjId, captionPos, tinyLineHeight);
 	}
 	
+    bool showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
     topBarPos = {9999, 9999};
 	if (showBar) {
 		string searchStr;
@@ -1736,13 +1685,13 @@ void minitech::updateDrawTwoTech() {
 			searchStr = "HOLDING: " + objName;
 		}
 		
-		doublePair barCen = {headerLT.x + barWidth / 2, headerLT.y - barHeight / 2 - paddingY/2};
+		doublePair barCen = {headerTL.x + barWidth / 2, headerTL.y - barHeight / 2 - paddingY/2};
 		drawStr(searchStr, barCen, "tinyHandwritten", false);
         
         topBarPos = barCen;
 	}
 	
-	doublePair headerRT = {headerLT.x + headerWidth, headerLT.y};
+	doublePair headerRT = {headerTL.x + headerWidth, headerTL.y};
 	doublePair minRT = {headerRT.x - paddingX/2, headerRT.y - paddingY/2};
 	doublePair minCen = {minRT.x - tinyLineHeight/2, minRT.y - tinyLineHeight/2};
 	doublePair minLT = {minRT.x - iconSize/2, minRT.y};
@@ -1753,7 +1702,7 @@ void minitech::updateDrawTwoTech() {
 		sub(minLT, screenPos), 
 		sub(minBR, screenPos));
 	if (minListener->mouseHover) {
-		setDrawColor( 0, 0, 0, 0.1 ); //def: 1, 1, 1, 0.3
+		setDrawColor( 0, 0, 0, 0.1 );
 		drawRect(minCen, iconSize/4, iconSize/4);
 	}
 	if (minListener->mouseClick) {
@@ -1761,8 +1710,6 @@ void minitech::updateDrawTwoTech() {
 		minListener->mouseClick = false;
 	}
 	
-	
-
 }
 
 void minitech::inputHintStrToSearch(string hintStr) {
