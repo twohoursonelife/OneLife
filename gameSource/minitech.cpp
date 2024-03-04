@@ -66,6 +66,7 @@ bool minitech::changeHintObjOnTouch;
 vector<minitech::mouseListener*> minitech::twotechMouseListeners;
 minitech::mouseListener* minitech::prevListener = NULL;
 minitech::mouseListener* minitech::nextListener = NULL;
+vector<pair<minitech::mouseListener*,int>> minitech::iconListenerIds;
 
 // pos for newbieTips use
 doublePair minitech::makeUseTogglePos;
@@ -1060,6 +1061,8 @@ void minitech::updateDrawTwoTech() {
 	posTL.x = posTL.x + viewWidth/2;
 	posTL.y = posTL.y - viewHeight/2;
 	
+	iconListenerIds.clear();
+	
 	if (minitechMinimized) {
 		
 		recWidth = paddingX + 7*iconSize + paddingX;
@@ -1183,7 +1186,6 @@ void minitech::updateDrawTwoTech() {
 			};
 		
 		highlightObjId = 0;
-		vector<pair<mouseListener*,int>> iconListenerIds;
 		for (int i=0; i<numOfLines; i++) {
 			if (i>0) posLineLCen.y -= iconSize+lineSpacing;
 			
@@ -1579,27 +1581,7 @@ void minitech::updateDrawTwoTech() {
 			drawStr(pageInd, pos, "tinyMain", false);
 		}
 		
-		for (int i=0; i<(int)iconListenerIds.size(); i++) {
-			mouseListener* listener = iconListenerIds[i].first;
-			int id = iconListenerIds[i].second;
-			doublePair iconLT = add(listener->posTL, screenPos);
-			doublePair iconCen = { iconLT.x + iconSize/2, iconLT.y - iconSize/2 };
-			if (listener->mouseHover && id > 0) {
-				doublePair captionPos = {iconCen.x, iconCen.y + iconCaptionYOffset};
-				
-				if (id >= 100000) {
-					int biomeId = id - 100000;
-					string biomeName = "NEW BIOME";
-					if (biomeId < numBiomes) biomeName = biomeNames[biomeId];
-					drawStr(biomeName, captionPos, "tinyHandwritten", true, true);
-					continue;
-				}
-				
-				string objName = livingLifePage->minitechGetDisplayObjectDescription(id);
-				drawStr(objName, captionPos, "tinyHandwritten", true, true);
-				drawUseCaption(id, captionPos, tinyLineHeight);
-				}
-			}
+
 	}
 
 
@@ -1711,6 +1693,35 @@ void minitech::updateDrawTwoTech() {
 	}
 	
 }
+
+void minitech::drawIconOnHoverTips() {
+	doublePair screenPos = livingLifePage->minitechGetLastScreenViewCenter();
+	float iconSize = 76.0/2 *guiScale;
+	float iconCaptionYOffset = - iconSize/2;
+	float tinyLineHeight = 12.0 *guiScale;
+	for (int i=0; i<(int)iconListenerIds.size(); i++) {
+		mouseListener* listener = iconListenerIds[i].first;
+		int id = iconListenerIds[i].second;
+		doublePair iconLT = add(listener->posTL, screenPos);
+		doublePair iconCen = { iconLT.x + iconSize/2, iconLT.y - iconSize/2 };
+		if (listener->mouseHover && id > 0) {
+			doublePair captionPos = {iconCen.x, iconCen.y + iconCaptionYOffset};
+			
+			if (id >= 100000) {
+				int biomeId = id - 100000;
+				string biomeName = "NEW BIOME";
+				if (biomeId < numBiomes) biomeName = biomeNames[biomeId];
+				drawStr(biomeName, captionPos, "tinyHandwritten", true, true);
+				continue;
+			}
+			
+			string objName = livingLifePage->minitechGetDisplayObjectDescription(id);
+			drawStr(objName, captionPos, "tinyHandwritten", true, true);
+			drawUseCaption(id, captionPos, tinyLineHeight);
+		}
+	}
+}
+
 
 void minitech::inputHintStrToSearch(string hintStr) {
 	lastHintStr = hintStr;

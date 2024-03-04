@@ -10834,6 +10834,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 		handwritingFont->drawString( sBuf, drawPos, alignCenter );
 		}
 
+	
+    if( minitech::currentHintTrans.size() > 0 ) {
+        minitech::drawIconOnHoverTips();
+        }
+	
 
     if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
         doublePair mousePos = { lastMouseX, lastMouseY };

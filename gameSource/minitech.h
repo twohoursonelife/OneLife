@@ -123,6 +123,8 @@ public:
 	static std::vector<TransRecord*> sortUsesTrans(std::vector<TransRecord*> unsortedTrans);
 	static std::vector<TransRecord*> sortProdTrans(std::vector<TransRecord*> unsortedTrans);
 	static void updateDrawTwoTech();
+    static std::vector<std::pair<mouseListener*,int>> iconListenerIds;
+	static void drawIconOnHoverTips();
 	static void inputHintStrToSearch(std::string hintStr);
     static void changeCurrentHintObjId(int objID);
 
