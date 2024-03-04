@@ -675,11 +675,15 @@ void minitech::drawStr(
 	doublePair textPos = {posLT.x + padding, posCen.y};
 	
 	if (withBackground) {
-		setDrawColor( 1, 1, 1, 0.8 ); //def: 0, 0, 0
+		setDrawColor( 0, 0, 0, 0.8 );
 		drawRect( posCen, recWidth/2, recHeight/2);
 	}
 	
-	setDrawColor( 0, 0, 0, 1 ); //def: 1, 1, 1 (white)
+	if(withBackground) {
+		setDrawColor( 1, 1, 1, 1 );
+	} else {
+		setDrawColor( 0, 0, 0, 1 );
+	}
 	if (font == "handwritten") {
 		handwritingFont->drawString( sBuf, textPos, alignLeft );
 	} else if (font == "main") {
