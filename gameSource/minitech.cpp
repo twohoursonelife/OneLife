@@ -1464,7 +1464,7 @@ void minitech::updateDrawTwoTech() {
 			} else {
 				drawObj(pos, trans->newActor);
 			}
-			if (trans->actorChangeChance != 1.0) {
+			if (trans->actorChangeChance != 1.0 && trans->actorChangeChance != 0.0) {
 				string secondLine = to_string( trans->actorChangeChance * 100 );
 				secondLine = secondLine.substr(0, secondLine.find(".") + 2) + "PCT";
 				doublePair chanceLinePos = pos;
@@ -1520,7 +1520,7 @@ void minitech::updateDrawTwoTech() {
 			} else {
 				drawObj(pos, trans->newTarget, "EMPTY", "GROUND");
 			}
-			if (trans->targetChangeChance != 1.0) {
+			if (trans->targetChangeChance != 1.0 && trans->targetChangeChance != 0.0) {
 				string secondLine = to_string( trans->targetChangeChance * 100 );
 				secondLine = secondLine.substr(0, secondLine.find(".") + 2) + "PCT";
 				doublePair chanceLinePos = pos;
