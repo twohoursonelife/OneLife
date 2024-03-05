@@ -4113,10 +4113,10 @@ void EditorObjectPage::draw( doublePair inViewCenter,
                 doublePair centerOffset;
 
                 if( mCurrentObject.slotStyle == 0 ) {
-                    centerOffset = getObjectBottomCenterOffset( demoObject );
+                    centerOffset = getObjectCenterOffset( demoObject );
                     }
                 else if( mCurrentObject.slotStyle == 1 ) {
-                    centerOffset = getObjectCenterOffset( demoObject );
+                    centerOffset = getObjectBottomCenterOffset( demoObject );
                     }
                 else if( mCurrentObject.slotStyle == 2 ) {
                     centerOffset = {0, 0};
