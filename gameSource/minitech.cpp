@@ -1872,49 +1872,84 @@ void minitech::inputHintStrToSearch(string hintStr) {
                 
                 vector<std::size_t> index(unsortedHits.size());
                 iota(index.begin(), index.end(), 0);
-                sort(index.begin(), index.end(), [&](size_t a, size_t b) { 
+                sort(index.begin(), index.end(), [&](size_t a, size_t b) {
+                    
+                    // Didn't end up using Levenshtein Distance
+                    
                     // string aDesc(stringToUpperCase(unsortedHits[a]->description));
                     // string bDesc(stringToUpperCase(unsortedHits[b]->description));
                     // int aLDist = LevenshteinDistance(hintStr, aDesc); 
                     // int bLDist = LevenshteinDistance(hintStr, bDesc);
                     // return aLDist < bLDist;
                     
-                    string aDesc;
-                    string bDesc;
-                    if( !showCommentsAndTagsInObjectDescription ) {
-                        aDesc = livingLifePage->minitechGetDisplayObjectDescription(unsortedHits[a]->id);
-                        bDesc = livingLifePage->minitechGetDisplayObjectDescription(unsortedHits[b]->id);
-                    } else {
-                        aDesc = stringToUpperCase(unsortedHits[a]->description);
-                        bDesc = stringToUpperCase(unsortedHits[b]->description);
-                    }
-
-                    if( descWords[a].size() == 0 ) descWords[a] = Tokenize( aDesc, "[\\s]+" );
-                    if( descWords[b].size() == 0 ) descWords[b] = Tokenize( bDesc, "[\\s]+" );                
-                    std::vector<std::string> aDescWords = descWords[a];
-                    std::vector<std::string> bDescWords = descWords[b];
                     
-                    int aScore = 0;
-                    int bScore = 0;
+                    for( int pass = 0; pass <= 2; pass++ ) {
+                        
+                        if( !showCommentsAndTagsInObjectDescription && pass > 0 ) break;
                     
-                    for ( int i=0; i<(int)hintWords.size(); i++ ) {
-                        string hintWord = hintWords[i];
-                        for ( int j=0; j<(int)aDescWords.size(); j++ ) {
-                            if( hintWord.compare( aDescWords[j] ) == 0 ) aScore++;
+                        string aDesc;
+                        string bDesc;
+                        if( pass == 0 ) {
+                            // First pass, calculate the fraction of whole word match on object name 
+                            aDesc = livingLifePage->minitechGetDisplayObjectDescription(unsortedHits[a]->id);
+                            bDesc = livingLifePage->minitechGetDisplayObjectDescription(unsortedHits[b]->id);
+                        } else {
+                            // Second pass, calculate the fraction of whole word match on object name and comment
+                            aDesc = stringToUpperCase(unsortedHits[a]->description);
+                            bDesc = stringToUpperCase(unsortedHits[b]->description);
                         }
-                        for ( int k=0; k<(int)bDescWords.size(); k++ ) {
-                            if( hintWord.compare( bDescWords[k] ) == 0 ) bScore++;
+                        
+                        // Tokenize the name and potentially comment
+                        if( descWords[a].size() == 0 ) descWords[a] = Tokenize( aDesc, "[\\s\\#\\,]+" );
+                        if( descWords[b].size() == 0 ) descWords[b] = Tokenize( bDesc, "[\\s\\#\\,]+" );
+                        std::vector<std::string> aDescWords = descWords[a];
+                        std::vector<std::string> bDescWords = descWords[b];
+                        
+                        // Sort by fraction of whole word match in the description
+                        int aScore = 0;
+                        int bScore = 0;
+                        
+                        for ( int i=0; i<(int)hintWords.size(); i++ ) {
+                            string hintWord = hintWords[i];
+                            for ( int j=0; j<(int)aDescWords.size(); j++ ) {
+                                if( 
+                                    (hintWord.compare( aDescWords[j] ) == 0 && pass < 2)
+                                    ||
+                                    (aDescWords[j].find( hintWord ) != string::npos && pass == 2)
+                                    )
+                                    aScore++;
+                            }
+                            for ( int k=0; k<(int)bDescWords.size(); k++ ) {
+                                if( 
+                                    (hintWord.compare( bDescWords[k] ) == 0 && pass < 2)
+                                    ||
+                                    (bDescWords[k].find( hintWord ) != string::npos && pass == 2)
+                                    )
+                                    bScore++;
+                            }
                         }
+                        
+                        float aScoreF = (float)aScore / (float)aDescWords.size();
+                        float bScoreF = (float)bScore / (float)bDescWords.size();
+                        
+                        // Sort results by score
+                        if( aScoreF != bScoreF ) return aScoreF > bScoreF;
                     }
                     
-                    float aScoreF = (float)aScore / (float)aDescWords.size();
-                    float bScoreF = (float)bScore / (float)bDescWords.size();
+                    // We reached here, meaning the score is the same with name and with the full description
+                    // Sort the results by object depth; if they're still equal, sort by object ID
                     
-                    if( aScoreF == bScoreF ) {
-                        return unsortedHits[a]->id < unsortedHits[b]->id;
+                    int aID = unsortedHits[a]->id;
+                    int bID = unsortedHits[b]->id;
+                    int aDepth = getObjectDepth(aID);
+                    int bDepth = getObjectDepth(bID);
+                    
+                    if( aDepth != bDepth ) {
+                        return  aDepth < bDepth;
                     } else {
-                        return aScoreF > bScoreF;
+                        return aID < bID;
                     }
+                    
                 });
                 
                 vector<ObjectRecord*> sortedHits(unsortedHits.size());
@@ -1922,6 +1957,7 @@ void minitech::inputHintStrToSearch(string hintStr) {
                     sortedHits[i] = unsortedHits[index[i]];
                 }
                 
+                // Filter out uncraftable objects if the setting says so
                 if (showUncraftables) {
                     currentHintObjId = sortedHits[0]->id;
                     return;
