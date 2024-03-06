@@ -1733,11 +1733,126 @@ void minitech::inputHintStrToSearch(string hintStr) {
 	
 		int numHits = 0;
 		int numRemain = 0;
-		ObjectRecord **hitsSimpleVector = searchObjects( hintStr.c_str(),
-											 0,
-											 200,
-											 &numHits, &numRemain );
+        
+		char *hintCStr = stringToLowerCase( hintStr.c_str() );
 		
+		ObjectRecord **hitsSimpleVector = NULL;
+
+		if( strstr( hintCStr, " " ) == NULL ) {
+			hitsSimpleVector = searchObjects( hintCStr, 0, 2000, &numHits, &numRemain );
+		} else {
+			// multi-term search
+			
+			int numTerms;
+			char **terms = split( hintCStr, " ", &numTerms );
+
+			SimpleVector<char*> validTerms;
+			
+			// any term that starts with - is a term to avoid
+			SimpleVector<char*> avoidTerms;
+			
+			for( int i=0; i<numTerms; i++ ) {
+				int termLen = strlen( terms[i] );
+				
+				if( termLen > 0 ) {
+					
+					if( terms[i][0] == '-' ) {
+						if( termLen > 1 ) {
+							// skip the - character
+							avoidTerms.push_back( &( terms[i][1] ) );
+						}
+						// ignore single - characters
+						// user is probably in the middle of typing an avoid-term
+					} else {
+						validTerms.push_back( terms[i] );
+					}
+				}
+			}
+			
+			if( validTerms.size() > 0 ) {
+				// do full search for first term
+				
+				int numMainResults, numMainRemain;
+				ObjectRecord **mainResults = 
+					searchObjects( validTerms.getElementDirect( 0 ),
+									   0,
+									   // limit of 1 million
+									   1000000,
+									   &numMainResults, &numMainRemain );
+				if( numMainResults == 0 ) {
+					hitsSimpleVector = mainResults;
+					numHits = numMainResults;
+					numRemain = numMainRemain;
+					}
+				else {
+					// at least one main result
+					
+					SimpleVector<ObjectRecord*> passingResults;
+					
+					for( int i=0; i<numMainResults; i++ ) {
+						const char *mainResultName = 
+							mainResults[i]->description;
+					
+						char *mainNameLower = stringToLowerCase( mainResultName );
+						
+						
+						char matchFailed = false;
+						
+						for( int j=1; j<validTerms.size(); j++ ) {
+							char *term = validTerms.getElementDirect( j );
+							
+							if( strstr( mainNameLower, term ) == NULL ) {
+								matchFailed = true;
+								break;
+							}
+						}
+
+						if( ! matchFailed ) {
+							for( int j=0; j<avoidTerms.size(); j++ ) {
+								char *term = avoidTerms.getElementDirect( j );
+							
+								if( strstr( mainNameLower, term ) != NULL ) {
+									matchFailed = true;
+									break;
+								}
+							}
+						}
+						
+						if( !matchFailed ) {
+							passingResults.push_back( mainResults[i] );
+						}
+
+						delete [] mainNameLower;
+					}
+					
+					
+					int totalNumResults = passingResults.size();
+
+					numHits = totalNumResults;
+					numRemain = 0;
+					
+					hitsSimpleVector = new ObjectRecord*[ numHits ];
+					
+					int resultI = 0;
+					for( int j=0; j<numHits; j++ ) {
+						hitsSimpleVector[resultI] = passingResults.getElementDirect(j);
+						resultI++;
+					}
+					
+					delete [] mainResults;
+				}
+			
+			}
+			
+			for( int i=0; i<numTerms; i++ ) {
+				delete [] terms[i];
+			}
+			delete [] terms;
+		
+		}
+		
+		delete [] hintCStr;
+        
 		if (numHits > 0) {
 			vector<ObjectRecord*> unsortedHits;
 			for (int i=0; i<numHits; i++) {
