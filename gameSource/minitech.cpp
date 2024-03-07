@@ -60,6 +60,7 @@ int minitech::lastUseOrMake;
 int minitech::currentHintObjId;
 int minitech::highlightObjId = 0;
 int minitech::lastHintObjId;
+bool minitech::currentHintTranRequiresFullUses;
 string minitech::lastHintStr;
 bool minitech::lastHintSearchNoResults = false;
 bool minitech::changeHintObjOnTouch;
@@ -242,7 +243,7 @@ minitech::mouseListener* minitech::getMouseListenerByArea(
     return listener;
 }
 
-GridPos minitech::getClosestTile(GridPos src, int objId) {
+GridPos minitech::getClosestTile(GridPos src, int objId, bool useDummiesAllowed = true) {
     
     objId = getDummyParent(objId);
     
@@ -274,7 +275,7 @@ GridPos minitech::getClosestTile(GridPos src, int objId) {
 
                 int mapI = mapY * mMapD + mapX;
                 int id = mMap[mapI];
-                id = getDummyParent(id);
+                if( useDummiesAllowed ) id = getDummyParent(id);
 
                 if (id == objId) {
                     float foundDist = sqrt(pow(src.y - mapY_abs, 2) + pow(src.x - mapX_abs, 2));
@@ -336,6 +337,13 @@ GridPos minitech::getClosestTile(GridPos src, int objId) {
         foundPos = {foundBestX, foundBestY};
     }
     return foundPos;
+}
+
+bool minitech::hasUses(int objId) {
+    if (objId <= 0) return false;
+    ObjectRecord* o = getObject(objId);
+    if (o == NULL) return false;
+    return o->numUses > 1;
 }
 
 bool minitech::isUseDummy(int objId) {
@@ -1139,7 +1147,7 @@ void minitech::updateDrawTwoTech() {
         // so this is put here
         if (highlightObjId > 0) {
             GridPos currentPos = {currentX, currentY};
-            GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId);
+            GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId, !currentHintTranRequiresFullUses);
             if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
                 drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
             }
@@ -1186,6 +1194,7 @@ void minitech::updateDrawTwoTech() {
             };
         
         highlightObjId = 0;
+        currentHintTranRequiresFullUses = false;
         for (int i=0; i<numOfLines; i++) {
             if (i>0) posLineLCen.y -= iconSize+lineSpacing;
             
@@ -1275,13 +1284,37 @@ void minitech::updateDrawTwoTech() {
                 drawRect(posLineCen, recWidth/2, iconSize/2 * 1.25);
                 
                 int holdingID = ourLiveObject->holdingID;
-                holdingID = getDummyParent(holdingID);
-                if (trans->actor == trans->target) {
-                    highlightObjId = trans->actor;
-                } else if (trans->actor > 0 && trans->actor != holdingID) {
-                    highlightObjId = trans->actor;
-                } else if (trans->target > 0 && trans->target != holdingID) {
-                    highlightObjId = trans->target;
+                
+                bool fullUseActor = trans->actorMinUseFraction == 1.0f;
+                bool fullUseTarget = trans->targetMinUseFraction == 1.0f;
+                
+                int actor = trans->actor;
+                int target = trans->target;
+                
+                if (actor == target) {
+                    highlightObjId = actor;
+                } else if (actor > 0) {
+                    if( !fullUseActor ) {
+                        holdingID = getDummyParent(holdingID);
+                        actor = getDummyParent(actor);
+                    }
+                    currentHintTranRequiresFullUses = fullUseActor;
+                    if( actor == holdingID ) {
+                        highlightObjId = target;
+                    } else {
+                        highlightObjId = actor;
+                    }
+                } else if (target > 0) {
+                    if( !fullUseTarget ) {
+                        holdingID = getDummyParent(holdingID);
+                        target = getDummyParent(target);
+                    }
+                    currentHintTranRequiresFullUses = fullUseTarget;
+                    if( target == holdingID ) {
+                        highlightObjId = 0;
+                    } else {
+                        highlightObjId = target;
+                    }
                 } else {
                     highlightObjId = 0;
                 }
@@ -1319,6 +1352,12 @@ void minitech::updateDrawTwoTech() {
                 drawObj(pos, trans->actor, "ANY", "ITEM");
             } else {
                 drawObj(pos, trans->actor);
+            }
+            if (trans->actorMinUseFraction == 1.0f && hasUses(trans->actor)) {
+                doublePair chanceLinePos = pos;
+                float tinyLineHeight = 15.0*guiScale;
+                chanceLinePos.y -= tinyLineHeight;
+                drawStr("(FULL USE)", chanceLinePos, "tinyHandwritten", false);
             }
             if (iconAListener->mouseClick && trans->actor > 0) {
                 currentHintObjId = trans->actor;
@@ -1404,6 +1443,12 @@ void minitech::updateDrawTwoTech() {
                 drawObj(pos, trans->target, "ANY", "ITEM");
             } else {
                 drawObj(pos, trans->target);
+            }
+            if (trans->targetMinUseFraction == 1.0f && hasUses(trans->target)) {
+                doublePair chanceLinePos = pos;
+                float tinyLineHeight = 15.0*guiScale;
+                chanceLinePos.y -= tinyLineHeight;
+                drawStr("(FULL USE)", chanceLinePos, "tinyHandwritten", false);
             }
             if (iconBListener->mouseClick && trans->target > 0) {
                 currentHintObjId = trans->target;
