@@ -1042,7 +1042,8 @@ int addSprite( const char *inTag, SpriteHandle inSprite,
             if( nextNumberOffsetString != NULL ) {
                 sscanf( nextNumberOffsetString, "%d", &nextSpriteNumberOffset );
                 
-                nextSpriteNumber += nextSpriteNumberOffset;
+                if( nextSpriteNumberOffset > 0 )
+                    nextSpriteNumber += nextSpriteNumberOffset;
                 
                 delete [] nextNumberOffsetString;
                 }

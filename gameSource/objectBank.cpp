@@ -3094,7 +3094,8 @@ int addObject( const char *inDescription,
             if( nextNumberOffsetString != NULL ) {
                 sscanf( nextNumberOffsetString, "%d", &nextObjectNumberOffset );
                 
-                nextObjectNumber += nextObjectNumberOffset;
+                if( nextObjectNumberOffset > 0 )
+                    nextObjectNumber += nextObjectNumberOffset;
                 
                 delete [] nextNumberOffsetString;
                 }

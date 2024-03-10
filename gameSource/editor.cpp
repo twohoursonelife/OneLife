@@ -496,6 +496,25 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
         }
 
     serverPort = SettingsManager::getIntSetting( "serverPort", 5077 );
+    
+    
+    File objectsDir( NULL, "objects" );
+    if( objectsDir.exists() && objectsDir.isDirectory() ) {
+        File *nextNumberOffsetFile = 
+            objectsDir.getChildFile( "nextObjectNumberOffset.txt" );
+        if( !nextNumberOffsetFile->exists() ) {
+            nextNumberOffsetFile->writeToFile( 0 );
+            }
+        }
+    
+    File spritesDir( NULL, "sprites" );
+    if( spritesDir.exists() && spritesDir.isDirectory() ) {
+        File *nextNumberOffsetFile = 
+            spritesDir.getChildFile( "nextSpriteNumberOffset.txt" );
+        if( !nextNumberOffsetFile->exists() ) {
+            nextNumberOffsetFile->writeToFile( 0 );
+            }
+        }
 
 
 
