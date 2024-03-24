@@ -36,7 +36,7 @@ jobs:
       - name: Calculate next version
         run: |
           cd OneLifeData7
-          old_version=$(git describe --tags --abbrev=0 --match="2HOL_v[0-9]*")
+          old_version=$(git describe --tags --abbrev=0 --match="2HOL_v[0-9]*" | sed -e "s/2HOL_v//")
           echo "new_version=$($old_version + 1)" >> $GITHUB_ENV
           echo -n "$new_version" > dataVersionNumber.txt
 
