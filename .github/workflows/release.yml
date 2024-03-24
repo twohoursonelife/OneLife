@@ -24,14 +24,13 @@ jobs:
         with:
           repository: twohoursonelife/OneLife
           path: OneLife
-          fetch-tags: true
 
       - name: Checkout OneLifeData7
         uses: actions/checkout@v4
         with:
           repository: twohoursonelife/OneLifeData7
           path: OneLifeData7
-          fetch-tags: true
+          fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Calculate next version
