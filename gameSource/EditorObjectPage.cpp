@@ -1568,7 +1568,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    mNumUsesField.getInt(),
                    mUseChanceField.getFloat(),
                    mCurrentObject.spriteUseVanish,
-                   mCurrentObject.spriteUseAppear );
+                   mCurrentObject.spriteUseAppear,
+                   false,
+                   -1,
+                   -1,
+                   true );
         
         objectPickable.usePickable( newID );
         

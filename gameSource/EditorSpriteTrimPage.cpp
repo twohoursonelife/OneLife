@@ -657,7 +657,11 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        1,
                        1.0f,
                        spriteUseVanish,
-                       spriteUseAppear );
+                       spriteUseAppear,
+                       false,
+                       -1,
+                       -1,
+                       true );
             
             delete [] spriteBehindPlayer;
             delete [] spriteAdditiveBlend;

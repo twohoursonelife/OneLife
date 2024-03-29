@@ -3016,7 +3016,8 @@ int addObject( const char *inDescription,
                char *inSpriteUseAppear,
                char inNoWriteToFile,
                int inReplaceID,
-               int inExistingObjectHeight ) {
+               int inExistingObjectHeight,
+               char inConsiderIDOffset ) {
     
     if( inSlotTimeStretch < 0.0001 ) {
         inSlotTimeStretch = 0.0001;
@@ -3082,28 +3083,36 @@ int addObject( const char *inDescription,
                 delete [] nextNumberString;
                 }
             }
+        
+        if( inConsiderIDOffset ) {
             
-        File *nextNumberOffsetFile = 
-            objectsDir.getChildFile( "nextObjectNumberOffset.txt" );
-            
-        if( nextNumberOffsetFile->exists() ) {
-                    
-            char *nextNumberOffsetString = 
-                nextNumberOffsetFile->readFileContents();
+            File *nextNumberOffsetFile = 
+                objectsDir.getChildFile( "nextObjectNumberOffset.txt" );
+                
+            if( nextNumberOffsetFile->exists() ) {
+                        
+                char *nextNumberOffsetString = 
+                    nextNumberOffsetFile->readFileContents();
 
-            if( nextNumberOffsetString != NULL ) {
-                sscanf( nextNumberOffsetString, "%d", &nextObjectNumberOffset );
-                
-                if( nextObjectNumberOffset > 0 )
-                    nextObjectNumber += nextObjectNumberOffset;
-                
-                delete [] nextNumberOffsetString;
+                if( nextNumberOffsetString != NULL ) {
+                    sscanf( nextNumberOffsetString, "%d", &nextObjectNumberOffset );
+                    
+                    delete [] nextNumberOffsetString;
+                    }
                 }
+                
             }
         
         if( newID == -1 ) {
             newID = nextObjectNumber;
+            if( nextObjectNumberOffset > 0 ) newID += nextObjectNumberOffset;
 
+            // if offset is set explicitly
+            // we allow newID to be smaller or equal to maxID
+            // there could be a block of new object IDs further out
+            // but we are changing another block with smaller IDs
+            // it is up to the users to manage the ID blocks
+            if( nextObjectNumberOffset == 0 )
             if( newID < maxID + 1 ) {
                 newID = maxID + 1;
                 }
