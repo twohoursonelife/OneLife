@@ -299,6 +299,8 @@ typedef struct ObjectRecord {
         
         char *spriteInvisibleWhenContained;
         
+        char *spriteIgnoredWhenCalculatingCenterOffset;
+        
         
         // flags for sprites that are special body parts
         char *spriteIsHead;
@@ -615,6 +617,7 @@ int addObject( const char *inDescription,
                int *inSpriteInvisibleWhenWorn,
                char *inSpriteBehindSlots,
                char *inSpriteInvisibleWhenContained,
+               char *inSpriteIgnoredWhenCalculatingCenterOffset,
                char *inSpriteIsHead,
                char *inSpriteIsBody,
                char *inSpriteIsBackFoot,
