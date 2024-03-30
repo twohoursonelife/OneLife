@@ -5956,14 +5956,13 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 
     // find center of lowessprite
 	
-	//2HOL drawing tweak: instead of finding sprite with lowest center
-	//we look for sprite with lowest bottom 
-	//this way we make sure that no sprite of an object is drawn 
-	//lower than the bottom edge of a slot
+    // 2HOL drawing tweak: instead of finding sprite with lowest center
+    // we look for sprite with lowest bottom 
+    // this way we make sure that no sprite of an object is drawn 
+    // lower than the bottom edge of a slot
 
     SpriteRecord *lowestRecord = NULL;
     
-    //int lowestIndex = -1;
     double lowestYPos = 0;
     
     for( int i=0; i<inObject->numSprites; i++ ) {
@@ -5988,37 +5987,57 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 			// special flag to skip sprite when calculating position to draw object
 			continue;
 		}
-
-        //int h = sprite->visibleH;
 		
-		doublePair dimensions = { (double)sprite->visibleW, (double)sprite->visibleH };
+        doublePair dimensions = { (double)sprite->visibleW, (double)sprite->visibleH };
 		
-		dimensions = rotate( dimensions, 
-							   2 * M_PI * inObject->spriteRot[i] );
-		
-		doublePair centerOffset = { (double)sprite->centerXOffset,
+        doublePair centerOffset = { (double)sprite->centerXOffset,
 									(double)sprite->centerYOffset };
                                     
-		doublePair centerAnchorOffset = { (double)sprite->centerAnchorXOffset,
+        doublePair centerAnchorOffset = { (double)sprite->centerAnchorXOffset,
                                           (double)sprite->centerAnchorYOffset };
-			
-		centerOffset = rotate( centerOffset, 
-							   2 * M_PI * inObject->spriteRot[i] );
+        
+        
+        double rot = inObject->spriteRot[i];
+        
+        if( rot != 0 ) {
+            double rotAbs = fabs( rot );
+            
+            // just the fractional part
+            rotAbs -= floor( rotAbs );
+            
+            // snap rotation to the nearest 45 degree
+            double roundRot = round( rotAbs / 0.125 ) * 0.125;
+            if( rot < 0 ) roundRot = -roundRot;
+            rot = roundRot;
+            
+            rotAbs = fabs( rot );
+            rotAbs -= floor( rotAbs );
+            
+            // there is no way to calculate the visible dimensions after rotation
+            // but in case the rotation is orthogonal, we can swap the height and width
+            if( rotAbs == 0.25 || rotAbs == 0.75 ) {
+                dimensions.x = sprite->visibleH;
+                dimensions.y = sprite->visibleW;
+                }
+                
+            }
+        
+        centerOffset = rotate( centerOffset, 2 * M_PI * rot );
                                
-		centerAnchorOffset = rotate( centerAnchorOffset, 
-							   2 * M_PI * inObject->spriteRot[i] );
-
-		doublePair spriteCenter = add( inObject->spritePos[i], 
-									   centerOffset );
-		
-		double y = spriteCenter.y - abs(dimensions.y) / 2 + centerAnchorOffset.y;
+        centerAnchorOffset = rotate( centerAnchorOffset, 2 * M_PI * rot );
+        
+        double y = inObject->spritePos[i].y
+                   + centerOffset.y
+                   + centerAnchorOffset.y
+                   // there is no way to calculate the visible dimensions after rotation
+                   // just use the pre-rotation height here for simplicity
+                   - dimensions.y / 2;
 
         if( lowestRecord == NULL ||
             // lowest point of sprite is lower than what we've seen so far
             y < lowestYPos ) {
 
             lowestRecord = sprite;
-            //lowestIndex = i;
             lowestYPos = y;
             }
         }
@@ -6032,12 +6051,12 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 
     doublePair wideCenter = getObjectCenterOffset( inObject );
 	
-	//Adjust y so that the lowest point of an object sits
-	//on the bottom edge of a slot
-    // but keep center from widest sprite
+    // Adjust y so that the lowest point of an object sits
+    // on the bottom edge of a slot
+    // but keep x of the center of widest sprite
     // (in case object has "feet" that are not centered)
 	
-	wideCenter.y = lowestYPos + 8.0; //slot has height of 16.0
+    wideCenter.y = lowestYPos + 14.0; // slot has height of 28.0
 
 
     wideCenter.x += inObject->containOffsetBottomX;
