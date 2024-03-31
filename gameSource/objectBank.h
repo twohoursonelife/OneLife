@@ -926,6 +926,11 @@ void setupSpriteUseVis( ObjectRecord *inObject, int inUsesRemaining,
 
 
 
+doublePair computeContainedCenterOffset( ObjectRecord *inContainerObject, 
+                                         ObjectRecord *inContainedObject );
+
+
+
 char bothSameUseParent( int inAObjectID, int inBObjectID );
 
 
