@@ -200,6 +200,9 @@ class EditorObjectPage : public GamePage, public ActionListener {
         TextButton mDemoSlotsButton;
         TextButton mClearSlotsDemoButton;
 
+        TextButton mSetContainOffsetButton;
+        TextButton mEndSetContainOffsetButton;
+
         TextButton mSetHeldPosButton;
         TextButton mEndSetHeldPosButton;
 
@@ -258,12 +261,18 @@ class EditorObjectPage : public GamePage, public ActionListener {
         // use same person object
         char mSetClothesPos;
         
+        char mSetContainOffset;
+        int mContainerDemoObject;
+        
 
         doublePair mSetHeldMouseStart;
         doublePair mSetHeldOffsetStart;
 
         doublePair mSetClothingMouseStart;
         doublePair mSetClothingOffsetStart;
+        
+        doublePair mSetContainMouseStart;
+        doublePair mSetContainOffsetStart;
 
 
         SpriteHandle mSlotPlaceholderSprite;
@@ -330,6 +339,8 @@ class EditorObjectPage : public GamePage, public ActionListener {
 
         FloatRGB mColorClipboard;
         doublePair mHeldOffsetClipboard;
+        doublePair mClothingOffsetClipboard;
+        doublePair mContainOffsetClipboard;
 
         doublePair mSaveDeltaPosClipboard;
         double mSaveDeltaRotClipboard;

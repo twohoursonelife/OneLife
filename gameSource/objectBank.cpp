@@ -740,40 +740,6 @@ static void setupDefaultObject( ObjectRecord *inR ) {
     }
 
 
-static void setupContainOffset( ObjectRecord *inR ) {
-    inR->containOffsetX = 0;
-    inR->containOffsetY = 0;
-    inR->containOffsetBottomX = 0;
-    inR->containOffsetBottomY = 0;
-    
-    char *pos = strstr( inR->description, "+containOffsetX_" );
-
-    if( pos != NULL ) {
-        sscanf( pos, "+containOffsetX_%d", &( inR->containOffsetX ) );
-        }
-
-    pos = strstr( inR->description, "+containOffsetY_" );
-
-    if( pos != NULL ) {
-        sscanf( pos, "+containOffsetY_%d", &( inR->containOffsetY ) );
-        }
-
-    pos = strstr( inR->description, "+containOffsetBottomX_" );
-
-    if( pos != NULL ) {
-        sscanf( pos, "+containOffsetBottomX_%d", 
-                &( inR->containOffsetBottomX ) );
-        }
-
-    pos = strstr( inR->description, "+containOffsetBottomY_" );
-
-    if( pos != NULL ) {
-        sscanf( pos, "+containOffsetBottomY_%d", 
-                &( inR->containOffsetBottomY ) );
-        }
-    }
-
-
 
 
 int getMaxSpeechPipeIndex() {
@@ -991,8 +957,6 @@ float initObjectBankStep() {
 
                 
                 setupBlocksMoving( r );
-
-                setupContainOffset( r );
                 
                 
                 r->mapChance = 0;      
@@ -1185,6 +1149,19 @@ float initObjectBankStep() {
                         &( r->speedMult ) );
                             
                 next++;
+
+
+
+                r->containOffsetX = 0;
+                r->containOffsetY = 0;
+                            
+                if( strstr( lines[next], "containOffset=" ) != NULL ) {
+                    sscanf( lines[next], "containOffset=%d,%d", 
+                            &( r->containOffsetX ),
+                            &( r->containOffsetY ) );
+                                
+                    next++;
+                    }
 
 
 
@@ -2697,6 +2674,8 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->foodValue,
                         inObject->bonusValue,
                         inObject->speedMult,
+                        inObject->containOffsetX,
+                        inObject->containOffsetY,
                         inObject->heldOffset,
                         inObject->clothing,
                         inObject->clothingOffset,
@@ -3027,6 +3006,8 @@ int addObject( const char *inDescription,
                int inFoodValue,
                int inBonusValue,
                float inSpeedMult,
+               int inContainOffsetX,
+               int inContainOffsetY,
                doublePair inHeldOffset,
                char inClothing,
                doublePair inClothingOffset,
@@ -3263,6 +3244,10 @@ int addObject( const char *inDescription,
             }
         
         lines.push_back( autoSprintf( "speedMult=%f", inSpeedMult ) );
+
+        if( inContainOffsetX != 0 || inContainOffsetY != 0 )
+        lines.push_back( autoSprintf( "containOffset=%d,%d",
+                                      inContainOffsetX, inContainOffsetY ) );
 
         lines.push_back( autoSprintf( "heldOffset=%f,%f",
                                       inHeldOffset.x, inHeldOffset.y ) );
@@ -3618,6 +3603,8 @@ int addObject( const char *inDescription,
 
     
     r->speedMult = inSpeedMult;
+    r->containOffsetX = inContainOffsetX;
+    r->containOffsetY = inContainOffsetY;
     r->heldOffset = inHeldOffset;
     r->clothing = inClothing;
     r->clothingOffset = inClothingOffset;
@@ -3752,8 +3739,6 @@ int addObject( const char *inDescription,
     setupWall( r );
 
     setupBlocksMoving( r );
-    
-    setupContainOffset( r );
     
 
     r->horizontalVersionID = -1;
@@ -6047,6 +6032,85 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 
     return wideCenter;    
     }
+    
+    
+doublePair getObjectWidestSpriteCenterOffset( ObjectRecord *inObject ) {
+
+
+    // find centerXOffset and centerYOffset of widest sprite
+
+    SpriteRecord *widestRecord = NULL;
+    
+    int widestIndex = -1;
+    int widestWidth = 0;
+    double widestYPos = 0;
+    
+    for( int i=0; i<inObject->numSprites; i++ ) {
+        SpriteRecord *sprite = getSpriteRecord( inObject->sprites[i] );
+    
+        if( sprite->multiplicativeBlend ) {
+            // don't consider translucent sprites when computing wideness
+            continue;
+            }
+
+        if( inObject->spriteInvisibleWhenWorn[i] == 2 ) {
+            // don't consider parts visible only when worn
+            continue;
+            }
+            
+        if( inObject->spriteIgnoredWhenCalculatingCenterOffset[i] ) {
+            // special flag to skip sprite when calculating position to draw object
+            continue;
+        }
+        
+
+        int w = sprite->visibleW;
+        
+        double rot = inObject->spriteRot[i];
+        
+        if( rot != 0 ) {
+            double rotAbs = fabs( rot );
+            
+            // just the fractional part
+            rotAbs -= floor( rotAbs );
+            
+            if( rotAbs == 0.25 || rotAbs == 0.75 ) {
+                w = sprite->visibleH;
+                }
+            }
+
+
+        if( widestRecord == NULL ||
+            // wider than what we've seen so far
+            w > widestWidth ||
+            // or tied for wideness, and lower
+            ( w == widestWidth &&
+              inObject->spritePos[i].y < widestYPos ) ) {
+
+            widestRecord = sprite;
+            widestIndex = i;
+            widestWidth = w;
+            widestYPos = inObject->spritePos[i].y;
+            }
+        }
+    
+
+    if( widestRecord == NULL ) {
+        doublePair result = { 0, 0 };
+        return result;
+        }
+    
+    
+        
+    doublePair centerOffset = { (double)widestRecord->centerXOffset,
+                                (double)widestRecord->centerYOffset };
+        
+    centerOffset = rotate( centerOffset, 
+                           2 * M_PI * inObject->spriteRot[widestIndex] );
+
+    return centerOffset;
+    
+    }
 
 
 
@@ -6295,23 +6359,28 @@ void computeHeldDrawPos( HoldingPos inHoldingPos, doublePair inPos,
 
 doublePair computeContainedCenterOffset( ObjectRecord *inContainerObject, 
                                          ObjectRecord *inContainedObject ) {
-                                         // char inFlipH ) {
+    
+    // find the object's center offset when it is contained
+    // taking into account the container's slot style
     
     doublePair centerOffset;
 
     if( inContainerObject->slotStyle == 0 ) {
         centerOffset = getObjectCenterOffset( inContainedObject );
-        centerOffset.x += inContainedObject->containOffsetX;
-        centerOffset.y += inContainedObject->containOffsetY;
         }
     else if( inContainerObject->slotStyle == 1 ) {
         centerOffset = getObjectBottomCenterOffset( inContainedObject );
-        centerOffset.x += inContainedObject->containOffsetBottomX;
-        centerOffset.y += inContainedObject->containOffsetBottomY;
         }
     else if( inContainerObject->slotStyle == 2 ) {
         centerOffset = {0, 0};
         }
+    
+    // the containOffset is applied here
+    // instead of inside getObjectCenterOffset and getObjectBottomCenterOffset
+    // so the offsets won't interfere with heldPos
+    // (heldPos uses getObjectCenterOffset)
+    centerOffset.x += inContainedObject->containOffsetX;
+    centerOffset.y += inContainedObject->containOffsetY;
         
     return centerOffset;
         

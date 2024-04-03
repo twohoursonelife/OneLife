@@ -56,6 +56,16 @@ double defaultAge = 20;
 static float lastMouseX, lastMouseY;
 
 
+char nonContainerUnpickable( int inID ) {
+    ObjectRecord *o = getObject( inID );
+    
+    if( o != NULL && o->numSlots == 0 ) {
+        return true;
+        }
+    return false;
+    }
+
+
 
 EditorObjectPage::EditorObjectPage()
         : mDescriptionField( smallFont, 
@@ -199,8 +209,10 @@ EditorObjectPage::EditorObjectPage()
           mEndClothesDemoButton( smallFont, 300, 160, "XPos" ),
           mDemoSlotsButton( smallFont, -625, -70, "Demo Slots" ),
           mClearSlotsDemoButton( smallFont, -625, -70, "End Demo" ),
-          mSetHeldPosButton( smallFont, 250, -32, "Held Pos" ),
-          mEndSetHeldPosButton( smallFont, 240, -76, "End Held" ),
+          mSetContainOffsetButton( smallFont, 240, -76, "Cont Pos" ),
+          mEndSetContainOffsetButton( smallFont, 240, -76, "End Cont" ),
+          mSetHeldPosButton( smallFont, 240, -32, "Held Pos" ),
+          mEndSetHeldPosButton( smallFont, 240, -32, "End Held" ),
           mNextHeldDemoButton( smallFont, 312, -76, ">" ),
           mPrevHeldDemoButton( smallFont, 290, -76, "<" ),
           mCopyHeldPosButton( smallFont, 290, -106, "c" ),
@@ -251,6 +263,9 @@ EditorObjectPage::EditorObjectPage()
     mDemoPersonObject = -1;
 
     mSetClothesPos = false;
+
+    mSetContainOffset = false;
+    mContainerDemoObject = -1;
     
     mDescriptionField.usePasteShortcut( true );
 
@@ -325,6 +340,12 @@ EditorObjectPage::EditorObjectPage()
 
     mDemoSlotsButton.setVisible( false );
     mClearSlotsDemoButton.setVisible( false );    
+
+    addComponent( &mSetContainOffsetButton );
+    addComponent( &mEndSetContainOffsetButton );
+
+    mSetContainOffsetButton.setVisible( true );
+    mEndSetContainOffsetButton.setVisible( false );
 
     addComponent( &mSetHeldPosButton );
     addComponent( &mEndSetHeldPosButton );
@@ -494,6 +515,9 @@ EditorObjectPage::EditorObjectPage()
     mDemoSlotsButton.addActionListener( this );
     mClearSlotsDemoButton.addActionListener( this );
 
+    mSetContainOffsetButton.addActionListener( this );
+    mEndSetContainOffsetButton.addActionListener( this );
+
     mSetHeldPosButton.addActionListener( this );
     mEndSetHeldPosButton.addActionListener( this );
 
@@ -566,6 +590,9 @@ EditorObjectPage::EditorObjectPage()
     mCurrentObject.spriteUseAppear = new char[ 0 ];
     
     mCurrentObject.spriteSkipDrawing = NULL;
+    
+    mCurrentObject.containOffsetX = 0;
+    mCurrentObject.containOffsetY = 0;
 
     mPickedObjectLayer = -1;
     mPickedSlot = -1;
@@ -1550,6 +1577,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    foodValue,
                    bonusValue,
                    mSpeedMultField.getFloat(),
+                   mCurrentObject.containOffsetX,
+                   mCurrentObject.containOffsetY,
                    mCurrentObject.heldOffset,
                    mCurrentObject.clothing,
                    mCurrentObject.clothingOffset,
@@ -1722,6 +1751,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    foodValue,
                    bonusValue,
                    mSpeedMultField.getFloat(),
+                   mCurrentObject.containOffsetX,
+                   mCurrentObject.containOffsetY,
                    mCurrentObject.heldOffset,
                    mCurrentObject.clothing,
                    mCurrentObject.clothingOffset,
@@ -1945,6 +1976,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
 
         mDemoSlotsButton.setVisible( false );
         mClearSlotsDemoButton.setVisible( false );
+        mSetContainOffsetButton.setVisible( false );
+        mEndSetContainOffsetButton.setVisible( false );
         mSetHeldPosButton.setVisible( false );
         mMinPickupAgeField.setVisible( false );
         
@@ -1962,6 +1995,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         mDemoPersonObject = -1;
 
         mSetClothesPos = false;
+
+        mSetContainOffset = false;
+        mContainerDemoObject = -1;
+        mObjectPicker.removeFilters();
+        mObjectPicker.redoSearch( false );
         
         
         mPickedObjectLayer = -1;
@@ -2212,10 +2250,37 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         mDemoSlotsButton.setVisible( true );
         mClearSlotsDemoButton.setVisible( false );
         }
+    else if( inTarget == &mSetContainOffsetButton ) {
+        if( mCurrentObject.id != -1 ) {
+            mSetContainOffset = true;
+            mSetContainOffsetButton.setVisible( false );
+            mEndSetContainOffsetButton.setVisible( true );
+            mObjectPicker.addFilter( &nonContainerUnpickable );
+            mObjectPicker.redoSearch( false );
+            
+            mCopyHeldPosButton.setVisible( true );
+            mPasteHeldPosButton.setVisible( true );
+            
+            mSetClothesPos = false;
+            mDemoClothesButton.setVisible( false );
+            mEndClothesDemoButton.setVisible( false );
+            
+            mSetHeldPos = false;
+            mSetHeldPosButton.setVisible( false );
+            mEndSetHeldPosButton.setVisible( false );
+            }
+        }
     else if( inTarget == &mSetHeldPosButton ) {
         mDemoPersonObject = getRandomPersonObject();
         
         if( mDemoPersonObject != -1 ) {
+            
+            mSetContainOffset = false;
+            mContainerDemoObject = -1;
+            mSetContainOffsetButton.setVisible( false );
+            mEndSetContainOffsetButton.setVisible( false );
+            mObjectPicker.removeFilters();
+            mObjectPicker.redoSearch( false );
             
             mSetHeldPos = true;
             mSetHeldPosButton.setVisible( false );
@@ -2236,10 +2301,34 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mUseDistanceField.setVisible( false );
             }
         }
+    else if( inTarget == &mEndSetContainOffsetButton ) {
+        mSetContainOffset = false;
+        mContainerDemoObject = -1;
+        mSetContainOffsetButton.setVisible( true );
+        mEndSetContainOffsetButton.setVisible( false );
+        mObjectPicker.removeFilters();
+        mObjectPicker.redoSearch( false );
+        
+        mSetHeldPosButton.setVisible( true );
+        mEndSetHeldPosButton.setVisible( false );
+
+        mNextHeldDemoButton.setVisible( false );
+        mPrevHeldDemoButton.setVisible( false );
+
+        mCopyHeldPosButton.setVisible( false );
+        mPasteHeldPosButton.setVisible( false );
+        
+        if( anyClothingToggled() ) {
+            mDemoClothesButton.setVisible( true );
+            mEndClothesDemoButton.setVisible( false );
+            }
+        }
     else if( inTarget == &mEndSetHeldPosButton ) {
         mSetHeldPos = false;
         mDemoPersonObject = -1;
 
+        mSetContainOffsetButton.setVisible( true );
+        mEndSetContainOffsetButton.setVisible( false );
         mSetHeldPosButton.setVisible( true );
         mMinPickupAgeField.setVisible( true );
         mEndSetHeldPosButton.setVisible( false );
@@ -2280,10 +2369,27 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         mDemoPersonObject = getPrevPersonObject( mDemoPersonObject );
         }
     else if( inTarget == &mCopyHeldPosButton ) {
-        mHeldOffsetClipboard = mCurrentObject.heldOffset;
+        if( mSetHeldPos ) {
+            mHeldOffsetClipboard = mCurrentObject.heldOffset;
+            }
+        else if( mSetClothesPos ) {
+            mClothingOffsetClipboard = mCurrentObject.clothingOffset;
+            }
+        else if( mSetContainOffset ) {
+            mContainOffsetClipboard = {(double)mCurrentObject.containOffsetX, (double)mCurrentObject.containOffsetY};
+            }
         }
     else if( inTarget == &mPasteHeldPosButton ) {
-        mCurrentObject.heldOffset = mHeldOffsetClipboard;
+        if( mSetHeldPos ) {
+            mCurrentObject.heldOffset = mHeldOffsetClipboard;
+            }
+        else if( mSetClothesPos ) {
+            mCurrentObject.clothingOffset = mClothingOffsetClipboard;
+            }
+        else if( mSetContainOffset ) {
+            mCurrentObject.containOffsetX = (int)mContainOffsetClipboard.x;
+            mCurrentObject.containOffsetY = (int)mContainOffsetClipboard.y;
+            }
         }
     else if( inTarget == &mDemoClothesButton ) {
         mDemoPersonObject = getRandomPersonObject();
@@ -2294,6 +2400,11 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDemoClothesButton.setVisible( false );
             mEndClothesDemoButton.setVisible( true );
             
+            mSetContainOffset = false;
+            mSetContainOffsetButton.setVisible( false );
+            mEndSetContainOffsetButton.setVisible( false );
+            mObjectPicker.removeFilters();
+            mObjectPicker.redoSearch( false );
             mSetHeldPos = false;
             mSetHeldPosButton.setVisible( false );
             mMinPickupAgeField.setVisible( true );
@@ -2338,6 +2449,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mUseDistanceField.setVisible( true );
             }
 
+        mSetContainOffsetButton.setVisible( true );
+        mEndSetContainOffsetButton.setVisible( false );
         mSetHeldPosButton.setVisible( true );
         mMinPickupAgeField.setVisible( true );
         mEndSetHeldPosButton.setVisible( false );
@@ -2444,6 +2557,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mSetHeldPosButton.setVisible( true );
                 mMinPickupAgeField.setVisible( true );
                 }
+            if( !mSetContainOffset ) {
+                mSetContainOffsetButton.setVisible( true );
+                }
          
             mLeftBlockingRadiusField.setVisible( false );
             mRightBlockingRadiusField.setVisible( false );
@@ -2464,6 +2580,10 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             if( mSetHeldPos ) {
                 actionPerformed( &mEndSetHeldPosButton );
                 }
+            if( mSetContainOffset ) {
+                actionPerformed( &mEndSetContainOffsetButton );
+                }
+            mSetContainOffsetButton.setVisible( false );
             mSetHeldPosButton.setVisible( false );
             mMinPickupAgeField.setVisible( false );
             mDrawBehindPlayerCheckbox.setVisible( true );
@@ -2484,6 +2604,10 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 if( mSetHeldPos ) {
                     actionPerformed( &mEndSetHeldPosButton );
                     }
+                if( mSetContainOffset ) {
+                    actionPerformed( &mEndSetContainOffsetButton );
+                    }
+                mSetContainOffsetButton.setVisible( false );
                 mSetHeldPosButton.setVisible( false );
                 mMinPickupAgeField.setVisible( false );
                 }
@@ -2743,6 +2867,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mDemoPersonObject = -1;
             
             mEndClothesDemoButton.setVisible( false );
+            
+            mSetContainOffset = false;
+            mSetContainOffsetButton.setVisible( true );
+            mEndSetContainOffsetButton.setVisible( false );
+            mObjectPicker.removeFilters();
+            mObjectPicker.redoSearch( false );
             }
         
 
@@ -2808,9 +2938,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         
         
 
-        // auto-end the held-pos setting if a new object is picked
+        // auto-end the held-pos and containOffset setting if a new object is picked
         // (also, potentially enable the setting button for the first time) 
-        if( objectID != -1 && ! mDemoSlots ) {
+        if( objectID != -1 && ! mDemoSlots && ! mSetContainOffset ) {
             mSetHeldPos = false;
             mSetClothesPos = false;
             mDemoPersonObject = -1;
@@ -2828,6 +2958,12 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
 
         if( objectID != -1 && mDemoSlots ) {
             mSlotsDemoObject = objectID;
+            }
+        else if( objectID != -1 && mSetContainOffset ) {
+            ObjectRecord *pickedRecord = getObject( objectID );
+            if( pickedRecord->numSlots > 0 ) {
+                mContainerDemoObject = objectID;
+                }
             }
         else if( objectID != -1 && rightClick ) {
             ObjectRecord *pickedRecord = getObject( objectID );
@@ -2890,6 +3026,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                     mCurrentObject.spriteUseAppear[i + oldNumSprites] =
                         pickedRecord->spriteUseAppear[i];
                     }
+                    
+                mCurrentObject.containOffsetX = pickedRecord->containOffsetX;
+                mCurrentObject.containOffsetY = pickedRecord->containOffsetY;
                 }
             if( jumpPerSprite > 0 ) {
                 for( int i=0; i<pickedRecord->numSprites; i++ ) {
@@ -3004,6 +3143,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 pickedRecord->vertContainRotationOffset;
             endVertRotDemo();
             mRotAdjustMode = false;
+
+            mCurrentObject.containOffsetX = pickedRecord->containOffsetX;
+            mCurrentObject.containOffsetY = pickedRecord->containOffsetY;
             
             mCurrentObject.heldOffset = pickedRecord->heldOffset;
 
@@ -3231,6 +3373,13 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                     break;
                 }   
 
+            mDemoClothesButton.setVisible( false );
+            mEndClothesDemoButton.setVisible( false );
+            if( anyClothingToggled() ) {
+                mDemoClothesButton.setVisible( true );
+                mEndClothesDemoButton.setVisible( false );
+                }
+
             mInvisibleWhenWornCheckbox.setToggled( false );
             mInvisibleWhenWornCheckbox.setVisible( false );
 
@@ -3327,6 +3476,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mDrawBehindPlayerCheckbox.setVisible( true );
                 mDrawBehindPlayerCheckbox.setToggled( 
                     pickedRecord->drawBehindPlayer );
+                mSetContainOffsetButton.setVisible( false );
                 mSetHeldPosButton.setVisible( false );
                 mMinPickupAgeField.setVisible( false );
                 } 
@@ -3335,11 +3485,13 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mRightBlockingRadiusField.setVisible( false );
                 mDrawBehindPlayerCheckbox.setToggled( false );
                 mDrawBehindPlayerCheckbox.setVisible( false );
+                mSetContainOffsetButton.setVisible( true );
                 mSetHeldPosButton.setVisible( true );
                 mMinPickupAgeField.setVisible( true );
                 }
             
             if( mCheckboxes[1]->getToggled() ) {
+                mSetContainOffsetButton.setVisible( false );
                 mSetHeldPosButton.setVisible( false );
                 mDrawBehindPlayerCheckbox.setVisible( true );
                 mDrawBehindPlayerCheckbox.setToggled( 
@@ -3452,6 +3604,9 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mSetHeldPosButton.setVisible( true );
                 mMinPickupAgeField.setVisible( true );
                 }
+            if( ! mSetContainOffset ) {
+                mSetContainOffsetButton.setVisible( true );
+                }
             
             mRaceField.setVisible( false );
             
@@ -3479,6 +3634,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mPersonAgeSlider.setVisible( true );
             mRaceField.setVisible( true );
 
+            mSetContainOffsetButton.setVisible( false );
             mSetHeldPosButton.setVisible( false );
             mMinPickupAgeField.setVisible( false );
             
@@ -3521,6 +3677,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             }
         else {
             mPersonAgeSlider.setVisible( false );
+            mSetContainOffsetButton.setVisible( true );
             mSetHeldPosButton.setVisible( true );
             mMinPickupAgeField.setVisible( true );
             mRaceField.setVisible( false );
@@ -3601,6 +3758,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                     
                     mPersonAgeSlider.setVisible( false );
                     mCheckboxes[2]->setToggled( false );
+                    mSetContainOffsetButton.setVisible( true );
                     mSetHeldPosButton.setVisible( true );
                     mMinPickupAgeField.setVisible( true );
                     pickedLayerChanged();
@@ -3664,6 +3822,14 @@ void EditorObjectPage::drawSpriteLayers( doublePair inDrawOffset,
     doublePair layerZeroPos = { 0, 0 };
     
     for( int i=0; i<mCurrentObject.numSprites; i++ ) {
+        
+        // we are drawing this object as if it is contained
+        // with the placehold slot sprite
+        if( mSetContainOffset && mContainerDemoObject == -1 &&
+            mCurrentObject.spriteInvisibleWhenContained[i] ) {
+            continue;
+            }
+        
         doublePair spritePos = mCurrentObject.spritePos[i];
         
         float blue = 1;
@@ -4070,14 +4236,46 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         
         skipDrawing = true;
         }
-    
+        
+    if( mSetContainOffset && mContainerDemoObject != -1 ) {
+        
+        // we have selected a demo container object
+        
+        // draw behind-slot part of the demo container behind
+        setDrawColor( 1, 1, 1, 1 );
+
+        drawObject( getObject( mContainerDemoObject ), 0, drawOffset, 0, 
+                    false, false, 
+                    0, 0, false, false, getEmptyClothingSet() );
+        
+        // skip drawing the main object
+        // we will draw it as contained in the demo container
+        skipDrawing = true;
+        }
 
 
     if( !skipDrawing ) {
+        if( mSetContainOffset && mContainerDemoObject == -1 ) {
+            // no demo container is chosen
+            // we aim to draw the placeholder slot at (0, 0)
+            // hence the main object needs to be offset
+            // for some reason on top of the object's containOffset (containOffsetX and containOffsetY)
+            // the widest sprite's centerXOffset and centerYOffset (note the confusing naming)
+            // needs to be taken into account here
+            ObjectRecord *containedObject = getObject( mCurrentObject.id );
+            doublePair offset = getObjectWidestSpriteCenterOffset( containedObject );
+            offset.x += mCurrentObject.containOffsetX;
+            offset.y += mCurrentObject.containOffsetY;
+            
+            // temporarily tweaking the drawOffset, will restore it later
+            drawOffset = sub( drawOffset, offset );
+            }
         drawSpriteLayers( drawOffset, true );
         }
     
-    if( ! skipDrawing && mCurrentObject.numSlots > 0 ) {
+    if( ! skipDrawing && mCurrentObject.numSlots > 0 && 
+        !mSetContainOffset // don't draw the object's slots when editing setContainOffset
+        ) {
 
         if( mSlotsDemoObject == -1 ) {
             
@@ -4154,7 +4352,7 @@ void EditorObjectPage::draw( doublePair inViewCenter,
                 
                 double rot = 0;
 
-                doublePair centerOffset;
+                doublePair centerOffset = {0, 0};
 
                 if( mCurrentObject.slotStyle == 0 ) {
                     centerOffset = getObjectCenterOffset( demoObject );
@@ -4163,9 +4361,12 @@ void EditorObjectPage::draw( doublePair inViewCenter,
                     centerOffset = getObjectBottomCenterOffset( demoObject );
                     }
                 else if( mCurrentObject.slotStyle == 2 ) {
-                    centerOffset = {0, 0};
+                    // in this case it is just {0, 0}
                     }
 
+
+                centerOffset.x += demoObject->containOffsetX;
+                centerOffset.y += demoObject->containOffsetY;
 
                 if( mCurrentObject.slotVert[i] ) {
                     rot = 0.25 + demoObject->vertContainRotationOffset;
@@ -4186,13 +4387,140 @@ void EditorObjectPage::draw( doublePair inViewCenter,
             }
         
         }
+    else if( mSetContainOffset && mContainerDemoObject != -1 ) {
+    
+        // drawing the current object as if they are contained
+        
+        ObjectRecord *containerObject = getObject( mContainerDemoObject );
+        ObjectRecord *containedObject = getObject( mCurrentObject.id );
+        
+        for( int i=0; i<containerObject->numSlots; i++ ) {
+            float blue = 1;
+            float red = 1;
+            
+            float alpha = 1;
+
+            setDrawColor( red, 1, blue, alpha );
+            
+            double rot = 0;
+
+            doublePair centerOffset = {0, 0};
+
+            if( containerObject->slotStyle == 0 ) {
+                centerOffset = getObjectCenterOffset( containedObject );
+                }
+            else if( containerObject->slotStyle == 1 ) {
+                centerOffset = getObjectBottomCenterOffset( containedObject );
+                }
+            else if( containerObject->slotStyle == 2 ) {
+                // in this case it is just {0, 0}
+                }
+                
+            centerOffset.x += mCurrentObject.containOffsetX;
+            centerOffset.y += mCurrentObject.containOffsetY;
+            
+            if( containerObject->slotVert[i] ) {
+                rot = 0.25 + mCurrentObject.vertContainRotationOffset;
+
+                centerOffset = rotate( centerOffset, -rot * 2 * M_PI );
+                }
+            
+            setDrawnObjectContained( true );
+            
+            drawObject( containedObject, 2, 
+                        sub( add( containerObject->slotPos[i], drawOffset ),
+                             centerOffset ),
+                        rot, false, false, -1, 0, false, false, 
+                        getEmptyClothingSet() );
+            
+            setDrawnObjectContained( false );
+            }
+        
+        }
     
 
     if( !skipDrawing ) {
         drawSpriteLayers( drawOffset, false );
         }
+        
+    if( mSetContainOffset && mContainerDemoObject != -1 ) {
+        
+        // we have selected a demo container object
+        
+        // draw in-front-of-slot part of the demo container on top
+        setDrawColor( 1, 1, 1, 1 );
+  
+        drawObject( getObject( mContainerDemoObject ), 1, drawOffset, 0, 
+                    false, false, 
+                    0, 0, false, false, getEmptyClothingSet() );
+        }
+    else if( mSetContainOffset && mContainerDemoObject == -1 ) {
+        
+        // if no demo container is chosen
+        // draw the placeholder slot ON-TOP of the object
+        // so that the slot can be more easily seen and referenced
+        char slotVert = false; // let's fix this to non-vert slot for now
+        doublePair slotPos = {0, 0};
+        int slotStyle = 0; // let's fix this to default style for now
+        
+        float blue = 1;
+        float red = 1;
+        float green = 1;
+        float alpha = 0.5;
+        
+        if( slotVert ) {
+            green = 0;
+            }
+            
+        ObjectRecord *containedObject = getObject( mCurrentObject.id );
+        if( slotStyle == 0 ) {
+            slotPos = getObjectCenterOffset( containedObject );
+            }
+        else if( slotStyle == 1 ) {
+            slotPos = getObjectBottomCenterOffset( containedObject );
+            }
+        else if( slotStyle == 2 ) {
+            // in this case it is just {0, 0}
+            }
+            
+        slotPos.x += mCurrentObject.containOffsetX;
+        slotPos.y += mCurrentObject.containOffsetY;
 
-    
+        setDrawColor( red, green, blue, alpha );
+        drawSprite( mSlotPlaceholderSprite, 
+                    add( slotPos,
+                         drawOffset ) );
+        
+        
+        setDrawColor( 0, 1, 1, 0.5 );
+        
+        if( slotVert ) {
+            setDrawColor( 1, 1, 1, 0.5 );
+            }
+        
+        char *numberString = autoSprintf( "%d", 1 );
+        
+        mainFont->drawString( numberString, 
+                              add( slotPos, 
+                                   drawOffset ),
+                              alignCenter );
+        
+        delete [] numberString;
+        
+        }
+
+    if( mSetContainOffset && mContainerDemoObject == -1 ) {
+        // no demo container is chosen
+        // we aim to draw the placeholder slot at (0, 0)
+        // hence the main object needs to be offset
+        ObjectRecord *containedObject = getObject( mCurrentObject.id );
+        doublePair offset = getObjectWidestSpriteCenterOffset( containedObject );
+        offset.x += mCurrentObject.containOffsetX;
+        offset.y += mCurrentObject.containOffsetY;
+        
+        // we have tweaked drawOffset above, restoring it here
+        drawOffset = add( drawOffset, offset );
+        }
     
     if( mPrintRequested ) {
         
@@ -4662,6 +4990,41 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         smallFont->drawString( posString, pos, alignLeft );
         
         delete [] posString;
+        }
+
+    if( mSetHeldPos || mSetClothesPos || mSetContainOffset ) {
+        
+        setDrawColor( 0, 0, 0, 1 );
+        
+        pos = footRecPos;
+        
+        pos.x += 192 - 8;
+        pos.y += 8;
+        
+        char *offsetName;
+        doublePair offset;
+        
+        if( mSetHeldPos ) {
+            smallFont->drawString( "Held", pos, alignRight );
+            offset = mCurrentObject.heldOffset;
+            }
+        else if( mSetClothesPos ) {
+            smallFont->drawString( "Worn", pos, alignRight );
+            offset = mCurrentObject.clothingOffset;
+            }
+        else if( mSetContainOffset ) {
+            smallFont->drawString( "Cont", pos, alignRight );
+            offset = {(double)mCurrentObject.containOffsetX, (double)mCurrentObject.containOffsetY};
+            }
+        
+        pos.y -= 12;
+        
+        char *offsetString = autoSprintf( 
+            "( %.0f, %.0f )",
+            offset.x, offset.y );
+        
+        smallFont->drawString( offsetString, pos, alignRight );
+        
         }
     
 
@@ -5165,15 +5528,18 @@ void EditorObjectPage::pickedLayerChanged() {
         mValueSlider.setVisible( false );
         
         if( mLeftBlockingRadiusField.isVisible() ) {
+            mSetContainOffsetButton.setVisible( false );
             mSetHeldPosButton.setVisible( false );
             mMinPickupAgeField.setVisible( false );
             }
         else {
+            mSetContainOffsetButton.setVisible( true );
             mSetHeldPosButton.setVisible( true );
             mMinPickupAgeField.setVisible( true );
             }
         
         if( mCheckboxes[1]->getToggled() ) {
+            mSetContainOffsetButton.setVisible( false );
             mSetHeldPosButton.setVisible( false );
             }
         
@@ -5209,15 +5575,18 @@ void EditorObjectPage::pickedLayerChanged() {
             // person, and a layer selected, disable held demo button
             // because of overlap
             // or if blocking radius visible
+            mSetContainOffsetButton.setVisible( false );
             mSetHeldPosButton.setVisible( false );
             mMinPickupAgeField.setVisible( false );
             }
         else {
+            mSetContainOffsetButton.setVisible( true );
             mSetHeldPosButton.setVisible( true );
             mMinPickupAgeField.setVisible( true );
             }
         
         if( mCheckboxes[1]->getToggled() ) {
+            mSetContainOffsetButton.setVisible( false );
             mSetHeldPosButton.setVisible( false );
             }
 
@@ -5271,7 +5640,7 @@ void EditorObjectPage::pointerMove( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
 
-    if( mSetHeldPos ) {
+    if( mSetHeldPos || mSetContainOffset ) {
         return;
         }
 
@@ -5389,6 +5758,11 @@ void EditorObjectPage::pointerDown( float inX, float inY ) {
         mSetClothingOffsetStart = mCurrentObject.clothingOffset;
         return;
         }
+    else if( mSetContainOffset ) {    
+        mSetContainMouseStart = pos;
+        mSetContainOffsetStart = {(double)mCurrentObject.containOffsetX, (double)mCurrentObject.containOffsetY};
+        return;
+        }
     
     
     getClosestSpriteOrSlot( inX, inY, &mPickedObjectLayer, &mPickedSlot );
@@ -5482,6 +5856,15 @@ void EditorObjectPage::pointerDrag( float inX, float inY ) {
         doublePair diff = sub( cur, mSetClothingMouseStart );
         
         mCurrentObject.clothingOffset = add( mSetClothingOffsetStart, diff );
+        return;
+        }
+    else if( mSetContainOffset ) {    
+        doublePair cur = { inX, inY };
+        
+        doublePair diff = sub( cur, mSetContainMouseStart );
+        
+        mCurrentObject.containOffsetX = mSetContainOffsetStart.x - diff.x;
+        mCurrentObject.containOffsetY = mSetContainOffsetStart.y - diff.y;
         return;
         }
 
@@ -5906,7 +6289,7 @@ void EditorObjectPage::keyDown( unsigned char inASCII ) {
     }
        
     
-    if( TextField::isAnyFocused() || mSetHeldPos ) {
+    if( TextField::isAnyFocused() || mSetHeldPos || mSetContainOffset ) {
         return;
         }
     
@@ -6466,6 +6849,24 @@ void EditorObjectPage::specialKeyDown( int inKeyCode ) {
                 break;
             case MG_KEY_UP:
                 mCurrentObject.clothingOffset.y += offset;
+                break;
+            }
+        return;
+        }
+    else if( mSetContainOffset ) {    
+        
+        switch( inKeyCode ) {
+            case MG_KEY_LEFT:
+                mCurrentObject.containOffsetX += offset;
+                break;
+            case MG_KEY_RIGHT:
+                mCurrentObject.containOffsetX -= offset;
+                break;
+            case MG_KEY_DOWN:
+                mCurrentObject.containOffsetY += offset;
+                break;
+            case MG_KEY_UP:
+                mCurrentObject.containOffsetY -= offset;
                 break;
             }
         return;
