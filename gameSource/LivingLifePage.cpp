@@ -19846,8 +19846,10 @@ void LivingLifePage::step() {
 
         doublePair screenTargetPos = 
             mult( targetObjectPos, CELL_D );
+            
+        int centerCamera = SettingsManager::getIntSetting( "centerCamera", 0 );
         
-        if( vogMode || SettingsManager::getIntSetting( "centerCamera", 0 ) ) {
+        if( vogMode || centerCamera ) {
             // don't adjust camera
             }
         else if( 
@@ -19941,7 +19943,7 @@ void LivingLifePage::step() {
             
             }
 
-        if( ! vogMode ) {
+        if( ! vogMode && !centerCamera ) {
             
             screenTargetPos.x = 
                 CELL_D * targetObjectPos.x - 
@@ -19970,6 +19972,11 @@ void LivingLifePage::step() {
         int maxRY = viewHeight / 15;
         int maxR = 0;
         double moveSpeedFactor = 20 * cameraFollowsObject->currentSpeed;
+        
+        if( centerCamera ) {
+            maxRX = 1;
+            maxRY = 1;
+            }
         
         if( moveSpeedFactor < 1 ) {
             moveSpeedFactor = 1 * frameRateFactor;
