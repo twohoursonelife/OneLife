@@ -4323,14 +4323,6 @@ void EditorObjectPage::draw( doublePair inViewCenter,
                 }
             }
         else {
-            
-            char allBehind = true;
-            for( int i=0; i< mCurrentObject.numSprites; i++ ) {
-                if( ! mCurrentObject.spriteBehindSlots[i] ) {
-                    allBehind = false;
-                    break;
-                    }
-                }
 
             ObjectRecord *demoObject = getObject( mSlotsDemoObject );
             
@@ -5001,7 +4993,6 @@ void EditorObjectPage::draw( doublePair inViewCenter,
         pos.x += 192 - 8;
         pos.y += 8;
         
-        char *offsetName;
         doublePair offset;
         
         if( mSetHeldPos ) {

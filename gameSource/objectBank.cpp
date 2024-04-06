@@ -2908,8 +2908,7 @@ ObjectRecord **searchObjects( const char *inSearch,
         
         SimpleVector< ObjectRecord *> results;
         char* search = stringDuplicate( inSearch );
-        char* numString = &( search[2] );
-        int id = atoi( numString );
+        int id = atoi( &( search[2] ) );
         if( idMap[id] != NULL ) {
             ObjectRecord *parent = idMap[id];
             if( inNumToSkip == 0 ) results.push_back( parent );
@@ -2932,7 +2931,6 @@ ObjectRecord **searchObjects( const char *inSearch,
                 }
             }
         delete [] search;
-        delete [] numString;
             
         *outNumResults = results.size();
         return results.getElementArray();

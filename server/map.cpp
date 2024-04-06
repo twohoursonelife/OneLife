@@ -723,7 +723,7 @@ static void dbFloorPut( int inX, int inY, int inValue );
 // returns -1 on failure, 1 on success
 int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer ) {
     unsigned char key[16];
-    unsigned char value[50];
+    // unsigned char value[50];
     
     // last int is not used, always 0
     intQuadToKey( inX, inY, inFlag, 0, key );
@@ -741,7 +741,7 @@ int persistentMapDBGet( int inX, int inY, int inFlag, unsigned char *inBuffer ) 
     
 void persistentMapDBPut( int inX, int inY, int inFlag, const char *inBuffer ) {
     unsigned char key[16];
-    unsigned char value[50];
+    // unsigned char value[50];
     // last int is not used, always 0
     intQuadToKey( inX, inY, inFlag, 0, key );
     DB_put( &persistentMapDB, key, inBuffer );
@@ -1595,12 +1595,13 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
 				return 0;
 			}
             
-	}else {
-		if(biomes[pickedBiome] != 7 && biomes[pickedBiome] != 9){
+	} else {
+		if( biomes[pickedBiome] != 7 && biomes[pickedBiome] != 9 ){
 			mapCacheInsert( inX, inY, 0 );
 			return 0;
 			}
 		}
+    
     }
  
  
@@ -5941,7 +5942,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     ) {
                         
                     int numContained;
-                    int *cont = getContained( inX, inY, &numContained );
+                    getContained( inX, inY, &numContained );
                         
                     if( numContained > 0 ) {
                         
@@ -5955,10 +5956,6 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                 // block transisionts if it is a subcontainer
                                 continue;
                                 }
-                                
-                            ObjectRecord *containedObj = getObject( contained );
-                            
-                            TransRecord *contTrans = getPTrans( newID, contained );
                             
                             TransRecord *containmentTrans = NULL;
                             int containedID = contained;
@@ -6198,8 +6195,6 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                     
                     int inOrout = -1;
                     
-                    int containedID = newID;
-                    
                     TransRecord *contTrans = NULL;
                     
                     // in-transitions
@@ -6224,8 +6219,6 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                     if( contTrans != NULL ) {
                         
                         // Check that the new container can contain all the objects
-                        
-                        int newNumSlots = getNumContainerSlots( contTrans->newTarget );
                         
                         int slotNumber = numContained - 1;
                         
@@ -6289,8 +6282,6 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                     if( contTrans != NULL ) {
                         
                         // Check that the new container can contain all the objects
-                        
-                        int newNumSlots = getNumContainerSlots( contTrans->newActor );
                         
                         int slotNumber = numContained - 1;
                         

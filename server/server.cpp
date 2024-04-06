@@ -9143,14 +9143,6 @@ static char addHeldToContainer( LiveObject *inPlayer,
         return false;
         }
 
-    float slotSize =
-        targetObj->slotSize;
-    
-    float containSize =
-        getObject( 
-            inPlayer->holdingID )->
-        containSize;
-
     int numIn = 
         getNumContained( inContX, inContY );
 
@@ -9572,8 +9564,6 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                     
                     // Check that the new container can contain all the objects
                     
-                    int newNumSlots = getNumContainerSlots( contTrans->newActor );
-                    
                     int slotNumber = numIn - 1;
                     
                     if( inSlotNumber == slotNumber ) slotNumber--;
@@ -9722,13 +9712,6 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
         int oldNum =
             inPlayer->
             clothingContained[inC].size();
-                                        
-        float slotSize =
-            cObj->slotSize;
-                                        
-        float containSize =
-            getObject( inPlayer->holdingID )->
-            containSize;
         
         if( cObj->numSlots > 0 &&
             outCouldHaveGoneIn != NULL ) {
@@ -9764,7 +9747,7 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
                 if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 4 );
             }
                 
-            int idToAdd = inPlayer->holdingID;
+            // int idToAdd = inPlayer->holdingID;
             
             if( contTrans != NULL ) {
                 
@@ -17526,10 +17509,6 @@ int main() {
                                                     // block transisionts if it is a subcontainer
                                                     continue;
                                                     }
-                                                    
-                                                ObjectRecord *containedObj = getObject( contained );
-                                                
-                                                TransRecord *contTrans = getPTrans( r->newTarget, contained );
                                                 
                                                 TransRecord *containmentTrans = NULL;
                                                 int containedID = contained;
@@ -19502,8 +19481,6 @@ int main() {
                                     // drop into clothing indicates right-click
                                     // so swap
                                     
-                                    int oldHeld = nextPlayer->holdingID;
-                                    
                                     // first add to top of container
                                     // if possible
                                     addHeldToClothingContainer( nextPlayer,
@@ -19639,13 +19616,6 @@ int main() {
 
                                         int targetSlots =
                                             targetObj->numSlots;
-                                        
-                                        float targetSlotSize = 0;
-                                        
-                                        if( targetSlots > 0 ) {
-                                            targetSlotSize =
-                                                targetObj->slotSize;
-                                            }
                                         
                                         char canGoIn = false;
                                         
@@ -20225,8 +20195,8 @@ int main() {
 
                 
                 if( ! nextPlayer->isTutorial ) {
-                    GridPos deathPos = 
-                        getPlayerPos( nextPlayer );
+                    // GridPos deathPos = 
+                        // getPlayerPos( nextPlayer );
                     
                     int killerID = -1;
                     if( nextPlayer->murderPerpID > 0 ) {

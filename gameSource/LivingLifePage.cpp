@@ -15983,7 +15983,8 @@ void LivingLifePage::step() {
                                       &justAte,
                                       &justAteID,
                                       &responsiblePlayerID,
-                                      &heldYum);
+                                      &heldYum,
+                                      &heldLearned );
                 
                 char *lineCopy = NULL;
                 if( numRead >= 21 ) {
