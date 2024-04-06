@@ -195,6 +195,8 @@ float gui_fov_preferred_max_scale = 3.0f;
 int gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
 int gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
 
+float gui_fov_scale_before_settings = 1.0f;
+
 
 double viewWidth = 1280;
 double viewHeight = 720;
@@ -209,35 +211,37 @@ double visibleViewWidth = viewWidth;
 
 
 
-void setFOVScale() {
+void loadFovSettings() {
 
-	gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
-	if( gui_hud_mode < 0 ) gui_hud_mode = 0;
-	else if( gui_hud_mode > 2 ) gui_hud_mode = 2;
-	SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
+    gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
+    if( gui_hud_mode < 0 ) {
+        gui_hud_mode = 0;
+        SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
+        }
+    else if( gui_hud_mode > 2 ) {
+        gui_hud_mode = 2;
+        SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
+        }
+    
+    gui_fov_target_scale_hud = SettingsManager::getFloatSetting( "fovScaleHUD", 1.0f );
+    if( gui_fov_target_scale_hud < 1.0f ) {
+        gui_fov_target_scale_hud = 1.0f;
+        SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
+        }
+    else if( gui_fov_target_scale_hud > 1.75f ) {
+        gui_fov_target_scale_hud = 1.75f;
+        SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
+        }
 
     gui_fov_scale = 1.0f;
-    //gui_fov_scale = SettingsManager::getFloatSetting( "fovDefault", 1.25f );
-    if( ! gui_fov_scale || gui_fov_scale < 1 )
-		gui_fov_scale = 1.0f;
-    else if ( gui_fov_scale > 6 )
-		gui_fov_scale = 6.0f;
-	//SettingsManager::setSetting( "fovDefault", gui_fov_scale );
-	SettingsManager::setSetting( "fovScale", gui_fov_scale );
 
-    gui_fov_preferred_max_scale = SettingsManager::getFloatSetting( "fovMax", 2.25f );
-    if( ! gui_fov_preferred_max_scale || gui_fov_preferred_max_scale < 1 )
-		gui_fov_preferred_max_scale = 1.0f;
-	else if ( gui_fov_preferred_max_scale > 6 )
-		gui_fov_preferred_max_scale = 6.0f;
-	SettingsManager::setSetting( "fovMax", gui_fov_preferred_max_scale );
-
-	gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+    gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
     gui_fov_offset_x = (int)(((1280 * gui_fov_target_scale_hud) - 1280)/2);
     gui_fov_offset_y = (int)(((720 * gui_fov_target_scale_hud) - 720)/2);
     viewWidth = 1280 * gui_fov_scale;
     viewHeight = 720 * gui_fov_scale;
     visibleViewWidth = viewWidth;
+    
 }
 
 
@@ -487,7 +491,7 @@ char *getHashSalt() {
 
 void initDrawString( int inWidth, int inHeight ) {
 
-	setFOVScale();
+    loadFovSettings();
 
     toggleLinearMagFilter( true );
     toggleMipMapGeneration( true );
@@ -617,14 +621,14 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
 
     titleFont = 
         new Font( "font_handwriting_32_32.tga", 3, 6, false, 20 * gui_fov_scale_hud );
-	
+
     handwritingFont = 
         new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     handwritingFont->setMinimumPositionPrecision( 1 );
     
-	tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
-	tinyHandwritingFont->setMinimumPositionPrecision( 1 );
+    tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+    tinyHandwritingFont->setMinimumPositionPrecision( 1 );
 
     pencilFont = 
         new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
@@ -1104,10 +1108,10 @@ static void drawPauseScreen() {
                         continue;
                         }
                         
-					if ( columnNumber > 1 ) {
-						int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
-						writePos.x = lastScreenViewCenter.x + current_columnX;
-						}
+                    if ( columnNumber > 1 ) {
+                        int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
+                        writePos.x = lastScreenViewCenter.x + current_columnX;
+                        }
                         
                     if ( isComment ) {
                         // closeMessage = lines[i];
@@ -1528,7 +1532,11 @@ static void startConnecting() {
 
 void showSettings() {
     showingInGameSettings = true;
-	
+    
+    // temporarily reset fov before going into settings page
+    gui_fov_scale_before_settings = gui_fov_scale;
+    livingLifePage->changeFOV( 1.0f );
+
     lastScreenViewCenter.x = 0;
     lastScreenViewCenter.y = 0;
     
@@ -2110,7 +2118,11 @@ void drawFrame( char inUpdate ) {
                     existingAccountPage->setStatus( NULL, false );
 
                     if ( showingInGameSettings ) {
-                        livingLifePage->changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
+                        
+                        // restore fov before when we leave in-game settings page
+                        livingLifePage->changeFOV( gui_fov_scale_before_settings );
+                        gui_fov_scale_before_settings = 1.0f;
+                        
                         currentGamePage = livingLifePage;
                         currentGamePage->base_makeActive( false );
                         showingInGameSettings = false;
@@ -2691,7 +2703,6 @@ void pointerUp( float inX, float inY ) {
         if( hoveringSettingsButton ) {
             pauseGame();
             pauseScreenFade = 0;
-            livingLifePage->changeFOV( 1.0f );
             showSettings();
             }
         }
@@ -2739,7 +2750,6 @@ void keyDown( unsigned char inASCII ) {if(inASCII==27) return;
                 if ( currentGamePage == livingLifePage ) {
                     //unpáuse, reset fov then show settings
                     pauseGame();
-                    livingLifePage->changeFOV( 1.0f );
                     showSettings();
                     }
                 break;
@@ -2827,7 +2837,7 @@ void specialKeyDown( int inKey ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyDown( inKey );
         }
-	}
+    }
 
 
 
@@ -2839,7 +2849,7 @@ void specialKeyUp( int inKey ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyUp( inKey );
         }
-	} 
+    } 
 
 
 

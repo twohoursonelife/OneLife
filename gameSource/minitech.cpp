@@ -30,9 +30,6 @@ float minitech::guiScale = 1.0f;
 bool minitech::showUncraftables = false;
 bool minitech::showCommentsAndTagsInObjectDescription = true;
 
-float minitech::viewWidth = 1280.0;
-float minitech::viewHeight = 720.0;
-
 Font *minitech::handwritingFont;
 Font *minitech::mainFont;
 Font *minitech::tinyHandwritingFont;
@@ -76,6 +73,9 @@ bool minitech::showBar = false;
 doublePair minitech::topBarPos;
 doublePair minitech::sharpyRecipePos;
 doublePair minitech::hatchetRecipePos;
+
+extern double visibleViewWidth;
+extern double viewHeight;
 
 
 const char *biomeNames[] = {"GRASSLANDS",
@@ -162,6 +162,14 @@ void minitech::initOnBirth() {
     sheet = loadSprite( "hintSheet1.tga", false );
     bigSheet = loadSprite( "bigHintSheet.tga", false );
 
+}
+
+void minitech::changeScale( float newScale ) {
+    guiScale = newScale;
+    if(handwritingFont != NULL) handwritingFont->setScaleFactor( 16*guiScale );
+    if(mainFont != NULL) mainFont->setScaleFactor( 16*guiScale );
+    if(tinyHandwritingFont != NULL) tinyHandwritingFont->setScaleFactor( 16/2*guiScale );
+    if(tinyMainFont != NULL) tinyMainFont->setScaleFactor( 16/2*guiScale );
 }
 
 void minitech::clearStep(){
@@ -668,10 +676,10 @@ void minitech::drawStr(
     
     if (avoidOffScreen) {
         doublePair offset = {0.0, 0.0};
-        if (posTL.x + recWidth > screenCenter.x + viewWidth/2) {
-            offset.x = screenCenter.x + viewWidth/2 - recWidth - posTL.x;
-        } else if (posTL.x < screenCenter.x - viewWidth/2) {
-            offset.x = - posTL.x + screenCenter.x - viewWidth/2;
+        if (posTL.x + recWidth > screenCenter.x + visibleViewWidth/2) {
+            offset.x = screenCenter.x + visibleViewWidth/2 - recWidth - posTL.x;
+        } else if (posTL.x < screenCenter.x - visibleViewWidth/2) {
+            offset.x = - posTL.x + screenCenter.x - visibleViewWidth/2;
         }
         if (posTL.y > screenCenter.y + viewHeight/2) {
             offset.y = screenCenter.y + viewHeight/2 - posTL.y;
@@ -1066,7 +1074,7 @@ void minitech::updateDrawTwoTech() {
     float recHeight;
     
     doublePair posTL = livingLifePage->minitechGetLastScreenViewCenter();
-    posTL.x = posTL.x + viewWidth/2;
+    posTL.x = posTL.x + visibleViewWidth/2;
     posTL.y = posTL.y - viewHeight/2;
     
     iconListenerIds.clear();

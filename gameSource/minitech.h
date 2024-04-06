@@ -18,9 +18,6 @@ public:
     
     static bool showUncraftables;
     static bool showCommentsAndTagsInObjectDescription;
-	
-	static float viewWidth;
-	static float viewHeight;
 
 	static Font *handwritingFont;
 	static Font *mainFont;	
@@ -102,11 +99,13 @@ public:
 	static void drawBox(doublePair posCen, float height, float width, float lineWidth);
 	
 	static void initOnBirth();
+	static void changeScale( float newScale );
+	static void clearStep();
 	static void livingLifeStep();
 	static bool livingLifeKeyDown(unsigned char inASCII);
 	static void livingLifeDraw(float mouseX, float mouseY);
 	static bool livingLifePageMouseDown(float mouseX, float mouseY);
-	static void clearStep();
+
 	
 	static std::vector<TransRecord*> currentHintTrans;
 	static int currentTwoTechPage;

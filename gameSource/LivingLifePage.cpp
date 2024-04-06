@@ -75,6 +75,7 @@ extern Font *mainFontReview;
 extern Font *handwritingFont;
 extern Font *pencilFont;
 extern Font *pencilErasedFont;
+extern Font *titleFont;
 
 
 // to make all erased pencil fonts lighter
@@ -9007,7 +9008,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         else if( photoSig != NULL ) {
             float currentFOV = gui_fov_scale;
-            changeFOV( 1.0f );
+            changeFOV( 1.0f ); // reset fov for photo taking temporarily
 
             doublePair pos;
             
@@ -9089,7 +9090,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             photoSequenceNumber = -1;
             waitingForPhotoSig = false;
 
-            changeFOV( currentFOV );
+            changeFOV( currentFOV ); // restore fov after photo taking
             }
         }
     
@@ -11039,8 +11040,7 @@ void LivingLifePage::handleOurDeath( char inDisconnect ) {
 
     setWaiting( false );
 
-    //reset fov on death or disconnect
-		changeFOV( 1.0 );
+    changeFOV( 1.0f ); // reset fov on death or disconnect
 
     if( inDisconnect ) {
         setSignal( "disconnect" );
@@ -14743,20 +14743,12 @@ void LivingLifePage::step() {
                 if( !( mFirstServerMessagesReceived & 1 ) ) {
                     // first map chunk just recieved
 					
-					minitech::initOnBirth();
+                    minitech::changeScale( 1.25 * gui_fov_scale_hud );
+                    minitech::initOnBirth();
                     
                     newbieTips::drawTipsArrow = false;
                     
                     isTrippingEffectOn = isTripping();
-                    
-					//reset fov on birth
-					if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
-						changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
-						}
-					else {
-						changeFOV( 1.0f );
-						}
-					changeHUDFOV( SettingsManager::getFloatSetting( "fovScaleHUD", 1.25f ) );
                     
                     char found = false;
                     int closestX = 0;
@@ -21267,10 +21259,11 @@ void LivingLifePage::makeActive( char inFresh ) {
 
     if( !inFresh ) {
     
-    //set fov to default if opening again
-    if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) {
-      changeFOV( SettingsManager::getFloatSetting( "fovDefault", 1.25f ) );
-      }
+        // reset fov to default when we return from settings page
+        // and we just turned off fov
+        if ( ! SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
+          changeFOV( 1.0f );
+          }
       
 		//reset camera if LivingLifePage is made active again
 		LiveObject *ourLiveObject = getOurLiveObject();
@@ -22453,18 +22446,17 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
 	//FOV
 	if( scaling ) {
-		float currentScale = SettingsManager::getFloatSetting( "fovScale", 1.0f );
-		float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentScale -= 0.25f : currentScale += 0.25f;
-		if ( isShiftKeyDown() ) {
-			newScale = ( mouseButton == MouseButton::WHEELUP ) ? SettingsManager::getFloatSetting( "fovDefault", 1.25f ) : SettingsManager::getFloatSetting( "fovMax", 2.25f );
-            }
         if ( isCommandKeyDown() ) {
-            float currentHUDScale = SettingsManager::getFloatSetting( "fovScaleHUD", 1.25f );
-            newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
+            float currentHUDScale = gui_fov_target_scale_hud;
+            float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
             changeHUDFOV( newScale );
         } else {
-            	if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) changeFOV( newScale );
+            if ( SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
+                float currentScale = gui_fov_scale;
+                float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentScale /= 1.15f : currentScale *= 1.15f;
+                changeFOV( newScale );
             }
+		}
 		return;
 	}
     
@@ -24986,17 +24978,16 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         }
 	if( ( inKeyCode == MG_KEY_LEFT || 
 		inKeyCode == MG_KEY_RIGHT ) && ! vogMode ) {
-		float currentScale = SettingsManager::getFloatSetting( "fovScale", 1.0f );
-		float newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentScale -= 0.25f : currentScale += 0.25f;
-        if ( isShiftKeyDown() ) {
-            newScale = ( inKeyCode == MG_KEY_LEFT ) ? SettingsManager::getFloatSetting( "fovDefault", 1.25f ) : SettingsManager::getFloatSetting( "fovMax", 2.25f );
-            }
         if ( isCommandKeyDown() ) {
-            float currentHUDScale = SettingsManager::getFloatSetting( "fovScaleHUD", 1.25f );
-            newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
+            float currentHUDScale = gui_fov_target_scale_hud;
+            float newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentHUDScale -= 0.10f : currentHUDScale += 0.10f;
             changeHUDFOV( newScale );
         } else {
-		    if ( SettingsManager::getIntSetting( "fovEnabled", 1 ) ) changeFOV( newScale );
+            if ( SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
+                float currentScale = gui_fov_scale;
+                float newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentScale -= 0.25f : currentScale += 0.25f;
+                changeFOV( newScale );
+                }
             }
 		return;
 	    }
@@ -25304,26 +25295,26 @@ void LivingLifePage::calcFontScale( float newScale, Font *font ) {
     }
 
 void LivingLifePage::changeFOV( float newScale ) {
-	float fov_max = SettingsManager::getFloatSetting( "fovMax", 2.25f );
-	
-	if( newScale < 1.0f )
-		newScale = 1.0f;
-	else if( newScale > fov_max )
-		newScale = fov_max;
-	SettingsManager::setSetting( "fovScale", newScale );
+    
+    if( newScale < 1.0f ) {
+        newScale = 1.0f;
+        }
+    else if( newScale > 10.0f ) {
+        newScale = 10.0f;
+        }
 
-	LiveObject *ourLiveObject = getOurLiveObject();
-	if( ourLiveObject != NULL ) {
-		if( ourLiveObject->heldByAdultID != -1 ) {
-			ourLiveObject = getGameObject( ourLiveObject->heldByAdultID );
-			if( ourLiveObject == NULL ) {
-				ourLiveObject = getOurLiveObject();
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject != NULL ) {
+        if( ourLiveObject->heldByAdultID != -1 ) {
+            ourLiveObject = getGameObject( ourLiveObject->heldByAdultID );
+            if( ourLiveObject == NULL ) {
+                ourLiveObject = getOurLiveObject();
                 }
             }
-		screenCenterPlayerOffsetX = int( double( screenCenterPlayerOffsetX ) / gui_fov_scale * newScale );
-		screenCenterPlayerOffsetY = int( double( screenCenterPlayerOffsetY ) / gui_fov_scale * newScale );
+        screenCenterPlayerOffsetX = int( double( screenCenterPlayerOffsetX ) / gui_fov_scale * newScale );
+        screenCenterPlayerOffsetY = int( double( screenCenterPlayerOffsetY ) / gui_fov_scale * newScale );
 
-		if( !vogMode ) {
+        if( !vogMode ) {
             doublePair centerOffset = sub( lastScreenViewCenter, mult( ourLiveObject->currentPos, CELL_D ) );
             centerOffset = mult( centerOffset, 1. / gui_fov_scale );
             centerOffset = mult( centerOffset, newScale );
@@ -25333,50 +25324,46 @@ void LivingLifePage::changeFOV( float newScale ) {
             }
         }
 
-	calcFontScale( newScale, handwritingFont );
-	calcFontScale( newScale, pencilFont );
-	calcFontScale( newScale, pencilErasedFont );
-	
-	calcFontScale( newScale, mainFont );
-	
-	gui_fov_scale = newScale;
-	gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+    calcFontScale( newScale, handwritingFont );
+    calcFontScale( newScale, pencilFont );
+    calcFontScale( newScale, pencilErasedFont );
+    calcFontScale( newScale, titleFont );
+    
+    calcFontScale( newScale, mainFont );
+    
+    gui_fov_scale = newScale;
+    gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
 
-	minitech::viewWidth = 1280 * newScale;
-	minitech::viewHeight = 720 * newScale;
-	minitech::guiScale = 1.25 * gui_fov_scale_hud;
+    minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
-	if(minitech::handwritingFont != NULL) minitech::handwritingFont->setScaleFactor( 16*minitech::guiScale );
-	if(minitech::mainFont != NULL) minitech::mainFont->setScaleFactor( 16*minitech::guiScale );
-	if(minitech::tinyHandwritingFont != NULL) minitech::tinyHandwritingFont->setScaleFactor( 16/2*minitech::guiScale );
-	if(minitech::tinyMainFont != NULL) minitech::tinyMainFont->setScaleFactor( 16/2*minitech::guiScale );
+    calcOffsetHUD();
 
-	calcOffsetHUD();
-
-	visibleViewWidth = 1280 * newScale;
-	viewHeight = 720 * newScale;
-	setLetterbox( 1280 * newScale, 720 * newScale );
-	setViewSize( 1280 * newScale );
+    visibleViewWidth = 1280 * newScale;
+    viewHeight = 720 * newScale;
+    setLetterbox( 1280 * newScale, 720 * newScale );
+    setViewSize( 1280 * newScale );
     }
 
 void LivingLifePage::changeHUDFOV( float newScale ) {
 	if( newScale < 1 ) {
 		newScale = 1.0f;
-	} else if ( newScale > 1.75f ) {
+        } 
+    else if ( newScale > 1.75f ) {
 		newScale = 1.75f;
-	}
+        }
 
 	gui_fov_target_scale_hud = newScale;
     SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
     gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+    
+	minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
 	calcOffsetHUD();
 
 	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 	pencilFont->copySpacing( handwritingFont );
 	pencilErasedFont->copySpacing( handwritingFont );
-	
-	changeFOV( SettingsManager::getFloatSetting( "fovScale", 1.0f ) );
+    titleFont->copySpacing( handwritingFont );
     }
 
 void LivingLifePage::calcOffsetHUD() {
