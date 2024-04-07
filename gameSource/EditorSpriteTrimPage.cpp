@@ -327,6 +327,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
             int *spriteInvisibleWhenWorn = new int[ numSprites ];
             char *spriteBehindSlots = new char[ numSprites ];
             char *spriteInvisibleWhenContained = new char[ numSprites ];
+            char *spriteIgnoredWhenCalculatingCenterOffset = new char[ numSprites ];
             char *spriteIsHead = new char[ numSprites ];
             char *spriteIsBody = new char[ numSprites ];
             char *spriteIsBackFoot = new char[ numSprites ];
@@ -552,6 +553,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                 spriteInvisibleWhenWorn[i] = false;
                 spriteBehindSlots[i] = false;
                 spriteInvisibleWhenContained[i] = false;
+                spriteIgnoredWhenCalculatingCenterOffset[i] = false;
                 spriteIsHead[i] = false;
                 spriteIsBody[i] = false;
                 spriteIsBackFoot[i] = false;
@@ -620,6 +622,8 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        0,
                        0,
                        1,
+                       0,
+                       0,
                        zeroOffset,
                        'n',
                        zeroOffset,
@@ -650,6 +654,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        spriteInvisibleWhenWorn,
                        spriteBehindSlots,
                        spriteInvisibleWhenContained,
+                       spriteIgnoredWhenCalculatingCenterOffset,
                        spriteIsHead,
                        spriteIsBody,
                        spriteIsBackFoot,
@@ -657,7 +662,11 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
                        1,
                        1.0f,
                        spriteUseVanish,
-                       spriteUseAppear );
+                       spriteUseAppear,
+                       false,
+                       -1,
+                       -1,
+                       true );
             
             delete [] spriteBehindPlayer;
             delete [] spriteAdditiveBlend;
@@ -674,6 +683,7 @@ void EditorSpriteTrimPage::actionPerformed( GUIComponent *inTarget ) {
             delete [] spriteInvisibleWhenWorn;
             delete [] spriteBehindSlots;
             delete [] spriteInvisibleWhenContained;
+            delete [] spriteIgnoredWhenCalculatingCenterOffset;
             delete [] spriteIsHead;
             delete [] spriteIsBody;
             delete [] spriteIsBackFoot;

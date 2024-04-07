@@ -18,9 +18,6 @@ public:
     
     static bool showUncraftables;
     static bool showCommentsAndTagsInObjectDescription;
-	
-	static float viewWidth;
-	static float viewHeight;
 
 	static Font *handwritingFont;
 	static Font *mainFont;	
@@ -66,7 +63,8 @@ public:
 	static bool isCategory(int objId);
 	static mouseListener* getMouseListenerByArea(
 		std::vector<mouseListener*>* listeners, doublePair posTL, doublePair posBR );
-	static GridPos getClosestTile(GridPos src, int objId);	
+	static GridPos getClosestTile(GridPos src, int objId, bool useDummiesAllowed);	
+	static bool hasUses(int objId);
 	static bool isUseDummy(int objId);
 	static bool isUseDummyAndNotLastUse(int objId);
 	static int getDummyUse(int objId);
@@ -101,17 +99,22 @@ public:
 	static void drawBox(doublePair posCen, float height, float width, float lineWidth);
 	
 	static void initOnBirth();
+	static void changeScale( float newScale );
+	static void clearStep();
 	static void livingLifeStep();
 	static bool livingLifeKeyDown(unsigned char inASCII);
 	static void livingLifeDraw(float mouseX, float mouseY);
 	static bool livingLifePageMouseDown(float mouseX, float mouseY);
+
 	
 	static std::vector<TransRecord*> currentHintTrans;
 	static int currentTwoTechPage;
 	static int useOrMake;
 	static int lastUseOrMake;
 	static int currentHintObjId;
+	static int highlightObjId;
 	static int lastHintObjId;
+    static bool currentHintTranRequiresFullUses;
 	static std::string lastHintStr;
     static bool lastHintSearchNoResults;
 	static bool changeHintObjOnTouch;
@@ -121,6 +124,8 @@ public:
 	static std::vector<TransRecord*> sortUsesTrans(std::vector<TransRecord*> unsortedTrans);
 	static std::vector<TransRecord*> sortProdTrans(std::vector<TransRecord*> unsortedTrans);
 	static void updateDrawTwoTech();
+    static std::vector<std::pair<mouseListener*,int>> iconListenerIds;
+	static void drawIconOnHoverTips();
 	static void inputHintStrToSearch(std::string hintStr);
     static void changeCurrentHintObjId(int objID);
 

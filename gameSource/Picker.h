@@ -41,6 +41,8 @@ class Picker : public PageComponent, ActionListener,
         // add a function that filters each result and returns true
         // for results that should be unclickable
         void addFilter( char(*inUnclickableFunc)( int inID ) );
+        
+        void removeFilters();
 
         virtual void actionPerformed( GUIComponent *inTarget );
 
