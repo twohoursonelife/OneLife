@@ -9539,6 +9539,42 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+    if( ourLiveObject != NULL ) {
+        doublePair coordinatesPos = {-946.0, 406.0};
+        
+        char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x, (int)ourLiveObject->currentPos.y );
+        double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
+        
+        if( len < 104 ) {
+            len = 104;
+            }
+        else if( len < 120 ) {
+            len = 120;
+            }
+        else if( len < 160 ) {
+            len = 160;
+            }
+        
+        double paddingX = 16.0;
+        double paddingY = 12.0;
+        
+        doublePair sheetPositioningOffset = { paddingX + len + paddingX, -( paddingY + 16.0 + paddingY )};
+        coordinatesPos = add( coordinatesPos, sheetPositioningOffset);
+        coordinatesPos = add( mult( recalcOffset( coordinatesPos ), gui_fov_scale ), lastScreenViewCenter );
+        
+        setDrawColor( 1, 1, 1, 1 );
+        drawSprite( mHintSheetSprites[0], coordinatesPos, gui_fov_scale_hud, 0.5 );
+        
+        coordinatesPos = {-1280 / 2, 720 / 2};
+
+        coordinatesPos.x += sheetPositioningOffset.x / 2;
+        coordinatesPos.y += sheetPositioningOffset.y / 2;
+        
+        coordinatesPos = add( mult( recalcOffset( coordinatesPos ), gui_fov_scale ), lastScreenViewCenter );
+        
+        setDrawColor( 0, 0, 0, 1 );
+        handwritingFont->drawString( line, coordinatesPos, alignCenter );
+        }
 
 
     // now draw tutorial sheets
