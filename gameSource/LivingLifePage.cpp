@@ -9539,8 +9539,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+    
+    char hoveringCoordinates = false;
+    float worldMouseX, worldMouseY;
+    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
+    
+    
     if( ourLiveObject != NULL ) {
-        doublePair coordinatesPos = {-946.0, 406.0};
+        doublePair coordinatesHidePos = {-946.0, 406.0};
         
         char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x, (int)ourLiveObject->currentPos.y );
         double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
@@ -9558,17 +9565,28 @@ void LivingLifePage::draw( doublePair inViewCenter,
         double paddingX = 16.0;
         double paddingY = 12.0;
         
-        doublePair sheetPositioningOffset = { paddingX + len + paddingX, -( paddingY + 16.0 + paddingY )};
-        coordinatesPos = add( coordinatesPos, sheetPositioningOffset);
+        doublePair coordinatesSize = { paddingX + len + paddingX, -( paddingY + 16.0 + paddingY )};
+        doublePair coordinatesPos = add( coordinatesHidePos, coordinatesSize);
         coordinatesPos = add( mult( recalcOffset( coordinatesPos ), gui_fov_scale ), lastScreenViewCenter );
         
+        doublePair coordinatesTL = {-1280.0 / 2, 720.0 / 2};
+        doublePair coordinatesBR = add( coordinatesTL, coordinatesSize);
+        coordinatesTL = add( mult( recalcOffset( coordinatesTL ), gui_fov_scale ), lastScreenViewCenter );
+        coordinatesBR = add( mult( recalcOffset( coordinatesBR ), gui_fov_scale ), lastScreenViewCenter );
+        if( coordinatesTL.x <= worldMouseX && worldMouseX <= coordinatesBR.x &&
+            coordinatesTL.y >= worldMouseY && worldMouseY >= coordinatesBR.y
+            ) {
+                hoveringCoordinates = true;
+            }
+
         setDrawColor( 1, 1, 1, 1 );
+        if( hoveringCoordinates ) setDrawColor( 1, 1, 1, 0.8 );
         drawSprite( mHintSheetSprites[0], coordinatesPos, gui_fov_scale_hud, 0.5 );
         
-        coordinatesPos = {-1280 / 2, 720 / 2};
+        coordinatesPos = {-1280.0 / 2, 720.0 / 2};
 
-        coordinatesPos.x += sheetPositioningOffset.x / 2;
-        coordinatesPos.y += sheetPositioningOffset.y / 2;
+        coordinatesPos.x += coordinatesSize.x / 2;
+        coordinatesPos.y += coordinatesSize.y / 2;
         
         coordinatesPos = add( mult( recalcOffset( coordinatesPos ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -10420,9 +10438,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // draw minitech gui before, to hide the background behind the bottom bar
-    float worldMouseX, worldMouseY;
-    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
     minitech::livingLifeDraw(worldMouseX, worldMouseY);
 
     // info panel at bottom, over top of all the other slips
