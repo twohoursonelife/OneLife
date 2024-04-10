@@ -2986,6 +2986,10 @@ LivingLifePage::LivingLifePage()
         
         mNumTotalHints[i] = 0;
         }
+
+    bigSheet = loadSprite( "bigHintSheet.tga", false );
+    showCoordinatesPanel = false;
+    hoveringCoordinates = false;
     
     mLiveHintSheetIndex = -1;
 
@@ -3372,6 +3376,8 @@ LivingLifePage::~LivingLifePage() {
 	freeSprite( guiPanelLeftSprite );
 	freeSprite( guiPanelTileSprite );
 	freeSprite( guiPanelRightSprite );
+
+    freeSprite( bigSheet );
     
     freeSprite( mFloorSplitSprite );
     
@@ -9540,12 +9546,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    char hoveringCoordinates = false;
     float worldMouseX, worldMouseY;
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
     screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
     
-    
+    hoveringCoordinates = false;
+
     if( ourLiveObject != NULL ) {
         doublePair coordinatesHidePos = {-946.0, 406.0};
         
@@ -9592,6 +9598,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         setDrawColor( 0, 0, 0, 1 );
         handwritingFont->drawString( line, coordinatesPos, alignCenter );
+        }
+
+    if( showCoordinatesPanel ) {
+        doublePair coordinatesPanelHidePos = {-1280.0/2 - 203.0, 720.0/2 + 208.0};
+        doublePair coordinatesPanelSize = {250, -464};
+        doublePair coordinatesPanelPos = add( coordinatesPanelHidePos, coordinatesPanelSize);
+
+        coordinatesPanelPos = add( mult( recalcOffset( coordinatesPanelPos ), gui_fov_scale ), lastScreenViewCenter );
+        
+        setDrawColor( 1, 1, 1, 1 );
+        drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
         }
 
 
@@ -22586,6 +22603,12 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
         // block further actions until update received to confirm last
         // action
+        return;
+        }
+
+    if( !mForceGroundClick )
+    if( hoveringCoordinates ) {
+        showCoordinatesPanel = true;
         return;
         }
     
