@@ -71,6 +71,7 @@ TwinPage.cpp \
 objectMetadata.cpp \
 emotion.cpp \
 Picker.cpp \
+ClickableComponent.cpp \
 PickableStatics.cpp \
 photos.cpp \
 lifeTokens.cpp \

@@ -60,6 +60,8 @@ static ObjectPickable objectPickable;
 #include "minitech.h"
 #include "newbieTips.h"
 
+#include "ClickableComponent.h"
+
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
 
@@ -2795,7 +2797,9 @@ LivingLifePage::LivingLifePage()
           mUsingSteam( false ),
           mZKeyDown( false ),
           mXKeyDown( false ),
-          mObjectPicker( &objectPickable, +510, 90 ) {
+          mObjectPicker( &objectPickable, +510, 90 ),
+          coordinatesComponent(),
+          coordinatesPanelComponent() {
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -2988,8 +2992,7 @@ LivingLifePage::LivingLifePage()
         }
 
     bigSheet = loadSprite( "bigHintSheet.tga", false );
-    showCoordinatesPanel = false;
-    hoveringCoordinates = false;
+    coordinatesComponent.mActive = true; //TODO - settings
     
     mLiveHintSheetIndex = -1;
 
@@ -9546,70 +9549,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    float worldMouseX, worldMouseY;
-    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
-    
-    hoveringCoordinates = false;
-
-    if( ourLiveObject != NULL ) {
-        doublePair coordinatesHidePos = {-946.0, 406.0};
-        
-        char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x, (int)ourLiveObject->currentPos.y );
-        double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
-        
-        if( len < 104 ) {
-            len = 104;
-            }
-        else if( len < 120 ) {
-            len = 120;
-            }
-        else if( len < 160 ) {
-            len = 160;
-            }
-        
-        double paddingX = 16.0;
-        double paddingY = 12.0;
-        
-        doublePair coordinatesSize = { paddingX + len + paddingX, -( paddingY + 16.0 + paddingY )};
-        doublePair coordinatesPos = add( coordinatesHidePos, coordinatesSize);
-        coordinatesPos = add( mult( recalcOffset( coordinatesPos ), gui_fov_scale ), lastScreenViewCenter );
-        
-        doublePair coordinatesTL = {-1280.0 / 2, 720.0 / 2};
-        doublePair coordinatesBR = add( coordinatesTL, coordinatesSize);
-        coordinatesTL = add( mult( recalcOffset( coordinatesTL ), gui_fov_scale ), lastScreenViewCenter );
-        coordinatesBR = add( mult( recalcOffset( coordinatesBR ), gui_fov_scale ), lastScreenViewCenter );
-        if( coordinatesTL.x <= worldMouseX && worldMouseX <= coordinatesBR.x &&
-            coordinatesTL.y >= worldMouseY && worldMouseY >= coordinatesBR.y
-            ) {
-                hoveringCoordinates = true;
-            }
-
-        setDrawColor( 1, 1, 1, 1 );
-        if( hoveringCoordinates ) setDrawColor( 1, 1, 1, 0.8 );
-        drawSprite( mHintSheetSprites[0], coordinatesPos, gui_fov_scale_hud, 0.5 );
-        
-        coordinatesPos = {-1280.0 / 2, 720.0 / 2};
-
-        coordinatesPos.x += coordinatesSize.x / 2;
-        coordinatesPos.y += coordinatesSize.y / 2;
-        
-        coordinatesPos = add( mult( recalcOffset( coordinatesPos ), gui_fov_scale ), lastScreenViewCenter );
-        
-        setDrawColor( 0, 0, 0, 1 );
-        handwritingFont->drawString( line, coordinatesPos, alignCenter );
-        }
-
-    if( showCoordinatesPanel ) {
-        doublePair coordinatesPanelHidePos = {-1280.0/2 - 203.0, 720.0/2 + 208.0};
-        doublePair coordinatesPanelSize = {250, -464};
-        doublePair coordinatesPanelPos = add( coordinatesPanelHidePos, coordinatesPanelSize);
-
-        coordinatesPanelPos = add( mult( recalcOffset( coordinatesPanelPos ), gui_fov_scale ), lastScreenViewCenter );
-        
-        setDrawColor( 1, 1, 1, 1 );
-        drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
-        }
 
 
     // now draw tutorial sheets
@@ -10022,6 +9961,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // cursor-tips
+    if( !coordinatesPanelComponent.mHover && !coordinatesComponent.mHover )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -10451,6 +10391,80 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 mCurrentDes = NULL;
                 }
             }
+        }
+
+
+    float worldMouseX, worldMouseY;
+    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
+
+
+    // Coordinates Panel
+    if( coordinatesPanelComponent.mActive ) {
+        doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
+        doublePair coordinatesPanelHidePos = {-198, 199};
+        doublePair coordinatesPanelSize = {264, -455};
+
+        doublePair coordinatesPanelPos = add( coordinatesPanelHidePos, coordinatesPanelSize);
+
+        coordinatesPanelPos = mult( coordinatesPanelPos, gui_fov_scale_hud );
+        coordinatesPanelPos = add( coordinatesPanelPos, screenTL );
+        coordinatesPanelPos = add( coordinatesPanelPos, lastScreenViewCenter );
+
+        doublePair coordinatesPanelTL = screenTL;
+        doublePair coordinatesPanelBR = add(coordinatesPanelTL, mult( coordinatesPanelSize, gui_fov_scale_hud ) );
+        coordinatesPanelTL = add( coordinatesPanelTL, lastScreenViewCenter );
+        coordinatesPanelBR = add( coordinatesPanelBR, lastScreenViewCenter );
+        
+        coordinatesPanelComponent.setClickableArea( coordinatesPanelTL, coordinatesPanelBR );
+
+        setDrawColor( 1, 1, 1, 0.9 );
+        if( coordinatesPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
+        }
+
+    // Coordinates
+    if( ourLiveObject != NULL ) {
+
+        char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x, (int)ourLiveObject->currentPos.y );
+        double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
+        
+        if( len < 104 ) len = 104;
+        else if( len < 120 ) len = 120;
+        else if( len < 160 ) len = 160;
+
+        double paddingX = 16.0;
+        double paddingY = 12.0;
+
+        doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
+        doublePair coordinatesHidePos = {-307, 45};
+        doublePair coordinatesSize = { paddingX + len + paddingX, -( paddingY + 16.0 + paddingY )};
+
+        doublePair coordinatesPos = add( coordinatesHidePos, coordinatesSize );
+
+        coordinatesPos = mult( coordinatesPos, gui_fov_scale_hud );
+        coordinatesPos = add( coordinatesPos, screenTL );
+        coordinatesPos = add( coordinatesPos, lastScreenViewCenter );
+
+        doublePair coordinatesTL = screenTL;
+        doublePair coordinatesBR = add(coordinatesTL, mult( coordinatesSize, gui_fov_scale_hud ) );
+        coordinatesTL = add( coordinatesTL, lastScreenViewCenter );
+        coordinatesBR = add( coordinatesBR, lastScreenViewCenter );
+        coordinatesComponent.setClickableArea( coordinatesTL, coordinatesBR );
+
+        setDrawColor( 1, 1, 1, 0.9 );
+        if( coordinatesComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        if( coordinatesComponent.mActive )
+        drawSprite( mHintSheetSprites[0], coordinatesPos, gui_fov_scale_hud, 0.5 );
+
+
+        doublePair coordinatesTextPos = mult( coordinatesSize, 0.5 );
+        coordinatesTextPos = mult( coordinatesTextPos, gui_fov_scale_hud );
+        coordinatesTextPos = add( coordinatesTextPos, screenTL );
+        coordinatesTextPos = add( coordinatesTextPos, lastScreenViewCenter );
+
+        setDrawColor( 0, 0, 0, 1 );
+        handwritingFont->drawString( line, coordinatesTextPos, alignCenter );
         }
 
 
@@ -22170,6 +22184,9 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         return;
         }
 
+    coordinatesPanelComponent.pointerMove(inX, inY);
+    coordinatesComponent.pointerMove(inX, inY);
+
     PointerHitRecord p;
     
     p.hitSlotIndex = -1;
@@ -22606,10 +22623,19 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 
-    if( !mForceGroundClick )
-    if( hoveringCoordinates ) {
-        showCoordinatesPanel = true;
-        return;
+    if( !mForceGroundClick ) {
+        if( coordinatesComponent.mActive && coordinatesComponent.pointerDown(inX, inY) ) {
+            coordinatesComponent.mActive = false;
+            coordinatesPanelComponent.mActive = true;
+            coordinatesPanelComponent.mHover = true;
+            return;
+            }
+        else if( coordinatesPanelComponent.mActive && coordinatesPanelComponent.pointerDown(inX, inY) ) {
+            coordinatesComponent.mActive = true;
+            coordinatesPanelComponent.mActive = false;
+            coordinatesComponent.mHover = true;
+            return;
+            }
         }
     
 

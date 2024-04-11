@@ -17,6 +17,7 @@
 #include "GamePage.h"
 
 #include "Picker.h"
+#include "ClickableComponent.h"
 
 
 #include "pathFind.h"
@@ -758,8 +759,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         doublePair mHintExtraOffset[NUM_HINT_SHEETS];
 
         SpriteHandle bigSheet;
-        char showCoordinatesPanel;
-        char hoveringCoordinates;
 
         // # separates lines
         char *mHintMessage[NUM_HINT_SHEETS];
@@ -1065,6 +1064,9 @@ class LivingLifePage : public GamePage, public ActionListener {
         char mPlayerInFlight;
 
         Picker mObjectPicker;
+
+        ClickableComponent coordinatesComponent;
+        ClickableComponent coordinatesPanelComponent;
         
         
         void pushOldHintArrow( int inIndex );
