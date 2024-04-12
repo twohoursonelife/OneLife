@@ -389,15 +389,20 @@ typedef struct SavedCoordinates {
 
 static SimpleVector<SavedCoordinates> SavedCoordinatesList;
 static SavedCoordinates savedOrigin;
+static int nextSavedCoordinatesLetter = 1;
 
 static void addCoordinates( SavedCoordinates newCoords ) {
     for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
         SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
         if( oldCoords.x == newCoords.x && oldCoords.y == newCoords.y ) {
+            if( oldCoords.name != newCoords.name ) {
+                    (*( SavedCoordinatesList.getElement( i ) )).name = newCoords.name;
+                }
             return;
             }
         }
-    SavedCoordinatesList.push_back( newCoords );
+    if( SavedCoordinatesList.size() < 14 ) 
+        SavedCoordinatesList.push_back( newCoords );
     }
 
 static void removeCoordinatesByXY( int x, int y ) {
@@ -10438,9 +10443,32 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     // Coordinates Panel
     if( coordinatesPanelComponent.mActive ) {
+
+        //TODO - a button to close the panel
+
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
         doublePair coordinatesPanelHidePos = {-198, 199};
-        doublePair coordinatesPanelSize = {264, -455};
+
+
+        double longestCoords = 0;
+        double longestName = 0;
+        double spaceX = 12.0;
+        double paddingX = 12.0;
+
+        for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+            SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x, savedCoords.y );
+            char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
+            double lenCoords = handwritingFont->measureString( lineCoords ) / gui_fov_scale_hud;
+            double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
+            if( lenCoords > longestCoords ) longestCoords = lenCoords;
+            if( lenName > longestName ) longestName = lenName;
+            }
+
+        double coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
+        if( coordinatesPanelWidth < 264 ) coordinatesPanelWidth = 264; // 120
+
+        doublePair coordinatesPanelSize = {coordinatesPanelWidth, -455};
 
         doublePair coordinatesPanelPos = add( coordinatesPanelHidePos, coordinatesPanelSize);
 
@@ -10459,25 +10487,30 @@ void LivingLifePage::draw( doublePair inViewCenter,
         if( coordinatesPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
 
-        //TODO
-        double paddingY = 8.0;
-        double spaceX = coordinatesPanelSize.x / 6;
+        //TODO - click to re-center origin and remove coords
+        double paddingY = 12.0;
+
         doublePair pos = screenTL;
-        pos.x += coordinatesPanelSize.x / 2 * gui_fov_scale_hud;
+        pos.x += paddingX * gui_fov_scale_hud;
         pos.y -= (12.0 + 16.0 * 2 + paddingY * 2) * gui_fov_scale_hud;
         
         pos = add( pos, lastScreenViewCenter );
+
+
 
         for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
             SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
             char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x, savedCoords.y );
             char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
             setDrawColor( 0, 0, 0, 1.0 );
-            pos.x -= spaceX * 2.5 * gui_fov_scale_hud;
+            
             handwritingFont->drawString( lineName, pos, alignLeft );
-            pos.x += spaceX * 2.5 * gui_fov_scale_hud;
+            
+            pos.x += (longestName + spaceX) * gui_fov_scale_hud;
             handwritingFont->drawString( lineCoords, pos, alignLeft );
-            pos.y -= 16.0 + paddingY * gui_fov_scale_hud;
+            
+            pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
+            pos.y -= (16.0 + paddingY) * gui_fov_scale_hud;
             }
         }
 
@@ -22686,10 +22719,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             coordinatesComponent.mActive = false;
             coordinatesPanelComponent.mActive = true;
             coordinatesPanelComponent.mHover = true;
-
-            LiveObject *ourLiveObject = getOurLiveObject();
-            SavedCoordinates p = {int(ourLiveObject->currentPos.x), int(ourLiveObject->currentPos.y), "HOME", 0};
-            addCoordinates( p );
             return;
             }
         else if( coordinatesPanelComponent.mActive && coordinatesPanelComponent.pointerDown(inX, inY) ) {
@@ -24985,6 +25014,66 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                             else if( !strcmp( typedText,
                                              translate( "disconnectCommand" ) ) ) {
                                 forceDisconnect = true;
+                                }
+                            else if( 
+                                !strcmp( typedText, "/MARK") || // either exact match of the command
+                                strstr( typedText, "/MARK " ) == typedText // or match the command followed by a space
+                                ) {
+
+                                // hence "/MARKER" will not make it here
+                                
+                                if( !strcmp( typedText, "/MARK") ) {
+                                    // exact match
+                                    // save current coords
+                                    LiveObject *ourLiveObject = getOurLiveObject();
+                                    char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
+                                    SavedCoordinates p = {
+                                        int(ourLiveObject->currentPos.x),
+                                        int(ourLiveObject->currentPos.y), 
+                                        name,
+                                        0
+                                        };
+                                    addCoordinates( p );
+                                    nextSavedCoordinatesLetter++;
+                                    }
+                                else {
+                                    // got here, we have arguments
+
+                                    int x, y;
+                                    char nameBuffer[10];
+                                    nameBuffer[0] = '\0';
+
+                                    int numRead = sscanf( typedText, "/MARK %d %d %8s", &x, &y, nameBuffer );
+                                    
+                                    if( numRead == 3 ) {
+                                        std::string name(nameBuffer);
+                                        SavedCoordinates p = {x, y, name.c_str(), 0};
+                                        addCoordinates( p );
+                                        }
+                                    else if( numRead == 2 ) {
+                                        char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
+                                        SavedCoordinates p = {x, y, name, 0};
+                                        addCoordinates( p );
+                                        nextSavedCoordinatesLetter++;
+                                        }
+                                    else {
+                                        // first argument is not numeric
+                                        // "%*[ \t]" makes sure there is at least one space after the command
+                                        int numRead2 = sscanf( typedText, "/MARK%*[ \t]%8s", nameBuffer );
+                                        if( numRead2 == 1 ) {
+                                            std::string name(nameBuffer);
+                                            LiveObject *ourLiveObject = getOurLiveObject();
+                                            SavedCoordinates p = {
+                                                int(ourLiveObject->currentPos.x),
+                                                int(ourLiveObject->currentPos.y), 
+                                                name.c_str(),
+                                                0
+                                                };
+                                            addCoordinates( p );
+                                            }
+                                        }
+                                    }
+
                                 }
                             else {
                                 // filter hints
