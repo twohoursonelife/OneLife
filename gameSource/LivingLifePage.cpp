@@ -374,6 +374,43 @@ static bool isHoveringPicker( float x, float y ) {
     return false;
 }
 
+
+// Saved Coords
+typedef struct SavedCoordinates {
+        int x;
+        int y;
+        std::string name;
+        // 0 custom
+        // 1 birth location and home markers
+        // 2 maps
+        // 3 others
+        int type;
+    } SavedCoordinates;
+
+static SimpleVector<SavedCoordinates> SavedCoordinatesList;
+static SavedCoordinates savedOrigin;
+
+static void addCoordinates( SavedCoordinates newCoords ) {
+    for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+        SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
+        if( oldCoords.x == newCoords.x && oldCoords.y == newCoords.y ) {
+            return;
+            }
+        }
+    SavedCoordinatesList.push_back( newCoords );
+    }
+
+static void removeCoordinatesByXY( int x, int y ) {
+    for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+        SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
+        if( oldCoords.x == x && oldCoords.y == y ) {
+            SavedCoordinatesList.deleteElement( i );
+            return;
+            }
+        }
+    }
+
+
 static SimpleVector<char*> passwordProtectingPhrases;
 
 static void readPhrases( const char *inSettingsName, 
@@ -2791,7 +2828,7 @@ LivingLifePage::LivingLifePage()
           mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
           mPathMarkSprite( loadWhiteSprite( "pathMark.tga" ) ),
           mSayField( handwritingFont, 0, 1000, 10, true, NULL,
-                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ " ),
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ 0123456789" ),
           mDeathReason( NULL ),
           mShowHighlights( true ),
           mUsingSteam( false ),
@@ -10421,6 +10458,27 @@ void LivingLifePage::draw( doublePair inViewCenter,
         setDrawColor( 1, 1, 1, 0.9 );
         if( coordinatesPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
+
+        //TODO
+        double paddingY = 8.0;
+        double spaceX = coordinatesPanelSize.x / 6;
+        doublePair pos = screenTL;
+        pos.x += coordinatesPanelSize.x / 2 * gui_fov_scale_hud;
+        pos.y -= (12.0 + 16.0 * 2 + paddingY * 2) * gui_fov_scale_hud;
+        
+        pos = add( pos, lastScreenViewCenter );
+
+        for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+            SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x, savedCoords.y );
+            char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
+            setDrawColor( 0, 0, 0, 1.0 );
+            pos.x -= spaceX * 2.5 * gui_fov_scale_hud;
+            handwritingFont->drawString( lineName, pos, alignLeft );
+            pos.x += spaceX * 2.5 * gui_fov_scale_hud;
+            handwritingFont->drawString( lineCoords, pos, alignLeft );
+            pos.y -= 16.0 + paddingY * gui_fov_scale_hud;
+            }
         }
 
     // Coordinates
@@ -22628,6 +22686,10 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             coordinatesComponent.mActive = false;
             coordinatesPanelComponent.mActive = true;
             coordinatesPanelComponent.mHover = true;
+
+            LiveObject *ourLiveObject = getOurLiveObject();
+            SavedCoordinates p = {int(ourLiveObject->currentPos.x), int(ourLiveObject->currentPos.y), "HOME", 0};
+            addCoordinates( p );
             return;
             }
         else if( coordinatesPanelComponent.mActive && coordinatesPanelComponent.pointerDown(inX, inY) ) {
