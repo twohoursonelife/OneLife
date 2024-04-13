@@ -9608,58 +9608,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
 
 
-    // now draw tutorial sheets
-    if( mTutorialNumber > 0 || mGlobalMessageShowing )
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-        if( ! equal( mTutorialPosOffset[i], mTutorialHideOffset[i] ) ) {
-            
-            doublePair tutorialPos  = 
-                add( mult( recalcOffset( mTutorialPosOffset[i], true ), gui_fov_scale ), lastScreenViewCenter );
-            
-            if( i % 2 == 1 ) {
-                tutorialPos = sub( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
-                }
-            else {
-                tutorialPos = add( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
-                }
-            
-            setDrawColor( 1, 1, 1, 1 );
-            // rotate 180
-            drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_scale_hud, 0.5,
-                        mTutorialFlips[i] );
-            
 
-            setDrawColor( 0, 0, 0, 1.0f );
-            double lineSpacing = handwritingFont->getFontHeight() / 2 + 16 * gui_fov_scale_hud;
-            
-            int numLines;
-            
-            char **lines = split( mTutorialMessage[i], "##", &numLines );
-            
-            doublePair lineStart = tutorialPos;
-            
-            if( i % 2 == 1 ) {
-                lineStart.x -= 289 * gui_fov_scale_hud;
-                //lineStart.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
-                }
-            else {
-                lineStart.x += 289 * gui_fov_scale_hud;
-                lineStart.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
-                }
-            
-            lineStart.y += 8 * gui_fov_scale_hud;
-            for( int l=0; l<numLines; l++ ) {
-                
-                handwritingFont->drawString( lines[l], 
-                                             lineStart, alignLeft );
-                    
-                delete [] lines[l];
-                
-                lineStart.y -= lineSpacing;
-                }
-            delete [] lines;
-            }
-        }
 
 
 
@@ -10585,6 +10534,60 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         setDrawColor( 0, 0, 0, 1 );
         handwritingFont->drawString( line, coordinatesTextPos, alignCenter );
+        }
+
+
+    // now draw tutorial sheets
+    if( mTutorialNumber > 0 || mGlobalMessageShowing )
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        if( ! equal( mTutorialPosOffset[i], mTutorialHideOffset[i] ) ) {
+            
+            doublePair tutorialPos  = 
+                add( mult( recalcOffset( mTutorialPosOffset[i], true ), gui_fov_scale ), lastScreenViewCenter );
+            
+            if( i % 2 == 1 ) {
+                tutorialPos = sub( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
+                }
+            else {
+                tutorialPos = add( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
+                }
+            
+            setDrawColor( 1, 1, 1, 1 );
+            // rotate 180
+            drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_scale_hud, 0.5,
+                        mTutorialFlips[i] );
+            
+
+            setDrawColor( 0, 0, 0, 1.0f );
+            double lineSpacing = handwritingFont->getFontHeight() / 2 + 16 * gui_fov_scale_hud;
+            
+            int numLines;
+            
+            char **lines = split( mTutorialMessage[i], "##", &numLines );
+            
+            doublePair lineStart = tutorialPos;
+            
+            if( i % 2 == 1 ) {
+                lineStart.x -= 289 * gui_fov_scale_hud;
+                //lineStart.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
+                }
+            else {
+                lineStart.x += 289 * gui_fov_scale_hud;
+                lineStart.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
+                }
+            
+            lineStart.y += 8 * gui_fov_scale_hud;
+            for( int l=0; l<numLines; l++ ) {
+                
+                handwritingFont->drawString( lines[l], 
+                                             lineStart, alignLeft );
+                    
+                delete [] lines[l];
+                
+                lineStart.y -= lineSpacing;
+                }
+            delete [] lines;
+            }
         }
 
 
@@ -20692,12 +20695,16 @@ void LivingLifePage::step() {
                                 o->waypointX = lrint( worldMouseX / CELL_D );
                                 o->waypointY = lrint( worldMouseY / CELL_D );
 
+                                mForceGroundClick = true;
                                 pointerDown( fakeClick.x, fakeClick.y );
+                                mForceGroundClick = false;
                                
                                 o->useWaypoint = false;
                                 }
                             else {
+                                mForceGroundClick = true;
                                 pointerDown( worldMouseX, worldMouseY );
+                                mForceGroundClick = false;
                                 }
                             }
                         }
