@@ -392,6 +392,54 @@ static SimpleVector<ClickableComponent> SavedCoordinatesComponentList;
 static SavedCoordinates savedOrigin;
 static int nextSavedCoordinatesLetter = 1;
 
+static char *formatCoordinate( int num, char allowThousands = false ) {
+    char sign = 1;
+    if( num < 0 ) {
+        sign = -1;
+        num = -num;
+        }
+    char *numString = NULL;
+    char exception = num > 1000 && num < 10000 && allowThousands;
+    if( num > 1000 && !exception ) {
+        double thousands = num / 1000;
+            
+        if( thousands < 1000  ) {
+            if( thousands < 10 ) {
+                numString = autoSprintf( "%.1fK", thousands );
+                }
+            else {
+                numString = autoSprintf( "%.0fK", 
+                                            thousands );
+                }
+            }
+        else {
+            double millions = num / 1000000;
+            if( millions < 1000 ) {
+                if( millions < 10 ) {
+                    numString = autoSprintf( "%.1fM", millions );
+                    }
+                else {
+                    numString = autoSprintf( "%.0fM", millions );
+                    }
+                }
+            else {
+                double billions = num / 1000000000;
+                    
+                numString = autoSprintf( "%.1fG", billions );
+                }
+            }
+        }
+    else {
+        numString = autoSprintf( "%d", num );
+        }
+    
+    if( sign == -1 ) {
+        numString = autoSprintf( "-%s", numString );
+        }
+    
+    return numString;
+    }
+
 static void resizeSavedCoordinatesComponentList() {
     SavedCoordinatesComponentList.deleteAll();
     for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
@@ -401,22 +449,23 @@ static void resizeSavedCoordinatesComponentList() {
     return;
     }
 
-static void addCoordinates( SavedCoordinates newCoords ) {
+// return false when it is blocked
+static char addCoordinates( SavedCoordinates newCoords ) {
     for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
         SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
         if( oldCoords.x == newCoords.x && oldCoords.y == newCoords.y ) {
             if( oldCoords.name != newCoords.name ) {
                     (*( SavedCoordinatesList.getElement( i ) )).name = newCoords.name;
                 }
-            return;
+            return true;
             }
         }
-    if( SavedCoordinatesList.size() < 14 ) {
+    if( SavedCoordinatesList.size() < 12 ) {
         SavedCoordinatesList.push_back( newCoords );
         resizeSavedCoordinatesComponentList();
-        return;
+        return true;
         }
-    return;
+    return false;
     }
 
 static void removeCoordinatesByXY( int x, int y ) {
@@ -10421,7 +10470,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
             SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x - savedOrigin.x, savedCoords.y - savedOrigin.y );
+            char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
             char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
             double lenCoords = handwritingFont->measureString( lineCoords ) / gui_fov_scale_hud;
             double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
@@ -10470,7 +10519,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
             SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x - savedOrigin.x, savedCoords.y - savedOrigin.y );
+            char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
             char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
             
             ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
@@ -10531,7 +10580,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
     // Coordinates
     if( ourLiveObject != NULL ) {
 
-        char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x - savedOrigin.x, (int)ourLiveObject->currentPos.y - savedOrigin.y );
+        char *line = autoSprintf( "(%s, %s)", 
+            formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
+            formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
+            );
         double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
         
         if( len < 104 ) len = 104;
@@ -25128,6 +25180,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 ) {
 
                                 // hence "/MARKER" will not make it here
+
+                                char *errorMessage = NULL;
                                 
                                 if( !strcmp( typedText, "/MARK") ) {
                                     // exact match
@@ -25140,8 +25194,13 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                         name,
                                         0
                                         };
-                                    addCoordinates( p );
-                                    nextSavedCoordinatesLetter++;
+                                    char added = addCoordinates( p );
+                                    if( added ) {
+                                        nextSavedCoordinatesLetter++;
+                                        }
+                                    else {
+                                        errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                        }
                                     }
                                 else {
                                     // got here, we have arguments
@@ -25152,16 +25211,37 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
                                     int numRead = sscanf( typedText, "/MARK %d %d %8s", &x, &y, nameBuffer );
                                     
+                                    // a rather blunt way to prevent large input
+                                    int numericLimit = 1000000;
+                                    
                                     if( numRead == 3 ) {
-                                        std::string name(nameBuffer);
-                                        SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name.c_str(), 0};
-                                        addCoordinates( p );
+                                        if( abs(x) < numericLimit && abs(y) < numericLimit ) {
+                                            std::string name(nameBuffer);
+                                            SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name.c_str(), 0};
+                                            char added = addCoordinates( p );
+                                            if( !added ) {
+                                                errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                                }
+                                            }
+                                        else {
+                                            errorMessage = autoSprintf( "%s", "THE NUMBERS ARE TOO LARGE." );
+                                            }
                                         }
                                     else if( numRead == 2 ) {
-                                        char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
-                                        SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name, 0};
-                                        addCoordinates( p );
-                                        nextSavedCoordinatesLetter++;
+                                        if( abs(x) < numericLimit && abs(y) < numericLimit ) {
+                                            char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
+                                            SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name, 0};
+                                            char added = addCoordinates( p );
+                                            if( added ) {
+                                                nextSavedCoordinatesLetter++;
+                                                }
+                                            else {
+                                                errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                                }
+                                            }
+                                        else {
+                                            errorMessage = autoSprintf( "%s", "THE NUMBERS ARE TOO LARGE." );
+                                            }
                                         }
                                     else {
                                         // first argument is not numeric
@@ -25176,9 +25256,17 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                                 name.c_str(),
                                                 0
                                                 };
-                                            addCoordinates( p );
+                                            char added = addCoordinates( p );
+                                            if( !added ) {
+                                                errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                                }
                                             }
                                         }
+
+                                    }
+
+                                if( errorMessage != NULL ) {
+                                    displayGlobalMessage( errorMessage );
                                     }
 
                                 }
