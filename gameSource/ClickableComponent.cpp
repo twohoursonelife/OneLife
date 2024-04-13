@@ -14,7 +14,7 @@ ClickableComponent::ClickableComponent(
         mHover( false ),
         mActive( false ),
 
-        mTestPosition( {0, 0} ),
+        // mTestPosition( {0, 0} ),
 
         mTopLeft( {0, 0} ),
         mBottomRight( {0, 0} )
@@ -33,8 +33,8 @@ char ClickableComponent::isInside( float inX, float inY ) {
 
 void ClickableComponent::pointerMove( float inX, float inY ) {
     if( isCommandKeyDown() ) {
-        mTestPosition = {inX, inY};
-        printf( " ========================= cursor at %.2f %.2f\n", inX, inY );
+        // mTestPosition = {inX, inY};
+        // printf( " ========================= cursor at %.2f %.2f\n", inX, inY );
         }
     if( mActive && isInside( inX, inY ) ) {
         mHover = true;

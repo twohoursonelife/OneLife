@@ -33,6 +33,8 @@ extern bool showingInGameSettings;
 extern bool ShowUseOnObjectHoverSettingToggle;
 extern bool isShowUseOnObjectHoverKeybindEnabled;
 
+extern char useCoordinates;
+
 #ifdef USE_DISCORD
 // extern from DiscordController.h
 DiscordController *discordControllerInstance; 
@@ -107,7 +109,8 @@ SettingsPage::SettingsPage()
           mEnableDiscordRichPresenceDetails(0, 48, 4),
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
-        , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4) {
+        , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
+        mUseCoordinatesBox(0, 128, 4) {
                             
 
     
@@ -116,6 +119,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent(&mUseCoordinatesBox);
+    mUseCoordinatesBox.addActionListener(this);
     addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
     mEnableAdvancedShowUseOnObjectHoverKeybind.addActionListener(this);
     
@@ -295,6 +300,7 @@ SettingsPage::SettingsPage()
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
+    mUseCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING" );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -373,6 +379,12 @@ SettingsPage::SettingsPage()
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setToggled(
         mAdvancedShowUseOnObjectHoverKeybindSetting);
+
+    useCoordinates = 
+        SettingsManager::getIntSetting("useCoordinates", 0);
+
+    mUseCoordinatesBox.setToggled(
+        useCoordinates);
 
     mPage = 0;
     
@@ -782,7 +794,7 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
 
     else if ( inTarget == &mAdvancedButton ) {
         mPage = 5;
-    }
+        }
     else if ( inTarget == &mEnableAdvancedShowUseOnObjectHoverKeybind ) {
         int newSetting = mEnableAdvancedShowUseOnObjectHoverKeybind.getToggled();
         mAdvancedShowUseOnObjectHoverKeybindSetting = newSetting;
@@ -790,7 +802,14 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
                                     newSetting);
         ShowUseOnObjectHoverSettingToggle = (bool)newSetting;
         if( ShowUseOnObjectHoverSettingToggle ) isShowUseOnObjectHoverKeybindEnabled = true;
-    }
+        }
+    else if ( inTarget == &mUseCoordinatesBox ) {
+        int newSetting = mUseCoordinatesBox.getToggled();
+        useCoordinates = false;
+        if( newSetting ) useCoordinates = true;
+        SettingsManager::setSetting("useCoordinates",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1007,7 +1026,14 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y -= 2;
 
         mainFont->drawString("SHOW USE ON HOVER", pos, alignRight);
-    }
+        }
+    if (mUseCoordinatesBox.isVisible()) {
+        doublePair pos = mUseCoordinatesBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("SHOW COORDINATES", pos, alignRight);
+        }
 }
 
 
@@ -1142,6 +1168,7 @@ void SettingsPage::updatePage() {
 #endif // USE_DISCORD
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, 3 * lineSpacing);
+    mUseCoordinatesBox.setPosition(0, 2 * lineSpacing);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1184,6 +1211,7 @@ void SettingsPage::updatePage() {
 #endif // USE_DISCORD
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
+    mUseCoordinatesBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );

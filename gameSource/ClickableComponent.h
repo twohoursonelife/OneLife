@@ -23,7 +23,7 @@ class ClickableComponent {
         void setClickableArea( doublePair inTopLeft, doublePair inBottomRight );
         void drawClickableArea();
 
-        doublePair mTestPosition;
+        // doublePair mTestPosition;
         
     protected:
         doublePair mTopLeft;

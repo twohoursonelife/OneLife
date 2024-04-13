@@ -167,6 +167,8 @@ static SpriteHandle guiPanelLeftSprite;
 static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 
+char useCoordinates = false;
+
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -2915,6 +2917,10 @@ LivingLifePage::LivingLifePage()
         mUsingSteam = true;
         }
 
+    if( SettingsManager::getIntSetting( "useCoordinates", 0 ) ) {
+        useCoordinates = true;
+        }
+
     mHomeSlipSprites[0] = mHomeSlipSprite;
     mHomeSlipSprites[1] = mHomeSlip2Sprite;
     
@@ -3101,7 +3107,7 @@ LivingLifePage::LivingLifePage()
         }
 
     bigSheet = loadSprite( "bigHintSheet.tga", false );
-    coordinatesComponent.mActive = true; //TODO - settings
+    coordinatesComponent.mActive = useCoordinates;
     
     mLiveHintSheetIndex = -1;
 
@@ -10458,9 +10464,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // Coordinates Panel
-    if( coordinatesPanelComponent.mActive ) {
-
-        //TODO - a button to close the panel
+    if( useCoordinates && coordinatesPanelComponent.mActive ) {
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
         doublePair coordinatesPanelHidePos = {-198, 199};
@@ -10510,7 +10514,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
 
 
-        //TODO - click to re-center origin and remove coords
         double spacingY = 0.0;
         double lineHeight = 32.0;
 
@@ -10592,7 +10595,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     // Coordinates
-    if( ourLiveObject != NULL ) {
+    if( useCoordinates && ourLiveObject != NULL ) {
 
         char *line = autoSprintf( "(%s, %s)", 
             formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
@@ -10639,6 +10642,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     // cursorTips for Coordinates and Panel
+    if( useCoordinates )
     if( coordinatesPanelComponent.mActive || coordinatesComponent.mHover ) {
         char *coordsTips = NULL;
         if( coordinatesPanelComponent.mActive ) {
@@ -21618,6 +21622,8 @@ void LivingLifePage::makeActive( char inFresh ) {
         if ( ! SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
           changeFOV( 1.0f );
           }
+
+        coordinatesComponent.mActive = useCoordinates;
       
 		//reset camera if LivingLifePage is made active again
 		LiveObject *ourLiveObject = getOurLiveObject();
