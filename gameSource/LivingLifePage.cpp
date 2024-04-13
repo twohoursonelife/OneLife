@@ -22487,6 +22487,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     ourLiveObject->currentMouseOverClothingIndex = -1;
     
     if( destID == 0 ) {
+        if( !coordinatesPanelComponent.mHover && !coordinatesComponent.mHover )
         if( p.hitSelf ) {
             mCurMouseOverSelf = true;
             
@@ -22524,6 +22525,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         }
     
 
+    if( !coordinatesPanelComponent.mHover && !coordinatesComponent.mHover )
     if( destID > 0 ) {
         mCurMouseOverSelf = false;
         
