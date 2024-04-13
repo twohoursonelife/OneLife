@@ -10638,6 +10638,36 @@ void LivingLifePage::draw( doublePair inViewCenter,
         handwritingFont->drawString( line, coordinatesTextPos, alignCenter );
         }
 
+    // cursorTips for Coordinates and Panel
+    if( coordinatesPanelComponent.mActive || coordinatesComponent.mHover ) {
+        char *coordsTips = NULL;
+        if( coordinatesPanelComponent.mActive ) {
+            char anyCoordsHover = false;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent savedCoords = SavedCoordinatesComponentList.getElementDirect( i );
+                if( savedCoords.mHover ) {
+                    anyCoordsHover = true;
+                    break;
+                    }
+                }
+            if( anyCoordsHover ) {
+                coordsTips = autoSprintf( "%s", "LEFT CLICK TO SET ORIGIN. RIGHT CLICK TO REMOVE." );
+                }
+            else if( coordinatesPanelComponent.mHover ) {
+                coordsTips = autoSprintf( "%s", "CLICK TO CLOSE." );
+                }
+            }
+        else if( coordinatesComponent.mHover ) {
+            coordsTips = autoSprintf( "%s", "CLICK TO SHOW SAVED LOCATIONS." );
+            }
+        if( coordsTips != NULL ) {
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+            drawChalkBackgroundString( 
+                {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
+                coordsTips, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+            }
+        }
 
     // now draw tutorial sheets
     if( mTutorialNumber > 0 || mGlobalMessageShowing )
