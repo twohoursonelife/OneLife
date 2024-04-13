@@ -626,6 +626,9 @@ static void addHomeLocation( int inX, int inY ) {
     p.temporary = false;
     
     homePosStack.push_back( p );
+
+    SavedCoordinates homeCoords = {inX, inY, "HOME", 1};
+    addCoordinates( homeCoords );
     }
 
 
@@ -10480,11 +10483,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         double coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
 
-        if( coordinatesPanelWidth < 160 && SavedCoordinatesList.size() > 1 ) { // space for help message
-            coordinatesPanelWidth = 160;
+        if( coordinatesPanelWidth < 220 && SavedCoordinatesList.size() > 1 ) { // space for help message
+            coordinatesPanelWidth = 220;
             }
-        else if( coordinatesPanelWidth < 264 ) {
-            coordinatesPanelWidth = 264;
+        else if( coordinatesPanelWidth < 240 ) {
+            coordinatesPanelWidth = 240;
             }
 
         doublePair coordinatesPanelSize = {coordinatesPanelWidth, -455};
@@ -10536,7 +10539,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
             savedCoordsClickable->setClickableArea( lineClickableTL, lineClickableBR );
             
             setDrawColor( 0, 0, 0, 1.0 );
-            if( savedCoordsClickable->mHover ) setDrawColor( 1, 0.55, 0, 1.0 );
+            if( savedCoordsClickable->mHover ) {
+                setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+                }
+            else if( savedCoords.type == 1 ) {
+                setDrawColor( 0.45, 0.53, 0.5, 1.0 ); // green
+                }
+            else if( savedCoords.type == 2 ) {
+                setDrawColor( 0.1, 0.16, 0.49, 1.0 ); // blue
+                }
+            else if( savedCoords.type == 3 ) {
+                setDrawColor( 0.50, 0.36, 0.55, 1.0 ); // purple
+                }
 
             handwritingFont->drawString( lineName, pos, alignLeft );
             
@@ -10566,7 +10580,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             pos.y -= lineHeight * gui_fov_scale_hud;
             minitech::tinyHandwritingFont->drawString( "E.G. /MARK VILLAGE", pos, alignCenter );
             pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "E.G. /MARK 89 64", pos, alignCenter );
+            minitech::tinyHandwritingFont->drawString( "E.G. /MARK 89 -64", pos, alignCenter );
             pos.y -= lineHeight * gui_fov_scale_hud;
             pos.y -= lineHeight * gui_fov_scale_hud;
             minitech::tinyHandwritingFont->drawString( "CLICK EMPTY SPACE", pos, alignCenter );
@@ -14177,6 +14191,9 @@ void LivingLifePage::step() {
                         if( !found ) {
                         
                             addAncientHomeLocation( posX, posY );
+
+                            SavedCoordinates birthCoords = {posX, posY, "BELL", 3};
+                            addCoordinates( birthCoords );
                             
                             // play sound in distance
                             ObjectRecord *monObj = getObject( monumentID );
@@ -19106,6 +19123,9 @@ void LivingLifePage::step() {
                                                                  person,
                                                                  personID,
                                                                  personKey );
+                                            
+                                            SavedCoordinates mapCoords = {mapX, mapY, "MAP", 2};
+                                            addCoordinates( mapCoords );
                                             }
 
                                         // trim it off
