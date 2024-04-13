@@ -10430,7 +10430,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         double coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
-        if( coordinatesPanelWidth < 160 ) coordinatesPanelWidth = 160; // 264
+
+        if( coordinatesPanelWidth < 160 && SavedCoordinatesList.size() > 1 ) { // space for help message
+            coordinatesPanelWidth = 160;
+            }
+        else if( coordinatesPanelWidth < 264 ) {
+            coordinatesPanelWidth = 264;
+            }
 
         doublePair coordinatesPanelSize = {coordinatesPanelWidth, -455};
 
@@ -10450,6 +10456,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         setDrawColor( 1, 1, 1, 0.9 );
         if( coordinatesPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
+
 
         //TODO - click to re-center origin and remove coords
         double spacingY = 0.0;
@@ -10490,6 +10497,35 @@ void LivingLifePage::draw( doublePair inViewCenter,
             pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
             pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
             }
+
+        if( SavedCoordinatesList.size() <= 1 ) {
+
+            doublePair pos = screenTL;
+            pos = add( pos, mult(coordinatesPanelSize, 0.5 * gui_fov_scale_hud) );
+            pos = add( pos, lastScreenViewCenter );
+
+            double lineHeight = 24.0;
+
+            setDrawColor( 0, 0, 0, 0.2 );
+            pos.y += 4 * lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "TO MARK A SPOT:", pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "/MARK X Y NAME", pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "E.G. /MARK 20 90 MINE", pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "E.G. /MARK VILLAGE", pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "E.G. /MARK 89 64", pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "CLICK EMPTY SPACE", pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( "TO CLOSE", pos, alignCenter );
+
+            }
+        
         }
 
     // Coordinates
@@ -18267,10 +18303,16 @@ void LivingLifePage::step() {
                 if( ourID != lastPlayerID ) {
                     // different ID than last time, delete old home markers
                     oldHomePosStack.deleteAll();
+
+                    SavedCoordinatesList.deleteAll();
+                    SavedCoordinatesComponentList.deleteAll();
                     }
                 homePosStack.push_back_other( &oldHomePosStack );
 
                 lastPlayerID = ourID;
+
+                SavedCoordinates birthCoords = {0, 0, "BIRTH", 1};
+                addCoordinates( birthCoords );
 
                 // we have no measurement yet
                 ourObject->lastActionSendStartTime = 0;
