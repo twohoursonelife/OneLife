@@ -5,6 +5,7 @@
 #include "minorGems/game/game.h"
 
 extern float gui_fov_scale_hud;
+extern doublePair lastScreenViewCenter;
 
 
 ClickableComponent::ClickableComponent(
@@ -24,8 +25,10 @@ ClickableComponent::ClickableComponent(
     }
 
 char ClickableComponent::isInside( float inX, float inY ) {
-    return mTopLeft.x <= inX && inX <= mBottomRight.x &&
-           mTopLeft.y >= inY && inY >= mBottomRight.y;
+    doublePair TL = add(mTopLeft, lastScreenViewCenter);
+    doublePair BR = add(mBottomRight, lastScreenViewCenter);
+    return TL.x <= inX && inX <= BR.x &&
+           TL.y >= inY && inY >= BR.y;
     }
 
 void ClickableComponent::pointerMove( float inX, float inY ) {
@@ -56,8 +59,10 @@ void ClickableComponent::setClickableArea( doublePair inTopLeft, doublePair inBo
     }
 
 void ClickableComponent::drawClickableArea() {
+    doublePair TL = add(mTopLeft, lastScreenViewCenter);
+    doublePair BR = add(mBottomRight, lastScreenViewCenter);
     setDrawColor( 0, 0, 1, 0.5 );
-    drawRect(mTopLeft.x, mBottomRight.y, mBottomRight.x, mTopLeft.y);
+    drawRect(TL.x, BR.y, BR.x, TL.y);
     }
 
 

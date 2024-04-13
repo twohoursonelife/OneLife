@@ -388,8 +388,18 @@ typedef struct SavedCoordinates {
     } SavedCoordinates;
 
 static SimpleVector<SavedCoordinates> SavedCoordinatesList;
+static SimpleVector<ClickableComponent> SavedCoordinatesComponentList;
 static SavedCoordinates savedOrigin;
 static int nextSavedCoordinatesLetter = 1;
+
+static void resizeSavedCoordinatesComponentList() {
+    SavedCoordinatesComponentList.deleteAll();
+    for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+        ClickableComponent clickableLine;
+        SavedCoordinatesComponentList.push_back( clickableLine );
+        }
+    return;
+    }
 
 static void addCoordinates( SavedCoordinates newCoords ) {
     for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
@@ -401,8 +411,12 @@ static void addCoordinates( SavedCoordinates newCoords ) {
             return;
             }
         }
-    if( SavedCoordinatesList.size() < 14 ) 
+    if( SavedCoordinatesList.size() < 14 ) {
         SavedCoordinatesList.push_back( newCoords );
+        resizeSavedCoordinatesComponentList();
+        return;
+        }
+    return;
     }
 
 static void removeCoordinatesByXY( int x, int y ) {
@@ -410,6 +424,7 @@ static void removeCoordinatesByXY( int x, int y ) {
         SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
         if( oldCoords.x == x && oldCoords.y == y ) {
             SavedCoordinatesList.deleteElement( i );
+            resizeSavedCoordinatesComponentList();
             return;
             }
         }
@@ -10457,7 +10472,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
             SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x, savedCoords.y );
+            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x - savedOrigin.x, savedCoords.y - savedOrigin.y );
             char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
             double lenCoords = handwritingFont->measureString( lineCoords ) / gui_fov_scale_hud;
             double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
@@ -10466,7 +10481,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         double coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
-        if( coordinatesPanelWidth < 264 ) coordinatesPanelWidth = 264; // 120
+        if( coordinatesPanelWidth < 160 ) coordinatesPanelWidth = 160; // 264
 
         doublePair coordinatesPanelSize = {coordinatesPanelWidth, -455};
 
@@ -10478,9 +10493,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         doublePair coordinatesPanelTL = screenTL;
         doublePair coordinatesPanelBR = add(coordinatesPanelTL, mult( coordinatesPanelSize, gui_fov_scale_hud ) );
-        coordinatesPanelTL = add( coordinatesPanelTL, lastScreenViewCenter );
-        coordinatesPanelBR = add( coordinatesPanelBR, lastScreenViewCenter );
-        
+        // coordinatesPanelTL = add( coordinatesPanelTL, lastScreenViewCenter );
+        // coordinatesPanelBR = add( coordinatesPanelBR, lastScreenViewCenter );
+
         coordinatesPanelComponent.setClickableArea( coordinatesPanelTL, coordinatesPanelBR );
 
         setDrawColor( 1, 1, 1, 0.9 );
@@ -10488,36 +10503,50 @@ void LivingLifePage::draw( doublePair inViewCenter,
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
 
         //TODO - click to re-center origin and remove coords
-        double paddingY = 12.0;
+        double spacingY = 0.0;
+        double lineHeight = 32.0;
 
         doublePair pos = screenTL;
         pos.x += paddingX * gui_fov_scale_hud;
-        pos.y -= (12.0 + 16.0 * 2 + paddingY * 2) * gui_fov_scale_hud;
+        pos.y -= (64.0) * gui_fov_scale_hud;
         
         pos = add( pos, lastScreenViewCenter );
 
-
-
         for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
             SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x, savedCoords.y );
+            char *lineCoords = autoSprintf( "(%d, %d)", savedCoords.x - savedOrigin.x, savedCoords.y - savedOrigin.y );
             char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
-            setDrawColor( 0, 0, 0, 1.0 );
             
+            ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+            savedCoordsClickable->mActive = true;
+            
+            doublePair lineClickableTL = pos;
+            lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+            doublePair lineClickableBR = {
+                lineClickableTL.x + (longestName + spaceX + longestCoords) * gui_fov_scale_hud,
+                lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                };
+            lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+            lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+            savedCoordsClickable->setClickableArea( lineClickableTL, lineClickableBR );
+            
+            setDrawColor( 0, 0, 0, 1.0 );
+            if( savedCoordsClickable->mHover ) setDrawColor( 1, 0.55, 0, 1.0 );
+
             handwritingFont->drawString( lineName, pos, alignLeft );
             
             pos.x += (longestName + spaceX) * gui_fov_scale_hud;
             handwritingFont->drawString( lineCoords, pos, alignLeft );
             
             pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
-            pos.y -= (16.0 + paddingY) * gui_fov_scale_hud;
+            pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
             }
         }
 
     // Coordinates
     if( ourLiveObject != NULL ) {
 
-        char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x, (int)ourLiveObject->currentPos.y );
+        char *line = autoSprintf( "(%d, %d)", (int)ourLiveObject->currentPos.x - savedOrigin.x, (int)ourLiveObject->currentPos.y - savedOrigin.y );
         double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
         
         if( len < 104 ) len = 104;
@@ -10539,8 +10568,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         doublePair coordinatesTL = screenTL;
         doublePair coordinatesBR = add(coordinatesTL, mult( coordinatesSize, gui_fov_scale_hud ) );
-        coordinatesTL = add( coordinatesTL, lastScreenViewCenter );
-        coordinatesBR = add( coordinatesBR, lastScreenViewCenter );
+        // coordinatesTL = add( coordinatesTL, lastScreenViewCenter );
+        // coordinatesBR = add( coordinatesBR, lastScreenViewCenter );
         coordinatesComponent.setClickableArea( coordinatesTL, coordinatesBR );
 
         setDrawColor( 1, 1, 1, 0.9 );
@@ -22277,6 +22306,10 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
 
     coordinatesPanelComponent.pointerMove(inX, inY);
     coordinatesComponent.pointerMove(inX, inY);
+    for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+        ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+        savedCoordsClickable->pointerMove(inX, inY);
+        }
 
     PointerHitRecord p;
     
@@ -22719,13 +22752,38 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             coordinatesComponent.mActive = false;
             coordinatesPanelComponent.mActive = true;
             coordinatesPanelComponent.mHover = true;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                }
             return;
             }
-        else if( coordinatesPanelComponent.mActive && coordinatesPanelComponent.pointerDown(inX, inY) ) {
-            coordinatesComponent.mActive = true;
-            coordinatesPanelComponent.mActive = false;
-            coordinatesComponent.mHover = true;
-            return;
+        else if( coordinatesPanelComponent.mActive ) {
+
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                if( savedCoordsClickable->pointerDown(inX, inY) ) {
+                    if( !isLastMouseButtonRight() ) {
+                        savedOrigin = SavedCoordinatesList.getElementDirect( i );
+                        }
+                    else {
+                        SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+                        removeCoordinatesByXY( savedCoords.x, savedCoords.y );
+                        }
+                    return;
+                    }
+                }
+
+            if( coordinatesPanelComponent.pointerDown(inX, inY) ) {
+                coordinatesComponent.mActive = true;
+                coordinatesPanelComponent.mActive = false;
+                coordinatesComponent.mHover = true;
+                for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                    ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                    savedCoordsClickable->mActive = false;
+                    }
+                return;
+                }
             }
         }
     
@@ -25047,12 +25105,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     
                                     if( numRead == 3 ) {
                                         std::string name(nameBuffer);
-                                        SavedCoordinates p = {x, y, name.c_str(), 0};
+                                        SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name.c_str(), 0};
                                         addCoordinates( p );
                                         }
                                     else if( numRead == 2 ) {
                                         char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
-                                        SavedCoordinates p = {x, y, name, 0};
+                                        SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name, 0};
                                         addCoordinates( p );
                                         nextSavedCoordinatesLetter++;
                                         }
