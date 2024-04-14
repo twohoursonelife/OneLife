@@ -3873,7 +3873,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         }
 		
 	float scale = 1.0;
-	if(tinyStyle) scale = 0.5;
+	if(tinyStyle) scale = 0.75;
 
     double lineSpacing = 0.0;
     if( !tinyStyle ) {
@@ -25895,24 +25895,24 @@ void LivingLifePage::changeFOV( float newScale ) {
     }
 
 void LivingLifePage::changeHUDFOV( float newScale ) {
-	if( newScale < 1 ) {
-		newScale = 1.0f;
+    if( newScale < 1.0f ) {
+        newScale = 1.0f;
         } 
     else if ( newScale > 1.75f ) {
-		newScale = 1.75f;
+        newScale = 1.75f;
         }
 
-	gui_fov_target_scale_hud = newScale;
+    gui_fov_target_scale_hud = newScale;
     SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
     gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
     
-	minitech::changeScale( 1.25 * gui_fov_scale_hud );
+    minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
-	calcOffsetHUD();
+    calcOffsetHUD();
 
-	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
-	pencilFont->copySpacing( handwritingFont );
-	pencilErasedFont->copySpacing( handwritingFont );
+    handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
+    pencilFont->copySpacing( handwritingFont );
+    pencilErasedFont->copySpacing( handwritingFont );
     titleFont->copySpacing( handwritingFont );
     }
 
