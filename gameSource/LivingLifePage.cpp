@@ -2918,10 +2918,10 @@ LivingLifePage::LivingLifePage()
         mUsingSteam = true;
         }
 
-    if( SettingsManager::getIntSetting( "useCoordinates", 0 ) ) {
+    if( SettingsManager::getIntSetting( "coordinatesEnabled", 0 ) ) {
         useCoordinates = true;
         }
-    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("keyCoordinatesPanel", "g");
+    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelKey", "g");
     mCoordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
     delete [] coordinatesPanelToggleKeyFromSetting;
 
