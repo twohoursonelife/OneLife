@@ -25096,10 +25096,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case 96: { // grave
-            gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
-            gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
-            SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
-			calcOffsetHUD();
+            // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
+            // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
+            // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
+			// calcOffsetHUD();
             }
             break;
         case 9: // tab
