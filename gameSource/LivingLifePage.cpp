@@ -9526,7 +9526,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
     
 
-
+    if( !useCoordinates )
     for( int j=0; j<2; j++ ) {
         doublePair slipPos = add( mult( recalcOffset( mHomeSlipPosOffset[j] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -10464,6 +10464,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // Coordinates Panel
+    // drawn behind tutorial sheets / global message
     if( useCoordinates && coordinatesPanelComponent.mActive ) {
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
@@ -10595,6 +10596,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     // Coordinates
+    // drawn behind tutorial sheets / global message
+    // drawn above coordinates panel
     if( useCoordinates && ourLiveObject != NULL ) {
 
         char *line = autoSprintf( "(%s, %s)", 
@@ -10734,7 +10737,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     setDrawColor( 1, 1, 1, 1 );
     doublePair panelPos = lastScreenViewCenter;
 	
-	    //FOV
+    //FOV
 	panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
 	// First left part.
 	if( gui_hud_mode == 0 ) {
