@@ -386,6 +386,7 @@ Font *pencilFont;
 Font *pencilErasedFont;
 
 Font *smallFont;
+Font *smallFontFixed;
 
 Font *titleFont;
 
@@ -616,6 +617,8 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     
     mainFontFixed->setMinimumPositionPrecision( 1 );
     numbersFontFixed->setMinimumPositionPrecision( 1 );
+
+    smallFontFixed = new Font( getFontTGAFileName(), 3, 8, false, 8 );
     
     smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 * gui_fov_scale_hud );
 
