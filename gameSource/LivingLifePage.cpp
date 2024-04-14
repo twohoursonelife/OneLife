@@ -629,7 +629,7 @@ static void addHomeLocation( int inX, int inY ) {
     
     homePosStack.push_back( p );
 
-    SavedCoordinates homeCoords = {inX, inY, "HOME", 1};
+    SavedCoordinates homeCoords = {inX, inY, translate("homeLocation"), 1};
     addCoordinates( homeCoords );
     }
 
@@ -10484,6 +10484,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
             if( lenCoords > longestCoords ) longestCoords = lenCoords;
             if( lenName > longestName ) longestName = lenName;
+            delete [] lineCoords;
+            delete [] lineName;
             }
 
         double coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
@@ -10563,6 +10565,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
             pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+            delete [] lineCoords;
+            delete [] lineName;
             }
 
         if( SavedCoordinatesList.size() <= 1 ) {
@@ -10575,21 +10580,21 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             setDrawColor( 0, 0, 0, 0.2 );
             pos.y += 4 * lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "TO MARK A SPOT:", pos, alignCenter );
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
             pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "/MARK X Y NAME", pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "E.G. /MARK 20 90 MINE", pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "E.G. /MARK VILLAGE", pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "E.G. /MARK 89 -64", pos, alignCenter );
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp2" ), pos, alignCenter );
             pos.y -= lineHeight * gui_fov_scale_hud;
             pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "CLICK EMPTY SPACE", pos, alignCenter );
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp3" ), pos, alignCenter );
             pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( "TO CLOSE", pos, alignCenter );
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp4" ), pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp5" ), pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp6" ), pos, alignCenter );
+            pos.y -= lineHeight * gui_fov_scale_hud;
+            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp7" ), pos, alignCenter );
 
             }
         
@@ -10642,6 +10647,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         setDrawColor( 0, 0, 0, 1 );
         handwritingFont->drawString( line, coordinatesTextPos, alignCenter );
+
+        delete [] line;
         }
 
     // cursorTips for Coordinates and Panel
@@ -10658,14 +10665,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 }
             if( anyCoordsHover ) {
-                coordsTips = autoSprintf( "%s", "LEFT CLICK TO SET ORIGIN. RIGHT CLICK TO REMOVE." );
+                coordsTips = autoSprintf( "%s", translate("savedCoordsTips") );
                 }
             else if( coordinatesPanelComponent.mHover ) {
-                coordsTips = autoSprintf( "%s", "CLICK TO CLOSE." );
+                coordsTips = autoSprintf( "%s", translate("coordsPanelTips") );
                 }
             }
         else if( coordinatesComponent.mHover ) {
-            coordsTips = autoSprintf( "%s", "CLICK TO SHOW SAVED LOCATIONS." );
+            coordsTips = autoSprintf( "%s", translate("coordsTips") );
             }
         if( coordsTips != NULL ) {
             FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
@@ -10674,6 +10681,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
                 coordsTips, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
             }
+
+        delete [] coordsTips;
         }
 
     // now draw tutorial sheets
@@ -14229,8 +14238,8 @@ void LivingLifePage::step() {
                         
                             addAncientHomeLocation( posX, posY );
 
-                            SavedCoordinates birthCoords = {posX, posY, "BELL", 3};
-                            addCoordinates( birthCoords );
+                            SavedCoordinates bellCoords = {posX, posY, translate("bellLocation"), 3};
+                            addCoordinates( bellCoords );
                             
                             // play sound in distance
                             ObjectRecord *monObj = getObject( monumentID );
@@ -18417,7 +18426,7 @@ void LivingLifePage::step() {
 
                 lastPlayerID = ourID;
 
-                SavedCoordinates birthCoords = {0, 0, "BIRTH", 1};
+                SavedCoordinates birthCoords = {0, 0, translate("birthLocation"), 1};
                 addCoordinates( birthCoords );
 
                 // we have no measurement yet
@@ -19161,7 +19170,7 @@ void LivingLifePage::step() {
                                                                  personID,
                                                                  personKey );
                                             
-                                            SavedCoordinates mapCoords = {mapX, mapY, "MAP", 2};
+                                            SavedCoordinates mapCoords = {mapX, mapY, translate("mapLocation"), 2};
                                             addCoordinates( mapCoords );
                                             }
 
@@ -25236,19 +25245,19 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 forceDisconnect = true;
                                 }
                             else if( 
-                                !strcmp( typedText, "/MARK") || // either exact match of the command
-                                strstr( typedText, "/MARK " ) == typedText // or match the command followed by a space
+                                !strcmp( typedText, translate( "markCommand" )) || // either exact match of the command
+                                strstr( typedText, autoSprintf( "%s ", translate( "markCommand" ) ) ) == typedText // or match the command followed by a space
                                 ) {
 
                                 // hence "/MARKER" will not make it here
 
                                 char *errorMessage = NULL;
                                 
-                                if( !strcmp( typedText, "/MARK") ) {
+                                if( !strcmp( typedText, translate( "markCommand" )) ) {
                                     // exact match
                                     // save current coords
                                     LiveObject *ourLiveObject = getOurLiveObject();
-                                    char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
+                                    char *name = autoSprintf( "%s %d", translate( "customLocation" ), nextSavedCoordinatesLetter );
                                     SavedCoordinates p = {
                                         int(ourLiveObject->currentPos.x),
                                         int(ourLiveObject->currentPos.y), 
@@ -25260,7 +25269,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                         nextSavedCoordinatesLetter++;
                                         }
                                     else {
-                                        errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                        errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
                                         }
                                     }
                                 else {
@@ -25270,7 +25279,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     char nameBuffer[10];
                                     nameBuffer[0] = '\0';
 
-                                    int numRead = sscanf( typedText, "/MARK %d %d %8s", &x, &y, nameBuffer );
+                                    char *format = autoSprintf( "%s %%d %%d %%8s", translate( "markCommand" ) );
+                                    int numRead = sscanf( typedText, format, &x, &y, nameBuffer );
                                     
                                     // a rather blunt way to prevent large input
                                     int numericLimit = 1000000;
@@ -25281,33 +25291,35 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                             SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name.c_str(), 0};
                                             char added = addCoordinates( p );
                                             if( !added ) {
-                                                errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                                errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
                                                 }
                                             }
                                         else {
-                                            errorMessage = autoSprintf( "%s", "THE NUMBERS ARE TOO LARGE." );
+                                            errorMessage = autoSprintf( "%s", translate("coordsTooLargeWarning") );
                                             }
                                         }
                                     else if( numRead == 2 ) {
                                         if( abs(x) < numericLimit && abs(y) < numericLimit ) {
-                                            char *name = autoSprintf( "SPOT %d", nextSavedCoordinatesLetter );
+                                            char *name = autoSprintf( "%s %d", translate("customLocation"), nextSavedCoordinatesLetter );
                                             SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name, 0};
                                             char added = addCoordinates( p );
                                             if( added ) {
                                                 nextSavedCoordinatesLetter++;
                                                 }
                                             else {
-                                                errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                                errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
                                                 }
                                             }
                                         else {
-                                            errorMessage = autoSprintf( "%s", "THE NUMBERS ARE TOO LARGE." );
+                                            errorMessage = autoSprintf( "%s", translate("coordsTooLargeWarning") );
                                             }
                                         }
                                     else {
                                         // first argument is not numeric
                                         // "%*[ \t]" makes sure there is at least one space after the command
-                                        int numRead2 = sscanf( typedText, "/MARK%*[ \t]%8s", nameBuffer );
+                                        char *argumentFormat = stringDuplicate( "%*[ \t]%8s" );
+                                        char *format2 = autoSprintf( "%s%s", translate( "markCommand" ), argumentFormat );
+                                        int numRead2 = sscanf( typedText, format2, nameBuffer );
                                         if( numRead2 == 1 ) {
                                             std::string name(nameBuffer);
                                             LiveObject *ourLiveObject = getOurLiveObject();
@@ -25319,15 +25331,17 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                                 };
                                             char added = addCoordinates( p );
                                             if( !added ) {
-                                                errorMessage = autoSprintf( "%s", "TOO MANY SAVED LOCATIONS." );
+                                                errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
                                                 }
                                             }
+                                        delete [] argumentFormat;
+                                        delete [] format2;
                                         }
-
                                     }
 
                                 if( errorMessage != NULL ) {
                                     displayGlobalMessage( errorMessage );
+                                    delete [] errorMessage;
                                     }
 
                                 }

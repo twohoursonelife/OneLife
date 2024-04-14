@@ -438,6 +438,29 @@ disconnectCommand "/DISCONNECT"
 
 helpCommand "/HELP"
 
+markCommand "/MARK"
+
+markCommandHelp1 "TO MARK A SPOT:"
+markCommandHelp2 "/MARK X Y NAME"
+
+markCommandHelp3 "E.G. /MARK 20 90 MINE"
+markCommandHelp4 "E.G. /MARK VILLAGE"
+markCommandHelp5 "E.G. /MARK 89 -64"
+
+markCommandHelp6 "CLICK EMPTY SPACE"
+markCommandHelp7 "TO CLOSE"
+
+homeLocation "HOME"
+bellLocation "BELL"
+birthLocation "BIRTH"
+mapLocation "MAP"
+customLocation "SPOT"
+
+savedCoordsTips "LEFT CLICK TO SET ORIGIN. RIGHT CLICK TO REMOVE."
+coordsPanelTips "CLICK TO CLOSE."
+coordsTips "CLICK TO SHOW SAVED LOCATIONS."
+tooManyCoordsWarning "TOO MANY SAVED LOCATIONS."
+coordsTooLargeWarning "THE NUMBERS ARE TOO LARGE."
 
 fps "FPS"
 
