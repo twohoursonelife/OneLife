@@ -1067,6 +1067,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         ClickableComponent coordinatesComponent;
         ClickableComponent coordinatesPanelComponent;
+        char mCoordinatesPanelToggleKey;
         
         
         void pushOldHintArrow( int inIndex );

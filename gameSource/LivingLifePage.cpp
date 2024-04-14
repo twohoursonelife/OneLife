@@ -2910,7 +2910,8 @@ LivingLifePage::LivingLifePage()
           mXKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 ),
           coordinatesComponent(),
-          coordinatesPanelComponent() {
+          coordinatesPanelComponent(),
+          mCoordinatesPanelToggleKey( 'g' ) {
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -2920,6 +2921,9 @@ LivingLifePage::LivingLifePage()
     if( SettingsManager::getIntSetting( "useCoordinates", 0 ) ) {
         useCoordinates = true;
         }
+    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("keyCoordinatesPanel", "g");
+    mCoordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
+    delete [] coordinatesPanelToggleKeyFromSetting;
 
     mHomeSlipSprites[0] = mHomeSlipSprite;
     mHomeSlipSprites[1] = mHomeSlip2Sprite;
@@ -24839,6 +24843,30 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 	}
 
 	if (minitech::livingLifeKeyDown(inASCII)) return;
+
+    if (useCoordinates && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, mCoordinatesPanelToggleKey) ) {
+
+        if( coordinatesComponent.mActive ) {
+            coordinatesComponent.mActive = false;
+            coordinatesPanelComponent.mActive = true;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                }
+            return;
+            }
+        else if( coordinatesPanelComponent.mActive ) {
+            coordinatesComponent.mActive = true;
+            coordinatesPanelComponent.mActive = false;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = false;
+                }
+            return;
+            }
+
+        }
     
     switch( inASCII ) {
         /*
