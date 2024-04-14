@@ -116,7 +116,7 @@ void minitech::setLivingLifePage(
     mMapContainedStacks = inmMapContainedStacks;
     mMapSubContainedStacks = inmMapSubContainedStacks;
     
-    minitechEnabled = SettingsManager::getIntSetting( "useMinitech", 1 );
+    minitechEnabled = SettingsManager::getIntSetting( "minitechEnabled", 1 );
     char *minimizeKeyFromSetting = SettingsManager::getStringSetting("minitechMinimizeKey", "v");
     minimizeKey = minimizeKeyFromSetting[0];
     delete [] minimizeKeyFromSetting;
