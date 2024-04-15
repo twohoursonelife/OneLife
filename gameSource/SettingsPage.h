@@ -94,6 +94,7 @@ class SettingsPage : public GamePage, public ActionListener {
         ValueSlider mCursorScaleSlider;
 
         // Screen
+        ValueSlider mBrightnessSlider;
         TextButton mRedetectButton;
         CheckboxButton mVsyncBox;
         CheckboxButton mFullscreenBox;
@@ -114,6 +115,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mDiscordHideFirstNameInDetails;
 #endif // USE_DISCORD
 
+        // Advanced
         CheckboxButton mEnableAdvancedShowUseOnObjectHoverKeybind;
         CheckboxButton mUseCoordinatesBox;
         

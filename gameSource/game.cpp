@@ -274,6 +274,8 @@ double musicHeadroom = 1.0;
 int musicOff = 0;
 float musicLoudness;
 
+float brightness = 1.0;
+
 int webRetrySeconds;
 
 
@@ -493,6 +495,8 @@ char *getHashSalt() {
 void initDrawString( int inWidth, int inHeight ) {
 
     loadFovSettings();
+
+    brightness = SettingsManager::getFloatSetting( "brightness", 1.0f );
 
     toggleLinearMagFilter( true );
     toggleMipMapGeneration( true );
@@ -1744,6 +1748,16 @@ void drawFrame( char inUpdate ) {
 #ifdef USE_DISCORD
         discordStep();// called when paused too, to change to IDLE state if player idle is detected.
 #endif // USE_DISCORD
+
+        if( brightness < 1.0 ) {
+            float maxAlpha = 0.4;
+            float minAlpha = 0.0;
+            float dimness = 1.0 - brightness;
+            float alpha = (maxAlpha - minAlpha) * dimness;
+            setDrawColor( 0, 0, 0, alpha );
+            drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+            }
+
         return;
         }
 
@@ -2610,6 +2624,17 @@ void drawFrame( char inUpdate ) {
     if( pauseScreenFade > 0 ) {
         drawPauseScreen();
         }
+
+
+    if( brightness < 1.0 ) {
+        float maxAlpha = 0.4;
+        float minAlpha = 0.0;
+        float dimness = 1.0 - brightness;
+        float alpha = (maxAlpha - minAlpha) * dimness;
+        setDrawColor( 0, 0, 0, alpha );
+        drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+        }
+
     }
 
 
