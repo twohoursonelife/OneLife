@@ -168,6 +168,7 @@ static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 
 char useCoordinates = false;
+char usePersistentEmote = false;
 
 
 static JenkinsRandomSource randSource( 340403 );
@@ -215,6 +216,8 @@ static char *photoSig = NULL;
 
 
 static double emotDuration = 10;
+static int customPersistentEmotIndex = -1;
+static double timeLastPersistentEmotSent = 0;
 
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
@@ -2920,6 +2923,9 @@ LivingLifePage::LivingLifePage()
 
     if( SettingsManager::getIntSetting( "coordinatesEnabled", 0 ) ) {
         useCoordinates = true;
+        }
+    if( SettingsManager::getIntSetting( "persistentEmoteEnabled", 0 ) ) {
+        usePersistentEmote = true;
         }
     char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelKey", "g");
     mCoordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
@@ -13068,6 +13074,20 @@ void LivingLifePage::step() {
     
     LiveObject *ourObject = getOurLiveObject();
 
+    // custom persistent emot
+    if( usePersistentEmote &&
+        ourObject != NULL && customPersistentEmotIndex != -1 &&
+        // 2 sec wiggleroom to avoid flickering
+        game_getCurrentTime() - timeLastPersistentEmotSent > emotDuration - 2
+        ) {
+        
+        char *message = autoSprintf( "EMOT 0 0 %d#", customPersistentEmotIndex );
+        sendToServerSocket( message );
+        delete [] message;
+
+        timeLastPersistentEmotSent = game_getCurrentTime();
+        }
+
     if( ourObject != NULL ) {    
         
         for( int j=0; j<2; j++ ) {
@@ -18425,6 +18445,10 @@ void LivingLifePage::step() {
 
                     SavedCoordinatesList.deleteAll();
                     SavedCoordinatesComponentList.deleteAll();
+
+                    // clear custom persistent emot
+                    customPersistentEmotIndex = -1;
+                    timeLastPersistentEmotSent = 0;
                     }
                 homePosStack.push_back_other( &oldHomePosStack );
 
@@ -25211,6 +25235,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                             if( emotIndex != -1 ) {
                                 char *message = 
                                     autoSprintf( "EMOT 0 0 %d#", emotIndex );
+
+                                // set custom persistent emot if emot command is typed out
+                                if( usePersistentEmote ) {
+                                    customPersistentEmotIndex = emotIndex;
+                                    timeLastPersistentEmotSent = game_getCurrentTime();
+                                    }
                                 
                                 sendToServerSocket( message );
                                 delete [] message;
@@ -25500,30 +25530,42 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
     //FOV
     if( inKeyCode == MG_KEY_F1) {
         sendToServerSocket( (char*)"EMOT 0 0 0#" );
+        customPersistentEmotIndex = -1;
         return;
         }
     if( inKeyCode == MG_KEY_F2) {
         sendToServerSocket( (char*)"EMOT 0 0 1#" );
+        customPersistentEmotIndex = -1;
         return;
         }
     if( inKeyCode == MG_KEY_F3) {
         sendToServerSocket( (char*)"EMOT 0 0 2#" );
+        customPersistentEmotIndex = -1;
         return;
         }
     if( inKeyCode == MG_KEY_F4) {
         sendToServerSocket( (char*)"EMOT 0 0 3#" );
+        customPersistentEmotIndex = -1;
         return;
         }
     if( inKeyCode == MG_KEY_F5) {
         sendToServerSocket( (char*)"EMOT 0 0 4#" );
+        customPersistentEmotIndex = -1;
         return;
         }
     if( inKeyCode == MG_KEY_F6) {
         sendToServerSocket( (char*)"EMOT 0 0 5#" );
+        customPersistentEmotIndex = -1;
         return;
         }
     if( inKeyCode == MG_KEY_F7) {
         sendToServerSocket( (char*)"EMOT 0 0 6#" );
+        customPersistentEmotIndex = -1;
+        return;
+        }
+    if( inKeyCode == MG_KEY_F12) {
+        sendToServerSocket( (char*)"EMOT 0 0 -1#" );
+        customPersistentEmotIndex = -1;
         return;
         }
 	if( ( inKeyCode == MG_KEY_LEFT || 

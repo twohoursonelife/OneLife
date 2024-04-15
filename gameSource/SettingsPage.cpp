@@ -36,6 +36,7 @@ extern bool ShowUseOnObjectHoverSettingToggle;
 extern bool isShowUseOnObjectHoverKeybindEnabled;
 
 extern char useCoordinates;
+extern char usePersistentEmote;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -115,7 +116,8 @@ SettingsPage::SettingsPage()
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
         , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
-        mUseCoordinatesBox(0, 128, 4) {
+        mUseCoordinatesBox(0, 128, 4),
+        mPersistentEmoteBox(0, 88, 4) {
                             
 
     
@@ -124,6 +126,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent(&mPersistentEmoteBox);
+    mPersistentEmoteBox.addActionListener(this);
     addComponent(&mUseCoordinatesBox);
     mUseCoordinatesBox.addActionListener(this);
     addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
@@ -308,6 +312,7 @@ SettingsPage::SettingsPage()
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
     mUseCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING" );
+    mPersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -392,6 +397,12 @@ SettingsPage::SettingsPage()
 
     mUseCoordinatesBox.setToggled(
         useCoordinates);
+
+    usePersistentEmote = 
+        SettingsManager::getIntSetting("usePersistentEmote", 0);
+
+    mPersistentEmoteBox.setToggled(
+        usePersistentEmote);
 
     mPage = 0;
     
@@ -823,6 +834,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("useCoordinates",
                                     newSetting);
         }
+    else if ( inTarget == &mPersistentEmoteBox ) {
+        int newSetting = mPersistentEmoteBox.getToggled();
+        usePersistentEmote = false;
+        if( newSetting ) usePersistentEmote = true;
+        SettingsManager::setSetting("usePersistentEmote",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1047,6 +1065,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString("SHOW COORDINATES", pos, alignRight);
         }
+    if (mPersistentEmoteBox.isVisible()) {
+        doublePair pos = mPersistentEmoteBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("PERMANENT EMOTE", pos, alignRight);
+        }
 }
 
 
@@ -1185,6 +1210,7 @@ void SettingsPage::updatePage() {
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
     mUseCoordinatesBox.setPosition(0, lineSpacing * 2);
+    mPersistentEmoteBox.setPosition(0, lineSpacing * 1);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1229,6 +1255,7 @@ void SettingsPage::updatePage() {
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
     mUseCoordinatesBox.setVisible(mPage == 5);
+    mPersistentEmoteBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
