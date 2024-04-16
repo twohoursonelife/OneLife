@@ -484,6 +484,8 @@ static void removeCoordinatesByXY( int x, int y ) {
         }
     }
 
+static SimpleVector<char*> commandShortcuts;
+
 
 static SimpleVector<char*> passwordProtectingPhrases;
 
@@ -2978,6 +2980,8 @@ LivingLifePage::LivingLifePage()
     emotDuration = SettingsManager::getFloatSetting( "emotDuration", 10 );
     
     readPhrases( "passwordProtectingPhrases", &passwordProtectingPhrases );
+
+    readPhrases( "commandShortcuts", &commandShortcuts );
 	
     drunkEmotionIndex =
         SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
@@ -25527,43 +25531,41 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         return;
         }
 		
-    //FOV
+    // Custom command shortcuts (was FOV emote keys)
+    int commandIndex = -1;
     if( inKeyCode == MG_KEY_F1) {
-        sendToServerSocket( (char*)"EMOT 0 0 0#" );
-        customPersistentEmotIndex = -1;
-        return;
+        commandIndex = 0;
         }
     if( inKeyCode == MG_KEY_F2) {
-        sendToServerSocket( (char*)"EMOT 0 0 1#" );
-        customPersistentEmotIndex = -1;
-        return;
+        commandIndex = 1;
         }
     if( inKeyCode == MG_KEY_F3) {
-        sendToServerSocket( (char*)"EMOT 0 0 2#" );
-        customPersistentEmotIndex = -1;
-        return;
+        commandIndex = 2;
         }
     if( inKeyCode == MG_KEY_F4) {
-        sendToServerSocket( (char*)"EMOT 0 0 3#" );
-        customPersistentEmotIndex = -1;
-        return;
+        commandIndex = 3;
         }
     if( inKeyCode == MG_KEY_F5) {
-        sendToServerSocket( (char*)"EMOT 0 0 4#" );
-        customPersistentEmotIndex = -1;
-        return;
+        commandIndex = 4;
         }
     if( inKeyCode == MG_KEY_F6) {
-        sendToServerSocket( (char*)"EMOT 0 0 5#" );
-        customPersistentEmotIndex = -1;
-        return;
+        commandIndex = 5;
         }
     if( inKeyCode == MG_KEY_F7) {
-        sendToServerSocket( (char*)"EMOT 0 0 6#" );
-        customPersistentEmotIndex = -1;
+        commandIndex = 6;
+        }
+    if( inKeyCode == MG_KEY_F8) {
+        commandIndex = 7;
+        }
+    if( commandIndex != -1 ) {
+        if( commandIndex < commandShortcuts.size() ) {
+            char *customCommand = commandShortcuts.getElementDirect( commandIndex );
+            mSayField.setText( customCommand );
+            mSayField.focus();
+            }
         return;
         }
-    if( inKeyCode == MG_KEY_F12) {
+    if( inKeyCode == MG_KEY_F12) { // left this here as a way to clear persistent emote
         sendToServerSocket( (char*)"EMOT 0 0 -1#" );
         customPersistentEmotIndex = -1;
         return;
