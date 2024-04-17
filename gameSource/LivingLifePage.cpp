@@ -169,6 +169,7 @@ static SpriteHandle guiPanelRightSprite;
 
 char useCoordinates = false;
 char usePersistentEmote = false;
+char useYumFinder = false;
 
 
 static JenkinsRandomSource randSource( 340403 );
@@ -472,6 +473,35 @@ static void removeCoordinatesByXY( int x, int y ) {
     }
 
 static SimpleVector<char*> commandShortcuts;
+
+// Yum finder
+char runningYumFinder = false;
+float livingLifeBouncingYOffset = 0.0;
+
+SimpleVector<int> yummyFoodChain;
+
+static char isFood( int inID );
+
+extern int *becomeFoodMap;
+
+static int getFoodParent( int oid ) {
+    oid = getObjectParent( oid );
+    return becomeFoodMap[oid];
+    }
+
+static void addToYummyFoodChain( int foodID ) {
+    foodID = getFoodParent( foodID );
+    if( yummyFoodChain.getElementIndex( foodID ) != -1 ) return;
+    yummyFoodChain.push_back( foodID );
+    }
+
+char shouldDrawObjectBouncing( int oid ) {
+    oid = getFoodParent( oid );
+    if( useYumFinder && runningYumFinder && isFood( oid ) && 
+        yummyFoodChain.getElementIndex( oid ) == -1 ) 
+        return true;
+    return false;
+    }
 
 
 static SimpleVector<char*> passwordProtectingPhrases;
@@ -2936,6 +2966,9 @@ LivingLifePage::LivingLifePage()
         }
     if( SettingsManager::getIntSetting( "persistentEmoteEnabled", 0 ) ) {
         usePersistentEmote = true;
+        }
+    if( SettingsManager::getIntSetting( "useYumFinder", 0 ) ) {
+        useYumFinder = true;
         }
     char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelKey", "g");
     mCoordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
@@ -11452,18 +11485,11 @@ static char isCategory( int inID ) {
 
 
 static char isFood( int inID ) {
-    if( inID <= 0 ) {
-        return false;
-        }
-    
-    ObjectRecord *o = getObject( inID );
-    
-    if( o->foodValue > 0 ) {
-        return true;
-        }
-    else {
-        return false;
-        }
+    if( inID <= 0 ) return false;
+    ObjectRecord *o = getObject( inID, true );
+    if( o == NULL ) return false;
+    if( o->foodValue > 0 || o->bonusValue > 0 ) return true;
+    return false;
     }
 
 
@@ -13907,6 +13933,36 @@ void LivingLifePage::step() {
     if (stepCount > 10000) stepCount = 0;
     if (ourObject != NULL && stepCount % 10 == 0) 
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
+
+    // calculation for the jumping animation of yum finder 
+    if( useYumFinder ) {
+        float runningFraction = (stepCount % 120);
+        if( runningFraction < 60 ) {
+            // controls the height of the drop and rebounce
+            float xOffset = 0.42;
+
+            // rescale to 0 to 1
+            runningFraction = runningFraction / 60;
+            // rescale to -1 to 1
+            runningFraction -= 0.5;
+            runningFraction *= 2;
+
+            // basically a negative parabolic curve
+            // shifted towards negative x
+            // then mirrored along y-axis
+            if( runningFraction > 0 ) runningFraction = -runningFraction;
+            runningFraction += xOffset;
+            runningFraction = - runningFraction * runningFraction;
+
+            // adjust y so that y = 0 when x = -1
+            runningFraction -= 1 - (-1 + xOffset) * (-1 + xOffset);
+            runningFraction += 1;
+            }
+        else {
+            runningFraction = 0;
+            }
+        livingLifeBouncingYOffset = runningFraction * CELL_D;
+        }
 
     if( showFPS ) {
         timeMeasures[1] += game_getCurrentTime() - updateStartTime;
@@ -17093,6 +17149,8 @@ void LivingLifePage::step() {
                                         existing->currentPos.y ) );
                                 otherSoundPlayed = true;
                                 }
+
+                            addToYummyFoodChain( justAteID );
                             }
 
                         
@@ -17129,6 +17187,8 @@ void LivingLifePage::step() {
                                 // back toward peak
                                 mRemapDirection = 1.0;
                                 }
+
+                            addToYummyFoodChain( justAteID );
                             }
                         
                         
@@ -18463,6 +18523,9 @@ void LivingLifePage::step() {
                     // clear custom persistent emot
                     customPersistentEmotIndex = -1;
                     timeLastPersistentEmotSent = 0;
+
+                    // clear yummy food chain
+                    yummyFoodChain.deleteAll();
                     }
                 homePosStack.push_back_other( &oldHomePosStack );
 
@@ -21638,6 +21701,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     leftKeyDown = false;
     downKeyDown = false;
     rightKeyDown = false;
+
+    runningYumFinder = false;
     
     screenCenterPlayerOffsetX = 0;
     screenCenterPlayerOffsetY = 0;
@@ -24905,6 +24970,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             }
 
         }
+
+    if (useYumFinder && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, 'y') ) {
+        runningYumFinder = true;
+        }
     
     switch( inASCII ) {
         /*
@@ -25752,7 +25822,8 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
             
 void LivingLifePage::keyUp( unsigned char inASCII ) {
 
-	bool commandKey = isCommandKeyDown();
+    bool commandKey = isCommandKeyDown();
+    bool shiftKey = isShiftKeyDown();
 
 	if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
 		upKeyDown = false;
@@ -25788,6 +25859,11 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
 		magnetWrongMoveDir = -1;
 		magnetMoveCount = 0;
 	}
+
+    if( runningYumFinder && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, 'y')) {
+        runningYumFinder = false;
+        }
 
     switch( inASCII ) {
         case 'e':

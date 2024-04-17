@@ -119,6 +119,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnableAdvancedShowUseOnObjectHoverKeybind;
         CheckboxButton mUseCoordinatesBox;
         CheckboxButton mPersistentEmoteBox;
+        CheckboxButton mEnableYumFinderBox;
         
         
         void checkRestartButtonVisibility();

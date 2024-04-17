@@ -18,6 +18,8 @@ void regenerateDepthMap();
 
 void regenerateHumanMadeMap();
 
+void regenerateBecomeFoodMap();
+
 
 
 // track pointers to all records
@@ -41,6 +43,9 @@ static int depthMapSize = 0;
 static int *depthMap = NULL;
 
 static int maxDepth = 0;
+
+
+int *becomeFoodMap = NULL;
 
 
 static int humanMadeMapSize = 0;
@@ -1586,6 +1591,7 @@ void initTransBankFinish() {
 
     regenerateDepthMap();
     regenerateHumanMadeMap();
+    regenerateBecomeFoodMap();
     }
 
 
@@ -1923,6 +1929,248 @@ void regenerateHumanMadeMap() {
     delete [] unreachableMap;
     }
 
+
+void regenerateBecomeFoodMap() {
+
+    // clear becomeFoodMap
+    if( becomeFoodMap != NULL ) {    
+        delete [] becomeFoodMap;
+        becomeFoodMap = NULL;
+        }
+    
+    int becomeFoodMapSize = getMaxObjectID() + 1;
+        
+    becomeFoodMap = new int[ becomeFoodMapSize ];
+    
+    // initialize with zeroes
+    for( int i=0; i<becomeFoodMapSize; i++ ) {
+        becomeFoodMap[i] = 0;
+        }
+
+    SimpleVector<int> *allFoods = getAllPossibleFoodIDs();
+
+    // initialize the food themselves
+    for( int j=0; j<allFoods->size(); j++ ) {
+        int foodID = allFoods->getElementDirect( j );
+        becomeFoodMap[foodID] = foodID;
+        }
+
+    // find all objects that a bare hand can pick food from
+    SimpleVector<int> bareHandSources;
+    for( int j=0; j<allFoods->size(); j++ ) {
+        int foodID = allFoods->getElementDirect( j );
+
+        SimpleVector<TransRecord*> *prodTrans = getAllProduces( foodID );
+        for( int i=0; i<prodTrans->size(); i++ ) {
+            TransRecord *t = prodTrans->getElementDirect(i);
+
+            if( t->actor == 0 && t->newActor == foodID ) {
+                int target = getObjectParent(t->target);
+                if( bareHandSources.getElementIndex( target ) == -1 ) {
+                    bareHandSources.push_back( target );
+                    becomeFoodMap[target] = foodID;
+                    }
+                }
+            }
+        }
+
+    // find common ancestors one step from food
+    SimpleVector<int> commonAncestors;
+    for( int j=0; j<allFoods->size(); j++ ) {
+        int foodID = allFoods->getElementDirect( j );
+
+        SimpleVector<TransRecord*> *prodTrans = getAllProduces( foodID );
+        int foodDepth = getObjectDepth( foodID );
+
+        for( int i=0; i<prodTrans->size(); i++ ) {
+            TransRecord *t = prodTrans->getElementDirect(i);
+
+
+            int actor = getObjectParent(t->actor);
+            int target = getObjectParent(t->target);
+            int actorDepth = 0; 
+            int targetDepth = 0;
+            if( actor > 0 ) actorDepth = getObjectDepth( actor );
+            if( target > 0 ) targetDepth = getObjectDepth( target );
+
+            // look through from-scratch transitions only
+            if( !( actorDepth < foodDepth && targetDepth < foodDepth ) ) continue;
+
+            if( actor <= 0 ) {
+                // not an object
+                }
+            else if( becomeFoodMap[actor] == actor ) {
+                // object is food
+                }
+            else if( commonAncestors.getElementIndex( actor ) != -1 ) {
+                // object is a common ancestor
+                }
+            else if( becomeFoodMap[actor] == 0 ) {
+                // new, never explored
+                becomeFoodMap[actor] = foodID;
+                }
+            else if( becomeFoodMap[actor] != foodID ) {
+                // so this is ancestor of another food...
+                if( commonAncestors.getElementIndex( actor ) == -1 &&
+                    // and it cannot be turned into food via a bare hand transition
+                    bareHandSources.getElementIndex( actor ) == -1
+                    ) {
+                    commonAncestors.push_back( actor );
+                    becomeFoodMap[actor] = 0;
+                    }
+                }
+
+            if( target <= 0 ) {
+                // not an object
+                }
+            else if( becomeFoodMap[target] == target ) {
+                // object is food
+                }
+            else if( commonAncestors.getElementIndex( target ) != -1 ) {
+                // object is a common ancestor
+                }
+            else if( becomeFoodMap[target] == 0 ) {
+                // new, never explored
+                becomeFoodMap[target] = foodID;
+                }
+            else if( becomeFoodMap[target] != foodID ) {
+                // so this is ancestor of another food...
+                if( commonAncestors.getElementIndex( target ) == -1 &&
+                    // and it cannot be turned into food via a bare hand transition
+                    bareHandSources.getElementIndex( target ) == -1
+                    ) {
+                    commonAncestors.push_back( target );
+                    becomeFoodMap[target] = 0;
+                    }
+                }
+
+            }
+        }
+
+
+    // walk through the tech tree
+
+    SimpleVector<int> horizon;
+    SimpleVector<int> depths;
+
+    // starting from foods
+    for( int i=0; i<allFoods->size(); i++ ) {
+        int id = allFoods->getElementDirect( i );
+        horizon.push_back( id );
+        // as far back as 2 steps before food
+        int depthLimit = 2;
+        depths.push_back( depthLimit );
+        }
+
+    int index = 0;
+    while( index < horizon.size() ) {
+        
+        int nextID = horizon.getElementDirect(index);
+        int nextDepth = depths.getElementDirect(index);
+        nextDepth--;
+        if( nextDepth < 0 ) {
+            index++;
+            continue;
+            }
+
+        nextID = getObjectParent( nextID );
+
+        SimpleVector<TransRecord*> *prodTrans = getAllProduces( nextID );
+        
+        for( int i=0; i<prodTrans->size(); i++ ) {
+            TransRecord *t = prodTrans->getElementDirect(i);
+
+            // ignore containment transitions
+            if( t->contTransFlag != 0 ) continue;
+
+            // ignore raw last use transitions
+            // the proper transitions are auto-generated and have these flags set to false
+            if( t->lastUseActor || t->lastUseTarget ) continue;
+
+            int actor = t->actor;
+            int target = t->target;
+            if( actor > 0 ) actor = getObjectParent(actor);
+            if( target > 0 ) target = getObjectParent(target);
+
+            int nextToCheck = -1;
+
+            if( actor == -1 ) {
+                // decay transition, look at target
+                nextToCheck = target;
+                }
+            else if( actor == 0 ) {
+                // bare hand transition, look at target
+                nextToCheck = target;
+                }
+            else if( target == -1 ) {
+                TransRecord *moveTrans = getTrans(-1, actor);
+                if( moveTrans == NULL ) {
+                    // target is -1 and no decay/move for actor
+                    // this is a set down transition, look at actor
+                    nextToCheck = actor;
+                    }
+                }
+            else if(
+                t->newActor == nextID &&
+                t->target == t->newTarget &&
+                commonAncestors.getElementIndex( actor ) == -1
+                ) {
+                // target is not used in crafting, look at actor
+                nextToCheck = actor;
+                }
+            else if(
+                t->newTarget == nextID &&
+                t->actor == t->newActor &&
+                commonAncestors.getElementIndex( target ) == -1
+                ) {
+                // actor is not used in crafting, look at target
+                nextToCheck = target;
+                }
+            else if( 
+                commonAncestors.getElementIndex( actor ) != -1 &&
+                commonAncestors.getElementIndex( target ) == -1
+                ) {
+                // actor is a common ancestor, look at target
+                nextToCheck = target;
+                }
+            else if( 
+                commonAncestors.getElementIndex( actor ) == -1 &&
+                commonAncestors.getElementIndex( target ) != -1
+                ) {
+                // target is a common ancestor, look at actor
+                nextToCheck = actor;
+                }
+
+            if( nextToCheck != -1 ) {
+                becomeFoodMap[nextToCheck] = becomeFoodMap[nextID];
+                if( horizon.getElementIndex( nextToCheck ) == -1 ) {
+                    horizon.push_back( nextToCheck );
+                    depths.push_back( nextDepth );
+                    }
+                }
+            }
+        index++;
+        }
+
+    for( int i=0; i<becomeFoodMapSize; i++ ) {
+        int food = becomeFoodMap[i];
+        if( food != 0 ) {
+            ObjectRecord *o = getObject( i, true );
+            if( o == NULL ) continue;
+            
+            if( o->useChance != 1.0 && o->useChance != 0.0 ) {
+                // object has probabilistic uses
+                // most likely a tool e.g. knife
+                // (or for example, dogs digging for wild food)
+                becomeFoodMap[i] = 0;
+                }
+            }
+        }
+
+
+    return;
+
+    }
 
 
 

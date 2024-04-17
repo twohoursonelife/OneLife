@@ -606,6 +606,8 @@ void minitech::drawPoint(doublePair posCen, string color) {
     drawRect( posCen, pointSize, pointSize );   
 }
 
+extern char runningYumFinder;
+
 void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, string strDescSecondLine) {
     if (objId <= 0) {
         string firstPart;
@@ -634,11 +636,15 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
     zoom = zoom * guiScale;
     doublePair posAfterOffset = sub (posCen, mult( getObjectCenterOffset( obj ), zoom ));
     setDrawnObjectContained( true );
+    float tempRunningYumFinder = runningYumFinder;
+    runningYumFinder = false;
     
     setDrawColor( 1, 1, 1, 1 ); 
     
     drawObject( obj, 2, posAfterOffset, 0, false, false, 20, 0, false, false,
                 getEmptyClothingSet(), zoom );
+
+    runningYumFinder = tempRunningYumFinder;
     setDrawnObjectContained( false );
 }
 

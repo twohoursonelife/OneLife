@@ -37,6 +37,7 @@ extern bool isShowUseOnObjectHoverKeybindEnabled;
 
 extern char useCoordinates;
 extern char usePersistentEmote;
+extern char useYumFinder;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -117,7 +118,8 @@ SettingsPage::SettingsPage()
 #endif // USE_DISCORD
         , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
         mUseCoordinatesBox(0, 128, 4),
-        mPersistentEmoteBox(0, 88, 4) {
+        mPersistentEmoteBox(0, 88, 4),
+        mEnableYumFinderBox(0, 48, 4) {
                             
 
     
@@ -126,6 +128,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent(&mEnableYumFinderBox);
+    mEnableYumFinderBox.addActionListener(this);
     addComponent(&mPersistentEmoteBox);
     mPersistentEmoteBox.addActionListener(this);
     addComponent(&mUseCoordinatesBox);
@@ -313,6 +317,7 @@ SettingsPage::SettingsPage()
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
     mUseCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING" );
     mPersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
+    mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -403,6 +408,12 @@ SettingsPage::SettingsPage()
 
     mPersistentEmoteBox.setToggled(
         usePersistentEmote);
+
+    useYumFinder = 
+        SettingsManager::getIntSetting("useYumFinder", 0);
+
+    mEnableYumFinderBox.setToggled(
+        useYumFinder);
 
     mPage = 0;
     
@@ -841,6 +852,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("usePersistentEmote",
                                     newSetting);
         }
+    else if ( inTarget == &mEnableYumFinderBox ) {
+        int newSetting = mEnableYumFinderBox.getToggled();
+        useYumFinder = false;
+        if( newSetting ) useYumFinder = true;
+        SettingsManager::setSetting("useYumFinder",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1072,6 +1090,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString("PERMANENT EMOTE", pos, alignRight);
         }
+    if (mEnableYumFinderBox.isVisible()) {
+        doublePair pos = mEnableYumFinderBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("ENABLE YUM FINDER", pos, alignRight);
+        }
 }
 
 
@@ -1211,6 +1236,7 @@ void SettingsPage::updatePage() {
     mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
     mUseCoordinatesBox.setPosition(0, lineSpacing * 2);
     mPersistentEmoteBox.setPosition(0, lineSpacing * 1);
+    mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1256,6 +1282,7 @@ void SettingsPage::updatePage() {
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
     mUseCoordinatesBox.setVisible(mPage == 5);
     mPersistentEmoteBox.setVisible(mPage == 5);
+    mEnableYumFinderBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );

@@ -75,6 +75,8 @@ static char mouthFrameOutputStarted = false;
 bool isTrippingEffectOn;
 bool trippingEffectDisabled;
 
+extern float livingLifeBouncingYOffset;
+
 
 static char shouldFileBeCached( char *inFileName ) {
     if( strstr( inFileName, ".txt" ) != NULL ) {
@@ -1284,7 +1286,7 @@ ObjectAnimPack drawObjectAnimPacked(
     }
 
         
-
+extern char shouldDrawObjectBouncing( int oid );
 
 void drawObjectAnim( ObjectAnimPack inPack ) {
     HoldingPos p;
@@ -1410,6 +1412,10 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                            SimpleVector<int> *inClothingContained,
                            double *outSlotRots,
                            doublePair *outSlotOffsets ) {
+    
+    if( shouldDrawObjectBouncing( inObjectID ) ) { 
+        inPos.y += livingLifeBouncingYOffset;
+        }
     
     if( inType == ground2 ) {
         inType = ground;
@@ -3361,6 +3367,10 @@ void drawObjectAnim( int inObjectID, AnimationRecord *inAnim,
                      SimpleVector<int> *inClothingContained,
                      int inNumContained, int *inContainedIDs,
                      SimpleVector<int> *inSubContained ) {
+    
+    // if( shouldDrawObjectBouncing( inObjectID ) ) { 
+    //     inPos.y += livingLifeBouncingYOffset;
+    //     }
     
     ClothingSet emptyClothing = getEmptyClothingSet();
 
