@@ -509,6 +509,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 		void takeOffBackpack();
 		void setOurSendPosXY(int &x, int &y);
 		bool isCharKey(unsigned char c, unsigned char key);
+        void drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing );
 		
 		void actionAlphaRelativeToMe( int x, int y );
 		void actionBetaRelativeToMe( int x, int y );

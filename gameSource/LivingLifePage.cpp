@@ -356,19 +356,6 @@ static doublePair recalcOffset( doublePair ofs, bool force = false ) {
     ofs.y = recalcOffsetY( ofs.y );
     return ofs;
     }
-    
-    
-    
-static void drawTileRect( int x, int y, std::string color, bool flashing ) {
-    doublePair pos = { (double)x, (double)y };
-    pos.x *= CELL_D;
-    pos.y *= CELL_D;
-    float alpha = 0.5;
-    if (color == "red") setDrawColor( 1, 0, 0, alpha );
-    if (color == "green") setDrawColor( 0, 1, 0, alpha );
-    if (color == "blue") setDrawColor( 0, 0, 1, alpha );
-    drawRect( pos, CELL_D/2, CELL_D/2 );
-}
 
 static bool isHoveringPicker( float x, float y ) {
     if( !vogPickerOn ) return false;
@@ -2785,6 +2772,27 @@ bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
         c+64 == toupper(tKey) // ctrl + key
         );
 }
+
+void LivingLifePage::drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing ) {
+    doublePair startPos = { (double)x, (double)y };
+    startPos.x *= CELL_D;
+    startPos.y *= CELL_D;
+    float alpha = 1.0;
+    if (flashing) {
+        float maxAlpha = 0.8;
+        float minAlpha = 0.2;
+        alpha = (stepCount % 80) / 80.0;
+        if (alpha > 0.5) alpha = 1 - alpha;
+        alpha *= 2;
+        alpha = alpha * (maxAlpha - minAlpha) + minAlpha;
+        floatColor.a = alpha;
+    }
+    setDrawColor( floatColor );
+    drawSprite( mCellFillSprite, startPos );
+    
+    setDrawColor( 0, 0, 0, alpha );
+    drawSprite( mCellBorderSprite, startPos );
+    }
 
 
 
@@ -6679,6 +6687,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     //setDrawColor( 1, 1, 1, 1 );
     //drawSquare( lastScreenViewCenter, visibleViewWidth );
+
+    float worldMouseX, worldMouseY;
+    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
     
 
     //if( currentGamePage != NULL ) {
@@ -7327,8 +7339,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
 
-
-    if (minitech::highlightObjId > 0) {
+    if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
+        doublePair mousePos = { lastMouseX, lastMouseY };
+        int mouseX = int(round( mousePos.x / (float)CELL_D ));
+        int mouseY = int(round( mousePos.y / (float)CELL_D ));
+        drawTileVanillaHighlight( mouseX, mouseY, {0.0, 1.0, 0.0, 1.0}, false );
+        }
+    else if (minitech::highlightObjId > 0) {
         minitech::drawHintObjectTile();
     }
     else if( mShowHighlights 
@@ -10475,9 +10492,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
 
-    float worldMouseX, worldMouseY;
-    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
 
 
     // Coordinates Panel
@@ -11210,13 +11224,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
         minitech::drawIconOnHoverTips();
         }
 	
-
-    if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
-        doublePair mousePos = { lastMouseX, lastMouseY };
-        int mouseX = int(round( mousePos.x / (float)CELL_D ));
-        int mouseY = int(round( mousePos.y / (float)CELL_D ));
-        drawTileRect( mouseX, mouseY, "green", false );
-        }
     
     
     if( vogMode ) {
