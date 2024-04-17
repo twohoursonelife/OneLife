@@ -97,6 +97,7 @@ public:
 		bool avoidOffScreen = false);
 	static void drawTileRect( int x, int y, std::string color, bool flashing = false );
 	static void drawBox(doublePair posCen, float height, float width, float lineWidth);
+    static void drawHintObjectTile();
 	
 	static void initOnBirth();
 	static void changeScale( float newScale );

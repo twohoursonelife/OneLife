@@ -717,12 +717,14 @@ void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
     doublePair startPos = { (double)x, (double)y };
     startPos.x *= CELL_D;
     startPos.y *= CELL_D;
-    float maxAlpha = 0.5;
+    float maxAlpha = 0.75;
+    float minAlpha = 0.0;
     float alpha;
     if (flashing) {
-        alpha = (stepCount % 40) / 40.0;
+        alpha = (stepCount % 80) / 80.0;
         if (alpha > 0.5) alpha = 1 - alpha;
-        alpha *= maxAlpha;
+        alpha *= 2;
+        alpha = alpha * (maxAlpha - minAlpha) + minAlpha;
     } else {
         alpha = maxAlpha;
     }
@@ -732,7 +734,7 @@ void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
     // drawRect( startPos, CELL_D/2, CELL_D/2 );
     drawSprite( mCellFillSprite, startPos );
     
-    setDrawColor( 0, 0, 0, 0.75 * 0.5 );
+    setDrawColor( 0, 0, 0, alpha );
     drawSprite( mCellBorderSprite, startPos );
 }
 
@@ -746,6 +748,16 @@ void minitech::drawBox(doublePair posCen, float height, float width, float lineW
     drawRect( posCenBottomSide, width/2 - lineWidth, lineWidth/2 );
     drawRect( posCenRightSide, lineWidth/2, height/2 );
     drawRect( posCenLeftSide, lineWidth/2, height/2 );
+}
+
+void minitech::drawHintObjectTile() {
+    if (minitech::highlightObjId > 0) {
+        GridPos currentPos = {currentX, currentY};
+        GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId, !currentHintTranRequiresFullUses);
+        if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
+            drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
+        }
+    }
 }
 
 
@@ -1150,16 +1162,6 @@ void minitech::updateDrawTwoTech() {
         drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
         
     } else {
-        
-        // if there are no results, don't even bother to draw highlighted tile
-        // so this is put here
-        if (highlightObjId > 0) {
-            GridPos currentPos = {currentX, currentY};
-            GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId, !currentHintTranRequiresFullUses);
-            if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
-                drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
-            }
-        }
         
         int maxPage = int( ceil( float(transSize) / float(defaultNumOfLines) ) );
         if (currentTwoTechPage < 0) currentTwoTechPage = maxPage - 1;

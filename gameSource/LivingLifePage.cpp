@@ -7328,7 +7328,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
     float maxEmptyCellFade = 0.75;
 
 
-    if( mShowHighlights 
+    if (minitech::highlightObjId > 0) {
+        minitech::drawHintObjectTile();
+    }
+    else if( mShowHighlights 
         &&
         mCurMouseOverCellFade > 0 
         &&
