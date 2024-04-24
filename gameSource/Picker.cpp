@@ -18,7 +18,7 @@
 
 #define PER_PAGE 5
 
-extern Font *mainFont;
+extern Font *mainFontFixed;
 extern Font *smallFontFixed;
 
 
@@ -34,7 +34,7 @@ Picker::Picker( Pickable *inPickable, double inX, double inY )
           mPrevButton( smallFontFixed, -60, -290, "Prev" ), 
           mDelButton( smallFontFixed, 15, -290, "x" ), 
           mDelConfirmButton( smallFontFixed, -15, -290, "!" ), 
-          mSearchField( mainFont, 
+          mSearchField( mainFontFixed, 
                         0,  100, 4,
                         true,
                         "", NULL, "" ),

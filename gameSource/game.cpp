@@ -616,7 +616,7 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     mainFontReview = new Font( getFontTGAFileName(), 4, 8, false, 16 );
     mainFontReview->setMinimumPositionPrecision( 1 );
 
-    mainFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16 );
+    mainFontFixed = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
     numbersFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16, 16 );
     
     mainFontFixed->setMinimumPositionPrecision( 1 );
