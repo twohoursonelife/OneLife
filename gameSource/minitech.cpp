@@ -635,17 +635,31 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
     if( maxD > maxSize ) zoom = maxSize / maxD;
     zoom = zoom * guiScale;
     doublePair posAfterOffset = sub (posCen, mult( getObjectCenterOffset( obj ), zoom ));
-    setDrawnObjectContained( true );
-    float tempRunningYumFinder = runningYumFinder;
+    
+    char tempRunningYumFinder = runningYumFinder;
     runningYumFinder = false;
     
     setDrawColor( 1, 1, 1, 1 ); 
-    
-    drawObject( obj, 2, posAfterOffset, 0, false, false, 20, 0, false, false,
-                getEmptyClothingSet(), zoom );
+    setDrawnObjectScale( zoom );
 
+    char used;
+    drawObjectAnim( objId, 2, 
+                    ground, 0.0,
+                    0,
+                    ground, 
+                    0.0,
+                    0.0,
+                    &used,
+                    ground,
+                    ground,
+                    posAfterOffset, 0,
+                    false,
+                    false, -1,
+                    false, false, false,
+                    getEmptyClothingSet(), NULL );
+
+    setDrawnObjectScale( 1.0 );
     runningYumFinder = tempRunningYumFinder;
-    setDrawnObjectContained( false );
 }
 
 void minitech::drawStr(

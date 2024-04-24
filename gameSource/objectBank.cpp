@@ -3895,6 +3895,13 @@ void setDrawnObjectContained( char inContained ) {
     }
 
 
+double drawObjectScale = 1.0;
+
+void setDrawnObjectScale( double inScale ) {
+    drawObjectScale = inScale;
+    }
+
+
 extern char shouldDrawObjectBouncing( int oid );
 
 HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
@@ -3903,8 +3910,7 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        int inHideClosestArm,
                        char inHideAllLimbs,
                        char inHeldNotInPlaceYet,
-                       ClothingSet inClothing,
-                       double inScale ) {
+                       ClothingSet inClothing ) {
     
     if( drawingContained && shouldDrawObjectBouncing( inObject->id ) ) { 
         inPos.y += livingLifeBouncingYOffset;
@@ -4056,7 +4062,7 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
             }
 
 
-        spritePos = mult( spritePos, inScale );
+        spritePos = mult( spritePos, drawObjectScale );
         
         doublePair pos = add( spritePos, inPos );
 
@@ -4234,7 +4240,7 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
 
             SpriteHandle sh = getSprite( inObject->sprites[i] );
             if( sh != NULL ) {
-                drawSprite( sh, pos, inScale,
+                drawSprite( sh, pos, drawObjectScale,
                             rot, 
                             logicalXOR( inFlipH, inObject->spriteHFlip[i] ) );
                 }

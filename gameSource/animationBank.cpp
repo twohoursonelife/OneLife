@@ -75,6 +75,8 @@ static char mouthFrameOutputStarted = false;
 bool isTrippingEffectOn;
 bool trippingEffectDisabled;
 
+extern double drawObjectScale;
+
 extern float livingLifeBouncingYOffset;
 
 
@@ -2369,6 +2371,7 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
             }
             
 
+        spritePos = mult( spritePos, drawObjectScale );
         
         doublePair pos = add( spritePos, inPos );
 
@@ -2827,7 +2830,7 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
             else {
                 SpriteHandle sh = getSprite( spriteID );
                 if( sh != NULL ) {
-                    drawSprite( sh, pos, 1.0, rot, 
+                    drawSprite( sh, pos, drawObjectScale, rot, 
                                 logicalXOR( inFlipH, obj->spriteHFlip[i] ) );
                     }
                 }
