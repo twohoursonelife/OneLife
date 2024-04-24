@@ -35,9 +35,9 @@ extern bool showingInGameSettings;
 extern bool ShowUseOnObjectHoverSettingToggle;
 extern bool isShowUseOnObjectHoverKeybindEnabled;
 
-extern char useCoordinates;
-extern char usePersistentEmote;
-extern char useYumFinder;
+extern char coordinatesEnabled;
+extern char persistentEmoteEnabled;
+extern char yumFinderEnabled;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -117,8 +117,8 @@ SettingsPage::SettingsPage()
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
         , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
-        mUseCoordinatesBox(0, 128, 4),
-        mPersistentEmoteBox(0, 88, 4),
+        mEnableCoordinatesBox(0, 128, 4),
+        mEnablePersistentEmoteBox(0, 88, 4),
         mEnableYumFinderBox(0, 48, 4) {
                             
 
@@ -130,10 +130,10 @@ SettingsPage::SettingsPage()
     // Advanced
     addComponent(&mEnableYumFinderBox);
     mEnableYumFinderBox.addActionListener(this);
-    addComponent(&mPersistentEmoteBox);
-    mPersistentEmoteBox.addActionListener(this);
-    addComponent(&mUseCoordinatesBox);
-    mUseCoordinatesBox.addActionListener(this);
+    addComponent(&mEnablePersistentEmoteBox);
+    mEnablePersistentEmoteBox.addActionListener(this);
+    addComponent(&mEnableCoordinatesBox);
+    mEnableCoordinatesBox.addActionListener(this);
     addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
     mEnableAdvancedShowUseOnObjectHoverKeybind.addActionListener(this);
     
@@ -315,8 +315,8 @@ SettingsPage::SettingsPage()
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
-    mUseCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING" );
-    mPersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
+    mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING" );
+    mEnablePersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
     mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
     
     mOldFullscreenSetting = 
@@ -397,23 +397,23 @@ SettingsPage::SettingsPage()
     mEnableAdvancedShowUseOnObjectHoverKeybind.setToggled(
         mAdvancedShowUseOnObjectHoverKeybindSetting);
 
-    useCoordinates = 
-        SettingsManager::getIntSetting("useCoordinates", 0);
+    coordinatesEnabled = 
+        SettingsManager::getIntSetting("coordinatesEnabled", 0);
 
-    mUseCoordinatesBox.setToggled(
-        useCoordinates);
+    mEnableCoordinatesBox.setToggled(
+        coordinatesEnabled);
 
-    usePersistentEmote = 
-        SettingsManager::getIntSetting("usePersistentEmote", 0);
+    persistentEmoteEnabled = 
+        SettingsManager::getIntSetting("persistentEmoteEnabled", 0);
 
-    mPersistentEmoteBox.setToggled(
-        usePersistentEmote);
+    mEnablePersistentEmoteBox.setToggled(
+        persistentEmoteEnabled);
 
-    useYumFinder = 
-        SettingsManager::getIntSetting("useYumFinder", 0);
+    yumFinderEnabled = 
+        SettingsManager::getIntSetting("yumFinderEnabled", 0);
 
     mEnableYumFinderBox.setToggled(
-        useYumFinder);
+        yumFinderEnabled);
 
     mPage = 0;
     
@@ -838,25 +838,25 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         ShowUseOnObjectHoverSettingToggle = (bool)newSetting;
         if( ShowUseOnObjectHoverSettingToggle ) isShowUseOnObjectHoverKeybindEnabled = true;
         }
-    else if ( inTarget == &mUseCoordinatesBox ) {
-        int newSetting = mUseCoordinatesBox.getToggled();
-        useCoordinates = false;
-        if( newSetting ) useCoordinates = true;
-        SettingsManager::setSetting("useCoordinates",
+    else if ( inTarget == &mEnableCoordinatesBox ) {
+        int newSetting = mEnableCoordinatesBox.getToggled();
+        coordinatesEnabled = false;
+        if( newSetting ) coordinatesEnabled = true;
+        SettingsManager::setSetting("coordinatesEnabled",
                                     newSetting);
         }
-    else if ( inTarget == &mPersistentEmoteBox ) {
-        int newSetting = mPersistentEmoteBox.getToggled();
-        usePersistentEmote = false;
-        if( newSetting ) usePersistentEmote = true;
-        SettingsManager::setSetting("usePersistentEmote",
+    else if ( inTarget == &mEnablePersistentEmoteBox ) {
+        int newSetting = mEnablePersistentEmoteBox.getToggled();
+        persistentEmoteEnabled = false;
+        if( newSetting ) persistentEmoteEnabled = true;
+        SettingsManager::setSetting("persistentEmoteEnabled",
                                     newSetting);
         }
     else if ( inTarget == &mEnableYumFinderBox ) {
         int newSetting = mEnableYumFinderBox.getToggled();
-        useYumFinder = false;
-        if( newSetting ) useYumFinder = true;
-        SettingsManager::setSetting("useYumFinder",
+        yumFinderEnabled = false;
+        if( newSetting ) yumFinderEnabled = true;
+        SettingsManager::setSetting("yumFinderEnabled",
                                     newSetting);
         }
 
@@ -1076,19 +1076,19 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString("SHOW USE ON HOVER", pos, alignRight);
         }
-    if (mUseCoordinatesBox.isVisible()) {
-        doublePair pos = mUseCoordinatesBox.getPosition();
+    if (mEnableCoordinatesBox.isVisible()) {
+        doublePair pos = mEnableCoordinatesBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
         mainFont->drawString("SHOW COORDINATES", pos, alignRight);
         }
-    if (mPersistentEmoteBox.isVisible()) {
-        doublePair pos = mPersistentEmoteBox.getPosition();
+    if (mEnablePersistentEmoteBox.isVisible()) {
+        doublePair pos = mEnablePersistentEmoteBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("PERMANENT EMOTE", pos, alignRight);
+        mainFont->drawString("USE PERMANENT EMOTE", pos, alignRight);
         }
     if (mEnableYumFinderBox.isVisible()) {
         doublePair pos = mEnableYumFinderBox.getPosition();
@@ -1234,8 +1234,8 @@ void SettingsPage::updatePage() {
 #endif // USE_DISCORD
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
-    mUseCoordinatesBox.setPosition(0, lineSpacing * 2);
-    mPersistentEmoteBox.setPosition(0, lineSpacing * 1);
+    mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
+    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
     mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
     
     mEnableFOVBox.setVisible( mPage == 0 );
@@ -1280,8 +1280,8 @@ void SettingsPage::updatePage() {
 #endif // USE_DISCORD
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
-    mUseCoordinatesBox.setVisible(mPage == 5);
-    mPersistentEmoteBox.setVisible(mPage == 5);
+    mEnableCoordinatesBox.setVisible(mPage == 5);
+    mEnablePersistentEmoteBox.setVisible(mPage == 5);
     mEnableYumFinderBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );

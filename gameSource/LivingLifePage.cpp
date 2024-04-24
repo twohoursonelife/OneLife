@@ -167,9 +167,11 @@ static SpriteHandle guiPanelLeftSprite;
 static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 
-char useCoordinates = false;
-char usePersistentEmote = false;
-char useYumFinder = false;
+char coordinatesEnabled = false;
+unsigned char coordinatesPanelToggleKey = 'g';
+char persistentEmoteEnabled = false;
+char yumFinderEnabled = false;
+unsigned char yumFinderKey = 'y';
 
 
 static JenkinsRandomSource randSource( 340403 );
@@ -497,7 +499,7 @@ static void addToYummyFoodChain( int foodID ) {
 
 char shouldDrawObjectBouncing( int oid ) {
     oid = getFoodParent( oid );
-    if( useYumFinder && runningYumFinder && isFood( oid ) && 
+    if( yumFinderEnabled && runningYumFinder && isFood( oid ) && 
         yummyFoodChain.getElementIndex( oid ) == -1 ) 
         return true;
     return false;
@@ -2953,8 +2955,7 @@ LivingLifePage::LivingLifePage()
           mXKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 ),
           coordinatesComponent(),
-          coordinatesPanelComponent(),
-          mCoordinatesPanelToggleKey( 'g' ) {
+          coordinatesPanelComponent() {
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -2962,17 +2963,20 @@ LivingLifePage::LivingLifePage()
         }
 
     if( SettingsManager::getIntSetting( "coordinatesEnabled", 0 ) ) {
-        useCoordinates = true;
+        coordinatesEnabled = true;
         }
     if( SettingsManager::getIntSetting( "persistentEmoteEnabled", 0 ) ) {
-        usePersistentEmote = true;
+        persistentEmoteEnabled = true;
         }
-    if( SettingsManager::getIntSetting( "useYumFinder", 0 ) ) {
-        useYumFinder = true;
+    if( SettingsManager::getIntSetting( "yumFinderEnabled", 0 ) ) {
+        yumFinderEnabled = true;
         }
-    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelKey", "g");
-    mCoordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
+    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelToggleKey", "g");
+    coordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
     delete [] coordinatesPanelToggleKeyFromSetting;
+    char *yumFinderKeyFromSetting = SettingsManager::getStringSetting("yumFinderKey", "y");
+    yumFinderKey = yumFinderKeyFromSetting[0];
+    delete [] yumFinderKeyFromSetting;
 
     mHomeSlipSprites[0] = mHomeSlipSprite;
     mHomeSlipSprites[1] = mHomeSlip2Sprite;
@@ -3162,7 +3166,7 @@ LivingLifePage::LivingLifePage()
         }
 
     bigSheet = loadSprite( "bigHintSheet.tga", false );
-    coordinatesComponent.mActive = useCoordinates;
+    coordinatesComponent.mActive = coordinatesEnabled;
     
     mLiveHintSheetIndex = -1;
 
@@ -9593,7 +9597,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
     
 
-    if( !useCoordinates )
+    if( !coordinatesEnabled )
     for( int j=0; j<2; j++ ) {
         doublePair slipPos = add( mult( recalcOffset( mHomeSlipPosOffset[j] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -10529,7 +10533,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     // Coordinates Panel
     // drawn behind tutorial sheets / global message
-    if( useCoordinates && coordinatesPanelComponent.mActive ) {
+    if( coordinatesEnabled && coordinatesPanelComponent.mActive ) {
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
         doublePair coordinatesPanelHidePos = {-198, 199};
@@ -10667,7 +10671,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     // Coordinates
     // drawn behind tutorial sheets / global message
     // drawn above coordinates panel
-    if( useCoordinates && ourLiveObject != NULL ) {
+    if( coordinatesEnabled && ourLiveObject != NULL ) {
 
         char *line = autoSprintf( "(%s, %s)", 
             formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
@@ -10716,7 +10720,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     // cursorTips for Coordinates and Panel
-    if( useCoordinates )
+    if( coordinatesEnabled )
     if( coordinatesPanelComponent.mActive || coordinatesComponent.mHover ) {
         char *coordsTips = NULL;
         if( coordinatesPanelComponent.mActive ) {
@@ -13115,7 +13119,7 @@ void LivingLifePage::step() {
     LiveObject *ourObject = getOurLiveObject();
 
     // custom persistent emot
-    if( usePersistentEmote &&
+    if( persistentEmoteEnabled &&
         ourObject != NULL && customPersistentEmotIndex != -1 &&
         // 2 sec wiggleroom to avoid flickering
         game_getCurrentTime() - timeLastPersistentEmotSent > emotDuration - 2
@@ -13935,7 +13939,7 @@ void LivingLifePage::step() {
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
 
     // calculation for the jumping animation of yum finder 
-    if( useYumFinder ) {
+    if( yumFinderEnabled ) {
         float runningFraction = (stepCount % 120);
         if( runningFraction < 60 ) {
             // controls the height of the drop and rebounce
@@ -21742,7 +21746,7 @@ void LivingLifePage::makeActive( char inFresh ) {
           changeFOV( 1.0f );
           }
 
-        coordinatesComponent.mActive = useCoordinates;
+        coordinatesComponent.mActive = coordinatesEnabled;
       
 		//reset camera if LivingLifePage is made active again
 		LiveObject *ourLiveObject = getOurLiveObject();
@@ -24947,8 +24951,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
 	if (minitech::livingLifeKeyDown(inASCII)) return;
 
-    if (useCoordinates && !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey && isCharKey(inASCII, mCoordinatesPanelToggleKey) ) {
+    if (coordinatesEnabled && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, coordinatesPanelToggleKey) ) {
 
         if( coordinatesComponent.mActive ) {
             coordinatesComponent.mActive = false;
@@ -24971,8 +24975,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
         }
 
-    if (useYumFinder && !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey && isCharKey(inASCII, 'y') ) {
+    if (yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey) ) {
         runningYumFinder = true;
         }
     
@@ -25321,7 +25325,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     autoSprintf( "EMOT 0 0 %d#", emotIndex );
 
                                 // set custom persistent emot if emot command is typed out
-                                if( usePersistentEmote ) {
+                                if( persistentEmoteEnabled ) {
                                     customPersistentEmotIndex = emotIndex;
                                     timeLastPersistentEmotSent = game_getCurrentTime();
                                     }
@@ -25861,7 +25865,7 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
 	}
 
     if( runningYumFinder && !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey && isCharKey(inASCII, 'y')) {
+        !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey)) {
         runningYumFinder = false;
         }
 
