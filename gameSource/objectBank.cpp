@@ -4406,7 +4406,7 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
                         inSubContained[i].getElementDirect( s ) );
                     
                     doublePair subCenterOffset =
-                        getObjectCenterOffset( subContained );
+                        computeContainedCenterOffset( contained, subContained );
                     
                     double subRot = rot;
                     
