@@ -38,6 +38,7 @@ extern bool isShowUseOnObjectHoverKeybindEnabled;
 extern char coordinatesEnabled;
 extern char persistentEmoteEnabled;
 extern char yumFinderEnabled;
+extern char objectSearchEnabled;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -119,7 +120,8 @@ SettingsPage::SettingsPage()
         , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
         mEnableCoordinatesBox(0, 128, 4),
         mEnablePersistentEmoteBox(0, 88, 4),
-        mEnableYumFinderBox(0, 48, 4) {
+        mEnableYumFinderBox(0, 48, 4),
+        mEnableObjectSearchBox(0, 8, 4) {
                             
 
     
@@ -128,6 +130,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent(&mEnableObjectSearchBox);
+    mEnableObjectSearchBox.addActionListener(this);
     addComponent(&mEnableYumFinderBox);
     mEnableYumFinderBox.addActionListener(this);
     addComponent(&mEnablePersistentEmoteBox);
@@ -315,9 +319,10 @@ SettingsPage::SettingsPage()
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
-    mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING" );
+    mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING. PRESS G TO TOGGLE PANEL." );
     mEnablePersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
     mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
+    mEnableObjectSearchBox.setCursorTip( "ENABLE OBJECT FINDER. PRESS J TO TOGGLE PANEL." );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -409,11 +414,13 @@ SettingsPage::SettingsPage()
     mEnablePersistentEmoteBox.setToggled(
         persistentEmoteEnabled);
 
-    yumFinderEnabled = 
-        SettingsManager::getIntSetting("yumFinderEnabled", 0);
+    yumFinderEnabled = SettingsManager::getIntSetting("yumFinderEnabled", 0);
 
-    mEnableYumFinderBox.setToggled(
-        yumFinderEnabled);
+    mEnableYumFinderBox.setToggled( yumFinderEnabled );
+
+    objectSearchEnabled = SettingsManager::getIntSetting("objectSearchEnabled", 0);
+
+    mEnableObjectSearchBox.setToggled( objectSearchEnabled );
 
     mPage = 0;
     
@@ -859,6 +866,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("yumFinderEnabled",
                                     newSetting);
         }
+    else if ( inTarget == &mEnableObjectSearchBox ) {
+        int newSetting = mEnableObjectSearchBox.getToggled();
+        objectSearchEnabled = false;
+        if( newSetting ) objectSearchEnabled = true;
+        SettingsManager::setSetting("objectSearchEnabled",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1097,6 +1111,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString("ENABLE YUM FINDER", pos, alignRight);
         }
+    if (mEnableObjectSearchBox.isVisible()) {
+        doublePair pos = mEnableObjectSearchBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("ENABLE OBJECT FINDER", pos, alignRight);
+        }
 }
 
 
@@ -1237,6 +1258,7 @@ void SettingsPage::updatePage() {
     mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
     mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
     mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
+    mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1283,6 +1305,7 @@ void SettingsPage::updatePage() {
     mEnableCoordinatesBox.setVisible(mPage == 5);
     mEnablePersistentEmoteBox.setVisible(mPage == 5);
     mEnableYumFinderBox.setVisible(mPage == 5);
+    mEnableObjectSearchBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );

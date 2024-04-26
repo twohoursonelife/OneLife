@@ -77,8 +77,6 @@ bool trippingEffectDisabled;
 
 extern double drawObjectScale;
 
-extern float livingLifeBouncingYOffset;
-
 
 static char shouldFileBeCached( char *inFileName ) {
     if( strstr( inFileName, ".txt" ) != NULL ) {
@@ -1288,7 +1286,7 @@ ObjectAnimPack drawObjectAnimPacked(
     }
 
         
-extern char shouldDrawObjectBouncing( int oid );
+extern float getLivingLifeBouncingYOffset( int oid );
 
 void drawObjectAnim( ObjectAnimPack inPack ) {
     HoldingPos p;
@@ -1415,9 +1413,7 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                            double *outSlotRots,
                            doublePair *outSlotOffsets ) {
     
-    if( shouldDrawObjectBouncing( inObjectID ) ) { 
-        inPos.y += livingLifeBouncingYOffset;
-        }
+    inPos.y += getLivingLifeBouncingYOffset( inObjectID );
     
     if( inType == ground2 ) {
         inType = ground;
@@ -1755,6 +1751,8 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                            double *outSlotRots,
                            doublePair *outSlotOffsets ) {
 
+    // inPos.y += getLivingLifeBouncingYOffset( inObjectID );
+    
     HoldingPos returnHoldingPos = { false, {0, 0}, 0 };
 
 
@@ -3293,6 +3291,8 @@ void drawObjectAnim( int inObjectID, AnimType inType, double inFrameTime,
                      int inNumContained, int *inContainedIDs,
                      SimpleVector<int> *inSubContained ) {
     
+    inPos.y += getLivingLifeBouncingYOffset( inObjectID );
+    
     if( inType == ground2 ) {
         inType = ground;
         }
@@ -3371,9 +3371,7 @@ void drawObjectAnim( int inObjectID, AnimationRecord *inAnim,
                      int inNumContained, int *inContainedIDs,
                      SimpleVector<int> *inSubContained ) {
     
-    // if( shouldDrawObjectBouncing( inObjectID ) ) { 
-    //     inPos.y += livingLifeBouncingYOffset;
-    //     }
+    // inPos.y += getLivingLifeBouncingYOffset( inObjectID );
     
     ClothingSet emptyClothing = getEmptyClothingSet();
 

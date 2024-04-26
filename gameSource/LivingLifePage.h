@@ -509,7 +509,10 @@ class LivingLifePage : public GamePage, public ActionListener {
 		void takeOffBackpack();
 		void setOurSendPosXY(int &x, int &y);
 		bool isCharKey(unsigned char c, unsigned char key);
-        void drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing );
+        void drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing = false, bool border = true );
+        void drawTileVanillaRainbowHighlight( int x, int y );
+
+        void drawCursorTips( const char* text, doublePair offset = {0.0, 0.0} ); 
 		
 		void actionAlphaRelativeToMe( int x, int y );
 		void actionBetaRelativeToMe( int x, int y );
@@ -1065,8 +1068,10 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         Picker mObjectPicker;
 
-        ClickableComponent coordinatesComponent;
-        ClickableComponent coordinatesPanelComponent;
+        ClickableComponent topLeftSlipComponent;
+        ClickableComponent coordinatesSlipComponent;
+        ClickableComponent objectSearchSlipComponent;
+        ClickableComponent leftPanelComponent;
         
         
         void pushOldHintArrow( int inIndex );

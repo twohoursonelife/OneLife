@@ -450,17 +450,34 @@ markCommandHelp5 "E.G. /MARK 89 -64"
 markCommandHelp6 "CLICK EMPTY SPACE"
 markCommandHelp7 "TO CLOSE"
 
+savedCoordsTips "LEFT CLICK TO SET ORIGIN. RIGHT CLICK TO REMOVE"
+coordsTips "CLICK TO SHOW SAVED LOCATIONS"
+tooManyCoordsWarning "TOO MANY SAVED LOCATIONS."
+coordsTooLargeWarning "THE NUMBERS ARE TOO LARGE."
+
+findCommand "/FIND"
+
+findCommandHelp1 "OBJECT SEARCH BY NAME:"
+findCommandHelp2 "/FIND QUERY"
+
+findCommandHelp3 "E.G. /FIND MAPLE"
+findCommandHelp4 "E.G. /FIND STONE -SHARP"
+
+findCommandHelp5 "CLICK EMPTY SPACE"
+findCommandHelp6 "TO CLOSE"
+
+objQueryTips "CLICK TO REMOVE"
+objSearchTips "CLICK TO SHOW ACTIVE OBJECT SEARCHES"
+tooManyQueriesWarning "TOO MANY SEARCH QUERIES."
+
+leftPanelTips "CLICK TO CLOSE"
+
 homeLocation "HOME"
 bellLocation "BELL"
 birthLocation "BIRTH"
 mapLocation "MAP"
 customLocation "SPOT"
 
-savedCoordsTips "LEFT CLICK TO SET ORIGIN. RIGHT CLICK TO REMOVE."
-coordsPanelTips "CLICK TO CLOSE."
-coordsTips "CLICK TO SHOW SAVED LOCATIONS."
-tooManyCoordsWarning "TOO MANY SAVED LOCATIONS."
-coordsTooLargeWarning "THE NUMBERS ARE TOO LARGE."
 
 fps "FPS"
 

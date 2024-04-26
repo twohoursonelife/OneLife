@@ -172,7 +172,8 @@ unsigned char coordinatesPanelToggleKey = 'g';
 char persistentEmoteEnabled = false;
 char yumFinderEnabled = false;
 unsigned char yumFinderKey = 'y';
-
+char objectSearchEnabled = false;
+unsigned char objectSearchPanelToggleKey = 'j';
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -370,6 +371,13 @@ static bool isHoveringPicker( float x, float y ) {
 }
 
 
+// Left Panel
+
+// 0 for saved coords
+// 1 for object search queries
+int leftPanelPageNumber = 0;
+
+
 // Saved Coords
 typedef struct SavedCoordinates {
         int x;
@@ -435,15 +443,6 @@ static char *formatCoordinate( int num, char allowThousands = false ) {
     return numString;
     }
 
-static void resizeSavedCoordinatesComponentList() {
-    SavedCoordinatesComponentList.deleteAll();
-    for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
-        ClickableComponent clickableLine;
-        SavedCoordinatesComponentList.push_back( clickableLine );
-        }
-    return;
-    }
-
 // return false when it is blocked
 static char addCoordinates( SavedCoordinates newCoords ) {
     for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
@@ -457,28 +456,150 @@ static char addCoordinates( SavedCoordinates newCoords ) {
         }
     if( SavedCoordinatesList.size() < 12 ) {
         SavedCoordinatesList.push_back( newCoords );
-        resizeSavedCoordinatesComponentList();
+        ClickableComponent clickableLine;
+        SavedCoordinatesComponentList.push_back( clickableLine );
         return true;
         }
     return false;
     }
 
-static void removeCoordinatesByXY( int x, int y ) {
-    for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
-        SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
-        if( oldCoords.x == x && oldCoords.y == y ) {
-            SavedCoordinatesList.deleteElement( i );
-            resizeSavedCoordinatesComponentList();
-            return;
+static SimpleVector<char*> commandShortcuts;
+
+// Object search
+
+static SimpleVector<std::string> objectSearchQueries;
+static SimpleVector<ClickableComponent> objectSearchQueriesComponentList;
+bool *objectMatches = NULL;
+
+static void updateObjectSearchArray() {
+
+    int maxObjectID = getMaxObjectID();
+
+	if (objectMatches != NULL) delete[] objectMatches;
+	objectMatches = new bool[maxObjectID];
+
+    for (int id=0; id<maxObjectID; id++) {
+        objectMatches[id] = false;
+        }
+
+    for( int k=0; k<objectSearchQueries.size(); k++ ) {
+        std::string queryString = objectSearchQueries.getElementDirect( k );
+        char *query = stringToLowerCase( queryString.c_str() );
+        int numTerms;
+        char **terms = split( query, " ", &numTerms );
+        delete [] query;
+
+        ObjectRecord **hitsSimpleVector = NULL;
+        int numHits = 0;
+
+        SimpleVector<char*> validTerms;
+        SimpleVector<char*> avoidTerms;
+
+        for( int i=0; i<numTerms; i++ ) {
+            int termLen = strlen( terms[i] );
+            
+            if( termLen > 0 ) {
+                if( terms[i][0] == '-' ) {
+                    if( termLen > 1 ) {
+                        // skip the - character
+                        avoidTerms.push_back( &( terms[i][1] ) );
+                        }
+                    // ignore single - characters
+                    // user is probably in the middle of typing an avoid-term
+                    }
+                else {
+                    validTerms.push_back( terms[i] );
+                    }
+                }
             }
+        
+        if( validTerms.size() > 0 ) {
+            // do full search for first term
+            
+            int numMainResults, numMainRemain;
+            ObjectRecord **mainResults = 
+                searchObjects( validTerms.getElementDirect( 0 ),
+                                    0,
+                                    // limit of 1 million
+                                    1000000,
+                                    &numMainResults, &numMainRemain );
+            if( numMainResults == 0 ) {
+                hitsSimpleVector = mainResults;
+                numHits = numMainResults;
+                }
+            else {
+                // at least one main result
+                
+                SimpleVector<ObjectRecord*> passingResults;
+                
+                for( int i=0; i<numMainResults; i++ ) {
+                    const char *mainResultName = 
+                        mainResults[i]->description;
+                
+                    char *mainNameLower = stringToLowerCase( mainResultName );
+                    
+                    
+                    char matchFailed = false;
+                    
+                    for( int j=1; j<validTerms.size(); j++ ) {
+                        char *term = validTerms.getElementDirect( j );
+                        
+                        if( strstr( mainNameLower, term ) == NULL ) {
+                            matchFailed = true;
+                            break;
+                            }
+                        }
+
+                    if( ! matchFailed ) {
+                        for( int j=0; j<avoidTerms.size(); j++ ) {
+                            char *term = avoidTerms.getElementDirect( j );
+                        
+                            if( strstr( mainNameLower, term ) != NULL ) {
+                                matchFailed = true;
+                                break;
+                                }
+                            }
+                        }
+                    
+                    if( !matchFailed ) {
+                        passingResults.push_back( mainResults[i] );
+                        }
+
+                    delete [] mainNameLower;
+                    }
+                
+                
+                int totalNumResults = passingResults.size();
+                numHits = totalNumResults;
+                hitsSimpleVector = new ObjectRecord*[ numHits ];
+                
+                for( int j=0; j<numHits; j++ ) {
+                    hitsSimpleVector[j] = passingResults.getElementDirect(j);
+                    }
+                
+                delete [] mainResults;
+                }
+            
+            }
+
+        for (int i=0; i<numHits; i++) {
+            int id = hitsSimpleVector[i]->id;
+            objectMatches[id] = true;
+            }
+
+        delete [] hitsSimpleVector;
+        
+        for( int i=0; i<numTerms; i++ ) {
+            delete [] terms[i];
+            }
+        delete [] terms;
         }
     }
 
-static SimpleVector<char*> commandShortcuts;
 
 // Yum finder
 char runningYumFinder = false;
-float livingLifeBouncingYOffset = 0.0;
+int livingLifeStepCount = 0;
 
 SimpleVector<int> yummyFoodChain;
 
@@ -497,13 +618,53 @@ static void addToYummyFoodChain( int foodID ) {
     yummyFoodChain.push_back( foodID );
     }
 
-char shouldDrawObjectBouncing( int oid ) {
-    oid = getFoodParent( oid );
-    if( yumFinderEnabled && runningYumFinder && isFood( oid ) && 
-        yummyFoodChain.getElementIndex( oid ) == -1 ) 
-        return true;
-    return false;
+// calculation for the jumping animation of yum finder 
+float getLivingLifeBouncingYOffset( int oid ) {
+
+    if( !yumFinderEnabled && !objectSearchEnabled ) return 0.0;
+
+    char objectSearchHit = objectSearchEnabled && objectMatches[oid];
+    int foodParentID = getFoodParent( oid );
+    char yumHit = 
+        yumFinderEnabled && runningYumFinder && isFood( foodParentID ) && 
+        yummyFoodChain.getElementIndex( foodParentID ) == -1;
+
+    if( !yumHit && !objectSearchHit ) return 0.0;
+
+    int cycleLength = 120;
+    int phraseDifference = 0;
+
+    if( objectSearchHit ) phraseDifference = cycleLength/2;
+
+    float runningFraction = ((livingLifeStepCount + phraseDifference) % cycleLength);
+    if( runningFraction < cycleLength/2 ) {
+        // controls the height of the drop and rebounce
+        float xOffset = 0.42;
+
+        // rescale to 0 to 1
+        runningFraction = runningFraction / (cycleLength/2);
+        // rescale to -1 to 1
+        runningFraction -= 0.5;
+        runningFraction *= 2;
+
+        // basically a negative parabolic curve
+        // shifted towards negative x
+        // then mirrored along y-axis
+        if( runningFraction > 0 ) runningFraction = -runningFraction;
+        runningFraction += xOffset;
+        runningFraction = - runningFraction * runningFraction;
+
+        // adjust y so that y = 0 when x = -1
+        runningFraction -= 1 - (-1 + xOffset) * (-1 + xOffset);
+        runningFraction += 1;
+        }
+    else {
+        runningFraction = 0;
+        }
+    return runningFraction * CELL_D;
     }
+
+
 
 
 static SimpleVector<char*> passwordProtectingPhrases;
@@ -2805,7 +2966,7 @@ bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
         );
 }
 
-void LivingLifePage::drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing ) {
+void LivingLifePage::drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing, bool border ) {
     doublePair startPos = { (double)x, (double)y };
     startPos.x *= CELL_D;
     startPos.y *= CELL_D;
@@ -2822,8 +2983,42 @@ void LivingLifePage::drawTileVanillaHighlight( int x, int y, FloatColor floatCol
     setDrawColor( floatColor );
     drawSprite( mCellFillSprite, startPos );
     
-    setDrawColor( 0, 0, 0, alpha );
-    drawSprite( mCellBorderSprite, startPos );
+    if(border) {
+        setDrawColor( 0, 0, 0, alpha );
+        drawSprite( mCellBorderSprite, startPos );
+        }
+    }
+
+void LivingLifePage::drawTileVanillaRainbowHighlight( int x, int y ) {
+    doublePair startPos = { (double)x, (double)y };
+    startPos.x *= CELL_D;
+    startPos.y *= CELL_D;
+    FloatColor c = { 0, 0, 0, 1 };
+
+    int speed = 60;
+
+    float interv = stepCount % speed / (float)speed;
+    if (interv > 0.5) interv = 1 - interv;
+    c.r = interv * 2;
+    interv = (stepCount+speed/3) % speed / (float)speed;
+    if (interv > 0.5) interv = 1 - interv;
+    c.g = interv * 2;
+    interv = (stepCount+speed*2/3) % speed / (float)speed;
+    if (interv > 0.5) interv = 1 - interv;
+    c.b = interv * 2;
+    
+    setDrawColor( c );
+    drawSprite( mCellFillSprite, startPos );
+    }
+
+
+void LivingLifePage::drawCursorTips( const char* text, doublePair offset ) {
+    if( text == NULL ) return;
+    FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+    FloatColor txtColor = { 1, 1, 1, 1 };
+    drawChalkBackgroundString( 
+        {lastMouseX + (16 + offset.x) * gui_fov_scale_hud, lastMouseY - (16 - offset.y) * gui_fov_scale_hud}, 
+        text, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
     }
 
 
@@ -2954,8 +3149,10 @@ LivingLifePage::LivingLifePage()
           mZKeyDown( false ),
           mXKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90 ),
-          coordinatesComponent(),
-          coordinatesPanelComponent() {
+          topLeftSlipComponent(),
+          coordinatesSlipComponent(),
+          objectSearchSlipComponent(),
+          leftPanelComponent() {
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -2964,6 +3161,9 @@ LivingLifePage::LivingLifePage()
 
     if( SettingsManager::getIntSetting( "coordinatesEnabled", 0 ) ) {
         coordinatesEnabled = true;
+        }
+    if( SettingsManager::getIntSetting( "objectSearchEnabled", 0 ) ) {
+        objectSearchEnabled = true;
         }
     if( SettingsManager::getIntSetting( "persistentEmoteEnabled", 0 ) ) {
         persistentEmoteEnabled = true;
@@ -2974,9 +3174,15 @@ LivingLifePage::LivingLifePage()
     char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelToggleKey", "g");
     coordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
     delete [] coordinatesPanelToggleKeyFromSetting;
+    char *objectSearchPanelToggleKeyFromSetting = SettingsManager::getStringSetting("objectSearchPanelToggleKey", "j");
+    objectSearchPanelToggleKey = objectSearchPanelToggleKeyFromSetting[0];
+    delete [] objectSearchPanelToggleKeyFromSetting;
     char *yumFinderKeyFromSetting = SettingsManager::getStringSetting("yumFinderKey", "y");
     yumFinderKey = yumFinderKeyFromSetting[0];
     delete [] yumFinderKeyFromSetting;
+
+    // TODO init
+    updateObjectSearchArray();
 
     mHomeSlipSprites[0] = mHomeSlipSprite;
     mHomeSlipSprites[1] = mHomeSlip2Sprite;
@@ -3166,7 +3372,10 @@ LivingLifePage::LivingLifePage()
         }
 
     bigSheet = loadSprite( "bigHintSheet.tga", false );
-    coordinatesComponent.mActive = coordinatesEnabled;
+
+    topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+    coordinatesSlipComponent.mActive = coordinatesEnabled;
+    objectSearchSlipComponent.mActive = objectSearchEnabled;
     
     mLiveHintSheetIndex = -1;
 
@@ -7372,6 +7581,55 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     if( showFPS ) startCountingSpritePixelsDrawn();
 
+
+    // draw object search tile highlight
+    if( objectSearchEnabled )
+    for( int y=yEnd; y>=yStart; y-- ) {
+        
+        int worldY = y + mMapOffsetY - mMapD / 2;
+        
+        for( int x=xStart; x<=xEnd; x++ ) {
+            
+            int worldX = x + mMapOffsetX - mMapD / 2;
+
+            int mapI = y * mMapD + x;
+
+            char highlight = false;
+            
+            if( mMap[mapI] > 0 ) {
+                ObjectRecord *o = getObject( mMap[mapI], true );
+                if( o != NULL && objectMatches[o->id] ) highlight = true;
+                }
+            if( !highlight && mMapContainedStacks[mapI].size() > 0 ) {
+                for (int i=0; i<mMapContainedStacks[mapI].size(); i++) {
+                    int id = mMapContainedStacks[mapI].getElementDirect(i);
+                    ObjectRecord *o = getObject( id, true );
+                    if( o != NULL && objectMatches[o->id] ) {
+                        highlight = true;
+                        break;
+                        }
+                    }
+                }
+            if( !highlight && mMapSubContainedStacks[mapI].size() > 0 ) {
+                for (int i=0; i<mMapSubContainedStacks[mapI].size(); i++) {
+                    SimpleVector<int> subStack = mMapSubContainedStacks[mapI].getElementDirect(i);
+                    for (int j=0; j<subStack.size(); j++) {
+                        int id = subStack.getElementDirect(j);
+                        ObjectRecord *o = getObject( id, true );
+                        if( o != NULL && objectMatches[o->id] ) {
+                            highlight = true;
+                            break;
+                            }
+                        }
+                    if( highlight ) break;
+                    }
+                }
+
+            if( highlight ) drawTileVanillaRainbowHighlight( worldX, worldY );
+
+            }
+        }
+
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
@@ -7380,11 +7638,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
         doublePair mousePos = { lastMouseX, lastMouseY };
         int mouseX = int(round( mousePos.x / (float)CELL_D ));
         int mouseY = int(round( mousePos.y / (float)CELL_D ));
-        drawTileVanillaHighlight( mouseX, mouseY, {0.0, 1.0, 0.0, 1.0}, false );
+        drawTileVanillaHighlight( mouseX, mouseY, {0.0, 1.0, 0.0, 1.0} );
         }
-    else if (minitech::highlightObjId > 0) {
+    else if (minitech::highlightObjId > 0) { //TODO escape?
         minitech::drawHintObjectTile();
-    }
+        }
     else if( mShowHighlights 
         &&
         mCurMouseOverCellFade > 0 
@@ -10096,7 +10354,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // cursor-tips
-    if( !coordinatesPanelComponent.mHover && !coordinatesComponent.mHover )
+    if( !leftPanelComponent.mHover && 
+        !topLeftSlipComponent.mHover )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -10467,12 +10726,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // Moved to be cursor-tips
             if( ! mXKeyDown )
             if( mCurMouseOverID != 0 ) {
-                FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-                FloatColor txtColor = { 1, 1, 1, 1 };
-                drawChalkBackgroundString( 
-                    {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
-                    stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
-
                 const bool isShowUseOnObjectHoverActive =
                     ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
@@ -10496,12 +10749,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         }
                     if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawChalkBackgroundString( 
-                            {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud},
-                            display, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+                        drawCursorTips( display, {6, -20} );
                         delete [] display;
                         }
                     }
+
+                drawCursorTips( stringUpper );
+
                 }
             delete [] stringUpper;
             }
@@ -10531,32 +10785,67 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-    // Coordinates Panel
+    // Left Panel
     // drawn behind tutorial sheets / global message
-    if( coordinatesEnabled && coordinatesPanelComponent.mActive ) {
+    if( ( coordinatesEnabled || objectSearchEnabled ) && 
+        leftPanelComponent.mActive ) {
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
         doublePair coordinatesPanelHidePos = {-198, 199};
 
 
+        double coordinatesPanelWidth = 0;
+        double paddingX = 12.0;
+        double paddingY = 4.0;
+        
         double longestCoords = 0;
         double longestName = 0;
         double spaceX = 12.0;
-        double paddingX = 12.0;
 
-        for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
-            SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-            char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
-            char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
-            double lenCoords = handwritingFont->measureString( lineCoords ) / gui_fov_scale_hud;
-            double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
-            if( lenCoords > longestCoords ) longestCoords = lenCoords;
-            if( lenName > longestName ) longestName = lenName;
-            delete [] lineCoords;
-            delete [] lineName;
+        double longestLine = 0.0;
+
+        char *coordsLine = NULL;
+
+        if( leftPanelPageNumber == 0 ) {
+
+            coordsLine = autoSprintf( "(%s, %s)", 
+                formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
+                formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
+                );
+            double len = handwritingFont->measureString( coordsLine ) / gui_fov_scale_hud;
+            if( len < 120 ) len = 120;
+            else if( len < 160 ) len = 160;
+
+            for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+                SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+                char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
+                char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
+                double lenCoords = handwritingFont->measureString( lineCoords ) / gui_fov_scale_hud;
+                double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
+                if( lenCoords > longestCoords ) longestCoords = lenCoords;
+                if( lenName > longestName ) longestName = lenName;
+                delete [] lineCoords;
+                delete [] lineName;
+                }
+
+            coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
+            if( len > coordinatesPanelWidth ) coordinatesPanelWidth = len;
+
+            }
+        else if( leftPanelPageNumber == 1 ) {
+
+            for( int i=0; i<objectSearchQueries.size(); i++ ) {
+                std::string queryString = objectSearchQueries.getElementDirect( i );
+                char *query = strdup( queryString.c_str() );
+                double lenQuery = handwritingFont->measureString( query ) / gui_fov_scale_hud;
+                if( lenQuery > longestLine ) longestLine = lenQuery;
+                delete [] query;
+                }
+
+            coordinatesPanelWidth = paddingX + longestLine + paddingX;
             }
 
-        double coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
+
 
         if( coordinatesPanelWidth < 220 && SavedCoordinatesList.size() > 1 ) { // space for help message
             coordinatesPanelWidth = 220;
@@ -10578,10 +10867,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
         // coordinatesPanelTL = add( coordinatesPanelTL, lastScreenViewCenter );
         // coordinatesPanelBR = add( coordinatesPanelBR, lastScreenViewCenter );
 
-        coordinatesPanelComponent.setClickableArea( coordinatesPanelTL, coordinatesPanelBR );
+        leftPanelComponent.setClickableArea( coordinatesPanelTL, coordinatesPanelBR );
 
         setDrawColor( 1, 1, 1, 0.9 );
-        if( coordinatesPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        if( leftPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
 
 
@@ -10594,137 +10883,287 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         pos = add( pos, lastScreenViewCenter );
 
-        for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
-            SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-            char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
-            char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
-            
-            ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-            savedCoordsClickable->mActive = true;
-            
-            doublePair lineClickableTL = pos;
-            lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
-            doublePair lineClickableBR = {
-                lineClickableTL.x + (longestName + spaceX + longestCoords) * gui_fov_scale_hud,
-                lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+        if( leftPanelPageNumber == 0 ) {
+
+            doublePair textPos = {
+                coordinatesPanelWidth * 0.5,
+                -paddingY - lineHeight/2
                 };
-            lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
-            lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
-            savedCoordsClickable->setClickableArea( lineClickableTL, lineClickableBR );
-            
-            setDrawColor( 0, 0, 0, 1.0 );
-            if( savedCoordsClickable->mHover ) {
-                setDrawColor( 1, 0.55, 0, 1.0 ); // orange
-                }
-            else if( savedCoords.type == 1 ) {
-                setDrawColor( 0.45, 0.53, 0.5, 1.0 ); // green
-                }
-            else if( savedCoords.type == 2 ) {
-                setDrawColor( 0.1, 0.16, 0.49, 1.0 ); // blue
-                }
-            else if( savedCoords.type == 3 ) {
-                setDrawColor( 0.50, 0.36, 0.55, 1.0 ); // purple
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+            setDrawColor( 0, 0, 0, 1 );
+            handwritingFont->drawString( coordsLine, textPos, alignCenter );
+
+            for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+                SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+                char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
+                char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
+                
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                
+                doublePair lineClickableTL = pos;
+                lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+                doublePair lineClickableBR = {
+                    lineClickableTL.x + (longestName + spaceX + longestCoords) * gui_fov_scale_hud,
+                    lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                    };
+                lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+                lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+                savedCoordsClickable->setClickableArea( lineClickableTL, lineClickableBR );
+                
+                setDrawColor( 0, 0, 0, 1.0 );
+                if( savedCoordsClickable->mHover ) {
+                    setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+                    }
+                else if( savedCoords.type == 1 ) {
+                    setDrawColor( 0.45, 0.53, 0.5, 1.0 ); // green
+                    }
+                else if( savedCoords.type == 2 ) {
+                    setDrawColor( 0.1, 0.16, 0.49, 1.0 ); // blue
+                    }
+                else if( savedCoords.type == 3 ) {
+                    setDrawColor( 0.50, 0.36, 0.55, 1.0 ); // purple
+                    }
+
+                handwritingFont->drawString( lineName, pos, alignLeft );
+                
+                pos.x += (longestName + spaceX) * gui_fov_scale_hud;
+                handwritingFont->drawString( lineCoords, pos, alignLeft );
+                
+                pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
+                pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+                delete [] lineCoords;
+                delete [] lineName;
                 }
 
-            handwritingFont->drawString( lineName, pos, alignLeft );
-            
-            pos.x += (longestName + spaceX) * gui_fov_scale_hud;
-            handwritingFont->drawString( lineCoords, pos, alignLeft );
-            
-            pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
-            pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+            if( SavedCoordinatesList.size() <= 1 ) {
 
-            delete [] lineCoords;
-            delete [] lineName;
+                doublePair pos = screenTL;
+                pos = add( pos, mult(coordinatesPanelSize, 0.5 * gui_fov_scale_hud) );
+                pos = add( pos, lastScreenViewCenter );
+
+                double lineHeight = 24.0;
+
+                setDrawColor( 0, 0, 0, 0.2 );
+                pos.y += 4 * lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp2" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp3" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp4" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp5" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp6" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp7" ), pos, alignCenter );
+
+                }
+            }
+        else if( leftPanelPageNumber == 1 ) {
+
+            doublePair textPos = {
+                coordinatesPanelWidth * 0.5,
+                -paddingY - lineHeight/2
+                };
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+            setDrawColor( 0, 0, 0, 1 );
+            handwritingFont->drawString( "OBJECT FINDER", textPos, alignCenter );
+
+            for( int i=0; i<objectSearchQueries.size(); i++ ) {
+                std::string queryString = objectSearchQueries.getElementDirect( i );
+                char *query = strdup( queryString.c_str() );
+                
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                
+                doublePair lineClickableTL = pos;
+                lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+                doublePair lineClickableBR = {
+                    lineClickableTL.x + (longestLine) * gui_fov_scale_hud,
+                    lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                    };
+                lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+                lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+                objectSearchQueryClickable->setClickableArea( lineClickableTL, lineClickableBR );
+                
+                setDrawColor( 0, 0, 0, 1.0 );
+                if( objectSearchQueryClickable->mHover ) {
+                    setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+                    }
+                handwritingFont->drawString( query, pos, alignLeft );
+
+                pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+                delete [] query;
+                }
+
+            if( objectSearchQueries.size() <= 1 ) {
+
+                doublePair pos = screenTL;
+                pos = add( pos, mult(coordinatesPanelSize, 0.5 * gui_fov_scale_hud) );
+                pos = add( pos, lastScreenViewCenter );
+
+                double lineHeight = 24.0;
+
+                setDrawColor( 0, 0, 0, 0.2 );
+                pos.y += 4 * lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp1" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp2" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp3" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp4" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp5" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp6" ), pos, alignCenter );
+
+                }
+
             }
 
-        if( SavedCoordinatesList.size() <= 1 ) {
 
-            doublePair pos = screenTL;
-            pos = add( pos, mult(coordinatesPanelSize, 0.5 * gui_fov_scale_hud) );
-            pos = add( pos, lastScreenViewCenter );
-
-            double lineHeight = 24.0;
-
-            setDrawColor( 0, 0, 0, 0.2 );
-            pos.y += 4 * lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp2" ), pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp3" ), pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp4" ), pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp5" ), pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp6" ), pos, alignCenter );
-            pos.y -= lineHeight * gui_fov_scale_hud;
-            minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp7" ), pos, alignCenter );
-
-            }
-        
         }
 
-    // Coordinates
+    // Left Panel Collapsed into Top Left Slip 
     // drawn behind tutorial sheets / global message
     // drawn above coordinates panel
-    if( coordinatesEnabled && ourLiveObject != NULL ) {
+    if( ( topLeftSlipComponent.mActive ) && 
+        ourLiveObject != NULL ) {
 
-        char *line = autoSprintf( "(%s, %s)", 
-            formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
-            formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
-            );
-        double len = handwritingFont->measureString( line ) / gui_fov_scale_hud;
+        char *coordsLine = NULL;
+        char *objectSearchLine = NULL;
+
+        double longestLineLen = 0.0;
+        int numOfLines = 0;
+
+        if( coordinatesEnabled && ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
+            coordsLine = autoSprintf( "(%s, %s)", 
+                formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
+                formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
+                );
+            double len = handwritingFont->measureString( coordsLine ) / gui_fov_scale_hud;
+            if( len < 120 ) len = 120;
+            else if( len < 160 ) len = 160;
+            if( len > longestLineLen ) longestLineLen = len;
+            numOfLines += 1;
+            }
+        if( objectSearchEnabled && ( topLeftSlipComponent.mHover || numOfLines < 1 || objectSearchQueries.size() > 0 ) ) {
+            if( objectSearchQueries.size() > 0 ) {
+                objectSearchLine = strdup("FINDER ON");
+                }
+            else {
+                objectSearchLine = strdup("FINDER OFF");
+                }
+            double len = handwritingFont->measureString( objectSearchLine ) / gui_fov_scale_hud;
+            if( len > longestLineLen ) longestLineLen = len;
+            numOfLines += 1;
+            }
         
-        if( len < 104 ) len = 104;
-        else if( len < 120 ) len = 120;
-        else if( len < 160 ) len = 160;
+
 
         double paddingX = 16.0;
-        double paddingY = 12.0;
+        double paddingY = 4.0;
+        double lineHeight = 32.0;
+        double spacingY = 8.0;
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
-        doublePair coordinatesHidePos = {-307, 45};
-        doublePair coordinatesSize = { paddingX + len + paddingX, -( paddingY + 16.0 + paddingY )};
+        doublePair slipHidePos = {-307, 45};
+        doublePair slipSize = { paddingX + longestLineLen + paddingX, -( paddingY + numOfLines * (lineHeight + spacingY) - spacingY + paddingY )};
 
-        doublePair coordinatesPos = add( coordinatesHidePos, coordinatesSize );
+        doublePair slipPos = add( slipHidePos, slipSize );
 
-        coordinatesPos = mult( coordinatesPos, gui_fov_scale_hud );
-        coordinatesPos = add( coordinatesPos, screenTL );
-        coordinatesPos = add( coordinatesPos, lastScreenViewCenter );
+        slipPos = mult( slipPos, gui_fov_scale_hud );
+        slipPos = add( slipPos, screenTL );
+        slipPos = add( slipPos, lastScreenViewCenter );
 
-        doublePair coordinatesTL = screenTL;
-        doublePair coordinatesBR = add(coordinatesTL, mult( coordinatesSize, gui_fov_scale_hud ) );
-        // coordinatesTL = add( coordinatesTL, lastScreenViewCenter );
-        // coordinatesBR = add( coordinatesBR, lastScreenViewCenter );
-        coordinatesComponent.setClickableArea( coordinatesTL, coordinatesBR );
+        doublePair slipTL = screenTL;
+        doublePair slipBR = add(slipTL, mult( slipSize, gui_fov_scale_hud ) );
+        topLeftSlipComponent.setClickableArea( slipTL, slipBR );
+
+        int lineAreaSet = 0;
+
+        coordinatesSlipComponent.mActive = false;
+        objectSearchSlipComponent.mActive = false;
+
+        if( coordinatesEnabled && ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
+            doublePair TL = screenTL;
+            TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
+            doublePair BR = TL;
+            BR.x += slipSize.x * gui_fov_scale_hud;
+            BR.y -= lineHeight * gui_fov_scale_hud;
+            coordinatesSlipComponent.setClickableArea( TL, BR );
+            coordinatesSlipComponent.mActive = true;
+            lineAreaSet += 1;
+            }
+        if( objectSearchEnabled && ( topLeftSlipComponent.mHover || lineAreaSet < 1 || objectSearchQueries.size() > 0 ) ) {
+            doublePair TL = screenTL;
+            TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
+            doublePair BR = TL;
+            BR.x += slipSize.x * gui_fov_scale_hud;
+            BR.y -= lineHeight * gui_fov_scale_hud;
+            objectSearchSlipComponent.setClickableArea( TL, BR );
+            objectSearchSlipComponent.mActive = true;
+            lineAreaSet += 1;
+            }
 
         setDrawColor( 1, 1, 1, 0.9 );
-        if( coordinatesComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
-        if( coordinatesComponent.mActive )
-        drawSprite( mHintSheetSprites[0], coordinatesPos, gui_fov_scale_hud, 0.5 );
+        if( coordinatesSlipComponent.mHover || objectSearchSlipComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        if( coordinatesSlipComponent.mActive || objectSearchSlipComponent.mActive )
+        drawSprite( mHintSheetSprites[0], slipPos, gui_fov_scale_hud, 0.5 );
 
 
-        doublePair coordinatesTextPos = mult( coordinatesSize, 0.5 );
-        coordinatesTextPos = mult( coordinatesTextPos, gui_fov_scale_hud );
-        coordinatesTextPos = add( coordinatesTextPos, screenTL );
-        coordinatesTextPos = add( coordinatesTextPos, lastScreenViewCenter );
+        int lineDrawn = 0;
 
-        setDrawColor( 0, 0, 0, 1 );
-        handwritingFont->drawString( line, coordinatesTextPos, alignCenter );
+        if( coordinatesEnabled && coordinatesSlipComponent.mActive ) {
+            doublePair textPos = {slipSize.x * 0.5, - paddingY - lineDrawn * (lineHeight + spacingY) - lineHeight/2};
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
 
-        delete [] line;
+            setDrawColor( 0, 0, 0, 1 );
+            if( coordinatesSlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+            handwritingFont->drawString( coordsLine, textPos, alignCenter );
+
+            lineDrawn += 1;
+            }
+        if( objectSearchEnabled && objectSearchSlipComponent.mActive ) {
+            doublePair textPos = {slipSize.x * 0.5, - paddingY - lineDrawn * (lineHeight + spacingY) - lineHeight/2};
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+
+            setDrawColor( 0, 0, 0, 1 );
+            if( objectSearchSlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+            handwritingFont->drawString( objectSearchLine, textPos, alignCenter );
+
+            lineDrawn += 1;
+            }
+
+        if( coordsLine != NULL ) delete [] coordsLine;
+        if( objectSearchLine != NULL ) delete [] objectSearchLine;
         }
 
     // cursorTips for Coordinates and Panel
-    if( coordinatesEnabled )
-    if( coordinatesPanelComponent.mActive || coordinatesComponent.mHover ) {
+    if( coordinatesEnabled || objectSearchEnabled )
+    if( leftPanelComponent.mActive || coordinatesSlipComponent.mHover || objectSearchSlipComponent.mHover ) {
         char *coordsTips = NULL;
-        if( coordinatesPanelComponent.mActive ) {
+        if( leftPanelComponent.mActive ) {
             char anyCoordsHover = false;
+            char anyQueryHover = false;
             for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                 ClickableComponent savedCoords = SavedCoordinatesComponentList.getElementDirect( i );
                 if( savedCoords.mHover ) {
@@ -10732,22 +11171,31 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     break;
                     }
                 }
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent objectSearchQueryClickable = objectSearchQueriesComponentList.getElementDirect( i );
+                if( objectSearchQueryClickable.mHover ) {
+                    anyQueryHover = true;
+                    break;
+                    }
+                }
             if( anyCoordsHover ) {
                 coordsTips = autoSprintf( "%s", translate("savedCoordsTips") );
                 }
-            else if( coordinatesPanelComponent.mHover ) {
-                coordsTips = autoSprintf( "%s", translate("coordsPanelTips") );
+            else if( anyQueryHover ) {
+                coordsTips = autoSprintf( "%s", translate("objQueryTips") );
+                }
+            else if( leftPanelComponent.mHover ) {
+                coordsTips = autoSprintf( "%s", translate("leftPanelTips") );
                 }
             }
-        else if( coordinatesComponent.mHover ) {
+        else if( coordinatesSlipComponent.mHover ) {
             coordsTips = autoSprintf( "%s", translate("coordsTips") );
             }
+        else if( objectSearchSlipComponent.mHover ) {
+            coordsTips = autoSprintf( "%s", translate("objSearchTips") );
+            }
         if( coordsTips != NULL ) {
-            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-            FloatColor txtColor = { 1, 1, 1, 1 };
-            drawChalkBackgroundString( 
-                {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
-                coordsTips, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+            drawCursorTips( coordsTips );
             }
 
         delete [] coordsTips;
@@ -13938,35 +14386,7 @@ void LivingLifePage::step() {
     if (ourObject != NULL && stepCount % 10 == 0) 
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
 
-    // calculation for the jumping animation of yum finder 
-    if( yumFinderEnabled ) {
-        float runningFraction = (stepCount % 120);
-        if( runningFraction < 60 ) {
-            // controls the height of the drop and rebounce
-            float xOffset = 0.42;
-
-            // rescale to 0 to 1
-            runningFraction = runningFraction / 60;
-            // rescale to -1 to 1
-            runningFraction -= 0.5;
-            runningFraction *= 2;
-
-            // basically a negative parabolic curve
-            // shifted towards negative x
-            // then mirrored along y-axis
-            if( runningFraction > 0 ) runningFraction = -runningFraction;
-            runningFraction += xOffset;
-            runningFraction = - runningFraction * runningFraction;
-
-            // adjust y so that y = 0 when x = -1
-            runningFraction -= 1 - (-1 + xOffset) * (-1 + xOffset);
-            runningFraction += 1;
-            }
-        else {
-            runningFraction = 0;
-            }
-        livingLifeBouncingYOffset = runningFraction * CELL_D;
-        }
+    livingLifeStepCount = stepCount;
 
     if( showFPS ) {
         timeMeasures[1] += game_getCurrentTime() - updateStartTime;
@@ -18530,6 +18950,10 @@ void LivingLifePage::step() {
 
                     // clear yummy food chain
                     yummyFoodChain.deleteAll();
+
+                    // TODO clear object search ?
+                    // objectSearchQueries.deleteAll();
+                    // updateObjectSearchArray();
                     }
                 homePosStack.push_back_other( &oldHomePosStack );
 
@@ -20283,7 +20707,7 @@ void LivingLifePage::step() {
             // typing a filter
             // hard cap at 25, regardless of age
             // don't want them typing long filters that overflow the display
-            sayCap = 23;
+            sayCap = 23; // max 28 for /FIND, even less for minitech
             }
         delete [] currentText;
 
@@ -21746,7 +22170,20 @@ void LivingLifePage::makeActive( char inFresh ) {
           changeFOV( 1.0f );
           }
 
-        coordinatesComponent.mActive = coordinatesEnabled;
+        topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+        coordinatesSlipComponent.mActive = coordinatesEnabled;
+        objectSearchSlipComponent.mActive = 
+            objectSearchEnabled && (!coordinatesEnabled || objectSearchQueries.size() > 0);
+
+        leftPanelComponent.mActive = false;
+        for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+            ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+            savedCoordsClickable->mActive = false;
+            }
+        for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+            ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+            objectSearchQueryClickable->mActive = false;
+            }
       
 		//reset camera if LivingLifePage is made active again
 		LiveObject *ourLiveObject = getOurLiveObject();
@@ -22584,11 +23021,17 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         return;
         }
 
-    coordinatesPanelComponent.pointerMove(inX, inY);
-    coordinatesComponent.pointerMove(inX, inY);
+    leftPanelComponent.pointerMove(inX, inY);
+    topLeftSlipComponent.pointerMove(inX, inY);
+    coordinatesSlipComponent.pointerMove(inX, inY);
+    objectSearchSlipComponent.pointerMove(inX, inY);
     for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
         ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
         savedCoordsClickable->pointerMove(inX, inY);
+        }
+    for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+        ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+        objectSearchQueryClickable->pointerMove(inX, inY);
         }
 
     PointerHitRecord p;
@@ -22666,7 +23109,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     ourLiveObject->currentMouseOverClothingIndex = -1;
     
     if( destID == 0 ) {
-        if( !coordinatesPanelComponent.mHover && !coordinatesComponent.mHover )
+        if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover )
         if( p.hitSelf ) {
             mCurMouseOverSelf = true;
             
@@ -22704,7 +23147,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         }
     
 
-    if( !coordinatesPanelComponent.mHover && !coordinatesComponent.mHover )
+    if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover )
     if( destID > 0 ) {
         mCurMouseOverSelf = false;
         
@@ -23030,39 +23473,73 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         }
 
     if( !mForceGroundClick ) {
-        if( coordinatesComponent.mActive && coordinatesComponent.pointerDown(inX, inY) ) {
-            coordinatesComponent.mActive = false;
-            coordinatesPanelComponent.mActive = true;
-            coordinatesPanelComponent.mHover = true;
+        if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 0;
+            leftPanelComponent.mActive = true;
+            leftPanelComponent.mHover = true;
             for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                 ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
                 savedCoordsClickable->mActive = true;
                 }
             return;
             }
-        else if( coordinatesPanelComponent.mActive ) {
+        else if( objectSearchSlipComponent.mActive && objectSearchSlipComponent.pointerDown(inX, inY) ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 1;
+            leftPanelComponent.mActive = true;
+            leftPanelComponent.mHover = true;
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( leftPanelComponent.mActive ) {
 
-            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-                if( savedCoordsClickable->pointerDown(inX, inY) ) {
-                    if( !isLastMouseButtonRight() ) {
-                        savedOrigin = SavedCoordinatesList.getElementDirect( i );
+            if( leftPanelPageNumber == 0 ) {
+                for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                    ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                    if( savedCoordsClickable->pointerDown(inX, inY) ) {
+                        if( !isLastMouseButtonRight() ) {
+                            savedOrigin = SavedCoordinatesList.getElementDirect( i );
+                            }
+                        else {
+                            SavedCoordinatesList.deleteElement( i );
+                            SavedCoordinatesComponentList.deleteElement( i );
+                            }
+                        return;
                         }
-                    else {
-                        SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
-                        removeCoordinatesByXY( savedCoords.x, savedCoords.y );
+                    }
+                }
+            else if( leftPanelPageNumber == 1 ) {
+                for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                    ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                    if( objectSearchQueryClickable->pointerDown(inX, inY) ) {
+                        objectSearchQueries.deleteElement( i );
+                        objectSearchQueriesComponentList.deleteElement( i );
+                        updateObjectSearchArray();
+                        return;
                         }
-                    return;
                     }
                 }
 
-            if( coordinatesPanelComponent.pointerDown(inX, inY) ) {
-                coordinatesComponent.mActive = true;
-                coordinatesPanelComponent.mActive = false;
-                coordinatesComponent.mHover = true;
+            if( leftPanelComponent.pointerDown(inX, inY) ) {
+                if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
+                if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
+                topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+                leftPanelComponent.mActive = false;
                 for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                     ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
                     savedCoordsClickable->mActive = false;
+                    }
+                for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                    ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                    objectSearchQueryClickable->mActive = false;
                     }
                 return;
                 }
@@ -24952,24 +25429,51 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 	if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
 
-    if (coordinatesEnabled && !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey && isCharKey(inASCII, coordinatesPanelToggleKey) ) {
+    if ((coordinatesEnabled || objectSearchEnabled) && 
+        !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey ) {
 
-        if( coordinatesComponent.mActive ) {
-            coordinatesComponent.mActive = false;
-            coordinatesPanelComponent.mActive = true;
+        char coordinatesKeyPressed = coordinatesEnabled && isCharKey(inASCII, coordinatesPanelToggleKey);
+        char objectSearchKeyPressed = objectSearchEnabled && isCharKey(inASCII, objectSearchPanelToggleKey);
+
+        if( leftPanelComponent.mActive &&
+            ( coordinatesKeyPressed || objectSearchKeyPressed )
+            ) {
+            if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
+            if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
+            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+            leftPanelComponent.mActive = false;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = false;
+                }
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = false;
+                }
+            return;
+            }
+        else if( coordinatesKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 0;
+            leftPanelComponent.mActive = true;
             for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                 ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
                 savedCoordsClickable->mActive = true;
                 }
             return;
             }
-        else if( coordinatesPanelComponent.mActive ) {
-            coordinatesComponent.mActive = true;
-            coordinatesPanelComponent.mActive = false;
-            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-                savedCoordsClickable->mActive = false;
+        else if( objectSearchKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 1;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
                 }
             return;
             }
@@ -25491,6 +25995,23 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     delete [] errorMessage;
                                     }
 
+                                }
+                            else if( strstr( typedText, autoSprintf( "%s ", translate( "/FIND" ) ) ) == typedText ) {
+                                if( objectSearchQueries.size() < 12 ) {
+                                    std::string queryString( typedText );
+                                    char* queryStringWithSpace = autoSprintf( "%s ", translate( "/FIND" ) );
+                                    queryString.replace(queryString.find(queryStringWithSpace), std::string(queryStringWithSpace).size(), "");
+                                    objectSearchQueries.push_back( queryString );
+                                    ClickableComponent clickableLine;
+                                    objectSearchQueriesComponentList.push_back( clickableLine );
+                                    updateObjectSearchArray();
+                                    delete [] queryStringWithSpace;
+                                    }
+                                else {
+                                    char *errorMessage = autoSprintf( "%s", translate("tooManyQueriesWarning") );
+                                    displayGlobalMessage( errorMessage );
+                                    delete [] errorMessage;
+                                    }
                                 }
                             else {
                                 // filter hints

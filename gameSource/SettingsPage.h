@@ -120,6 +120,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnableCoordinatesBox;
         CheckboxButton mEnablePersistentEmoteBox;
         CheckboxButton mEnableYumFinderBox;
+        CheckboxButton mEnableObjectSearchBox;
         
         
         void checkRestartButtonVisibility();

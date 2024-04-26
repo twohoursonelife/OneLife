@@ -178,7 +178,6 @@ static void rebuildRaceList() {
 static JenkinsRandomSource randSource;
 
 
-extern float livingLifeBouncingYOffset;
 
 void setTrippingColor( double x, double y ) {
 	
@@ -3902,7 +3901,7 @@ void setDrawnObjectScale( double inScale ) {
     }
 
 
-extern char shouldDrawObjectBouncing( int oid );
+extern float getLivingLifeBouncingYOffset( int oid );
 
 HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        doublePair inPos,
@@ -3912,8 +3911,8 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        char inHeldNotInPlaceYet,
                        ClothingSet inClothing ) {
     
-    if( drawingContained && shouldDrawObjectBouncing( inObject->id ) ) { 
-        inPos.y += livingLifeBouncingYOffset;
+    if( drawingContained ) { 
+        inPos.y += getLivingLifeBouncingYOffset( inObject->id );
         }
     
     if( inObject->noFlip ) {
