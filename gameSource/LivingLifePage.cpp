@@ -24949,7 +24949,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 		}
 	}
 
-	if (minitech::livingLifeKeyDown(inASCII)) return;
+	if (!mSayField.isFocused() && !vogMode &&
+        minitech::livingLifeKeyDown(inASCII)) return;
 
     if (coordinatesEnabled && !mSayField.isFocused() && !vogMode &&
         !commandKey && !shiftKey && isCharKey(inASCII, coordinatesPanelToggleKey) ) {

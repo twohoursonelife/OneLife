@@ -2150,9 +2150,7 @@ void minitech::livingLifeStep() {
 
 }
 
-bool minitech::livingLifeKeyDown(unsigned char inASCII) {   
-    
-    if (livingLifePage->minitechSayFieldIsFocused()) return false;
+bool minitech::livingLifeKeyDown(unsigned char inASCII) {
     
     bool commandKey = isCommandKeyDown();
     bool shiftKey = isShiftKeyDown();
