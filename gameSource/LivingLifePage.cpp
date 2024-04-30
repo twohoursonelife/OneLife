@@ -23381,17 +23381,17 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
 	//FOV
 	if( scaling ) {
-        if ( isCommandKeyDown() ) {
-            float currentHUDScale = gui_fov_target_scale_hud;
-            float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
-            changeHUDFOV( newScale );
-        } else {
+        // if ( isCommandKeyDown() ) {
+        //     float currentHUDScale = gui_fov_target_scale_hud;
+        //     float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
+        //     changeHUDFOV( newScale );
+        // } else {
             if ( SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
                 float currentScale = gui_fov_scale;
                 float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentScale /= 1.15f : currentScale *= 1.15f;
                 changeFOV( newScale );
             }
-		}
+		// }
 		return;
 	}
     
