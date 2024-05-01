@@ -11716,19 +11716,25 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 		
-	if( true ) {
-		setDrawColor( 0, 0, 0, 1 );
-		doublePair drawPos;
-		char sBuf[32];
-		int age = (int)(ourAge*10);
-		int ageDecimal = age - int(age*0.1)*10;
-		age = (int)((age-ageDecimal)*0.1);
-		sprintf(sBuf, "%c  %i.%i", ourGender, age, ageDecimal);
-		drawPos = lastScreenViewCenter;
-		drawPos.x += recalcOffsetX( 290 ) * gui_fov_scale + 30 * gui_fov_scale_hud;
-		drawPos.y -= viewHeight/2 - 25 * gui_fov_scale_hud;
-		handwritingFont->drawString( sBuf, drawPos, alignCenter );
-		}
+    if( true ) {
+        setDrawColor( 0, 0, 0, 1 );
+        doublePair drawPos;
+        int age = (int)(ourAge*10);
+        int ageDecimal = age - int(age*0.1)*10;
+        age = (int)((age-ageDecimal)*0.1);
+        char *ageString = autoSprintf( "AGE: %i.%i", age, ageDecimal);
+        char *genderString = autoSprintf( "SEX: %c", ourGender);
+        drawPos = lastScreenViewCenter;
+        drawPos.x += recalcOffsetX( 210 ) * gui_fov_scale + 30 * gui_fov_scale_hud;
+        drawPos.y -= recalcOffsetY( 340 ) * gui_fov_scale;
+        drawPos.y -= 2 * gui_fov_scale_hud;
+        handwritingFont->drawString( genderString, drawPos, alignLeft );
+        drawPos.y += 26 * gui_fov_scale_hud;
+        drawPos.x -= 4 * gui_fov_scale_hud;
+        handwritingFont->drawString( ageString, drawPos, alignLeft );
+        delete [] ageString;
+        delete [] genderString;
+        }
 
 	
     if( minitech::currentHintTrans.size() > 0 ) {
