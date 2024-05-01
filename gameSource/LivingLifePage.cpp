@@ -10355,7 +10355,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     // cursor-tips
     if( !leftPanelComponent.mHover && 
-        !topLeftSlipComponent.mHover )
+        !topLeftSlipComponent.mHover && 
+        !minitech::isMinitechHovered
+        )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -23109,7 +23111,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     ourLiveObject->currentMouseOverClothingIndex = -1;
     
     if( destID == 0 ) {
-        if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover )
+        if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover && !minitech::isMinitechHovered )
         if( p.hitSelf ) {
             mCurMouseOverSelf = true;
             
@@ -23147,7 +23149,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         }
     
 
-    if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover )
+    if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover && !minitech::isMinitechHovered )
     if( destID > 0 ) {
         mCurMouseOverSelf = false;
         

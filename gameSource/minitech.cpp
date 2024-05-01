@@ -66,6 +66,8 @@ minitech::mouseListener* minitech::prevListener = NULL;
 minitech::mouseListener* minitech::nextListener = NULL;
 vector<pair<minitech::mouseListener*,int>> minitech::iconListenerIds;
 
+bool minitech::isMinitechHovered = false;
+
 // pos for newbieTips use
 doublePair minitech::makeUseTogglePos;
 doublePair minitech::maxButtonPos;
@@ -1110,6 +1112,9 @@ void minitech::updateDrawTwoTech() {
     posTL.y = posTL.y - viewHeight/2;
     
     iconListenerIds.clear();
+
+    mouseListener* minitechListener;
+    isMinitechHovered = false;
     
     if (minitechMinimized) {
         
@@ -1119,6 +1124,15 @@ void minitech::updateDrawTwoTech() {
         posTL.x = posTL.x - recWidth;
         doublePair posCenter = {posTL.x + recWidth / 2, posTL.y - recHeight / 2};
         doublePair posTR = {posTL.x + recWidth, posTL.y};
+        doublePair posBR = {posTL.x + recWidth, posTL.y - recHeight};
+
+        minitechListener = getMouseListenerByArea(
+            &twotechMouseListeners, 
+            sub(posTL, screenPos), 
+            sub(posBR, screenPos));
+        if (minitechListener->mouseHover) {
+            isMinitechHovered = true;
+        }
         
         // sheet background
         doublePair extraOffset = {17*guiScale, -45*guiScale}; // we only use a corner of the hintSheet1
@@ -1768,6 +1782,15 @@ void minitech::updateDrawTwoTech() {
     if (minListener->mouseClick) {
         minitechMinimized = true;
         minListener->mouseClick = false;
+    }
+
+    doublePair posBR = {posTL.x + recWidth, posTL.y - recHeight};
+    minitechListener = getMouseListenerByArea(
+        &twotechMouseListeners, 
+        sub(headerTL, screenPos), 
+        sub(posBR, screenPos));
+    if (minitechListener->mouseHover) {
+        isMinitechHovered = true;
     }
     
 }
