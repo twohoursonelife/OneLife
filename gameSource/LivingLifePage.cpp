@@ -10207,7 +10207,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
 
     
-
+    // always draw the say field text box outside the screen
+    mSayField.setPosition( 0, visibleViewWidth + lastScreenViewCenter.y );
+    
     doublePair paperPos = add( mult( recalcOffset( mNotePaperPosOffset ), gui_fov_scale ), lastScreenViewCenter );
 
     if( mSayField.isFocused() ) {
