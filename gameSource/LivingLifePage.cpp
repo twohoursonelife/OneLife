@@ -377,6 +377,14 @@ static bool isHoveringPicker( float x, float y ) {
 // 1 for object search queries
 int leftPanelPageNumber = 0;
 
+char LivingLifePage::isAnyUIHovered() {
+    return 
+        leftPanelComponent.mHover ||
+        topLeftSlipComponent.mHover ||
+        bottomPanelComponent.mHover ||
+        minitech::isMinitechHovered;
+    }
+
 
 // Saved Coords
 typedef struct SavedCoordinates {
@@ -3152,7 +3160,8 @@ LivingLifePage::LivingLifePage()
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
           objectSearchSlipComponent(),
-          leftPanelComponent() {
+          leftPanelComponent(),
+          bottomPanelComponent() {
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
@@ -3462,6 +3471,9 @@ LivingLifePage::LivingLifePage()
 	delete tempImage2;
 
 	delete tempImage;
+
+    bottomPanelComponent.mActive = true;
+
 	//
 
     mMap = new int[ mMapD * mMapD ];
@@ -10354,10 +10366,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // cursor-tips
-    if( !leftPanelComponent.mHover && 
-        !topLeftSlipComponent.mHover && 
-        !minitech::isMinitechHovered
-        )
+    if( !isAnyUIHovered() )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -11300,6 +11309,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
 						( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
 						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
         }
+
+
+    doublePair panelTL = {
+        -visibleViewWidth/2,
+        -recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale
+        };
+    doublePair panelBR = {
+        visibleViewWidth/2,
+        -viewHeight/2
+        };
+    bottomPanelComponent.setClickableArea( panelTL, panelBR );
+
 
 	panelPos.x = lastScreenViewCenter.x;
 
@@ -23027,6 +23048,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     topLeftSlipComponent.pointerMove(inX, inY);
     coordinatesSlipComponent.pointerMove(inX, inY);
     objectSearchSlipComponent.pointerMove(inX, inY);
+    bottomPanelComponent.pointerMove(inX, inY);
     for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
         ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
         savedCoordsClickable->pointerMove(inX, inY);
@@ -23111,7 +23133,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     ourLiveObject->currentMouseOverClothingIndex = -1;
     
     if( destID == 0 ) {
-        if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover && !minitech::isMinitechHovered )
+        if( !isAnyUIHovered() )
         if( p.hitSelf ) {
             mCurMouseOverSelf = true;
             
@@ -23149,7 +23171,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         }
     
 
-    if( !leftPanelComponent.mHover && !topLeftSlipComponent.mHover && !minitech::isMinitechHovered )
+    if( !isAnyUIHovered() )
     if( destID > 0 ) {
         mCurMouseOverSelf = false;
         

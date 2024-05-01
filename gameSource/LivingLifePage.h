@@ -486,6 +486,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         virtual void keyUp( unsigned char inASCII );
 
+        char isAnyUIHovered();
+
         
         // handles error detection, total byte counting, etc.
         void sendToServerSocket( char *inMessage );
@@ -1072,6 +1074,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         ClickableComponent coordinatesSlipComponent;
         ClickableComponent objectSearchSlipComponent;
         ClickableComponent leftPanelComponent;
+
+        ClickableComponent bottomPanelComponent;
         
         
         void pushOldHintArrow( int inIndex );
