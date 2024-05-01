@@ -1732,10 +1732,13 @@ void minitech::updateDrawTwoTech() {
     if (showBar) {
         string searchStr;
         if (lastHintStr != "") {
-            if (lastHintSearchNoResults) {
-                searchStr = "SEARCHING: " + lastHintStr + " (NO RESULTS)";
-            } else {
-                searchStr = "SEARCHING: " + lastHintStr + " (SAY '/' TO CLEAR)";
+            searchStr = "SEARCHING: " + lastHintStr;
+            if( lastHintStr.length() < 18 ) {
+                if (lastHintSearchNoResults) {
+                    searchStr = searchStr + " (NO RESULTS)";
+                } else {
+                    searchStr = searchStr + " (SAY '/' TO CLEAR)";
+                }
             }
         } else if (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId) {
             string objName = livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId);
