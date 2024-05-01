@@ -626,8 +626,16 @@ static void addToYummyFoodChain( int foodID ) {
     yummyFoodChain.push_back( foodID );
     }
 
+char livingLifeBouncingYOffsetToggle = true;
+
+void setLivingLifeBouncingYOffsetToggle( char b ) {
+    livingLifeBouncingYOffsetToggle = b;
+    }
+
 // calculation for the jumping animation of yum finder 
 float getLivingLifeBouncingYOffset( int oid ) {
+
+    if( !livingLifeBouncingYOffsetToggle ) return 0.0;
 
     if( !yumFinderEnabled && !objectSearchEnabled ) return 0.0;
 

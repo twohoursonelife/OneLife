@@ -608,7 +608,7 @@ void minitech::drawPoint(doublePair posCen, string color) {
     drawRect( posCen, pointSize, pointSize );   
 }
 
-extern char runningYumFinder;
+extern char setLivingLifeBouncingYOffsetToggle( char b );
 
 void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, string strDescSecondLine) {
     if (objId <= 0) {
@@ -638,11 +638,9 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
     zoom = zoom * guiScale;
     doublePair posAfterOffset = sub (posCen, mult( getObjectCenterOffset( obj ), zoom ));
     
-    char tempRunningYumFinder = runningYumFinder;
-    runningYumFinder = false;
-    
     setDrawColor( 1, 1, 1, 1 ); 
     setDrawnObjectScale( zoom );
+    setLivingLifeBouncingYOffsetToggle( false );
 
     char used;
     drawObjectAnim( objId, 2, 
@@ -660,8 +658,8 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
                     false, false, false,
                     getEmptyClothingSet(), NULL );
 
+    setLivingLifeBouncingYOffsetToggle( true );
     setDrawnObjectScale( 1.0 );
-    runningYumFinder = tempRunningYumFinder;
 }
 
 void minitech::drawStr(
