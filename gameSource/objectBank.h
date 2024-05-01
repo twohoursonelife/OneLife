@@ -13,6 +13,8 @@
 #include "SoundUsage.h"
 
 
+void setObjectDrawAlpha( float alpha );
+
 void setDrawColor( FloatRGB inColor );
 
 //defined in animationBank

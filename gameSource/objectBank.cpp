@@ -249,11 +249,18 @@ int getMaxObjectID() {
     }
 
 
+float globalAlpha = 1.0;
+
+void setObjectDrawAlpha( float alpha ) {
+    globalAlpha = alpha;
+    }
+
+
 void setDrawColor( FloatRGB inColor ) {
     setDrawColor( inColor.r, 
                   inColor.g, 
                   inColor.b,
-                  1 );
+                  globalAlpha );
     }
 
 

@@ -4655,6 +4655,8 @@ void LivingLifePage::drawMapCell( int inMapI,
     if( oID > 0 ) {
         
         objectHeight = getObjectHeight( oID );
+
+        if( mXKeyDown && objectHeight > .75 * CELL_D ) setObjectDrawAlpha( 0.3 );
         
         double oldFrameCount = mMapAnimationFrameCount[ inMapI ];
 
@@ -4883,6 +4885,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         
         if( ! mShowHighlights ) {
             if( inHighlightOnly ) {
+                setObjectDrawAlpha( 1.0 );
                 return;
                 }
             highlight = false;
@@ -4899,6 +4902,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         
         if( highlight && obj->noHighlight ) {
             if( inHighlightOnly ) {
+                setObjectDrawAlpha( 1.0 );
                 return;
                 }
             highlight = false;
@@ -5082,6 +5086,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         drawSquare( pos, 14 );
         }
 
+    setObjectDrawAlpha( 1.0 );
     }
 
 
@@ -7466,6 +7471,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 
                 
+                if( mXKeyDown ) setObjectDrawAlpha( 0.3 );
+
                 char used;
                 drawObjectAnim( oID, 2, 
                                 ground, timeVal,
@@ -7481,6 +7488,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                 false, -1,
                                 false, false, false,
                                 getEmptyClothingSet(), NULL );
+
+                if( mXKeyDown ) setObjectDrawAlpha( 1.0 );
 
                 if( p > 0 ) {
                     stopStencil();
