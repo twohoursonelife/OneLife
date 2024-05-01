@@ -631,7 +631,8 @@ float getLivingLifeBouncingYOffset( int oid ) {
 
     if( !yumFinderEnabled && !objectSearchEnabled ) return 0.0;
 
-    char objectSearchHit = objectSearchEnabled && objectMatches[oid];
+    int parentID = getObjectParent( oid );
+    char objectSearchHit = objectSearchEnabled && objectMatches[parentID];
     int foodParentID = getFoodParent( oid );
     char yumHit = 
         yumFinderEnabled && runningYumFinder && isFood( foodParentID ) && 
@@ -7609,12 +7610,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
             char highlight = false;
             
             if( mMap[mapI] > 0 ) {
-                ObjectRecord *o = getObject( mMap[mapI], true );
+                int id = getObjectParent( mMap[mapI] );
+                ObjectRecord *o = getObject( id, true );
                 if( o != NULL && objectMatches[o->id] ) highlight = true;
                 }
             if( !highlight && mMapContainedStacks[mapI].size() > 0 ) {
                 for (int i=0; i<mMapContainedStacks[mapI].size(); i++) {
                     int id = mMapContainedStacks[mapI].getElementDirect(i);
+                    id = getObjectParent(id);
                     ObjectRecord *o = getObject( id, true );
                     if( o != NULL && objectMatches[o->id] ) {
                         highlight = true;
@@ -7627,6 +7630,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     SimpleVector<int> subStack = mMapSubContainedStacks[mapI].getElementDirect(i);
                     for (int j=0; j<subStack.size(); j++) {
                         int id = subStack.getElementDirect(j);
+                        id = getObjectParent(id);
                         ObjectRecord *o = getObject( id, true );
                         if( o != NULL && objectMatches[o->id] ) {
                             highlight = true;
