@@ -11500,11 +11500,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
         // Food bar is not loaded if the game just has just reconnected
         // Draw the bonus part of the food bar after the food bar is loaded
         if( ourLiveObject->maxFoodCapacity > 0 ) {
+
+            int foodBarBoxesForLabel = ourLiveObject->maxFoodCapacity;
+            if( foodBarBoxesForLabel < 5 ) foodBarBoxesForLabel = 5; // If food bar is too short, the labels are too close to "Food Meter"
             
             // 2HOL food UI - Yum Bonus label
             char *yumString3 = autoSprintf( "BONUS:" );
             double yumStringSize3 = handwritingFont->measureString( yumString3 );
-            yumPos.x += ourLiveObject->maxFoodCapacity * ( 30 * gui_fov_scale_hud );
+            yumPos.x += foodBarBoxesForLabel * ( 30 * gui_fov_scale_hud );
             yumPos.y -= 2 * gui_fov_scale_hud;
             doublePair pos = yumPos;
             pos.x += yumStringSize3 / 2 + 16 * gui_fov_scale_hud;
