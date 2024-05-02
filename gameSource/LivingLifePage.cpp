@@ -174,6 +174,8 @@ char yumFinderEnabled = false;
 unsigned char yumFinderKey = 'y';
 char objectSearchEnabled = false;
 unsigned char objectSearchPanelToggleKey = 'j';
+char familyDisplayEnabled = false;
+unsigned char familyDisplayPanelToggleKey = 'p';
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -682,6 +684,163 @@ float getLivingLifeBouncingYOffset( int oid ) {
     }
 
 
+// Players / families display
+
+
+
+static SimpleVector<DisplayedFamily*> displayedFamilies;
+static SimpleVector<ClickableComponent> displayedFamiliesComponentList;
+static double infertileAge = 104.0;
+
+char *getLastName( const char *name ) {
+    if( name == NULL ) return NULL;
+    char *lastName = NULL;
+	SimpleVector<char *> *tokens = tokenizeString( name );
+    if( tokens->size() > 1 ) {
+        lastName = strdup( tokens->getElementDirect( 1 ) );
+        }
+    tokens->deallocateStringElements();
+    delete tokens;
+    if( lastName != NULL && strstr(lastName, "+INFERTILE+") != NULL ) {
+        delete [] lastName;
+        return NULL;
+        }
+    return lastName;
+    }
+
+DisplayedFamily* LivingLifePage::getOurFamily() {
+    for (int j=0; j<displayedFamilies.size(); j++) {
+        DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+        if( displayedFamily->isOurFamily ) return displayedFamily;
+        }
+    // reached here, check if we are unnamed solo eve
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject == NULL || ourLiveObject->name == NULL ) return NULL;
+    char isUnnamedSoloEve = 
+        ourLiveObject->id == ourLiveObject->lineageEveID && // we are eve
+        strstr(ourLiveObject->name, "+INFERTILE+") != NULL && // we declared interfile
+        getLastName(ourLiveObject->name) == NULL; // we are unnamed
+    if( isUnnamedSoloEve ) {
+        for (int j=0; j<displayedFamilies.size(); j++) {
+            DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+            if( displayedFamily->areSoloEves ) return displayedFamily;
+            }
+        }
+    return NULL;
+    }
+
+// youngest last
+SimpleVector<LiveObject> gameObjects;
+
+static double computeCurrentAge( LiveObject *inObj );
+
+void LivingLifePage::updatePlayersAndFamilies() {
+
+    for (int j=0; j<displayedFamilies.size(); j++) {
+        DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+        delete displayedFamily;
+        }
+    displayedFamilies.deleteAll();
+
+    LiveObject *ourLiveObject = getOurLiveObject();
+
+	for(int i=gameObjects.size()-1; i>=0; i--) {
+		LiveObject *player = gameObjects.getElement( i );
+
+        ObjectRecord *playerObject = getObject(player->displayID);
+
+        char isFertile = false;
+        char declaredInfertile = false;
+		if ( !playerObject->male ) {
+            isFertile = true;
+			if( player->name != NULL ) {
+                char tagPresent = strstr(player->name, "+INFERTILE+") != NULL;
+                isFertile = !tagPresent;
+                declaredInfertile = tagPresent;
+                }
+            if( isFertile ) {
+                double age = computeServerAge( computeCurrentAge( player ) );
+                if( age >= infertileAge ) isFertile = false;
+                }
+		    }
+
+        int eveID = player->lineageEveID;
+        DisplayedFamily *family = NULL;
+		for (int j=0; j<displayedFamilies.size(); j++) {
+            DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+            if( displayedFamily->eveID == eveID ) {
+                family = displayedFamily;
+                break;
+                }
+            }
+
+        char isUnnamedSoloEve = false;
+        char *lastName = getLastName(player->name);
+        if( family == NULL && // they have no descendants
+            declaredInfertile && // they declared infertile
+            eveID == player->id && // they are the Eve
+            lastName == NULL // they are unnamed
+            ) {
+            // so they are unnamed solo eve
+            // group them together for display purpose
+            isUnnamedSoloEve = true;
+            lastName = strdup( "SOLO EVES" );
+            for (int j=0; j<displayedFamilies.size(); j++) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+                if( displayedFamily->areSoloEves ) {
+                    family = displayedFamily;
+                    break;
+                    }
+                }
+            }
+        
+        if( family == NULL ) {
+            if( lastName == NULL ) lastName = strdup( "UNNAMED" );
+            std::string lastNameString( lastName );
+
+            DisplayedFamily *newFamily = new DisplayedFamily();
+            newFamily->name = lastNameString;
+            newFamily->eveID = player->lineageEveID;
+            newFamily->generation = player->lineage.size()+1;
+            if( player == ourLiveObject ) newFamily->isOurFamily = true;
+            if( isUnnamedSoloEve ) newFamily->areSoloEves = true;
+
+            displayedFamilies.push_back( newFamily );
+            ClickableComponent clickableLine;
+            displayedFamiliesComponentList.push_back( clickableLine );
+            family = newFamily;
+            }
+        else {
+            if( family->name == "UNNAMED" ) {
+                char *lastName = getLastName(player->name);
+                if( lastName != NULL ) {
+                    // we're here if the youngest member of a named family is not named
+                    std::string lastNameString( lastName );
+                    family->name = lastNameString;
+                    delete [] lastName;
+                    }
+                }
+            if( player == ourLiveObject ) {
+                // we're here if we're not the youngest in the family
+                family->isOurFamily = true;
+                }
+            }
+        
+        family->count++;
+        if( isFertile ) family->fertileCount++;
+
+        delete [] lastName;
+        }
+
+    for (int j=displayedFamiliesComponentList.size()-1; j>=0; j--) {
+        if( j >= displayedFamilies.size() ) {
+            displayedFamiliesComponentList.deleteElement( j );
+            }
+        else {
+            break;
+            }
+        }
+    }
 
 
 static SimpleVector<char*> passwordProtectingPhrases;
@@ -2200,8 +2359,7 @@ double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
 
 
 
-// youngest last
-SimpleVector<LiveObject> gameObjects;
+
 
 // for determining our ID when we're not youngest on the server
 // (so we're not last in the list after receiving the first PU message)
@@ -3169,6 +3327,7 @@ LivingLifePage::LivingLifePage()
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
           objectSearchSlipComponent(),
+          familyDisplaySlipComponent(),
           leftPanelComponent(),
           bottomPanelComponent() {
 
@@ -3189,12 +3348,18 @@ LivingLifePage::LivingLifePage()
     if( SettingsManager::getIntSetting( "yumFinderEnabled", 0 ) ) {
         yumFinderEnabled = true;
         }
+    if( SettingsManager::getIntSetting( "familyDisplayEnabled", 0 ) ) {
+        familyDisplayEnabled = true;
+        }
     char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelToggleKey", "g");
     coordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
     delete [] coordinatesPanelToggleKeyFromSetting;
     char *objectSearchPanelToggleKeyFromSetting = SettingsManager::getStringSetting("objectSearchPanelToggleKey", "j");
     objectSearchPanelToggleKey = objectSearchPanelToggleKeyFromSetting[0];
     delete [] objectSearchPanelToggleKeyFromSetting;
+    char *familyDisplayPanelToggleKeyFromSetting = SettingsManager::getStringSetting("familyDisplayPanelToggleKey", "p");
+    familyDisplayPanelToggleKey = familyDisplayPanelToggleKeyFromSetting[0];
+    delete [] familyDisplayPanelToggleKeyFromSetting;
     char *yumFinderKeyFromSetting = SettingsManager::getStringSetting("yumFinderKey", "y");
     yumFinderKey = yumFinderKeyFromSetting[0];
     delete [] yumFinderKeyFromSetting;
@@ -3391,9 +3556,10 @@ LivingLifePage::LivingLifePage()
 
     bigSheet = loadSprite( "bigHintSheet.tga", false );
 
-    topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+    topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
     coordinatesSlipComponent.mActive = coordinatesEnabled;
     objectSearchSlipComponent.mActive = objectSearchEnabled;
+    familyDisplaySlipComponent.mActive = familyDisplayEnabled;
     
     mLiveHintSheetIndex = -1;
 
@@ -7673,7 +7839,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int mouseY = int(round( mousePos.y / (float)CELL_D ));
         drawTileVanillaHighlight( mouseX, mouseY, {0.0, 1.0, 0.0, 1.0} );
         }
-    else if (minitech::highlightObjId > 0) { //TODO escape?
+    else if (minitech::highlightObjId > 0) {
         minitech::drawHintObjectTile();
         }
     else if( mShowHighlights 
@@ -10821,11 +10987,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     // Left Panel
     // drawn behind tutorial sheets / global message
-    if( ( coordinatesEnabled || objectSearchEnabled ) && 
+    if( ( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled ) && 
         leftPanelComponent.mActive ) {
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
-        doublePair coordinatesPanelHidePos = {-198, 199};
+        doublePair coordinatesPanelHidePos = {-198, 196};
 
 
         double coordinatesPanelWidth = 0;
@@ -10868,6 +11034,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         else if( leftPanelPageNumber == 1 ) {
 
+            longestLine =  handwritingFont->measureString( "OBJECT FINDER" ) / gui_fov_scale_hud;
+
             for( int i=0; i<objectSearchQueries.size(); i++ ) {
                 std::string queryString = objectSearchQueries.getElementDirect( i );
                 char *query = strdup( queryString.c_str() );
@@ -10877,18 +11045,45 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
 
             coordinatesPanelWidth = paddingX + longestLine + paddingX;
+
+            }
+        else if( leftPanelPageNumber == 2 ) {
+
+            longestLine =  handwritingFont->measureString( "FAMILY LIST" ) / gui_fov_scale_hud;
+
+            int familyListSize = displayedFamilies.size();
+            if( familyListSize > 12 ) familyListSize = 12;
+
+            for( int i=0; i<familyListSize; i++ ) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( i );
+                char *line = autoSprintf( "%d IN %s", 
+                    displayedFamily->count,
+                    displayedFamily->name.c_str()
+                    );
+                double lenLine = handwritingFont->measureString( line ) / gui_fov_scale_hud;
+                if( lenLine > longestLine ) longestLine = lenLine;
+                delete [] line;
+                }
+
+            coordinatesPanelWidth = paddingX + longestLine + paddingX;
+
             }
 
+        char drawingHelpMessage = 
+            (leftPanelPageNumber == 0 && SavedCoordinatesList.size() <= 1) ||
+            (leftPanelPageNumber == 1 && objectSearchQueries.size() <= 1);
 
-
-        if( coordinatesPanelWidth < 220 && SavedCoordinatesList.size() > 1 ) { // space for help message
+        if( coordinatesPanelWidth < 160 && !drawingHelpMessage ) { // space for help message
+            coordinatesPanelWidth = 160;
+            }
+        else if( coordinatesPanelWidth < 220 ) {
             coordinatesPanelWidth = 220;
             }
         else if( coordinatesPanelWidth < 240 ) {
             coordinatesPanelWidth = 240;
             }
 
-        doublePair coordinatesPanelSize = {coordinatesPanelWidth, -455};
+        doublePair coordinatesPanelSize = {coordinatesPanelWidth, -452};
 
         doublePair coordinatesPanelPos = add( coordinatesPanelHidePos, coordinatesPanelSize);
 
@@ -11068,6 +11263,62 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
 
             }
+        else if( leftPanelPageNumber == 2 ) {
+
+            doublePair textPos = {
+                coordinatesPanelWidth * 0.5,
+                -paddingY - lineHeight/2
+                };
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+            setDrawColor( 0, 0, 0, 1 );
+            handwritingFont->drawString( "FAMILY LIST", textPos, alignCenter );
+
+            int familyListSize = displayedFamilies.size();
+            if( familyListSize > 12 ) familyListSize = 12;
+
+            for( int i=0; i<familyListSize; i++ ) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( i );
+                
+                char *connective;
+                if( displayedFamily->areSoloEves ) {
+                    connective = strdup("");
+                    }
+                else {
+                    connective = strdup("IN ");
+                    }
+
+                char *line = autoSprintf( "%d %s%s", 
+                    displayedFamily->count,
+                    connective,
+                    displayedFamily->name.c_str()
+                    );
+                
+                if( connective != NULL ) delete [] connective;
+
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
+                
+                doublePair lineClickableTL = pos;
+                lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+                doublePair lineClickableBR = {
+                    lineClickableTL.x + (longestLine) * gui_fov_scale_hud,
+                    lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                    };
+                lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+                lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+                displayedFamiliesClickable->setClickableArea( lineClickableTL, lineClickableBR );
+                
+                setDrawColor( 0, 0, 0, 1.0 );
+                handwritingFont->drawString( line, pos, alignLeft );
+
+                pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+                delete [] line;
+                }
+
+            }
 
 
         }
@@ -11080,6 +11331,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         char *coordsLine = NULL;
         char *objectSearchLine = NULL;
+        char *familyDisplayLine = NULL;
+
+        DisplayedFamily* ourFamily = NULL;
+        if( familyDisplayEnabled ) ourFamily = getOurFamily();
 
         double longestLineLen = 0.0;
         int numOfLines = 0;
@@ -11092,6 +11347,24 @@ void LivingLifePage::draw( doublePair inViewCenter,
             double len = handwritingFont->measureString( coordsLine ) / gui_fov_scale_hud;
             if( len < 120 ) len = 120;
             else if( len < 160 ) len = 160;
+            if( len > longestLineLen ) longestLineLen = len;
+            numOfLines += 1;
+            }
+        if( familyDisplayEnabled && ourFamily != NULL && ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
+            if( ourFamily->areSoloEves ) {
+                familyDisplayLine = autoSprintf( "%d %s", 
+                    ourFamily->count,
+                    ourFamily->name.c_str()
+                    );
+                }
+            else {
+                familyDisplayLine = autoSprintf( "%s:%d F:%d", 
+                    ourFamily->name.c_str(),
+                    ourFamily->count,
+                    ourFamily->fertileCount
+                    );
+                }
+            double len = handwritingFont->measureString( familyDisplayLine ) / gui_fov_scale_hud;
             if( len > longestLineLen ) longestLineLen = len;
             numOfLines += 1;
             }
@@ -11115,7 +11388,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
         double spacingY = 8.0;
 
         doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
-        doublePair slipHidePos = {-307, 45};
+        // doublePair slipHidePos = {-307, 45};
+        doublePair slipHidePos = {-198, 196};
         doublePair slipSize = { paddingX + longestLineLen + paddingX, -( paddingY + numOfLines * (lineHeight + spacingY) - spacingY + paddingY )};
 
         doublePair slipPos = add( slipHidePos, slipSize );
@@ -11132,6 +11406,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         coordinatesSlipComponent.mActive = false;
         objectSearchSlipComponent.mActive = false;
+        familyDisplaySlipComponent.mActive = false;
 
         if( coordinatesEnabled && ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
             doublePair TL = screenTL;
@@ -11141,6 +11416,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
             BR.y -= lineHeight * gui_fov_scale_hud;
             coordinatesSlipComponent.setClickableArea( TL, BR );
             coordinatesSlipComponent.mActive = true;
+            lineAreaSet += 1;
+            }
+        if( familyDisplayEnabled && ourFamily != NULL && ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
+            doublePair TL = screenTL;
+            TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
+            doublePair BR = TL;
+            BR.x += slipSize.x * gui_fov_scale_hud;
+            BR.y -= lineHeight * gui_fov_scale_hud;
+            familyDisplaySlipComponent.setClickableArea( TL, BR );
+            familyDisplaySlipComponent.mActive = true;
             lineAreaSet += 1;
             }
         if( objectSearchEnabled && ( topLeftSlipComponent.mHover || lineAreaSet < 1 || objectSearchQueries.size() > 0 ) ) {
@@ -11155,9 +11440,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         setDrawColor( 1, 1, 1, 0.9 );
-        if( coordinatesSlipComponent.mHover || objectSearchSlipComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
-        if( coordinatesSlipComponent.mActive || objectSearchSlipComponent.mActive )
-        drawSprite( mHintSheetSprites[0], slipPos, gui_fov_scale_hud, 0.5 );
+        if( topLeftSlipComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        // drawSprite( mHintSheetSprites[0], slipPos, gui_fov_scale_hud, 0.5 );
+        drawSprite( bigSheet, slipPos, gui_fov_scale_hud );
 
 
         int lineDrawn = 0;
@@ -11171,6 +11456,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
             setDrawColor( 0, 0, 0, 1 );
             if( coordinatesSlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
             handwritingFont->drawString( coordsLine, textPos, alignCenter );
+
+            lineDrawn += 1;
+            }
+        if( familyDisplayEnabled && ourFamily != NULL && familyDisplaySlipComponent.mActive ) {
+            doublePair textPos = {slipSize.x * 0.5, - paddingY - lineDrawn * (lineHeight + spacingY) - lineHeight/2};
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+
+            setDrawColor( 0, 0, 0, 1 );
+            if( familyDisplaySlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+            handwritingFont->drawString( familyDisplayLine, textPos, alignCenter );
 
             lineDrawn += 1;
             }
@@ -11189,15 +11486,22 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         if( coordsLine != NULL ) delete [] coordsLine;
         if( objectSearchLine != NULL ) delete [] objectSearchLine;
+        if( familyDisplayLine != NULL ) delete [] familyDisplayLine;
         }
 
     // cursorTips for Coordinates and Panel
-    if( coordinatesEnabled || objectSearchEnabled )
-    if( leftPanelComponent.mActive || coordinatesSlipComponent.mHover || objectSearchSlipComponent.mHover ) {
+    if( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled )
+    if( leftPanelComponent.mActive ||
+        coordinatesSlipComponent.mHover ||
+        objectSearchSlipComponent.mHover ||
+        familyDisplaySlipComponent.mHover
+        ) {
         char *coordsTips = NULL;
         if( leftPanelComponent.mActive ) {
             char anyCoordsHover = false;
             char anyQueryHover = false;
+            char anyFamilyHover = false;
+            int familyHoverIndex = -1;
             for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                 ClickableComponent savedCoords = SavedCoordinatesComponentList.getElementDirect( i );
                 if( savedCoords.mHover ) {
@@ -11212,11 +11516,38 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     break;
                     }
                 }
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent displayedFamiliesClickable = displayedFamiliesComponentList.getElementDirect( i );
+                if( displayedFamiliesClickable.mHover ) {
+                    anyFamilyHover = true;
+                    familyHoverIndex = i;
+                    break;
+                    }
+                }
+
             if( anyCoordsHover ) {
                 coordsTips = autoSprintf( "%s", translate("savedCoordsTips") );
                 }
             else if( anyQueryHover ) {
                 coordsTips = autoSprintf( "%s", translate("objQueryTips") );
+                }
+            else if( anyFamilyHover ) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( familyHoverIndex );
+                if( displayedFamily != NULL ) {
+                    char *fertileWord;
+                    if( displayedFamily->fertileCount == 1 ) {
+                        fertileWord = strdup( "FERTILE" );
+                        }
+                    else {
+                        fertileWord = strdup( "FERTILES" );
+                        }
+                    coordsTips = autoSprintf( "%d %s ALIVE, IN GENERATION %d", 
+                        displayedFamily->fertileCount,
+                        fertileWord,
+                        displayedFamily->generation
+                        );
+                    delete [] fertileWord;
+                    }
                 }
             else if( leftPanelComponent.mHover ) {
                 coordsTips = autoSprintf( "%s", translate("leftPanelTips") );
@@ -11227,6 +11558,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         else if( objectSearchSlipComponent.mHover ) {
             coordsTips = autoSprintf( "%s", translate("objSearchTips") );
+            }
+        else if( familyDisplaySlipComponent.mHover ) {
+            coordsTips = autoSprintf( "%s", translate("famDisplayTips") );
             }
         if( coordsTips != NULL ) {
             drawCursorTips( coordsTips );
@@ -14106,6 +14440,8 @@ void LivingLifePage::step() {
         mLiveTutorialTriggerNumber
         );
     if( newbieTips::shouldDisplayMessage ) displayMessage();
+
+    if (stepCount % 43 == 0) updatePlayersAndFamilies();
 
 
     // pos for tutorial sheets
@@ -22230,10 +22566,12 @@ void LivingLifePage::makeActive( char inFresh ) {
           changeFOV( 1.0f );
           }
 
-        topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+        topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
         coordinatesSlipComponent.mActive = coordinatesEnabled;
+        familyDisplaySlipComponent.mActive = 
+            familyDisplayEnabled && (!coordinatesEnabled);
         objectSearchSlipComponent.mActive = 
-            objectSearchEnabled && (!coordinatesEnabled || objectSearchQueries.size() > 0);
+            objectSearchEnabled && (!(coordinatesEnabled || familyDisplayEnabled) || objectSearchQueries.size() > 0);
 
         leftPanelComponent.mActive = false;
         for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
@@ -22243,6 +22581,10 @@ void LivingLifePage::makeActive( char inFresh ) {
         for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
             ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
             objectSearchQueryClickable->mActive = false;
+            }
+        for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+            ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+            displayedFamiliesClickable->mActive = false;
             }
       
 		//reset camera if LivingLifePage is made active again
@@ -23085,6 +23427,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     topLeftSlipComponent.pointerMove(inX, inY);
     coordinatesSlipComponent.pointerMove(inX, inY);
     objectSearchSlipComponent.pointerMove(inX, inY);
+    familyDisplaySlipComponent.pointerMove(inX, inY);
     bottomPanelComponent.pointerMove(inX, inY);
     for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
         ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
@@ -23093,6 +23436,10 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
         ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
         objectSearchQueryClickable->pointerMove(inX, inY);
+        }
+    for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+        ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+        displayedFamiliesClickable->pointerMove(inX, inY);
         }
 
     PointerHitRecord p;
@@ -23537,6 +23884,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
             topLeftSlipComponent.mActive = false;
             leftPanelPageNumber = 0;
             leftPanelComponent.mActive = true;
@@ -23550,6 +23898,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         else if( objectSearchSlipComponent.mActive && objectSearchSlipComponent.pointerDown(inX, inY) ) {
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
             topLeftSlipComponent.mActive = false;
             leftPanelPageNumber = 1;
             leftPanelComponent.mActive = true;
@@ -23557,6 +23906,20 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
                 ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
                 objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( familyDisplaySlipComponent.mActive && familyDisplaySlipComponent.pointerDown(inX, inY) ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 2;
+            leftPanelComponent.mActive = true;
+            leftPanelComponent.mHover = true;
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
                 }
             return;
             }
@@ -23592,7 +23955,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( leftPanelComponent.pointerDown(inX, inY) ) {
                 if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
                 if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
-                topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+                if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
+                topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
                 leftPanelComponent.mActive = false;
                 for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                     ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
@@ -23601,6 +23965,10 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
                     ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
                     objectSearchQueryClickable->mActive = false;
+                    }
+                for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                    ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                    displayedFamiliesClickable->mActive = false;
                     }
                 return;
                 }
@@ -25490,19 +25858,21 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 	if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
 
-    if ((coordinatesEnabled || objectSearchEnabled) && 
+    if ((coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled) && 
         !mSayField.isFocused() && !vogMode &&
         !commandKey && !shiftKey ) {
 
         char coordinatesKeyPressed = coordinatesEnabled && isCharKey(inASCII, coordinatesPanelToggleKey);
         char objectSearchKeyPressed = objectSearchEnabled && isCharKey(inASCII, objectSearchPanelToggleKey);
+        char familyDisplayKeyPressed = familyDisplayEnabled && isCharKey(inASCII, familyDisplayPanelToggleKey);
 
         if( leftPanelComponent.mActive &&
-            ( coordinatesKeyPressed || objectSearchKeyPressed )
+            ( coordinatesKeyPressed || objectSearchKeyPressed || familyDisplayKeyPressed )
             ) {
             if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
             if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
-            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled;
+            if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
+            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
             leftPanelComponent.mActive = false;
             for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
                 ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
@@ -25512,11 +25882,16 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
                 objectSearchQueryClickable->mActive = false;
                 }
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = false;
+                }
             return;
             }
         else if( coordinatesKeyPressed ) {
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
             topLeftSlipComponent.mActive = false;
             leftPanelPageNumber = 0;
             leftPanelComponent.mActive = true;
@@ -25529,12 +25904,26 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         else if( objectSearchKeyPressed ) {
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
             topLeftSlipComponent.mActive = false;
             leftPanelPageNumber = 1;
             leftPanelComponent.mActive = true;
             for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
                 ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
                 objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( familyDisplayKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 2;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
                 }
             return;
             }

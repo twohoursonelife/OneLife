@@ -470,6 +470,8 @@ objQueryTips "CLICK TO REMOVE"
 objSearchTips "CLICK TO SHOW ACTIVE OBJECT SEARCHES"
 tooManyQueriesWarning "TOO MANY SEARCH QUERIES."
 
+famDisplayTips "CLICK TO SHOW FULL LIST OF FAMILIES"
+
 leftPanelTips "CLICK TO CLOSE"
 
 homeLocation "HOME"

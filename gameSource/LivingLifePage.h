@@ -443,6 +443,17 @@ typedef struct OldHintArrow {
     } OldHintArrow;
 
 
+struct DisplayedFamily {
+    std::string name;
+    int count = 0;
+    int fertileCount = 0;
+    // std::string raceName = "UNKNOWN";
+    int generation = 0;
+    int eveID = -1;
+    char isOurFamily = false;
+    char areSoloEves = false;
+    };
+
 
 class LivingLifePage : public GamePage, public ActionListener {
         
@@ -487,6 +498,9 @@ class LivingLifePage : public GamePage, public ActionListener {
         virtual void keyUp( unsigned char inASCII );
 
         char isAnyUIHovered();
+
+        DisplayedFamily* getOurFamily();
+        void updatePlayersAndFamilies();
 
         
         // handles error detection, total byte counting, etc.
@@ -1073,6 +1087,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         ClickableComponent topLeftSlipComponent;
         ClickableComponent coordinatesSlipComponent;
         ClickableComponent objectSearchSlipComponent;
+        ClickableComponent familyDisplaySlipComponent;
         ClickableComponent leftPanelComponent;
 
         ClickableComponent bottomPanelComponent;

@@ -121,6 +121,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnablePersistentEmoteBox;
         CheckboxButton mEnableYumFinderBox;
         CheckboxButton mEnableObjectSearchBox;
+        CheckboxButton mEnableFamilyDisplayBox;
         
         
         void checkRestartButtonVisibility();

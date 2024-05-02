@@ -39,6 +39,7 @@ extern char coordinatesEnabled;
 extern char persistentEmoteEnabled;
 extern char yumFinderEnabled;
 extern char objectSearchEnabled;
+extern char familyDisplayEnabled;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -121,7 +122,8 @@ SettingsPage::SettingsPage()
         mEnableCoordinatesBox(0, 128, 4),
         mEnablePersistentEmoteBox(0, 88, 4),
         mEnableYumFinderBox(0, 48, 4),
-        mEnableObjectSearchBox(0, 8, 4) {
+        mEnableObjectSearchBox(0, 8, 4),
+        mEnableFamilyDisplayBox(0, -32, 4) {
                             
 
     
@@ -130,6 +132,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent(&mEnableFamilyDisplayBox);
+    mEnableFamilyDisplayBox.addActionListener(this);
     addComponent(&mEnableObjectSearchBox);
     mEnableObjectSearchBox.addActionListener(this);
     addComponent(&mEnableYumFinderBox);
@@ -323,6 +327,7 @@ SettingsPage::SettingsPage()
     mEnablePersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
     mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
     mEnableObjectSearchBox.setCursorTip( "ENABLE OBJECT FINDER. PRESS J TO TOGGLE PANEL." );
+    mEnableFamilyDisplayBox.setCursorTip( "ENABLE DISPLAY OF LIST OF FAMILIES. PRESS P TO TOGGLE PANEL." );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -421,6 +426,10 @@ SettingsPage::SettingsPage()
     objectSearchEnabled = SettingsManager::getIntSetting("objectSearchEnabled", 0);
 
     mEnableObjectSearchBox.setToggled( objectSearchEnabled );
+
+    familyDisplayEnabled = SettingsManager::getIntSetting("familyDisplayEnabled", 0);
+
+    mEnableFamilyDisplayBox.setToggled( familyDisplayEnabled );
 
     mPage = 0;
     
@@ -873,6 +882,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("objectSearchEnabled",
                                     newSetting);
         }
+    else if ( inTarget == &mEnableFamilyDisplayBox ) {
+        int newSetting = mEnableFamilyDisplayBox.getToggled();
+        familyDisplayEnabled = false;
+        if( newSetting ) familyDisplayEnabled = true;
+        SettingsManager::setSetting("familyDisplayEnabled",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1118,6 +1134,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString("ENABLE OBJECT FINDER", pos, alignRight);
         }
+    if (mEnableFamilyDisplayBox.isVisible()) {
+        doublePair pos = mEnableFamilyDisplayBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("ENABLE FAMILY DISPLAY", pos, alignRight);
+        }
 }
 
 
@@ -1259,6 +1282,7 @@ void SettingsPage::updatePage() {
     mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
     mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
     mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
+    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1306,6 +1330,7 @@ void SettingsPage::updatePage() {
     mEnablePersistentEmoteBox.setVisible(mPage == 5);
     mEnableYumFinderBox.setVisible(mPage == 5);
     mEnableObjectSearchBox.setVisible(mPage == 5);
+    mEnableFamilyDisplayBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
