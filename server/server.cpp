@@ -322,6 +322,11 @@ static double afkTimeSeconds = 0;
 static int drunkEmotionIndex = 2;
 static int trippingEmotionIndex = 2;
 
+float getLivingLifeBouncingYOffset( int oid ) {
+    // dummy function because this is expected in objectBank and animationBank
+    // it is used for yum finder and object finder in the client
+    }
+
 
 static double lastBabyPassedThresholdTime = 0;
 

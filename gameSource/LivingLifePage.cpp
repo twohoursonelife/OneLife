@@ -17113,6 +17113,11 @@ void LivingLifePage::step() {
                                 // MEH
                                 slipIndexToShow = 3;
                                 holdingYumOrMeh = -1;
+
+                                // we are holding a meh food which isn't
+                                // in our record, we must have restarted the game
+                                // record the food again
+                                addToYummyFoodChain( o.holdingID );
                                 }
                             else {
                                 holdingYumOrMeh = 0;
