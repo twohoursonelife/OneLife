@@ -1780,6 +1780,15 @@ void minitech::updateDrawTwoTech() {
     if (minListener->mouseClick) {
         minitechMinimized = true;
         minListener->mouseClick = false;
+
+        // We have just minimized minitech
+        // Done drawing and adding listeners
+        for (auto p: twotechMouseListeners) {
+            delete(p);
+        }
+        twotechMouseListeners.clear();
+        twotechMouseListeners.shrink_to_fit();
+        return;
     }
 
     doublePair posBR = {posTL.x + recWidth, posTL.y - recHeight};
@@ -2191,6 +2200,15 @@ bool minitech::livingLifeKeyDown(unsigned char inASCII) {
     
     if (!shiftKey && !commandKey && toupper(inASCII) == toupper(minimizeKey)) { //V
         minitechMinimized = !minitechMinimized;
+
+        // Minitech minimized
+        // Clear the listeners to avoid any lingering
+        for (auto p: twotechMouseListeners) {
+            delete(p);
+        }
+        twotechMouseListeners.clear();
+        twotechMouseListeners.shrink_to_fit();
+
     }
     
     if (!shiftKey && commandKey && inASCII + 64 == toupper(minimizeKey)) { //Ctrl + V
