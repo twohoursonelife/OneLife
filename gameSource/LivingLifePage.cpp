@@ -26616,8 +26616,33 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
     if( commandIndex != -1 ) {
         if( commandIndex < commandShortcuts.size() ) {
             char *customCommand = commandShortcuts.getElementDirect( commandIndex );
-            mSayField.setText( customCommand );
+
+            char *commandWorking = strdup(customCommand);
+
+            LiveObject *ourLiveObject = getOurLiveObject();
+
+            double age = computeCurrentAgeNoOverride( ourLiveObject );
+
+            int sayCap = getSayLimit( age );
+
+            if( vogMode ) {
+                sayCap = 200;
+                }
+            
+            if( strlen( commandWorking ) > 0 && commandWorking[0] == '/' ) {
+                // this is a filter or command
+                // hard cap at 25, regardless of age
+                // don't want them typing long filters that overflow the display
+                sayCap = 23; // max 28 for /FIND, even less for minitech
+                }
+
+            if( strlen( commandWorking ) > sayCap ) {
+                commandWorking[sayCap] = '\0';
+                }
+
+            mSayField.setText( commandWorking );
             mSayField.focus();
+            delete [] commandWorking;
             }
         return;
         }
