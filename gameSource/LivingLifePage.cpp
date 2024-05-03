@@ -23882,6 +23882,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
     if( !mForceGroundClick ) {
         if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
+            if( isLastMouseButtonRight() ) return;
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
             familyDisplaySlipComponent.mActive = false;
@@ -23896,6 +23897,12 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             return;
             }
         else if( objectSearchSlipComponent.mActive && objectSearchSlipComponent.pointerDown(inX, inY) ) {
+            if( isLastMouseButtonRight() ) {
+                objectSearchQueries.deleteAll();
+                objectSearchQueriesComponentList.deleteAll();
+                updateObjectSearchArray();
+                return;
+                }
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
             familyDisplaySlipComponent.mActive = false;
@@ -23910,6 +23917,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             return;
             }
         else if( familyDisplaySlipComponent.mActive && familyDisplaySlipComponent.pointerDown(inX, inY) ) {
+            if( isLastMouseButtonRight() ) return;
             coordinatesSlipComponent.mActive = false;
             objectSearchSlipComponent.mActive = false;
             familyDisplaySlipComponent.mActive = false;
