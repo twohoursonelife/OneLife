@@ -21103,7 +21103,7 @@ void LivingLifePage::step() {
             // typing a filter
             // hard cap at 25, regardless of age
             // don't want them typing long filters that overflow the display
-            sayCap = 23; // max 28 for /FIND, even less for minitech
+            sayCap = 28; // max 28 for /FIND, even less for minitech
             }
         delete [] currentText;
 
@@ -26641,7 +26641,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 // this is a filter or command
                 // hard cap at 25, regardless of age
                 // don't want them typing long filters that overflow the display
-                sayCap = 23; // max 28 for /FIND, even less for minitech
+                sayCap = 28; // max 28 for /FIND, even less for minitech
                 }
 
             if( strlen( commandWorking ) > sayCap ) {

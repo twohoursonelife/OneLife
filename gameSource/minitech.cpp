@@ -1744,17 +1744,18 @@ void minitech::updateDrawTwoTech() {
     if (showBar) {
         string searchStr;
         if (lastHintStr != "") {
-            searchStr = "SEARCHING: " + lastHintStr;
-            if( lastHintStr.length() < 18 ) {
-                if (lastHintSearchNoResults) {
-                    searchStr = searchStr + " (NO RESULTS)";
-                } else {
-                    searchStr = searchStr + " (SAY '/' TO CLEAR)";
-                }
+            if (lastHintSearchNoResults) {
+                searchStr = "SEARCHING: " + lastHintStr + " (NO RESULTS)";
+            } else {
+                searchStr = "SEARCHING: " + lastHintStr + " (SAY '/' TO CLEAR)";
             }
         } else if (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId) {
             string objName = livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId);
             searchStr = "HOLDING: " + objName;
+        }
+        int searchStrMaxLen = 37;
+        if( searchStr.length() > searchStrMaxLen ) {
+            searchStr = searchStr.substr(0, searchStrMaxLen) + "...";
         }
         
         doublePair barCen = {headerTL.x + barWidth / 2, headerTL.y - barHeight / 2 - paddingY/2};
