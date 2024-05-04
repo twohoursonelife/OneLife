@@ -686,8 +686,6 @@ float getLivingLifeBouncingYOffset( int oid ) {
 
 // Players / families display
 
-
-
 static SimpleVector<DisplayedFamily*> displayedFamilies;
 static SimpleVector<ClickableComponent> displayedFamiliesComponentList;
 static double infertileAge = 104.0;
@@ -841,6 +839,13 @@ void LivingLifePage::updatePlayersAndFamilies() {
             }
         }
     }
+
+
+// Player labels
+
+static int lastHoverPlayerID = 0;
+static int currHoverPlayerID = 0;
+static double lastHoverPlayerTime = 0;
 
 
 static SimpleVector<char*> passwordProtectingPhrases;
@@ -4337,7 +4342,15 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
     
     if( firstLineY > lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale ) {
+        // off top of screen
         firstLineY = lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale;
+        }
+
+    if( inPos.y < lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale ) {
+        // off bottom of screen
+        double lastLineY = lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale;
+        
+        firstLineY = lastLineY + ( lines->size() - 1 ) * lineSpacing;
         }
 
     
@@ -10554,6 +10567,59 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
 
+
+    // Player labels
+    int playerLabelSec = 3;
+    int playerLabelFadeSec = 1;
+    if( game_getCurrentTime() - lastHoverPlayerTime > playerLabelSec + playerLabelFadeSec ) {
+        lastHoverPlayerID = 0;
+        }
+
+    if( lastHoverPlayerID != 0 ) {
+
+        LiveObject *o = getLiveObject( lastHoverPlayerID );
+
+        if( o != NULL ) {
+
+            float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
+            float fade = 1.0;
+            if( delta > playerLabelSec ) 
+                fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
+
+            char *name = strdup(o->name);
+            char *relation = strdup(o->relationName);
+            if( relation == NULL ) relation = strdup( translate("unrelated") );
+
+            char *label;
+            if( name == NULL ) {
+                label = autoSprintf("%s", relation);
+                }
+            else {
+                label = autoSprintf("%s, %s", name, relation);
+                }
+
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+
+            doublePair labelPos = mult( o->currentPos, CELL_D );
+
+            double labelWidth = minitech::tinyHandwritingFont->measureString( label );
+            labelPos.x -= labelWidth / 2;
+            labelPos.y -= 16;
+
+            drawChalkBackgroundString( 
+                labelPos,
+                label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
+            
+            if( name != NULL ) delete [] name;
+            delete [] relation;
+            delete [] label;
+
+            }
+
+        }
+
+
     // cursor-tips
     if( !isAnyUIHovered() )
     if( ourLiveObject != NULL ) {
@@ -10925,7 +10991,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
 			
             // Moved to be cursor-tips
             if( ! mXKeyDown )
-            if( mCurMouseOverID != 0 ) {
+            if( mCurMouseOverID != 0 &&
+                // If we're hovering another player
+                // player label will be drawn instead of cursor-tips
+                currHoverPlayerID == 0
+                ) {
                 const bool isShowUseOnObjectHoverActive =
                     ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
@@ -23515,9 +23585,11 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     LiveObject *ourLiveObject = getOurLiveObject();
 
     ourLiveObject->currentMouseOverClothingIndex = -1;
+
+    currHoverPlayerID = 0;
     
+    if( !isAnyUIHovered() )
     if( destID == 0 ) {
-        if( !isAnyUIHovered() )
         if( p.hitSelf ) {
             mCurMouseOverSelf = true;
             
@@ -23549,6 +23621,10 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             // store negative in place so that we can show their relation
             // string
             mCurMouseOverID = - p.hitOtherPersonID;
+
+            currHoverPlayerID = p.hitOtherPersonID;
+            lastHoverPlayerID = p.hitOtherPersonID;
+            lastHoverPlayerTime = game_getCurrentTime();
 			
             overNothing = false;
             }
