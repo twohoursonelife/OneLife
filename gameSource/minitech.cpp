@@ -1754,7 +1754,7 @@ void minitech::updateDrawTwoTech() {
             searchStr = "HOLDING: " + objName;
         }
         int searchStrMaxLen = 37;
-        if( searchStr.length() > searchStrMaxLen ) {
+        if( (int)searchStr.length() > searchStrMaxLen ) {
             searchStr = searchStr.substr(0, searchStrMaxLen) + "...";
         }
         

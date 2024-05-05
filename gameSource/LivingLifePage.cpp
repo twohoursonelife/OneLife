@@ -690,16 +690,25 @@ static SimpleVector<DisplayedFamily*> displayedFamilies;
 static SimpleVector<ClickableComponent> displayedFamiliesComponentList;
 static double infertileAge = 104.0;
 
+static const char *infertilitySuffix = "+INFERTILE+";
+// static char *fertilitySuffix = "+FERTILE+";
+
+static void stripFertilitySuffix( char *name ) {
+    if( name == NULL ) return;
+    char *foundSuffix = strstr( name, infertilitySuffix );
+    if( foundSuffix != NULL ) foundSuffix[-1] = '\0';
+    }
+
 char *getLastName( const char *name ) {
     if( name == NULL ) return NULL;
     char *lastName = NULL;
 	SimpleVector<char *> *tokens = tokenizeString( name );
     if( tokens->size() > 1 ) {
-        lastName = strdup( tokens->getElementDirect( 1 ) );
+        lastName = stringDuplicate( tokens->getElementDirect( 1 ) );
         }
     tokens->deallocateStringElements();
     delete tokens;
-    if( lastName != NULL && strstr(lastName, "+INFERTILE+") != NULL ) {
+    if( lastName != NULL && strstr(lastName, infertilitySuffix) != NULL ) {
         delete [] lastName;
         return NULL;
         }
@@ -846,6 +855,115 @@ void LivingLifePage::updatePlayersAndFamilies() {
 static int lastHoverPlayerID = 0;
 static int currHoverPlayerID = 0;
 static double lastHoverPlayerTime = 0;
+
+// Death messages
+
+static char *getDisplayObjectDescription( int inID );
+
+void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
+    if ( inO == NULL ) return;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if ( ourLiveObject == NULL ) return;
+
+    bool isDeathMsg = ( strstr( line, "X X" ) != NULL );
+    if ( !isDeathMsg ) return;
+
+    LiveObject *o = getLiveObject(inO->id);
+    if ( o == NULL ) return;
+
+    int diffX = o->xd - ourLiveObject->xd;
+    int diffY = o->yd - ourLiveObject->yd;
+    if( abs(diffX) > 200 || abs(diffY) > 200 ) return;
+
+    char *deathCause;
+
+    const char *reasonKilled = "reason_killed_";
+    const char *reasonSuccumbed = "reason_succumbed_";
+    const char *reasonSuicide = "reason_suicide_";
+
+    char isKilled = strstr(line, reasonKilled) != NULL;
+    char isSuccumbed = strstr(line, reasonSuccumbed) != NULL;
+    char isSuicide = strstr(line, reasonSuicide) != NULL;
+
+    if ( isKilled || isSuccumbed || isSuicide ) {
+
+        char *sstr = NULL;
+        if( isKilled ) 
+            sstr = strstr(line, reasonKilled) + strlen(reasonKilled);
+        else if( isSuccumbed )
+            sstr = strstr(line, reasonSuccumbed) + strlen(reasonSuccumbed);
+        else if( isSuicide )
+            sstr = strstr(line, reasonSuicide) + strlen(reasonSuicide);
+
+        for (unsigned i = 0; i < strlen(sstr); i++) {
+            if (sstr[i] < '0' || sstr[i] > '9') {
+                sstr[i] = '\0';
+                break;
+                }
+            }
+        int killerObjId = atoi(sstr);
+        char *killerDescription = getDisplayObjectDescription( killerObjId );;
+        if ( killerDescription != NULL ) {
+            if( isSuccumbed ) {
+                deathCause = autoSprintf( "SUCCUMBED TO %s", killerDescription );
+                }
+            else {
+                deathCause = autoSprintf( "WAS KILLED BY %s", killerDescription );
+                }
+            delete [] killerDescription;
+            }
+        else {
+            if( isSuicide ) {
+                deathCause = stringDuplicate( "DIED OF UNNATURAL CAUSE" );
+                }
+            else {
+                deathCause = stringDuplicate( "DIED OF UNKNOWN CAUSE" );
+                }
+            }
+
+    } else if ( strstr(line, "reason_hunger") || strstr(line, "reason_nursing_hunger") ) {
+        deathCause = stringDuplicate( "STARVED" );
+    } else if ( strstr(line, "reason_SID") ) {
+        deathCause = stringDuplicate( "DIED OF SUDDEN INFANT DEATH" );
+    } else if ( strstr(line, "reason_age") ) {
+        deathCause = stringDuplicate( "DIED OF OLD AGE" );
+    } else {
+        deathCause = stringDuplicate( "DIED OF UNKNOWN CAUSE" );
+    }
+
+    double deathAgeDouble = 0.0;
+    char *xxPos = strstr( line, "X X" );
+    if( xxPos != NULL ) sscanf( xxPos, "X X %lf", &( deathAgeDouble ) );
+    int deathAge = (int)floor( deathAgeDouble );
+
+    char *name = NULL;
+    if( o->name != NULL ) {
+        name = stringDuplicate( o->name );
+        stripFertilitySuffix( name );
+        }
+
+    char *deathMessage = NULL;
+
+    if( name != NULL && o->relationName != NULL ) {
+        deathMessage = autoSprintf( "%s, %s, %s AT %d", o->relationName, name, deathCause, deathAge );
+        }
+    else if( name == NULL && o->relationName != NULL ) {
+        deathMessage = autoSprintf( "%s %s AT %d", o->relationName, deathCause, deathAge );
+        }
+    else if( name != NULL && o->relationName == NULL ) {
+        deathMessage = autoSprintf( "%s %s AT %d", name, deathCause, deathAge );
+        }
+    else {
+        deathMessage = autoSprintf( "AN UNNAMED PERSON %s AT %d", name, deathCause, deathAge );
+        }
+
+    displayGlobalMessage( deathMessage, true, true );
+
+    if( name != NULL ) delete [] name;
+    delete [] deathCause;
+    delete [] deathMessage;
+
+    }
 
 
 static SimpleVector<char*> passwordProtectingPhrases;
@@ -1739,13 +1857,18 @@ static void stripDescriptionComment( char *inString ) {
     char *firstPound = strstr( inString, "#" );
             
     if( firstPound != NULL ) {
-        firstPound[0] = '\0';
+        if( firstPound[-1] == ' ' ) {
+            firstPound[-1] = '\0';
+            }
+        else {
+            firstPound[0] = '\0';
+            }
         }
     }
 
 
 static char *getFullUpperCasedObjectDescription( int inID ) {
-    ObjectRecord *o = getObject( inID );
+    ObjectRecord *o = getObject( inID, true );
     if( o == NULL ) {
         return NULL;
         }
@@ -11648,11 +11771,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 add( mult( recalcOffset( mTutorialPosOffset[i], true ), gui_fov_scale ), lastScreenViewCenter );
             
             if( i % 2 == 1 ) {
-                tutorialPos = sub( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
+                tutorialPos.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
                 }
             else {
-                tutorialPos = add( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
+                tutorialPos.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
                 }
+
+            tutorialPos.y -= mTutorialExtraOffset[i].y * gui_fov_scale_hud;
             
             setDrawColor( 1, 1, 1, 1 );
             // rotate 180
@@ -11668,6 +11793,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             char **lines = split( mTutorialMessage[i], "##", &numLines );
             
             doublePair lineStart = tutorialPos;
+
+            lineStart.y += mTutorialExtraOffset[i].y * gui_fov_scale_hud;
             
             if( i % 2 == 1 ) {
                 lineStart.x -= 289 * gui_fov_scale_hud;
@@ -13495,7 +13622,7 @@ doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
 
 
 
-void LivingLifePage::displayGlobalMessage( char *inMessage ) {
+void LivingLifePage::displayGlobalMessage( char *inMessage, char forceRight, char forceSingleLine ) {
     
     char *upper = stringToUpperCase( inMessage );
                 
@@ -13511,12 +13638,14 @@ void LivingLifePage::displayGlobalMessage( char *inMessage ) {
     
     mGlobalMessageShowing = true;
     mGlobalMessageStartTime = game_getCurrentTime();
+
+    if( forceRight ) mLiveTutorialSheetIndex = 1;
     
     if( mLiveTutorialSheetIndex >= 0 ) {
         mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
             mTutorialHideOffset[ mLiveTutorialSheetIndex ];
         }
-    mLiveTutorialSheetIndex ++;
+    if( !forceRight ) mLiveTutorialSheetIndex ++;
     
     if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
         mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
@@ -13537,6 +13666,8 @@ void LivingLifePage::displayGlobalMessage( char *inMessage ) {
         (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
     
     mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+
+    if( forceSingleLine ) mTutorialExtraOffset[ mLiveTutorialSheetIndex ].y = -34;
     
     
     delete [] spaces;
@@ -13587,42 +13718,6 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     
     mCravingExtraOffset[ mLiveCravingSheetIndex ].x = longestLine;
     }
-    
-
-void LivingLifePage::displayMessage() {
-    
-    newbieTips::shouldDisplayMessage = false;
-    if( mGlobalMessageShowing ) return;
-    
-    mGlobalMessageShowing = true;
-    mGlobalMessageStartTime = game_getCurrentTime();
-    
-    if( mLiveTutorialSheetIndex >= 0 ) {
-        mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-        }
-    mLiveTutorialSheetIndex ++;
-    
-    if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
-        mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
-        }
-    mTutorialMessage[ mLiveTutorialSheetIndex ] = stringDuplicate( newbieTips::messageToDisplay );
-    
-    // other tutorial messages don't need to be destroyed
-    mGlobalMessagesToDestroy.push_back( 
-        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-    
-    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-    
-    mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
-    
-    double longestLine = getLongestLine( 
-        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-
-    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
-    
-}
 
 
         
@@ -14509,7 +14604,12 @@ void LivingLifePage::step() {
         mTutorialNumber,
         mLiveTutorialTriggerNumber
         );
-    if( newbieTips::shouldDisplayMessage ) displayMessage();
+    if( newbieTips::shouldDisplayMessage ) {
+        char *message = stringDuplicate( newbieTips::messageToDisplay );
+        displayGlobalMessage( message );
+        delete [] message;
+        newbieTips::shouldDisplayMessage = false;
+        }
 
     if (stepCount % 43 == 0) updatePlayersAndFamilies();
 
@@ -14553,9 +14653,11 @@ void LivingLifePage::step() {
                          mult( dir, speed ) );
                 }
             
-            if( equal( mTutorialTargetOffset[i], 
+            if( equal( mTutorialPosOffset[i], 
                        mTutorialHideOffset[i] ) ) {
                 // fully hidden
+
+                mTutorialExtraOffset[i].y = 0;
                 }
             else if( equal( mTutorialPosOffset[i],
                             mTutorialTargetOffset[i] ) ) {
@@ -14904,7 +15006,7 @@ void LivingLifePage::step() {
                 char **lines = split( message, "\n", &numLines );
                 
                 if( numLines > 1 ) {
-                    displayGlobalMessage( lines[1] );
+                    displayGlobalMessage( lines[1], true );
                     }
                 for( int i=0; i<numLines; i++ ) {
                     delete [] lines[i];
@@ -17356,6 +17458,7 @@ void LivingLifePage::step() {
                     numRead += 2;
                     }
                 
+                onPlayerUpdate( &o, lines[i] );
 
                 // heldYum is 24th value, optional
                 // heldLearned is 25th value, optional
@@ -19089,7 +19192,7 @@ void LivingLifePage::step() {
                             mDeathReason = stringDuplicate( 
                                 translate( "reasonSID" ) );
                             }
-                        else if( strcmp( reasonString, "suicide" ) == 0 ) {
+                        else if( strstr( reasonString, "suicide" ) != NULL ) {
                             ObjectRecord *holdingO = NULL;
 
                             if( ourLiveObject->holdingID > 0 ) {
@@ -22778,6 +22881,9 @@ void LivingLifePage::makeActive( char inFresh ) {
         mTutorialTargetOffset[i] = mTutorialHideOffset[i];
         mTutorialPosOffset[i] = mTutorialHideOffset[i];
         mTutorialMessage[i] = "";
+
+        mTutorialExtraOffset[i].x = 0;
+        mTutorialExtraOffset[i].y = 0;
 
         mCravingTargetOffset[i] = mCravingHideOffset[i];
         mCravingPosOffset[i] = mCravingHideOffset[i];
@@ -26525,7 +26631,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     }
 
                                 if( errorMessage != NULL ) {
-                                    displayGlobalMessage( errorMessage );
+                                    displayGlobalMessage( errorMessage, true, true );
                                     delete [] errorMessage;
                                     }
 
@@ -26543,7 +26649,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     }
                                 else {
                                     char *errorMessage = autoSprintf( "%s", translate("tooManyQueriesWarning") );
-                                    displayGlobalMessage( errorMessage );
+                                    displayGlobalMessage( errorMessage, true, true );
                                     delete [] errorMessage;
                                     }
                                 }
@@ -26720,7 +26826,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 sayCap = 28; // max 28 for /FIND, even less for minitech
                 }
 
-            if( strlen( commandWorking ) > sayCap ) {
+            if( (int)strlen( commandWorking ) > sayCap ) {
                 commandWorking[sayCap] = '\0';
                 }
 

@@ -2768,7 +2768,8 @@ static void setDeathReason( LiveObject *inPlayer, const char *inTag,
     
     // leave space in front so it works at end of PU line
     if( strcmp( inTag, "killed" ) == 0 ||
-        strcmp( inTag, "succumbed" ) == 0 ) {
+        strcmp( inTag, "succumbed" ) == 0 ||
+        strcmp( inTag, "suicide" ) == 0 ) {
         
         inPlayer->deathReason = autoSprintf( " reason_%s_%d", 
                                              inTag, inOptionalID );
@@ -15422,12 +15423,19 @@ int main() {
                             // else just use standard grave
                             }
                         }
-						else {
-							setDeathReason( nextPlayer, "suicide" );
+                    else {
+                        // adult /DIE
+                        int holdingID = nextPlayer->holdingID;
+                        if( holdingID < 0 ) holdingID = 0; // negative ID means a baby
+                        // if player was wounded or sick before commiting suicide
+                        // that should be the reason of death instead
+                        if( !nextPlayer->deathSourceID ) {
+                            setDeathReason( nextPlayer, "suicide", holdingID );
+                            }
 
-							nextPlayer->error = true;
-							nextPlayer->errorCauseString = "Suicide";
-							}
+                        nextPlayer->error = true;
+                        nextPlayer->errorCauseString = "Suicide";
+                        }
                     }
                 else if( m.type == GRAVE ) {
                     // immediately send GO response
@@ -21574,13 +21582,17 @@ int main() {
                         
                         // break the connection with them
 
-                        if( heldByFemale ) {
-                            setDeathReason( decrementedPlayer, 
-                                            "nursing_hunger" );
-                            }
-                        else {
-                            setDeathReason( decrementedPlayer, 
-                                            "hunger" );
+                        // if player was wounded or sick before starving
+                        // that should be the reason of death instead
+                        if( !decrementedPlayer->deathSourceID ) {
+                            if( heldByFemale ) {
+                                setDeathReason( decrementedPlayer, 
+                                                "nursing_hunger" );
+                                }
+                            else {
+                                setDeathReason( decrementedPlayer, 
+                                                "hunger" );
+                                }
                             }
                         
                         decrementedPlayer->error = true;

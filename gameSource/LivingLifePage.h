@@ -481,7 +481,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         virtual void draw( doublePair inViewCenter, 
                            double inViewSize );
         
-        virtual void displayMessage();
         virtual void step();
   
         virtual void makeActive( char inFresh );
@@ -501,6 +500,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         DisplayedFamily* getOurFamily();
         void updatePlayersAndFamilies();
+
+        void onPlayerUpdate( LiveObject* inO, const char* line );
 
         
         // handles error detection, total byte counting, etc.
@@ -1112,7 +1113,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         void drawHomeSlip( doublePair inSlipPos, int inIndex = 0 );
         
         
-        void displayGlobalMessage( char *inMessage );
+        void displayGlobalMessage( char *inMessage, char forceRight = false, char forceSingleLine = false );
         
 
     };
