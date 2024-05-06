@@ -11532,7 +11532,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         double longestLineLen = 0.0;
         int numOfLines = 0;
 
-        if( coordinatesEnabled && ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
+        if( coordinatesEnabled ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
             coordsLine = autoSprintf( "(%s, %s)", 
                 formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
                 formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
@@ -11543,7 +11543,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( len > longestLineLen ) longestLineLen = len;
             numOfLines += 1;
             }
-        if( familyDisplayEnabled && ourFamily != NULL && ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
+        if( familyDisplayEnabled && ourFamily != NULL ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
             if( ourFamily->areSoloEves ) {
                 familyDisplayLine = autoSprintf( "%d %s", 
                     ourFamily->count,
@@ -11561,7 +11561,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( len > longestLineLen ) longestLineLen = len;
             numOfLines += 1;
             }
-        if( objectSearchEnabled && ( topLeftSlipComponent.mHover || numOfLines < 1 || objectSearchQueries.size() > 0 ) ) {
+        if( objectSearchEnabled ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 || objectSearchQueries.size() > 0 ) ) {
             if( objectSearchQueries.size() > 0 ) {
                 objectSearchLine = strdup("FINDER ON");
                 }
@@ -11601,7 +11601,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         objectSearchSlipComponent.mActive = false;
         familyDisplaySlipComponent.mActive = false;
 
-        if( coordinatesEnabled && ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
+        if( coordinatesEnabled ) { //&& ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
             doublePair TL = screenTL;
             TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
             doublePair BR = TL;
@@ -11611,7 +11611,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             coordinatesSlipComponent.mActive = true;
             lineAreaSet += 1;
             }
-        if( familyDisplayEnabled && ourFamily != NULL && ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
+        if( familyDisplayEnabled && ourFamily != NULL ) { //&& ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
             doublePair TL = screenTL;
             TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
             doublePair BR = TL;
@@ -11621,7 +11621,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             familyDisplaySlipComponent.mActive = true;
             lineAreaSet += 1;
             }
-        if( objectSearchEnabled && ( topLeftSlipComponent.mHover || lineAreaSet < 1 || objectSearchQueries.size() > 0 ) ) {
+        if( objectSearchEnabled ) { //&& ( topLeftSlipComponent.mHover || lineAreaSet < 1 || objectSearchQueries.size() > 0 ) ) {
             doublePair TL = screenTL;
             TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
             doublePair BR = TL;
@@ -22742,9 +22742,9 @@ void LivingLifePage::makeActive( char inFresh ) {
         topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
         coordinatesSlipComponent.mActive = coordinatesEnabled;
         familyDisplaySlipComponent.mActive = 
-            familyDisplayEnabled && (!coordinatesEnabled);
+            familyDisplayEnabled; // && (!coordinatesEnabled);
         objectSearchSlipComponent.mActive = 
-            objectSearchEnabled && (!(coordinatesEnabled || familyDisplayEnabled) || objectSearchQueries.size() > 0);
+            objectSearchEnabled; // && (!(coordinatesEnabled || familyDisplayEnabled) || objectSearchQueries.size() > 0);
 
         leftPanelComponent.mActive = false;
         for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
