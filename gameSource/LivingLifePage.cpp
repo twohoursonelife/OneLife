@@ -693,10 +693,16 @@ static double infertileAge = 104.0;
 static const char *infertilitySuffix = "+INFERTILE+";
 // static char *fertilitySuffix = "+FERTILE+";
 
-static void stripFertilitySuffix( char *name ) {
-    if( name == NULL ) return;
+// return true if infertile tag is found
+static char stripFertilitySuffix( char *name ) {
+    if( name == NULL ) return false;
     char *foundSuffix = strstr( name, infertilitySuffix );
-    if( foundSuffix != NULL ) foundSuffix[-1] = '\0';
+    if( foundSuffix != NULL ) {
+        // there is always a blank space before the tag
+        foundSuffix[-1] = '\0';
+        return true;
+        }
+    return false;
     }
 
 char *getLastName( const char *name ) {
@@ -791,7 +797,7 @@ void LivingLifePage::updatePlayersAndFamilies() {
             // so they are unnamed solo eve
             // group them together for display purpose
             isUnnamedSoloEve = true;
-            lastName = strdup( "SOLO EVES" );
+            lastName = stringDuplicate( "SOLO EVES" );
             for (int j=0; j<displayedFamilies.size(); j++) {
                 DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
                 if( displayedFamily->areSoloEves ) {
@@ -802,7 +808,7 @@ void LivingLifePage::updatePlayersAndFamilies() {
             }
         
         if( family == NULL ) {
-            if( lastName == NULL ) lastName = strdup( "UNNAMED" );
+            if( lastName == NULL ) lastName = stringDuplicate( "UNNAMED" );
             std::string lastNameString( lastName );
 
             DisplayedFamily *newFamily = new DisplayedFamily();
@@ -940,6 +946,10 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
     if( o->name != NULL ) {
         name = stringDuplicate( o->name );
         stripFertilitySuffix( name );
+        if( name[0] == '\0' ) {
+            delete [] name;
+            name = NULL;
+            }
         }
 
     char *deathMessage = NULL;
@@ -954,8 +964,10 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
         deathMessage = autoSprintf( "%s %s AT %d", name, deathCause, deathAge );
         }
     else {
-        deathMessage = autoSprintf( "AN UNNAMED PERSON %s AT %d", name, deathCause, deathAge );
+        deathMessage = autoSprintf( "AN UNNAMED STRANGER %s AT %d", name, deathCause, deathAge );
         }
+
+    deathMessage = strdup( "QWERTYUIOPASDFGHJKLZXCVBNMQWERTYUIOPASDFGHJKLZXCVBNMQWERTYUIOPASDFGHJKLZXCVBNM" );
 
     displayGlobalMessage( deathMessage, true, true );
 
@@ -10709,16 +10721,39 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( delta > playerLabelSec ) 
                 fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
 
-            char *name = strdup(o->name);
-            char *relation = strdup(o->relationName);
-            if( relation == NULL ) relation = strdup( translate("unrelated") );
-
-            char *label;
-            if( name == NULL ) {
-                label = autoSprintf("%s", relation);
+            
+            char *name = NULL;
+            char infertilityTagPresent = false;
+            if( o->name != NULL ) {
+                name = stringDuplicate(o->name);
+                infertilityTagPresent = stripFertilitySuffix( name );
+                if( name[0] == '\0' ) {
+                    delete [] name;
+                    name = NULL;
+                    }
+                }
+            char *infertilityString = NULL;
+            if( infertilityTagPresent ) {
+                infertilityString = stringDuplicate( " (INFERTILE)" );
                 }
             else {
-                label = autoSprintf("%s, %s", name, relation);
+                infertilityString = stringDuplicate( "" );
+                }
+
+            double age = computeServerAge( computeCurrentAge( o ) );
+            
+            char *label;
+            if( name != NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f, %s%s", name, age, o->relationName, infertilityString);
+                }
+            else if( name == NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f%s", o->relationName, age, infertilityString);
+                }
+            else if( name != NULL && o->relationName == NULL ) {
+                label = autoSprintf("%s %.1f%s", name, age, infertilityString);
+                }
+            else {
+                label = autoSprintf("UNNAMED STRANGER %.1f%s", age, infertilityString);
                 }
 
             FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
@@ -10735,7 +10770,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
             
             if( name != NULL ) delete [] name;
-            delete [] relation;
             delete [] label;
 
             }
@@ -11231,7 +11265,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             for( int i=0; i<objectSearchQueries.size(); i++ ) {
                 std::string queryString = objectSearchQueries.getElementDirect( i );
-                char *query = strdup( queryString.c_str() );
+                char *query = stringDuplicate( queryString.c_str() );
                 double lenQuery = handwritingFont->measureString( query ) / gui_fov_scale_hud;
                 if( lenQuery > longestLine ) longestLine = lenQuery;
                 delete [] query;
@@ -11403,7 +11437,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             for( int i=0; i<objectSearchQueries.size(); i++ ) {
                 std::string queryString = objectSearchQueries.getElementDirect( i );
-                char *query = strdup( queryString.c_str() );
+                char *query = stringDuplicate( queryString.c_str() );
                 
                 ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
                 objectSearchQueryClickable->mActive = true;
@@ -11476,10 +11510,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                 char *connective;
                 if( displayedFamily->areSoloEves ) {
-                    connective = strdup("");
+                    connective = stringDuplicate("");
                     }
                 else {
-                    connective = strdup("IN ");
+                    connective = stringDuplicate("IN ");
                     }
 
                 char *line = autoSprintf( "%d %s%s", 
@@ -11563,10 +11597,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         if( objectSearchEnabled ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 || objectSearchQueries.size() > 0 ) ) {
             if( objectSearchQueries.size() > 0 ) {
-                objectSearchLine = strdup("FINDER ON");
+                objectSearchLine = stringDuplicate("FINDER ON");
                 }
             else {
-                objectSearchLine = strdup("FINDER OFF");
+                objectSearchLine = stringDuplicate("FINDER OFF");
                 }
             double len = handwritingFont->measureString( objectSearchLine ) / gui_fov_scale_hud;
             if( len > longestLineLen ) longestLineLen = len;
@@ -11729,10 +11763,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 if( displayedFamily != NULL ) {
                     char *fertileWord;
                     if( displayedFamily->fertileCount == 1 ) {
-                        fertileWord = strdup( "FERTILE" );
+                        fertileWord = stringDuplicate( "FERTILE" );
                         }
                     else {
-                        fertileWord = strdup( "FERTILES" );
+                        fertileWord = stringDuplicate( "FERTILES" );
                         }
                     coordsTips = autoSprintf( "%d %s ALIVE, IN GENERATION %d", 
                         displayedFamily->fertileCount,
@@ -26807,7 +26841,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         if( commandIndex < commandShortcuts.size() ) {
             char *customCommand = commandShortcuts.getElementDirect( commandIndex );
 
-            char *commandWorking = strdup(customCommand);
+            char *commandWorking = stringDuplicate(customCommand);
 
             LiveObject *ourLiveObject = getOurLiveObject();
 
