@@ -650,7 +650,7 @@ float getLivingLifeBouncingYOffset( int oid ) {
 
     if( !yumHit && !objectSearchHit ) return 0.0;
 
-    int cycleLength = 120;
+    int cycleLength = 120 / frameRateFactor;
     int phraseDifference = 0;
 
     if( objectSearchHit ) phraseDifference = cycleLength/2;
@@ -3331,7 +3331,7 @@ void LivingLifePage::drawTileVanillaRainbowHighlight( int x, int y ) {
     startPos.y *= CELL_D;
     FloatColor c = { 0, 0, 0, 1 };
 
-    int speed = 60;
+    int speed = 60 / frameRateFactor;
 
     float interv = stepCount % speed / (float)speed;
     if (interv > 0.5) interv = 1 - interv;
