@@ -3721,6 +3721,8 @@ LivingLifePage::LivingLifePage()
     coordinatesSlipComponent.mActive = coordinatesEnabled;
     objectSearchSlipComponent.mActive = objectSearchEnabled;
     familyDisplaySlipComponent.mActive = familyDisplayEnabled;
+
+    leftPanelComponent.mActive = !hideGuiPanel;
     
     mLiveHintSheetIndex = -1;
 
@@ -19567,6 +19569,8 @@ void LivingLifePage::step() {
 
                     SavedCoordinatesList.deleteAll();
                     SavedCoordinatesComponentList.deleteAll();
+                    savedOrigin = {0, 0};
+                    nextSavedCoordinatesLetter = 1;
 
                     // clear custom persistent emot
                     customPersistentEmotIndex = -1;
@@ -19575,7 +19579,8 @@ void LivingLifePage::step() {
                     // clear yummy food chain
                     yummyFoodChain.deleteAll();
 
-                    // TODO clear object search ?
+                    // don't clear object search
+                    // allow searches across lives
                     // objectSearchQueries.deleteAll();
                     // updateObjectSearchArray();
                     }
@@ -22785,6 +22790,28 @@ void LivingLifePage::makeActive( char inFresh ) {
     mPrevMouseClickCellFades.deleteAll();
 
     
+    topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+    coordinatesSlipComponent.mActive = coordinatesEnabled;
+    familyDisplaySlipComponent.mActive = 
+        familyDisplayEnabled; // && (!coordinatesEnabled);
+    objectSearchSlipComponent.mActive = 
+        objectSearchEnabled; // && (!(coordinatesEnabled || familyDisplayEnabled) || objectSearchQueries.size() > 0);
+
+    leftPanelComponent.mActive = false;
+
+    for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+        ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+        savedCoordsClickable->mActive = false;
+        }
+    for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+        ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+        objectSearchQueryClickable->mActive = false;
+        }
+    for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+        ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+        displayedFamiliesClickable->mActive = false;
+        }
+
 
     if( !inFresh ) {
     
@@ -22793,27 +22820,6 @@ void LivingLifePage::makeActive( char inFresh ) {
         if ( ! SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
           changeFOV( 1.0f );
           }
-
-        topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
-        coordinatesSlipComponent.mActive = coordinatesEnabled;
-        familyDisplaySlipComponent.mActive = 
-            familyDisplayEnabled; // && (!coordinatesEnabled);
-        objectSearchSlipComponent.mActive = 
-            objectSearchEnabled; // && (!(coordinatesEnabled || familyDisplayEnabled) || objectSearchQueries.size() > 0);
-
-        leftPanelComponent.mActive = false;
-        for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-            ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-            savedCoordsClickable->mActive = false;
-            }
-        for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
-            ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
-            objectSearchQueryClickable->mActive = false;
-            }
-        for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
-            ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
-            displayedFamiliesClickable->mActive = false;
-            }
       
 		//reset camera if LivingLifePage is made active again
 		LiveObject *ourLiveObject = getOurLiveObject();
