@@ -964,12 +964,33 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
         deathMessage = autoSprintf( "%s %s AT %d", name, deathCause, deathAge );
         }
     else {
-        deathMessage = autoSprintf( "AN UNNAMED STRANGER %s AT %d", name, deathCause, deathAge );
+        deathMessage = autoSprintf( "AN UNNAMED STRANGER %s AT %d", deathCause, deathAge );
         }
+    
+    double len = handwritingFont->measureString( deathMessage ) / gui_fov_scale_hud;
+    if( len > 778.0 ) {
 
-    deathMessage = strdup( "QWERTYUIOPASDFGHJKLZXCVBNMQWERTYUIOPASDFGHJKLZXCVBNMQWERTYUIOPASDFGHJKLZXCVBNM" );
+        delete [] deathMessage;
 
-    displayGlobalMessage( deathMessage, true, true );
+        if( name != NULL && o->relationName != NULL ) {
+            deathMessage = autoSprintf( "%s, %s##%s AT %d", o->relationName, name, deathCause, deathAge );
+            }
+        else if( name == NULL && o->relationName != NULL ) {
+            deathMessage = autoSprintf( "%s##%s AT %d", o->relationName, deathCause, deathAge );
+            }
+        else if( name != NULL && o->relationName == NULL ) {
+            deathMessage = autoSprintf( "%s %s##AT %d", name, deathCause, deathAge );
+            }
+        else {
+            deathMessage = autoSprintf( "AN UNNAMED STRANGER %s##AT %d", deathCause, deathAge );
+            }
+
+        displayGlobalMessage( deathMessage, true, false );
+
+        }
+    else {
+        displayGlobalMessage( deathMessage, true, true );
+        }
 
     if( name != NULL ) delete [] name;
     delete [] deathCause;
