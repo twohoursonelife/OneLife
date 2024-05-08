@@ -610,6 +610,7 @@ static void updateObjectSearchArray() {
 // Yum finder
 char runningYumFinder = false;
 int livingLifeStepCount = 0;
+int bouncingAnimationStepOffset = 0;
 
 SimpleVector<int> yummyFoodChain;
 
@@ -650,18 +651,20 @@ float getLivingLifeBouncingYOffset( int oid ) {
 
     if( !yumHit && !objectSearchHit ) return 0.0;
 
-    int cycleLength = 120 / frameRateFactor;
+    int cycleLength = 90 / frameRateFactor;
     int phraseDifference = 0;
 
     if( objectSearchHit ) phraseDifference = cycleLength/2;
 
-    float runningFraction = ((livingLifeStepCount + phraseDifference) % cycleLength);
-    if( runningFraction < cycleLength/2 ) {
+    int onCycleLength = cycleLength*3/4;
+
+    float runningFraction = ((bouncingAnimationStepOffset + livingLifeStepCount + phraseDifference) % cycleLength);
+    if( runningFraction < onCycleLength ) {
         // controls the height of the drop and rebounce
         float xOffset = 0.42;
 
         // rescale to 0 to 1
-        runningFraction = runningFraction / (cycleLength/2);
+        runningFraction = runningFraction / onCycleLength;
         // rescale to -1 to 1
         runningFraction -= 0.5;
         runningFraction *= 2;
@@ -26188,6 +26191,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
     if (yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
         !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey) ) {
         runningYumFinder = true;
+        // make sure the animation plays as soon as the key is pressed
+        bouncingAnimationStepOffset = -livingLifeStepCount;
         }
     
     switch( inASCII ) {
