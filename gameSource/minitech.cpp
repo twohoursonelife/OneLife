@@ -2200,9 +2200,12 @@ bool minitech::livingLifeKeyDown(unsigned char inASCII) {
     }
     
     if (!shiftKey && !commandKey && toupper(inASCII) == toupper(minimizeKey)) { //V
+        // Minitech minimized
         minitechMinimized = !minitechMinimized;
 
-        // Minitech minimized
+        // Clear current hinting object
+        highlightObjId = 0;
+
         // Clear the listeners to avoid any lingering
         for (auto p: twotechMouseListeners) {
             delete(p);
