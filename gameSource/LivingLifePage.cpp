@@ -10404,7 +10404,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mHungerSlipWiggleAmp[i] > 0 ) {
                 
                 double distFromHidden =
-                    ( mHungerSlipPosOffset[i].y - mHungerSlipHideOffsets[i].y ) * gui_fov_scale_hud;
+                    ( mHungerSlipPosOffset[i].y - mHungerSlipHideOffsets[i].y );
 
                 // amplitude grows when we are further from
                 // hidden, and shrinks again as we go back down
@@ -10413,7 +10413,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     ( 0.5 * ( 1 - cos( mHungerSlipWiggleTime[i] ) ) ) *
                     mHungerSlipWiggleAmp[i] * distFromHidden;
                 
-                slipPos.y += slipHarmonic;
+                slipPos.y += slipHarmonic * gui_fov_scale_hud;
                 
 
                 if( i == 2 ) {
