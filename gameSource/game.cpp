@@ -274,7 +274,31 @@ double musicHeadroom = 1.0;
 int musicOff = 0;
 float musicLoudness;
 
-float brightness = 1.0;
+
+
+float brightness = 1.0; // value from setting slider
+
+float dimFactor = 1.0; // multiplied to alpha
+float minDimFactor = 0.9;
+float maxDimFactor = 1.0;
+
+float greyFactor = 1.0; // multiplied to RGB values
+float minGreyFactor = 0.85;
+float maxGreyFactor = 1.0;
+
+float dimmingRectAlpha = 0.0;
+float maxDimmingRectAlpha = 0.4;
+float minDimmingRectAlpha = 0.0;
+
+void recalculateBrightnessFactors() {
+    dimFactor = (maxDimFactor - minDimFactor) * brightness + minDimFactor;
+    // greyFactor = dimFactor / 0.85 * 0.9;
+    greyFactor = (maxGreyFactor - minGreyFactor) * brightness + minGreyFactor;
+
+    float dimness = 1.0 - brightness;
+    dimmingRectAlpha = (maxDimmingRectAlpha - minDimmingRectAlpha) * dimness + minDimmingRectAlpha;
+    }
+
 
 int webRetrySeconds;
 
@@ -497,6 +521,7 @@ void initDrawString( int inWidth, int inHeight ) {
     loadFovSettings();
 
     brightness = SettingsManager::getFloatSetting( "brightness", 1.0f );
+    recalculateBrightnessFactors();
 
     toggleLinearMagFilter( true );
     toggleMipMapGeneration( true );
@@ -1021,7 +1046,7 @@ static void drawPauseScreen() {
             
         // This is the complementary color of that of sheet 1 and 2
         // This makes the Pause screen white-ish instead of yellow-ish as in sheet 1 and 2
-        setDrawColor( 0.01f, 0.18f, 0.34f, 0.2*pauseScreenFade );
+        setDrawColor( 0.01f * greyFactor, 0.18f * greyFactor, 0.34f * greyFactor, 0.2*pauseScreenFade );
         drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
         
         // Darkening the whole background a bit
@@ -1749,14 +1774,10 @@ void drawFrame( char inUpdate ) {
         discordStep();// called when paused too, to change to IDLE state if player idle is detected.
 #endif // USE_DISCORD
 
-        if( brightness < 1.0 ) {
-            float maxAlpha = 0.4;
-            float minAlpha = 0.0;
-            float dimness = 1.0 - brightness;
-            float alpha = (maxAlpha - minAlpha) * dimness;
-            setDrawColor( 0, 0, 0, alpha );
-            drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
-            }
+    if( brightness < 1.0 ) {
+        setDrawColor( 0, 0, 0, dimmingRectAlpha );
+        drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
+        }
 
         return;
         }
@@ -2627,11 +2648,7 @@ void drawFrame( char inUpdate ) {
 
 
     if( brightness < 1.0 ) {
-        float maxAlpha = 0.4;
-        float minAlpha = 0.0;
-        float dimness = 1.0 - brightness;
-        float alpha = (maxAlpha - minAlpha) * dimness;
-        setDrawColor( 0, 0, 0, alpha );
+        setDrawColor( 0, 0, 0, dimmingRectAlpha );
         drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
         }
 

@@ -26,6 +26,7 @@ extern Font * mainFont;
 extern float musicLoudness;
 
 extern float brightness;
+extern void recalculateBrightnessFactors();
 
 extern int targetFramesPerSecond;
 
@@ -521,6 +522,8 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             
         brightness = mBrightnessSlider.getValue();
         SettingsManager::setSetting( "brightness", brightness );
+
+        recalculateBrightnessFactors();
 
         }
     else if( inTarget == &mVsyncBox ) {
