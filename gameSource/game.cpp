@@ -2766,7 +2766,12 @@ void pointerUp( float inX, float inY ) {
 
 
 
-void keyDown( unsigned char inASCII ) {if(inASCII==27) return;
+void keyDown( unsigned char inASCII ) {
+    
+    if( inASCII == 27 ) { // ESCAPE KEY
+        TextField::unfocusAll();
+        return;
+        }
 
     // taking screen shot is ALWAYS possible
     if( inASCII == '=' ) {    

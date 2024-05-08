@@ -25961,9 +25961,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-	bool commandKey = isCommandKeyDown();
-	bool shiftKey = isShiftKeyDown();
-
+    bool commandKey = isCommandKeyDown();
+    bool controlKey = isControlKeyDown();
+    bool altKey = isAltKeyDown();
+    bool shiftKey = isShiftKeyDown();
 
     if( vogMode && vogPickerOn ) {
         //Picker keybinds
@@ -26001,6 +26002,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 			vogPickerOn = true;
 		}
     }
+
+    if( !commandKey && !shiftKey && inASCII == 9 && mSayField.isFocused() ) {
+        TextField::unfocusAll();
+        return;
+        }
 
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
 		if (! mSayField.isFocused() && !vogMode) {
@@ -26112,6 +26118,51 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 			}
 		}
 	}
+
+    // Custom command shortcuts (was FOV emote keys)
+    int commandIndex = -1;
+    if( !vogMode && !shiftKey ) {
+        if ( commandKey || !mSayField.isFocused() ) {
+            int numberPressed = (int)inASCII - 48;
+            if( numberPressed >= 0 && numberPressed <= 9 ) {
+                if( numberPressed == 0 ) numberPressed = 10;
+                commandIndex = numberPressed - 1;
+                }
+            }
+        }
+    if( commandIndex != -1 ) {
+        if( commandIndex < commandShortcuts.size() ) {
+            char *customCommand = commandShortcuts.getElementDirect( commandIndex );
+
+            char *commandWorking = stringDuplicate(customCommand);
+
+            LiveObject *ourLiveObject = getOurLiveObject();
+
+            double age = computeCurrentAgeNoOverride( ourLiveObject );
+
+            int sayCap = getSayLimit( age );
+
+            if( vogMode ) {
+                sayCap = 200;
+                }
+            
+            if( strlen( commandWorking ) > 0 && commandWorking[0] == '/' ) {
+                // this is a filter or command
+                // hard cap at 25, regardless of age
+                // don't want them typing long filters that overflow the display
+                sayCap = 28; // max 28 for /FIND, even less for minitech
+                }
+
+            if( (int)strlen( commandWorking ) > sayCap ) {
+                commandWorking[sayCap] = '\0';
+                }
+
+            mSayField.setText( commandWorking );
+            mSayField.focus();
+            delete [] commandWorking;
+            }
+        return;
+        }
 
 	if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
@@ -26859,66 +26910,12 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         // dead
         return;
         }
+
+    bool commandKey = isCommandKeyDown();
+    bool controlKey = isControlKeyDown();
+    bool altKey = isAltKeyDown();
+    bool shiftKey = isShiftKeyDown();
 		
-    // Custom command shortcuts (was FOV emote keys)
-    int commandIndex = -1;
-    if( inKeyCode == MG_KEY_F1) {
-        commandIndex = 0;
-        }
-    if( inKeyCode == MG_KEY_F2) {
-        commandIndex = 1;
-        }
-    if( inKeyCode == MG_KEY_F3) {
-        commandIndex = 2;
-        }
-    if( inKeyCode == MG_KEY_F4) {
-        commandIndex = 3;
-        }
-    if( inKeyCode == MG_KEY_F5) {
-        commandIndex = 4;
-        }
-    if( inKeyCode == MG_KEY_F6) {
-        commandIndex = 5;
-        }
-    if( inKeyCode == MG_KEY_F7) {
-        commandIndex = 6;
-        }
-    if( inKeyCode == MG_KEY_F8) {
-        commandIndex = 7;
-        }
-    if( commandIndex != -1 ) {
-        if( commandIndex < commandShortcuts.size() ) {
-            char *customCommand = commandShortcuts.getElementDirect( commandIndex );
-
-            char *commandWorking = stringDuplicate(customCommand);
-
-            LiveObject *ourLiveObject = getOurLiveObject();
-
-            double age = computeCurrentAgeNoOverride( ourLiveObject );
-
-            int sayCap = getSayLimit( age );
-
-            if( vogMode ) {
-                sayCap = 200;
-                }
-            
-            if( strlen( commandWorking ) > 0 && commandWorking[0] == '/' ) {
-                // this is a filter or command
-                // hard cap at 25, regardless of age
-                // don't want them typing long filters that overflow the display
-                sayCap = 28; // max 28 for /FIND, even less for minitech
-                }
-
-            if( (int)strlen( commandWorking ) > sayCap ) {
-                commandWorking[sayCap] = '\0';
-                }
-
-            mSayField.setText( commandWorking );
-            mSayField.focus();
-            delete [] commandWorking;
-            }
-        return;
-        }
     if( inKeyCode == MG_KEY_F12) { // left this here as a way to clear persistent emote
         sendToServerSocket( (char*)"EMOT 0 0 -1#" );
         customPersistentEmotIndex = -1;
