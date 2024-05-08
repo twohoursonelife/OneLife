@@ -26697,21 +26697,34 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                     }
 
                                 }
-                            else if( strstr( typedText, autoSprintf( "%s ", translate( "/FIND" ) ) ) == typedText ) {
-                                if( objectSearchQueries.size() < 12 ) {
-                                    std::string queryString( typedText );
-                                    char* queryStringWithSpace = autoSprintf( "%s ", translate( "/FIND" ) );
-                                    queryString.replace(queryString.find(queryStringWithSpace), std::string(queryStringWithSpace).size(), "");
-                                    objectSearchQueries.push_back( queryString );
-                                    ClickableComponent clickableLine;
-                                    objectSearchQueriesComponentList.push_back( clickableLine );
-                                    updateObjectSearchArray();
-                                    delete [] queryStringWithSpace;
+                            else if( 
+                                !strcmp( typedText, translate( "findCommand" ) ) || // either exact match of the command
+                                strstr( typedText, autoSprintf( "%s ", translate( "findCommand" ) ) ) == typedText // or match the command followed by a space
+                                ) {
+
+                                if( strstr( typedText, autoSprintf( "%s ", translate( "findCommand" ) ) ) == typedText ) {
+                                    if( objectSearchQueries.size() < 12 ) {
+                                        std::string queryString( typedText );
+                                        char* queryStringWithSpace = autoSprintf( "%s ", translate( "findCommand" ) );
+                                        queryString.replace(queryString.find(queryStringWithSpace), std::string(queryStringWithSpace).size(), "");
+                                        if( queryString != "" ) {
+                                            objectSearchQueries.push_back( queryString );
+                                            ClickableComponent clickableLine;
+                                            objectSearchQueriesComponentList.push_back( clickableLine );
+                                            updateObjectSearchArray();
+                                            }
+                                        if( queryStringWithSpace != NULL ) delete [] queryStringWithSpace;
+                                        }
+                                    else {
+                                        char *errorMessage = autoSprintf( "%s", translate("tooManyQueriesWarning") );
+                                        displayGlobalMessage( errorMessage, true, true );
+                                        delete [] errorMessage;
+                                        }
                                     }
-                                else {
-                                    char *errorMessage = autoSprintf( "%s", translate("tooManyQueriesWarning") );
-                                    displayGlobalMessage( errorMessage, true, true );
-                                    delete [] errorMessage;
+                                else if( !strcmp( typedText, translate( "findCommand" ) ) ) {
+                                    objectSearchQueries.deleteAll();
+                                    objectSearchQueriesComponentList.deleteAll();
+                                    updateObjectSearchArray();
                                     }
                                 }
                             else {
