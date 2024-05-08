@@ -10737,7 +10737,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         LiveObject *o = getLiveObject( lastHoverPlayerID );
 
-        if( o != NULL ) {
+        if( o != NULL && o->heldByAdultID == -1 ) {
 
             float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
             float fade = 1.0;
