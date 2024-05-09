@@ -11811,13 +11811,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
         else if( coordinatesSlipComponent.mHover ) {
-            coordsTips = autoSprintf( "%s", translate("coordsTips") );
+            coordsTips = autoSprintf( "%s (%C)", translate("coordsTips"), toupper(coordinatesPanelToggleKey) );
             }
         else if( objectSearchSlipComponent.mHover ) {
-            coordsTips = autoSprintf( "%s", translate("objSearchTips") );
+            coordsTips = autoSprintf( "%s (%C)", translate("objSearchTips"), toupper(objectSearchPanelToggleKey) );
             }
         else if( familyDisplaySlipComponent.mHover ) {
-            coordsTips = autoSprintf( "%s", translate("famDisplayTips") );
+            coordsTips = autoSprintf( "%s (%C)", translate("famDisplayTips"), toupper(familyDisplayPanelToggleKey) );
             }
         if( coordsTips != NULL ) {
             drawCursorTips( coordsTips );
