@@ -496,6 +496,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         virtual void keyUp( unsigned char inASCII );
 
+        void freeWASDKeyPress();
+
         char isAnyUIHovered();
 
         DisplayedFamily* getOurFamily();

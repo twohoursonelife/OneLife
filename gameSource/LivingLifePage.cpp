@@ -123,7 +123,7 @@ static char vogPickerOn = false;
 
 extern float musicLoudness;
 
-//KB
+//Keyboard action
 bool blockMouseScaling = false;
 
 bool firstMovementStep = true;
@@ -155,6 +155,15 @@ unsigned char charKey_Eat = 'e';
 unsigned char charKey_Baby = 'c';
 
 static bool waitForDoorToOpen;
+
+void LivingLifePage::freeWASDKeyPress() {
+    upKeyDown = false;
+    downKeyDown = false;
+    leftKeyDown = false;
+    rightKeyDown = false;
+    lastPosX = 9999;
+    lastPosY = 9999;
+    }
 
 //FOV
 extern int gui_hud_mode;
@@ -26015,14 +26024,13 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
 		if (! mSayField.isFocused() && !vogMode) {
-			if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
-				upKeyDown = false;
-				leftKeyDown = false;
-				downKeyDown = false;
-				rightKeyDown = false;
-				lastPosX = 9999;
-				lastPosY = 9999;
-			}
+
+            // This doesn't work at all
+            // when ESC is pressed the control is removed from LivingLifePage
+            
+			// if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
+			// 	freeWASDKeyPress();
+			// }
 
 			if (commandKey) {
 				if (isCharKey(inASCII, charKey_TileStandingOn)) {

@@ -978,6 +978,11 @@ static void drawPauseScreen() {
                                messagePos, alignCenter );
         }
 
+    if( currentGamePage == livingLifePage ) {
+        // Pressing ESC unstuck WASD keys
+        // WASD keys are stuck if you tab out when pressing them
+        livingLifePage->freeWASDKeyPress();
+        }
 
     // Drawing the Pause screen
     if( currentGamePage == livingLifePage ) {
