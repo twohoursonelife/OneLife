@@ -13702,14 +13702,18 @@ void LivingLifePage::displayGlobalMessage( char *inMessage, char forceRight, cha
     
     mGlobalMessageShowing = true;
     mGlobalMessageStartTime = game_getCurrentTime();
-
-    if( forceRight ) mLiveTutorialSheetIndex = 1;
     
     if( mLiveTutorialSheetIndex >= 0 ) {
         mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
             mTutorialHideOffset[ mLiveTutorialSheetIndex ];
         }
-    if( !forceRight ) mLiveTutorialSheetIndex ++;
+        
+    if( !forceRight ) {
+        mLiveTutorialSheetIndex ++;
+        }
+    else {
+        mLiveTutorialSheetIndex = 1;
+        }
     
     if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
         mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
@@ -17522,6 +17526,7 @@ void LivingLifePage::step() {
                     numRead += 2;
                     }
                 
+                // this is responsible for death messages
                 onPlayerUpdate( &o, lines[i] );
 
                 // heldYum is 24th value, optional
