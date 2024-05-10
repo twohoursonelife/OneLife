@@ -7160,9 +7160,6 @@ char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
     }
 
 
-extern float dimFactor;
-extern float greyFactor;
-
 
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
@@ -10469,7 +10466,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             slipPos.y += lrint( highestCravingYOffset / 1.75 ) * gui_fov_scale_hud;
 
-            setDrawColor( 1, 1, 1, 1 * dimFactor );
             drawSprite( mHungerSlipSprites[i], slipPos, gui_fov_scale_hud );
             }
         }
@@ -10487,7 +10483,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
             // slipPos.y += lrint( highestCravingYOffset / 1.75 ) * gui_fov_scale_hud;
             
-            setDrawColor( 1 * greyFactor, 1 * greyFactor, 1 * greyFactor, 1 );
+            setDrawColor( 1, 1, 1, 1 );
             drawSprite( mYumSlipSprites[i], slipPos, gui_fov_scale_hud );
             
             doublePair messagePos = slipPos;
@@ -10530,7 +10526,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
 			cravingPos = add( cravingPos, mult( mCravingExtraOffset[i], gui_fov_scale_hud ) );
             
-            setDrawColor( 1 * greyFactor, 1 * greyFactor, 1 * greyFactor, 1 );
+            setDrawColor( 1, 1, 1, 1.0 );
             // flip, don't rotate
             drawSprite( mHintSheetSprites[i], cravingPos, gui_fov_scale_hud, 0.0, true );
                 
@@ -11364,8 +11360,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         leftPanelComponent.setClickableArea( coordinatesPanelTL, coordinatesPanelBR );
 
-        setDrawColor( 1, 1, 1, 0.9 * dimFactor );
-        if( leftPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 * dimFactor );
+        setDrawColor( 1, 1, 1, 0.9 );
+        if( leftPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
         drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
 
 
@@ -11705,8 +11701,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             lineAreaSet += 1;
             }
 
-        setDrawColor( 1, 1, 1, 0.9 * dimFactor );
-        if( topLeftSlipComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 * dimFactor );
+        setDrawColor( 1, 1, 1, 0.9 );
+        if( topLeftSlipComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
         // drawSprite( mHintSheetSprites[0], slipPos, gui_fov_scale_hud, 0.5 );
         drawSprite( bigSheet, slipPos, gui_fov_scale_hud );
 
@@ -11852,7 +11848,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             tutorialPos.y -= mTutorialExtraOffset[i].y * gui_fov_scale_hud;
             
-            setDrawColor( 1, 1, 1, 1 * dimFactor );
+            setDrawColor( 1, 1, 1, 1 );
             // rotate 180
             drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_scale_hud, 0.5,
                         mTutorialFlips[i] );
@@ -11897,7 +11893,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     minitech::livingLifeDraw(worldMouseX, worldMouseY);
 
     // info panel at bottom, over top of all the other slips
-    setDrawColor( 1 * greyFactor, 1 * greyFactor, 1 * greyFactor, 1 );
+    setDrawColor( 1, 1, 1, 1 );
     doublePair panelPos = lastScreenViewCenter;
 	
     //FOV

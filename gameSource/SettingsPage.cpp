@@ -25,9 +25,6 @@ extern Font * mainFont;
 
 extern float musicLoudness;
 
-extern float brightness;
-extern void recalculateBrightnessFactors();
-
 extern int targetFramesPerSecond;
 
 extern bool showingInGameSettings;
@@ -92,9 +89,6 @@ SettingsPage::SettingsPage()
                                        translate( "scale" ) ),
           
           // Screen
-          mBrightnessSlider( mainFont, -80, 0, 4, 200, 30,
-                                       0.0, 1.0, 
-                                       "BRIGHTNESS" ),
           mRedetectButton( mainFont, 153, 249, translate( "redetectButton" ) ),
           mVsyncBox( 0, 208, 4 ),
           mFullscreenBox( 0, 128, 4 ),
@@ -181,8 +175,6 @@ SettingsPage::SettingsPage()
     setButtonStyle( &mRedetectButton );
     addComponent( &mRedetectButton );
     mRedetectButton.addActionListener( this );
-    addComponent( &mBrightnessSlider );
-    mBrightnessSlider.addActionListener( this );
     
     mTargetFrameRateField.setInt( targetFramesPerSecond );
 
@@ -517,14 +509,6 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
 
             // checkRestartButtonVisibility();
             }
-        }
-    else if( inTarget == &mBrightnessSlider ) {
-            
-        brightness = mBrightnessSlider.getValue();
-        SettingsManager::setSetting( "brightness", brightness );
-
-        recalculateBrightnessFactors();
-
         }
     else if( inTarget == &mVsyncBox ) {
         int newSetting = mVsyncBox.getToggled();
@@ -1195,8 +1179,6 @@ void SettingsPage::makeActive( char inFresh ) {
         mSoundEffectsLoudnessSlider.setValue( getSoundEffectsLoudness() );
         setMusicLoudness( 0 );
         mMusicStartTime = 0;
-
-        mBrightnessSlider.setValue( brightness );
         
         int tryCount = 0;
         
@@ -1270,7 +1252,6 @@ void SettingsPage::updatePage() {
     mTrippingEffectDisabledBox.setPosition( 0, -lineSpacing * 3 );
     mRedetectButton.setPosition( 161, lineSpacing * 2 );
     mRedetectButton.setPadding( 8, 4 );
-    mBrightnessSlider.setPosition(22, lineSpacing * 3);
 
 #ifdef USE_DISCORD
     mEnableDiscordRichPresence.setPosition(0, 3 * lineSpacing);
@@ -1308,7 +1289,6 @@ void SettingsPage::updatePage() {
     mBorderlessBox.setVisible( mPage == 2 && mFullscreenBox.getToggled() );
     mTrippingEffectDisabledBox.setVisible( mPage == 2 );
     mRedetectButton.setVisible( mPage == 2 );
-    mBrightnessSlider.setVisible( mPage == 2 );
 
     mMusicLoudnessSlider.setVisible( mPage == 3 );
     mSoundEffectsLoudnessSlider.setVisible( mPage == 3 );

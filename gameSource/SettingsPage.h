@@ -94,7 +94,6 @@ class SettingsPage : public GamePage, public ActionListener {
         ValueSlider mCursorScaleSlider;
 
         // Screen
-        ValueSlider mBrightnessSlider;
         TextButton mRedetectButton;
         CheckboxButton mVsyncBox;
         CheckboxButton mFullscreenBox;

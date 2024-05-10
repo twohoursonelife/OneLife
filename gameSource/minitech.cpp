@@ -1082,8 +1082,6 @@ static void drawUseCaption( int objId, doublePair &captionPos, int tinyLineHeigh
     }
 }
 
-extern float dimFactor;
-
 void minitech::updateDrawTwoTech() {
     
     int defaultNumOfLines = 5;
@@ -1138,7 +1136,7 @@ void minitech::updateDrawTwoTech() {
         doublePair extraOffset = {17*guiScale, -45*guiScale}; // we only use a corner of the hintSheet1
         doublePair minimizedSheetPos = add( posTR, extraOffset );
         
-        setDrawColor( 1, 1, 1, 0.9 * dimFactor );
+        setDrawColor( 1, 1, 1, 0.9 );
         drawSprite( sheet, minimizedSheetPos, guiScale );
         
         drawStr("CRAFTING GUIDE", posCenter, "tinyHandwritten", false);
@@ -1190,7 +1188,7 @@ void minitech::updateDrawTwoTech() {
         // sheet background when nothing found
         doublePair extraOffset = {-90*guiScale, -110*guiScale}; // we only use a corner of the bigHintSheet
         doublePair noResultsSheetPos = add( posTR, extraOffset );
-        setDrawColor( 1, 1, 1, 0.9 * dimFactor );
+        setDrawColor( 1, 1, 1, 0.9 );
         drawSprite( bigSheet, noResultsSheetPos, guiScale, 0.5 );
         
         drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
@@ -1228,7 +1226,7 @@ void minitech::updateDrawTwoTech() {
         
         doublePair extraOffset = {-90*guiScale, -195*guiScale}; // we only use a corner of the bigHintSheet
         doublePair mainSheetPos = add( headerTR, extraOffset );
-        setDrawColor( 1, 1, 1, 0.9 * dimFactor );
+        setDrawColor( 1, 1, 1, 0.9 );
         drawSprite( bigSheet, mainSheetPos, guiScale, 0.5 );
         
         
