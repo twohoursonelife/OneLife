@@ -22830,6 +22830,9 @@ void LivingLifePage::makeActive( char inFresh ) {
         }
 
 
+    // this may have been changed in settings page, recalculate
+    changeHUDFOV( gui_fov_target_scale_hud );
+
     if( !inFresh ) {
     
         // reset fov to default when we return from settings page

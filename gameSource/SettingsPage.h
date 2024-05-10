@@ -81,6 +81,7 @@ class SettingsPage : public GamePage, public ActionListener {
 		CheckboxButton mEnableFOVBox;
 		CheckboxButton mEnableCenterCameraBox;
 		CheckboxButton mEnableNudeBox;
+        ValueSlider mUISizeSlider;
         
         CheckboxButton mUseCustomServerBox;
         TextField mCustomServerAddressField;

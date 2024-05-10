@@ -29,6 +29,8 @@ extern int targetFramesPerSecond;
 
 extern bool showingInGameSettings;
 
+extern float gui_fov_target_scale_hud;
+
 // defined in LivingLifePage.cpp
 extern bool ShowUseOnObjectHoverSettingToggle;
 extern bool isShowUseOnObjectHoverKeybindEnabled;
@@ -69,6 +71,9 @@ SettingsPage::SettingsPage()
 		  mEnableFOVBox( 561, 128, 4 ),
 		  mEnableCenterCameraBox( 561, 52, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
+          mUISizeSlider( mainFont, -335, 148, 4, 200, 30,
+                                       1.0, 1.75, 
+                                       "" ),
           
           mUseCustomServerBox( -168, -148, 4 ),
           mCustomServerAddressField( mainFont, 306, -150, 14, false, 
@@ -217,6 +222,8 @@ SettingsPage::SettingsPage()
     addComponent( &mUseCustomServerBox );
     mUseCustomServerBox.addActionListener( this );
     
+    addComponent( &mUISizeSlider );
+    mUISizeSlider.addActionListener( this );
     addComponent( &mEnableNudeBox );
     mEnableNudeBox.addActionListener( this );
 	addComponent( &mEnableCenterCameraBox );
@@ -569,6 +576,12 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         //start ignoring the nudity sprites every times it draws a new object
         //mRestartButton.setVisible( mEnableNudeSetting != newSetting );
         NudeToggle = newSetting;
+        }
+    else if( inTarget == &mUISizeSlider ) {
+            
+        gui_fov_target_scale_hud = mUISizeSlider.getValue();
+        SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
+
         }
 	else if( inTarget == &mUseCustomServerBox ) {
         mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
@@ -939,7 +952,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             mainFont->drawString( fpsString, pos, alignLeft );
             delete [] fpsString;
             }
-        
+
 
         pos.y += 52;
 
@@ -968,6 +981,15 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y -= 2;
 
         mainFont->drawString( "ENABLE NUDITY", pos, alignRight );
+        }
+    if( mUISizeSlider.isVisible() ) {
+        doublePair pos = mEnableNudeBox.getPosition();
+        
+        pos.x -= 30;
+        pos.y = mUISizeSlider.getPosition().y;
+        pos.y -= 2;
+
+        mainFont->drawString( "UI SIZE", pos, alignRight );
         }
         
     if( mUseCustomServerBox.isVisible() ) {
@@ -1179,6 +1201,8 @@ void SettingsPage::makeActive( char inFresh ) {
         mSoundEffectsLoudnessSlider.setValue( getSoundEffectsLoudness() );
         setMusicLoudness( 0 );
         mMusicStartTime = 0;
+
+        mUISizeSlider.setValue( gui_fov_target_scale_hud );
         
         int tryCount = 0;
         
@@ -1221,9 +1245,10 @@ void SettingsPage::updatePage() {
 
     double lineSpacing = 52;
     
-    mEnableFOVBox.setPosition( 0, lineSpacing * 3 );
-    mEnableCenterCameraBox.setPosition( 0, lineSpacing * 2 );
-    mEnableNudeBox.setPosition( 0, lineSpacing );
+    mEnableFOVBox.setPosition( 0, lineSpacing * 4 );
+    mEnableCenterCameraBox.setPosition( 0, lineSpacing * 3 );
+    mEnableNudeBox.setPosition( 0, lineSpacing * 2 );
+    mUISizeSlider.setPosition( 28, lineSpacing * 1 );
     mUseCustomServerBox.setPosition( 0, -lineSpacing );
     mCustomServerAddressField.setPosition( 180 - 16, -lineSpacing * 2 - lineSpacing/4 );
     mCustomServerPortField.setPosition( 180 - 16, -lineSpacing * 3  - lineSpacing/2 );
@@ -1271,6 +1296,7 @@ void SettingsPage::updatePage() {
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
     mEnableNudeBox.setVisible( mPage == 0 );
+    mUISizeSlider.setVisible( mPage == 0 );
     mUseCustomServerBox.setVisible( mPage == 0 );
     mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
     mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
