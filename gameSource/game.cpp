@@ -279,15 +279,15 @@ float musicLoudness;
 float brightness = 1.0; // value from setting slider
 
 float dimFactor = 1.0; // multiplied to alpha
-float minDimFactor = 0.9;
+float minDimFactor = 0.85;
 float maxDimFactor = 1.0;
 
 float greyFactor = 1.0; // multiplied to RGB values
-float minGreyFactor = 0.85;
+float minGreyFactor = 0.8;
 float maxGreyFactor = 1.0;
 
 float dimmingRectAlpha = 0.0;
-float maxDimmingRectAlpha = 0.4;
+float maxDimmingRectAlpha = 0.2;
 float minDimmingRectAlpha = 0.0;
 
 void recalculateBrightnessFactors() {
