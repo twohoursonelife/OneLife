@@ -11433,7 +11433,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                 double lineHeight = 24.0;
 
-                setDrawColor( 0, 0, 0, 0.2 );
+                setDrawColor( 0, 0, 0, 0.25 );
                 pos.y += 4 * lineHeight * gui_fov_scale_hud;
                 minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
@@ -11501,7 +11501,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                 double lineHeight = 24.0;
 
-                setDrawColor( 0, 0, 0, 0.2 );
+                setDrawColor( 0, 0, 0, 0.25 );
                 pos.y += 4 * lineHeight * gui_fov_scale_hud;
                 minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp1" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
