@@ -11957,6 +11957,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
         bloodPos.y -= 32 * gui_fov_scale_hud;
         bloodPos.x -= 32 * gui_fov_scale_hud;
         drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
+
+        if( gui_hud_mode == 0 || gui_hud_mode == 1 ) {
+            float width = 2700.0;
+            bloodPos.x -= width / 2 * gui_fov_scale_hud;
+            drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
+            bloodPos.x += width * gui_fov_scale_hud;
+            drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
+            }
+
         toggleMultiplicativeBlend( false );
         }
     
