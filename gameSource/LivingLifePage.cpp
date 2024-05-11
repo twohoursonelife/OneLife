@@ -185,6 +185,7 @@ char objectSearchEnabled = false;
 unsigned char objectSearchPanelToggleKey = 'j';
 char familyDisplayEnabled = false;
 unsigned char familyDisplayPanelToggleKey = 'p';
+char dangerousTileEnabled = true; //TODO
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -1010,6 +1011,36 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
     delete [] deathCause;
     delete [] deathMessage;
 
+    }
+
+// Dangerous tiles
+
+char isObjectDangerous( ObjectRecord *o ) {
+    if( o == NULL ) return false;
+    return o->permanent && o->deadlyDistance > 0;
+    }
+
+char LivingLifePage::isTileDangerousWithHeldObject( int heldID, int groundID ) {
+
+    ObjectRecord *groundObj = getObject( groundID, true );
+    if( groundObj == NULL ) return false;
+    if( !( isObjectDangerous( groundObj ) ) ) return false;
+
+    ObjectRecord *heldObj = getObject( heldID, true );
+    if( heldObj != NULL && heldObj->rideable ) {
+        TransRecord *trans = getTrans( heldID, groundID );
+        if( trans != NULL ) {
+            if( heldID != trans->newActor ) {
+                // to keep it simple, it is considered dangerous if
+                // what we're riding interacts with the object on ground
+                // and the interaction changes our ride
+                return true;
+                }
+            }
+        return false;
+        }
+
+    return true;
     }
 
 
@@ -7963,8 +7994,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
     if( showFPS ) startCountingSpritePixelsDrawn();
 
 
+    LiveObject *ourLiveObject = getOurLiveObject();
+
     // draw object search tile highlight
-    if( objectSearchEnabled )
+    if( objectSearchEnabled || dangerousTileEnabled )
     for( int y=yEnd; y>=yStart; y-- ) {
         
         int worldY = y + mMapOffsetY - mMapD / 2;
@@ -7976,28 +8009,26 @@ void LivingLifePage::draw( doublePair inViewCenter,
             int mapI = y * mMapD + x;
 
             char highlight = false;
+            char dangerous = false;
             
             if( mMap[mapI] > 0 ) {
                 int id = getObjectParent( mMap[mapI] );
                 ObjectRecord *o = getObject( id, true );
                 if( o != NULL && objectMatches[o->id] ) highlight = true;
-                }
-            if( !highlight && mMapContainedStacks[mapI].size() > 0 ) {
-                for (int i=0; i<mMapContainedStacks[mapI].size(); i++) {
-                    int id = mMapContainedStacks[mapI].getElementDirect(i);
-                    id = getObjectParent(id);
-                    ObjectRecord *o = getObject( id, true );
-                    if( o != NULL && objectMatches[o->id] ) {
-                        highlight = true;
-                        break;
+                if( dangerousTileEnabled &&
+                    (o != NULL && isObjectDangerous(o)) ) {
+                    dangerous = true;
+                    // take into account what we are holding
+                    if( ourLiveObject != NULL && ourLiveObject->holdingID > 0 ) {
+                        dangerous = isTileDangerousWithHeldObject( ourLiveObject->holdingID, id );
                         }
                     }
                 }
-            if( !highlight && mMapSubContainedStacks[mapI].size() > 0 ) {
-                for (int i=0; i<mMapSubContainedStacks[mapI].size(); i++) {
-                    SimpleVector<int> subStack = mMapSubContainedStacks[mapI].getElementDirect(i);
-                    for (int j=0; j<subStack.size(); j++) {
-                        int id = subStack.getElementDirect(j);
+
+            if( objectSearchEnabled ) {
+                if( !highlight && mMapContainedStacks[mapI].size() > 0 ) {
+                    for (int i=0; i<mMapContainedStacks[mapI].size(); i++) {
+                        int id = mMapContainedStacks[mapI].getElementDirect(i);
                         id = getObjectParent(id);
                         ObjectRecord *o = getObject( id, true );
                         if( o != NULL && objectMatches[o->id] ) {
@@ -8005,11 +8036,31 @@ void LivingLifePage::draw( doublePair inViewCenter,
                             break;
                             }
                         }
-                    if( highlight ) break;
+                    }
+                if( !highlight && mMapSubContainedStacks[mapI].size() > 0 ) {
+                    for (int i=0; i<mMapSubContainedStacks[mapI].size(); i++) {
+                        SimpleVector<int> subStack = mMapSubContainedStacks[mapI].getElementDirect(i);
+                        for (int j=0; j<subStack.size(); j++) {
+                            int id = subStack.getElementDirect(j);
+                            id = getObjectParent(id);
+                            ObjectRecord *o = getObject( id, true );
+                            if( o != NULL && objectMatches[o->id] ) {
+                                highlight = true;
+                                break;
+                                }
+                            }
+                        if( highlight ) break;
+                        }
                     }
                 }
 
-            if( highlight ) drawTileVanillaRainbowHighlight( worldX, worldY );
+            if( dangerousTileEnabled && dangerous ) {
+                drawTileVanillaHighlight( worldX, worldY, {1, 0, 0, 1.0}, true, false );
+                }
+            else if( objectSearchEnabled && highlight ) {
+                drawTileVanillaRainbowHighlight( worldX, worldY );
+                }
+            
 
             }
         }
@@ -8189,7 +8240,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // draw long path for our character
-    LiveObject *ourLiveObject = getOurLiveObject();
+    // LiveObject *ourLiveObject = getOurLiveObject();
     
     if( ourLiveObject != NULL ) {
         
@@ -27646,6 +27697,13 @@ bool LivingLifePage::setMoveDirIfSafe(int &x, int &y, int dir) {
 	return true;
 }
 
+//	move direction
+//	---------------
+//	1	2	3
+// 	8	0	4
+//	7	6	5
+//	---------------
+
 void LivingLifePage::setMoveDirection(int &x, int &y, int direction) {
 	switch (direction) {
 		case 1: x--; y++; break;
@@ -27659,8 +27717,23 @@ void LivingLifePage::setMoveDirection(int &x, int &y, int direction) {
 	}
 }
 
+bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
+	int objId = getObjId( x, y);
+	ObjectRecord *obj = getObject( objId, true );
+    if( obj == NULL ) return true;
+	char dangerous = isObjectDangerous(obj);
+    if( dangerous ) {
+        LiveObject *ourLiveObject = getOurLiveObject();
+        if( ourLiveObject != NULL && ourLiveObject->holdingID > 0 ) {
+            dangerous = isTileDangerousWithHeldObject( ourLiveObject->holdingID, objId );
+        }
+        return !dangerous;
+    }
+	return true;
+}
+
 bool LivingLifePage::tileHasClosedDoor(int x, int y) {
-	int closedDoorIDs [10] = { 116, 2759, 876, 1930, 2757, 877, 115, 1851, 2984, 2962 }; 
+	int closedDoorIDs [10] = { 116, 2759, 876, 1930, 2757, 877, 115, 1851, 2984, 2962 };  //TODO
 	
 	int objId = getObjId( x, y);
 	if (objId > 0) {
@@ -27671,30 +27744,50 @@ bool LivingLifePage::tileHasClosedDoor(int x, int y) {
 	return false;
 }
 
+bool LivingLifePage::tileIsSafeToWalk(int x, int y) {
+	int objId = getObjId( x, y);
+	if (objId > 0) {
+        LiveObject *ourLiveObject = getOurLiveObject();
+
+		if (!tileHasNoDangerousAnimals(x, y)) return false;
+
+		ObjectRecord* obj = getObject(objId);
+		if (obj && obj->blocksWalking) {
+			if (ourLiveObject->xd == x || ourLiveObject->yd == y)
+				if (tileHasClosedDoor( x, y )) return true;
+			return false;
+		}
+	}
+	return true;
+}
+
 bool LivingLifePage::dirIsSafeToWalk(int x, int y, int dir) {
 	LiveObject *ourLiveObject = getOurLiveObject();
 	
 	int tX, tY;
 
 	tX = x; tY = y; setMoveDirection(tX, tY, dir);
+    if (!tileIsSafeToWalk(tX, tY)) return false;
 	
-	int objId = getObjId( tX, tY);
-	if (objId > 0) {
+	// int objId = getObjId( tX, tY);
+	// if (objId > 0) {
 
-		ObjectRecord* obj = getObject(objId);
-		if (obj && obj->blocksWalking) {
-			if (ourLiveObject->xd == x || ourLiveObject->yd == y)
-				if (!tileHasClosedDoor( x, y )) return false;
-		}
-	}
+	// 	ObjectRecord* obj = getObject(objId);
+	// 	if (obj && obj->blocksWalking) {
+	// 		if (ourLiveObject->xd == x || ourLiveObject->yd == y)
+	// 			if (!tileHasClosedDoor( x, y )) return false;
+	// 	}
+	// }
 
 	if (dir % 2 == 0) return true; // is not a corner dir
 
 	int nextDir = getNextMoveDir(dir, 1);
 	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    if (!tileHasNoDangerousAnimals(tX, tY)) return false;
 
 	nextDir = getNextMoveDir(dir, -1);
 	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    if (!tileHasNoDangerousAnimals(tX, tY)) return false;
 
 	return true;
 }

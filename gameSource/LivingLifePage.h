@@ -505,6 +505,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         void onPlayerUpdate( LiveObject* inO, const char* line );
 
+        char isTileDangerousWithHeldObject( int heldID, int groundID );
+
         
         // handles error detection, total byte counting, etc.
         void sendToServerSocket( char *inMessage );
@@ -552,7 +554,9 @@ class LivingLifePage : public GamePage, public ActionListener {
 		int getMoveDirection();
 		bool setMoveDirIfSafe(int &x, int &y, int dir);
 		void setMoveDirection(int &x, int &y, int direction);
+        bool tileHasNoDangerousAnimals(int x, int y);
 		bool tileHasClosedDoor(int x, int y);
+        bool tileIsSafeToWalk(int x, int y);
 		bool dirIsSafeToWalk(int x, int y, int dir);
 
 
