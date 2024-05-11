@@ -15025,6 +15025,11 @@ void LivingLifePage::step() {
         sendToServerSocket( (char*)"KA 0 0#" );
         }
     
+
+    
+    if( moveClick ) checkIfMoveClickIsDone();
+
+
 	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
 	
 	minitech::livingLifeStep();
@@ -22788,6 +22793,11 @@ void LivingLifePage::makeActive( char inFresh ) {
     downKeyDown = false;
     rightKeyDown = false;
 
+    moveClickX = 0;
+    moveClickY = 0;
+    moveClickAlpha = false;
+    moveClick = false;
+
     runningYumFinder = false;
     
     screenCenterPlayerOffsetX = 0;
@@ -24302,6 +24312,17 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
     
+
+
+    if( !mForceGroundClick && isCommandKeyDown() && !vogMode ) {
+        int tileX = round(inX/CELL_D);
+        int tileY = round(inY/CELL_D);
+        moveToAndClickTile(tileX, tileY, !isLastMouseButtonRight());
+        return;
+    }
+    if( !mForceGroundClick ) moveClick = false;
+
+
 
     // consider 3x4 area around click and test true object pixel
     // collisions in that area
@@ -27453,6 +27474,55 @@ void LivingLifePage::dropTileRelativeToMe( int x, int y ) {
 }
 
 //KEYBOARD MOVEMENT
+void LivingLifePage::clickMove( float x, float y ) {
+    float tMouseX = lastMouseX;
+    float tMouseY = lastMouseY;
+    mForceGroundClick = true;
+    pointerDown( x, y );
+    pointerUp( x, y );
+    mForceGroundClick = false;
+    lastMouseX = tMouseX;
+    lastMouseY = tMouseY;
+    }
+
+void LivingLifePage::moveToAndClickTile(int tileX, int tileY, bool alpha) {
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if (!ourLiveObject) return;
+    int tileRX = tileX - ourLiveObject->xd;
+    int tileRY = tileY - ourLiveObject->yd;
+    if (tileRX <= 1 && tileRX >= -1) {
+        if (tileRY <= 1 && tileRY >= -1) {
+            if (tileRY == 0 || tileRX == 0) {
+                if (alpha) {
+                    actionAlphaRelativeToMe(tileRX, tileRY);
+                } else {
+                    actionBetaRelativeToMe(tileRX, tileRY);
+                }
+            return;
+            }
+        }
+    }
+    moveClickX = tileX;
+    moveClickY = tileY;
+    moveClickAlpha = alpha;
+    moveClick = true;
+    float clickX = tileX*CELL_D;
+    float clickY = tileY*CELL_D;
+    clickMove(clickX, clickY);
+    return;
+    }
+
+void LivingLifePage::checkIfMoveClickIsDone() {
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if (ourLiveObject && !ourLiveObject->inMotion) {
+        moveClick = false;
+        int tileRX = moveClickX - ourLiveObject->xd;
+        int tileRY = moveClickY - ourLiveObject->yd;
+        if (moveClickAlpha) actionAlphaRelativeToMe(tileRX, tileRY);
+        else actionBetaRelativeToMe(tileRX, tileRY);
+        }
+    }
+
 void LivingLifePage::movementStep() {
 	LiveObject *ourLiveObject = getOurLiveObject();
     if( ourLiveObject == NULL ) return;
@@ -27497,16 +27567,11 @@ void LivingLifePage::movementStep() {
 	x *= CELL_D;
 	y *= CELL_D;
 
+    moveClick = false;
+
 	blockMouseScaling = true;
 
-	float tMouseX = lastMouseX;
-	float tMouseY = lastMouseY;
-	mForceGroundClick = true;
-	pointerDown( x, y );
-	pointerUp( x, y );
-	mForceGroundClick = false;
-	lastMouseX = tMouseX;
-	lastMouseY = tMouseY;
+    clickMove(x, y);
 	
 	magnetMoveCount++;
 	

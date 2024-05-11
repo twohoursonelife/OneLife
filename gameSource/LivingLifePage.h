@@ -538,6 +538,14 @@ class LivingLifePage : public GamePage, public ActionListener {
 		void useTileRelativeToMe( int x, int y ) ;
 		void dropTileRelativeToMe( int x, int y ) ;
 		
+        int moveClickX = 0;
+        int moveClickY = 0;
+        char moveClickAlpha = false;
+        char moveClick = false;
+        void clickMove( float x, float y );
+        void moveToAndClickTile(int tileX, int tileY, bool alpha);
+        void checkIfMoveClickIsDone();
+
 		void movementStep();
 		bool findNextMove(int &x, int &y, int dir);
 		int getNextMoveDir(int direction, int add);
