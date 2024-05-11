@@ -668,6 +668,8 @@ float getLivingLifeBouncingYOffset( int oid ) {
     int onCycleLength = cycleLength*3/4;
 
     float runningFraction = ((bouncingAnimationStepOffset + livingLifeStepCount + phraseDifference) % cycleLength);
+    if( runningFraction < 0 ) runningFraction += cycleLength;
+
     if( runningFraction < onCycleLength ) {
         // controls the height of the drop and rebounce
         float xOffset = 0.42;
@@ -15019,10 +15021,11 @@ void LivingLifePage::step() {
 	minitech::livingLifeStep();
     stepCount++;
     if (stepCount > 10000) stepCount = 0;
+    livingLifeStepCount = stepCount;
+
     if (ourObject != NULL && stepCount % 10 == 0) 
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
 
-    livingLifeStepCount = stepCount;
 
     if( showFPS ) {
         timeMeasures[1] += game_getCurrentTime() - updateStartTime;
