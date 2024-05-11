@@ -27736,16 +27736,30 @@ bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
 	return true;
 }
 
+char isObjectClosedDoor( ObjectRecord *o ) {
+    if( o == NULL ) return false;
+    if( o->permanent && o->blocksWalking ) {
+        TransRecord *openTrans = getTrans( 0, o->id );
+        if( openTrans != NULL && openTrans->newActor == 0 ) {
+            ObjectRecord *openedObj = getObject( openTrans->newTarget, true );
+            if( openedObj != NULL && !openedObj->blocksWalking ) {
+                TransRecord *closeTrans = getTrans( 0, openedObj->id );
+                if( closeTrans != NULL && closeTrans->newActor == 0 ) {
+                    ObjectRecord *closedObj = getObject( closeTrans->newTarget, true );
+                    if( closedObj != NULL && closedObj->id == o->id ) {
+                        return true;
+                        }
+                    }
+                }
+            }
+        }
+    return false;
+    }
+
 bool LivingLifePage::tileHasClosedDoor(int x, int y) {
-	int closedDoorIDs [10] = { 116, 2759, 876, 1930, 2757, 877, 115, 1851, 2984, 2962 };  //TODO
-	
 	int objId = getObjId( x, y);
-	if (objId > 0) {
-		for (int i = 0; i < 10; i++) {
-			if (objId == closedDoorIDs[i]) return true;
-		}
-	}
-	return false;
+    ObjectRecord *obj = getObject( objId, true );
+    return isObjectClosedDoor(obj);
 }
 
 bool LivingLifePage::tileIsSafeToWalk(int x, int y) {
