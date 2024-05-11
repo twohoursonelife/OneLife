@@ -944,8 +944,8 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
 
     } else if ( strstr(line, "reason_hunger") || strstr(line, "reason_nursing_hunger") ) {
         deathCause = stringDuplicate( "STARVED" );
-    } else if ( strstr(line, "reason_SID") ) {
-        deathCause = stringDuplicate( "DIED OF SUDDEN INFANT DEATH" );
+    // } else if ( strstr(line, "reason_SID") ) {
+    //     deathCause = stringDuplicate( "DIED OF SUDDEN INFANT DEATH" );
     } else if ( strstr(line, "reason_age") ) {
         deathCause = stringDuplicate( "DIED OF OLD AGE" );
     } else {
