@@ -185,7 +185,7 @@ char objectSearchEnabled = false;
 unsigned char objectSearchPanelToggleKey = 'j';
 char familyDisplayEnabled = false;
 unsigned char familyDisplayPanelToggleKey = 'p';
-char dangerousTileEnabled = true; //TODO
+char dangerousTileEnabled = false;
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -27722,6 +27722,7 @@ void LivingLifePage::setMoveDirection(int &x, int &y, int direction) {
 }
 
 bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
+    if( !dangerousTileEnabled ) return true;
 	int objId = getObjId( x, y);
 	ObjectRecord *obj = getObject( objId, true );
     if( obj == NULL ) return true;
@@ -27736,6 +27737,9 @@ bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
 	return true;
 }
 
+// doors or gates with +autoDefaultTrans tag is non-blocking
+// and not included here
+// this is ok because pathing through those will open them automatically
 char isObjectClosedDoor( ObjectRecord *o ) {
     if( o == NULL ) return false;
     if( o->permanent && o->blocksWalking ) {

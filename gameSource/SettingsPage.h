@@ -122,6 +122,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnableYumFinderBox;
         CheckboxButton mEnableObjectSearchBox;
         CheckboxButton mEnableFamilyDisplayBox;
+        CheckboxButton mEnableDangerousTileBox;
         
         
         void checkRestartButtonVisibility();

@@ -40,6 +40,7 @@ extern char persistentEmoteEnabled;
 extern char yumFinderEnabled;
 extern char objectSearchEnabled;
 extern char familyDisplayEnabled;
+extern char dangerousTileEnabled;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -123,7 +124,8 @@ SettingsPage::SettingsPage()
         mEnablePersistentEmoteBox(0, 88, 4),
         mEnableYumFinderBox(0, 48, 4),
         mEnableObjectSearchBox(0, 8, 4),
-        mEnableFamilyDisplayBox(0, -32, 4) {
+        mEnableFamilyDisplayBox(0, -32, 4),
+        mEnableDangerousTileBox(0, -72, 4) {
                             
 
     
@@ -132,6 +134,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent(&mEnableDangerousTileBox);
+    mEnableDangerousTileBox.addActionListener(this);
     addComponent(&mEnableFamilyDisplayBox);
     mEnableFamilyDisplayBox.addActionListener(this);
     addComponent(&mEnableObjectSearchBox);
@@ -328,6 +332,7 @@ SettingsPage::SettingsPage()
     mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
     mEnableObjectSearchBox.setCursorTip( "ENABLE OBJECT FINDER. PRESS J TO TOGGLE PANEL." );
     mEnableFamilyDisplayBox.setCursorTip( "ENABLE DISPLAY OF LIST OF FAMILIES. PRESS P TO TOGGLE PANEL." );
+    mEnableDangerousTileBox.setCursorTip( "HIGHLIGHT DANGEROUS TILES AND BLOCK PATHING INTO THEM ON KEYBOARD." );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -430,6 +435,10 @@ SettingsPage::SettingsPage()
     familyDisplayEnabled = SettingsManager::getIntSetting("familyDisplayEnabled", 0);
 
     mEnableFamilyDisplayBox.setToggled( familyDisplayEnabled );
+
+    dangerousTileEnabled = SettingsManager::getIntSetting("dangerousTileEnabled", 0);
+
+    mEnableDangerousTileBox.setToggled( dangerousTileEnabled );
 
     mPage = 0;
     
@@ -889,6 +898,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("familyDisplayEnabled",
                                     newSetting);
         }
+    else if ( inTarget == &mEnableDangerousTileBox ) {
+        int newSetting = mEnableDangerousTileBox.getToggled();
+        dangerousTileEnabled = false;
+        if( newSetting ) dangerousTileEnabled = true;
+        SettingsManager::setSetting("dangerousTileEnabled",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1150,6 +1166,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString("ENABLE FAMILY DISPLAY", pos, alignRight);
         }
+    if (mEnableDangerousTileBox.isVisible()) {
+        doublePair pos = mEnableDangerousTileBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        mainFont->drawString("ENABLE DANGER HIGHLIGHT", pos, alignRight);
+        }
 }
 
 
@@ -1292,6 +1315,7 @@ void SettingsPage::updatePage() {
     mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
     mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
     mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
+    mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1340,6 +1364,7 @@ void SettingsPage::updatePage() {
     mEnableYumFinderBox.setVisible(mPage == 5);
     mEnableObjectSearchBox.setVisible(mPage == 5);
     mEnableFamilyDisplayBox.setVisible(mPage == 5);
+    mEnableDangerousTileBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
