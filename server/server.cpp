@@ -325,6 +325,7 @@ static int trippingEmotionIndex = 2;
 float getLivingLifeBouncingYOffset( int oid ) {
     // dummy function because this is expected in objectBank and animationBank
     // it is used for yum finder and object finder in the client
+    return 0.0;
     }
 
 

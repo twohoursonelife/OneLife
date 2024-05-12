@@ -26061,8 +26061,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         }
 
     bool commandKey = isCommandKeyDown();
-    bool controlKey = isControlKeyDown();
-    bool altKey = isAltKeyDown();
+    // bool controlKey = isControlKeyDown();
+    // bool altKey = isAltKeyDown();
     bool shiftKey = isShiftKeyDown();
 
     if( vogMode && vogPickerOn ) {
@@ -27009,10 +27009,10 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         return;
         }
 
-    bool commandKey = isCommandKeyDown();
-    bool controlKey = isControlKeyDown();
-    bool altKey = isAltKeyDown();
-    bool shiftKey = isShiftKeyDown();
+    // bool commandKey = isCommandKeyDown();
+    // bool controlKey = isControlKeyDown();
+    // bool altKey = isAltKeyDown();
+    // bool shiftKey = isShiftKeyDown();
         
     if( inKeyCode == MG_KEY_F12) { // left this here as a way to clear persistent emote
         sendToServerSocket( (char*)"EMOT 0 0 -1#" );
@@ -27801,7 +27801,7 @@ bool LivingLifePage::tileIsSafeToWalk(int x, int y) {
 }
 
 bool LivingLifePage::dirIsSafeToWalk(int x, int y, int dir) {
-    LiveObject *ourLiveObject = getOurLiveObject();
+    // LiveObject *ourLiveObject = getOurLiveObject();
     
     int tX, tY;
 
