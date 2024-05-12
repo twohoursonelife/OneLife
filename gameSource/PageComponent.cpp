@@ -4,7 +4,7 @@
 
 #include "minorGems/game/drawUtils.h"
 
-extern Font *tinyHandwritingFont;
+extern Font *tinyHandwritingFontFixedSize;
 extern double viewWidth;
 
 PageComponent::PageComponent( double inX, double inY )
@@ -82,7 +82,7 @@ void PageComponent::base_draw( doublePair inViewCenter,
     
     if( mCursorTip != NULL && isMouseOver() ) {
         
-        float textWidth = tinyHandwritingFont->measureString( mCursorTip );
+        float textWidth = tinyHandwritingFontFixedSize->measureString( mCursorTip );
         
         doublePair pos = pointerPos;
         pos.x += 8 * 2;
@@ -96,7 +96,7 @@ void PageComponent::base_draw( doublePair inViewCenter,
         // pos.x += - 8 * 2;
         // pos.y -= - 8 * 2;
         
-        float padding = 4;
+        float padding = 5;
         // Tip never goes off screen, not working well
         // double rightBorderX = double(viewWidth / 4 * 0.85 );
         // if( pos.x + textWidth + padding > rightBorderX ) pos.x = rightBorderX - (textWidth + padding);
@@ -106,7 +106,7 @@ void PageComponent::base_draw( doublePair inViewCenter,
                   pos.x + textWidth + padding, pos.y + 8 / 2 + padding );
         
         setDrawColor( 1, 1, 1, 1.0 );
-        tinyHandwritingFont->drawString( mCursorTip, pos, alignLeft );
+        tinyHandwritingFontFixedSize->drawString( mCursorTip, pos, alignLeft );
         }
 
     setViewCenterPosition( oldViewCenter.x, oldViewCenter.y );

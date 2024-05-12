@@ -71,13 +71,15 @@ extern int dataVersionNumber;
 extern double frameRateFactor;
 
 extern Font *mainFont;
-extern Font *oldMainFont;
+
 extern Font *numbersFontFixed;
 extern Font *mainFontReview;
+
 extern Font *handwritingFont;
 extern Font *pencilFont;
 extern Font *pencilErasedFont;
-extern Font *titleFont;
+
+extern Font *tinyHandwritingFont;
 
 
 // to make all erased pencil fonts lighter
@@ -4539,7 +4541,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
         }
     else {
-        lineSpacing = minitech::tinyHandwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
+        lineSpacing = tinyHandwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
         }
     
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
@@ -4608,7 +4610,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
             length = handwritingFont->measureString( line );
             } 
         else {
-            length = minitech::tinyHandwritingFont->measureString( line );
+            length = tinyHandwritingFont->measureString( line );
             }
             
         int numBlots = lrint( 0.25 + length / 20 / scale / gui_fov_scale_hud ) + 1;
@@ -4690,7 +4692,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
             handwritingFont->drawString( line, lineStart, alignLeft );
             }
         else {
-            minitech::tinyHandwritingFont->drawString( line, lineStart, alignLeft );
+            tinyHandwritingFont->drawString( line, lineStart, alignLeft );
             }
         delete [] line;
         }
@@ -10849,7 +10851,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             doublePair labelPos = mult( o->currentPos, CELL_D );
 
-            double labelWidth = minitech::tinyHandwritingFont->measureString( label );
+            double labelWidth = tinyHandwritingFont->measureString( label );
             labelPos.x -= labelWidth / 2;
             labelPos.y -= 16;
 
@@ -11493,21 +11495,21 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                 setDrawColor( 0, 0, 0, 0.25 );
                 pos.y += 4 * lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp2" ), pos, alignCenter );
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp3" ), pos, alignCenter );
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp4" ), pos, alignCenter );
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp5" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "markCommandHelp2" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp6" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "markCommandHelp3" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "markCommandHelp7" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "markCommandHelp4" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp5" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp6" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp7" ), pos, alignCenter );
 
                 }
             }
@@ -11561,19 +11563,19 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                 setDrawColor( 0, 0, 0, 0.25 );
                 pos.y += 4 * lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp1" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "findCommandHelp1" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp2" ), pos, alignCenter );
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp3" ), pos, alignCenter );
-                pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp4" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "findCommandHelp2" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp5" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "findCommandHelp3" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                minitech::tinyHandwritingFont->drawString( translate( "findCommandHelp6" ), pos, alignCenter );
+                tinyHandwritingFont->drawString( translate( "findCommandHelp4" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp5" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp6" ), pos, alignCenter );
 
                 }
 
@@ -27371,15 +27373,21 @@ void LivingLifePage::changeFOV( float newScale ) {
             }
         }
 
+    // using calcFontScale cannot set the scale to a fraction of newScale
+    // using setScaleFactor for tinyHandwritingFont
+
     calcFontScale( newScale, handwritingFont );
     calcFontScale( newScale, pencilFont );
     calcFontScale( newScale, pencilErasedFont );
-    calcFontScale( newScale, titleFont );
-    
-    calcFontScale( newScale, mainFont );
-    
+    // calcFontScale( newScale * 0.6, tinyHandwritingFont );
+
     gui_fov_scale = newScale;
     gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+
+    // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    // pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    // pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
 
     minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
@@ -27407,10 +27415,19 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
 
     calcOffsetHUD();
 
+    // should do copySpacing to be precise, but it takes a little too much time to load
+    // so doing setScaleFactor here
+    // if you scroll to zoom in and out, you can see the words wiggling by one pixel
+
     handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
-    pencilFont->copySpacing( handwritingFont );
-    pencilErasedFont->copySpacing( handwritingFont );
-    titleFont->copySpacing( handwritingFont );
+    // pencilFont->copySpacing( handwritingFont );
+    // pencilErasedFont->copySpacing( handwritingFont );
+    // tinyHandwritingFont->copySpacing( handwritingFont );
+
+    // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
     }
 
 void LivingLifePage::calcOffsetHUD() {

@@ -18,8 +18,8 @@
 
 #define PER_PAGE 5
 
-extern Font *mainFontFixed;
-extern Font *smallFontFixed;
+extern Font *mainFont;
+extern Font *smallFont;
 
 
 Picker::Picker( Pickable *inPickable, double inX, double inY )
@@ -30,11 +30,11 @@ Picker::Picker( Pickable *inPickable, double inX, double inY )
           mResults( NULL ),
           mNumResults( 0 ),
           mResultsUnclickable( NULL ),
-          mNextButton( smallFontFixed, +60, -290, "Next" ), 
-          mPrevButton( smallFontFixed, -60, -290, "Prev" ), 
-          mDelButton( smallFontFixed, 15, -290, "x" ), 
-          mDelConfirmButton( smallFontFixed, -15, -290, "!" ), 
-          mSearchField( mainFontFixed, 
+          mNextButton( smallFont, +60, -290, "Next" ), 
+          mPrevButton( smallFont, -60, -290, "Prev" ), 
+          mDelButton( smallFont, 15, -290, "x" ), 
+          mDelConfirmButton( smallFont, -15, -290, "!" ), 
+          mSearchField( mainFont, 
                         0,  100, 4,
                         true,
                         "", NULL, "" ),
@@ -472,7 +472,7 @@ void Picker::draw() {
                 char *text = parts.getElementDirect( j );
                 char *trimmed = trimWhitespace( text );
                 
-                smallFontFixed->drawString( trimmed, 
+                smallFont->drawString( trimmed, 
                                        textPos, alignLeft );
                 textPos.y -= 12;
 
@@ -497,7 +497,7 @@ void Picker::draw() {
     doublePair pos = { 0, -85 + 216 };
     
     if( mPickable->isSearchable() ) {    
-        smallFontFixed->drawString( "Type . for recent", pos, alignCenter );
+        smallFont->drawString( "Type . for recent", pos, alignCenter );
         }
     
     }

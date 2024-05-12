@@ -374,21 +374,24 @@ const char *getDemoCodeServerURL() {
 char gamePlayingBack = false;
 
 
-Font *mainFont;
-Font *oldMainFont;
-Font *mainFontFixed;
+Font *mainFont; // new 2HOL main font
+Font *oldMainFont; // old OHOL main font, kept to be used for Extended Message etc
+
 // closer spacing
 Font *mainFontReview;
 Font *numbersFontFixed;
+
+// these respond to UI size change in livingLifePage
 Font *handwritingFont;
-Font *tinyHandwritingFont;
 Font *pencilFont;
 Font *pencilErasedFont;
+Font *tinyHandwritingFont;
+
+Font *tinyHandwritingFontFixedSize; // non-LivingLifePage cursorTips, doesn't respond to UI size change
 
 Font *smallFont;
-Font *smallFontFixed;
 
-Font *titleFont;
+
 
 SpriteHandle sheetSprites[9] = {nullptr};
 
@@ -499,9 +502,6 @@ void initDrawString( int inWidth, int inHeight ) {
     toggleMipMapMinFilter( true );
     toggleTransparentCropping( true );
     
-    mainFont = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
-    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
-    mainFont->setMinimumPositionPrecision( 1 );
     oldMainFont = new Font( getFontTGAFileName(), 6, 6, false, 16 );
     oldMainFont->setMinimumPositionPrecision( 1 );
     
@@ -511,7 +511,6 @@ void initDrawString( int inWidth, int inHeight ) {
     else {
         mainFont = new Font( "font_32_64.tga", 3, 6, false, 12 );
         }
-    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
     mainFont->setMinimumPositionPrecision( 1 );
 
     setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
@@ -612,26 +611,21 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     mainFontReview = new Font( getFontTGAFileName(), 4, 8, false, 16 );
     mainFontReview->setMinimumPositionPrecision( 1 );
 
-    mainFontFixed = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
     numbersFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16, 16 );
-    
-    mainFontFixed->setMinimumPositionPrecision( 1 );
     numbersFontFixed->setMinimumPositionPrecision( 1 );
-
-    smallFontFixed = new Font( getFontTGAFileName(), 3, 8, false, 8 );
     
-    smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 * gui_fov_scale_hud );
-
-    titleFont = 
-        new Font( "font_handwriting_32_32.tga", 3, 6, false, 20 * gui_fov_scale_hud );
+    smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 );
 
     handwritingFont = 
         new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     handwritingFont->setMinimumPositionPrecision( 1 );
     
-    tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+    tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 * gui_fov_scale_hud );
     tinyHandwritingFont->setMinimumPositionPrecision( 1 );
+
+    tinyHandwritingFontFixedSize = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+    tinyHandwritingFontFixedSize->setMinimumPositionPrecision( 1 );
 
     pencilFont = 
         new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
@@ -802,13 +796,14 @@ void freeFrameDrawer() {
     freeSprite( instructionsSprite );
     
     delete mainFontReview;
-    delete mainFontFixed;
     delete numbersFontFixed;
     
     delete handwritingFont;
-    delete tinyHandwritingFont;
     delete pencilFont;
     delete pencilErasedFont;
+    delete tinyHandwritingFont;
+
+    delete tinyHandwritingFontFixedSize;
     
     delete smallFont;
     
@@ -1126,9 +1121,9 @@ static void drawPauseScreen() {
                         }
                     else if ( isTitle ) {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
-                        // int titleSize = titleFont->measureString( lines[i] );
-                        // titleFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
-                        titleFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
+                        // int handwritingFont = handwritingFont->measureString( lines[i] );
+                        // handwritingFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
+                        handwritingFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
                         writePos.y -= lineHeight * 0.75f*3;
                         }
                     else if ( isSub ) {

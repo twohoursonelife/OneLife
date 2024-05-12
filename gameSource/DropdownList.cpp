@@ -20,7 +20,7 @@ extern double frameRateFactor;
 int DropdownList::sDeleteFirstDelaySteps = 30 / frameRateFactor;
 int DropdownList::sDeleteNextDelaySteps = 2 / frameRateFactor;
 
-extern Font *oldMainFont;
+extern Font *mainFont;
 
 
 
@@ -635,7 +635,7 @@ void DropdownList::draw() {
                     lineDeleteButtonPos.y + buttonRightOffset / 2 + mBorderWide / 2 );
             }
             setDrawColor( 1, 1, 1, 1 );
-            oldMainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+            mainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
         }
         
         if( strcmp( mRawText, "" ) != 0 ) {
@@ -656,7 +656,7 @@ void DropdownList::draw() {
                 doublePair lineTextPos = { textPos.x, textPos.y - (i + 1) * mHigh };
                     
                 setDrawColor( 0, 0, 0, 0.5 );
-                float buttonRightOffset = oldMainFont->measureString( "x" );
+                float buttonRightOffset = mainFont->measureString( "x" );
                 doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, lineTextPos.y };
                 if( hoverIndex == i && nearRightEdge ) {
                     drawRect( 
@@ -687,7 +687,7 @@ void DropdownList::draw() {
                 mFont->drawString( lineText, lineTextPos, alignLeft );
                 
                 setDrawColor( 1, 1, 1, 1 );
-                oldMainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+                mainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
                 
                 
                 
