@@ -1058,9 +1058,13 @@ static void drawTransObject( int inID, doublePair inPos ) {
         
         inPos = sub( inPos, mult( getObjectCenterOffset( r ), zoom ) );
 
+        setDrawnObjectScale( zoom );
+
         drawObject( getObject( inID ), 2, inPos, 0, false, false, 20, 0, false,
                     false,
-                    getEmptyClothingSet(), zoom );
+                    getEmptyClothingSet() );
+
+        setDrawnObjectScale( 1.0 );
         }
     }
 
