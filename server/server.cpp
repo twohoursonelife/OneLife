@@ -12822,14 +12822,6 @@ int main() {
         SettingsManager::getStringSetting( "infertilitySuffix", "+INFERTILE+" );
     fertilitySuffix = 
         SettingsManager::getStringSetting( "fertilitySuffix", "+FERTILE+" );
-    //Pad the suffix to have some space between player name and the suffix
-    //padding it in the ini file wouldnt work, for some unknown reason...
-    std::string strInfertilitySuffix(infertilitySuffix);
-    std::string strFertilitySuffix(fertilitySuffix);
-    strInfertilitySuffix = " " + strInfertilitySuffix;
-    strFertilitySuffix = " " + strFertilitySuffix;
-    infertilitySuffix = strdup( strInfertilitySuffix.c_str() );
-    fertilitySuffix = strdup( strFertilitySuffix.c_str() );
     
     curseYouPhrase = 
         SettingsManager::getSettingContents( "curseYouPhrase", 
@@ -16477,12 +16469,10 @@ int main() {
                                 
                                 if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
                                 if ( nextPlayer->declaredInfertile ) {
-                                    std::string strName(nextPlayer->name);
-                                    strName += strInfertilitySuffix;
-                                    nextPlayer->displayedName = strdup( strName.c_str() );
+                                    nextPlayer->displayedName = autoSprintf( "%s %s", nextPlayer->name, infertilitySuffix);
                                     } 
                                 else {
-                                    nextPlayer->displayedName = strdup( nextPlayer->name );
+                                    nextPlayer->displayedName = stringDuplicate( nextPlayer->name );
                                     }
                                 
                                 playerIndicesToSendNamesAbout.push_back( i );
@@ -16497,11 +16487,9 @@ int main() {
                                 
                                 if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
                                 if (nextPlayer->name == NULL) {
-                                    nextPlayer->displayedName = strdup( infertilitySuffix );
+                                    nextPlayer->displayedName = stringDuplicate( infertilitySuffix );
                                 } else {
-                                    std::string strName(nextPlayer->name);
-                                    strName += strInfertilitySuffix;
-                                    nextPlayer->displayedName = strdup( strName.c_str() );
+                                    nextPlayer->displayedName = autoSprintf( "%s %s", nextPlayer->name, infertilitySuffix);
                                 }
                                 
                                 playerIndicesToSendNamesAbout.push_back( i );
@@ -16511,9 +16499,9 @@ int main() {
                                 
                                 if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
                                 if (nextPlayer->name == NULL) {
-                                    nextPlayer->displayedName = strdup( fertilitySuffix );
+                                    nextPlayer->displayedName = stringDuplicate( fertilitySuffix );
                                 } else {
-                                    nextPlayer->displayedName = strdup( nextPlayer->name );
+                                    nextPlayer->displayedName = stringDuplicate( nextPlayer->name );
                                 }
                                 
                                 playerIndicesToSendNamesAbout.push_back( i );
@@ -16573,12 +16561,10 @@ int main() {
                                     
                                     if ( babyO->displayedName != NULL ) delete [] babyO->displayedName;
                                     if ( babyO->declaredInfertile ) {
-                                        std::string strName(babyO->name);
-                                        strName += strInfertilitySuffix;
-                                        babyO->displayedName = strdup( strName.c_str() );
+                                        babyO->displayedName = autoSprintf( "%s %s", babyO->name, infertilitySuffix);
                                         } 
                                     else {
-                                        babyO->displayedName = strdup( babyO->name );
+                                        babyO->displayedName = stringDuplicate( babyO->name );
                                         }
                                     }
                                 }
@@ -16603,12 +16589,10 @@ int main() {
                                     
                                     if ( closestOther->displayedName != NULL ) delete [] closestOther->displayedName;
                                     if ( closestOther->declaredInfertile ) {
-                                        std::string strName(closestOther->name);
-                                        strName += strInfertilitySuffix;
-                                        closestOther->displayedName = strdup( strName.c_str() );
+                                        closestOther->displayedName = autoSprintf( "%s %s", closestOther->name, infertilitySuffix);
                                         } 
                                     else {
-                                        closestOther->displayedName = strdup( closestOther->name );
+                                        closestOther->displayedName = stringDuplicate( closestOther->name );
                                         }
                                     }
                                 }
