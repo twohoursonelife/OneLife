@@ -20,8 +20,6 @@ extern double frameRateFactor;
 int DropdownList::sDeleteFirstDelaySteps = 30 / frameRateFactor;
 int DropdownList::sDeleteNextDelaySteps = 2 / frameRateFactor;
 
-extern Font *mainFont;
-
 
 
 DropdownList::DropdownList( Font *inDisplayFont, 
@@ -620,22 +618,23 @@ void DropdownList::draw() {
         
         
     if ( mFocused ) {
+
+        float pixWidth = mCharWidth / 8;
+        float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
+        float buttonRightOffset = buttonWidth / 2 + mBorderWide;
         
         if( mUseClearButton && strcmp( mText, "" ) != 0 ) {
-            float pixWidth = mCharWidth / 8;
-            float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
-            float buttonRightOffset = buttonWidth / 2 + pixWidth * 2;
             doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, 0 };
             if ( onClearButton ) {
                 setDrawColor( 0, 0, 0, 0.5 );
                 drawRect( 
-                    lineDeleteButtonPos.x - buttonRightOffset / 2 - mBorderWide / 2, 
-                    lineDeleteButtonPos.y - buttonRightOffset / 2 - mBorderWide / 2, 
-                    lineDeleteButtonPos.x + buttonRightOffset / 2 + mBorderWide / 2, 
-                    lineDeleteButtonPos.y + buttonRightOffset / 2 + mBorderWide / 2 );
+                    lineDeleteButtonPos.x - buttonWidth / 2, 
+                    lineDeleteButtonPos.y - buttonWidth / 2, 
+                    lineDeleteButtonPos.x + buttonWidth / 2, 
+                    lineDeleteButtonPos.y + buttonWidth / 2 );
             }
             setDrawColor( 1, 1, 1, 1 );
-            mainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+            mFont->drawString( "x", lineDeleteButtonPos, alignCenter );
         }
         
         if( strcmp( mRawText, "" ) != 0 ) {
@@ -656,14 +655,13 @@ void DropdownList::draw() {
                 doublePair lineTextPos = { textPos.x, textPos.y - (i + 1) * mHigh };
                     
                 setDrawColor( 0, 0, 0, 0.5 );
-                float buttonRightOffset = mainFont->measureString( "x" );
                 doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, lineTextPos.y };
                 if( hoverIndex == i && nearRightEdge ) {
                     drawRect( 
-                        lineDeleteButtonPos.x - buttonRightOffset / 2 - mBorderWide / 2, 
-                        lineDeleteButtonPos.y - buttonRightOffset / 2 - mBorderWide / 2, 
-                        lineDeleteButtonPos.x + buttonRightOffset / 2 + mBorderWide / 2, 
-                        lineDeleteButtonPos.y + buttonRightOffset / 2 + mBorderWide / 2 );
+                        lineDeleteButtonPos.x - buttonWidth / 2, 
+                        lineDeleteButtonPos.y - buttonWidth / 2, 
+                        lineDeleteButtonPos.x + buttonWidth / 2, 
+                        lineDeleteButtonPos.y + buttonWidth / 2 );
                     }
                 
                 setDrawColor( 1, 1, 1, 1 );
@@ -687,7 +685,7 @@ void DropdownList::draw() {
                 mFont->drawString( lineText, lineTextPos, alignLeft );
                 
                 setDrawColor( 1, 1, 1, 1 );
-                mainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+                mFont->drawString( "x", lineDeleteButtonPos, alignCenter );
                 
                 
                 
@@ -806,7 +804,7 @@ char DropdownList::isInsideTextBox( float inX, float inY ) {
 char DropdownList::isNearRightEdge( float inX, float inY ) {
     float pixWidth = mCharWidth / 8;
     float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
-    float buttonRightOffset = buttonWidth / 2 + pixWidth * 2;
+    float buttonRightOffset = buttonWidth / 2 + mBorderWide;
     return inX > 0 && 
         fabs( inX - ( mWide / 2 - buttonRightOffset ) ) < buttonWidth / 2;
     }
