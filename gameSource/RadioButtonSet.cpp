@@ -10,7 +10,8 @@ static int baseCheckboxSep = 6;
 RadioButtonSet::RadioButtonSet( Font *inDisplayFont, double inX, double inY,
                                 int inNumItems, const char **inItemNames,
                                 char inRightLabels,
-                                double inDrawScale )
+                                double inDrawScale,
+                                char inDrawNamesWithShadow )
         : PageComponent( inX, inY ),
           mHover( false ), 
           mDisplayFont( inDisplayFont ),
@@ -19,7 +20,8 @@ RadioButtonSet::RadioButtonSet( Font *inDisplayFont, double inX, double inY,
           mCheckboxes( new CheckboxButton *[ inNumItems ] ),
           mRightLabels( inRightLabels ),
           mCheckboxSep( inDrawScale * baseCheckboxSep ),
-          mSelectedItem( 0 ) {
+          mSelectedItem( 0 ),
+          mDrawNamesWithShadow( inDrawNamesWithShadow ) {
 
     
     for( int i=0; i<mNumItems; i++ ) {
@@ -127,6 +129,13 @@ void RadioButtonSet::draw() {
     
         pos.x += sep;
         pos.y -= 2;
+
+        if( mDrawNamesWithShadow ) {
+            setDrawColor( 0, 0, 0, 1 );
+            doublePair shadowOffset = {-2, 2};
+            mDisplayFont->drawString( mItemNames[i], add(pos, shadowOffset), a );
+            setDrawColor( 1, 1, 1, 1 );
+            }
         
         mDisplayFont->drawString( mItemNames[i], pos, a );
         }

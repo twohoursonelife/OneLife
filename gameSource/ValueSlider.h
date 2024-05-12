@@ -22,7 +22,8 @@ class ValueSlider : public PageComponent, public ActionListenerList,
                      double inWidth, double inHeight,
                      double inLowValue,
                      double inHighValue,
-                     const char *inLabelText );
+                     const char *inLabelText,
+                     char inDrawLabelWithShadow = false );
         
         ~ValueSlider();
         

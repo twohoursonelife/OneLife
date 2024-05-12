@@ -108,10 +108,10 @@ SettingsPage::SettingsPage()
           // Sound
           mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
                                 0.0, 1.0, 
-                                translate( "musicLoudness" ) ),
+                                translate( "musicLoudness" ), true ),
           mSoundEffectsLoudnessSlider( mainFont, 0, -48, 4, 200, 30,
                                        0.0, 1.0, 
-                                       translate( "soundLoudness" ) )
+                                       translate( "soundLoudness" ), true )
 #ifdef USE_DISCORD
         , mEnableDiscordRichPresence(0, 168, 4),
           mEnableDiscordRichPresenceStatus(0, 128, 4), 
@@ -203,7 +203,7 @@ SettingsPage::SettingsPage()
     mCursorModeSet = 
         new RadioButtonSet( mainFont, 561, 275,
                             3, choiceList,
-                            false, 4 );
+                            false, 4, true );
     addComponent( mCursorModeSet );
     mCursorModeSet->addActionListener( this );
     
@@ -911,6 +911,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     }
 
 
+void drawTextWithShadow( const char *text, doublePair pos, TextAlignment alignment ) {
+    doublePair shadowOffset = {-2, 2};
+    setDrawColor( 0, 0, 0, 1 );
+    mainFont->drawString( text, add(pos, shadowOffset), alignment );
+    setDrawColor( 1, 1, 1, 1 );
+    mainFont->drawString( text, pos, alignment );
+    }
 
 
 void SettingsPage::draw( doublePair inViewCenter, 
@@ -924,14 +931,14 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
         
-        mainFont->drawString( translate( "vsyncOn" ), pos, alignRight );
+        drawTextWithShadow( translate( "vsyncOn" ), pos, alignRight );
         
         pos = mFullscreenBox.getPosition();
         
         pos.x -= 30;
         pos.y -= 2;
         
-        mainFont->drawString( translate( "fullscreen" ), pos, alignRight );
+        drawTextWithShadow( translate( "fullscreen" ), pos, alignRight );
 
 
         if( mBorderlessBox.isVisible() ) {
@@ -940,7 +947,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x -= 30;
             pos.y -= 2;
             
-            mainFont->drawString( translate( "borderless" ), pos, alignRight );
+            drawTextWithShadow( translate( "borderless" ), pos, alignRight );
             }
 
 
@@ -950,7 +957,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x -= 30;
             pos.y -= 2;
             
-            mainFont->drawString( "DISABLE FLASH EFFECT", pos, alignRight );
+            drawTextWithShadow( "DISABLE FLASH EFFECT", pos, alignRight );
             }
         
 
@@ -965,7 +972,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         if( ! mTargetFrameRateField.isVisible() ) {
             char *fpsString = autoSprintf( "%d", targetFramesPerSecond );
             
-            mainFont->drawString( fpsString, pos, alignLeft );
+            drawTextWithShadow( fpsString, pos, alignLeft );
             delete [] fpsString;
             }
 
@@ -974,7 +981,7 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         char *currentFPSString = autoSprintf( "%.2f", getRecentFrameRate() );
         
-        mainFont->drawString( currentFPSString, pos, alignLeft );
+        drawTextWithShadow( currentFPSString, pos, alignLeft );
         delete [] currentFPSString;
         
 
@@ -984,9 +991,9 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y += 52;
         
         pos.y += 52;
-        mainFont->drawString( translate( "targetFPS" ), pos, alignRight );
+        drawTextWithShadow( translate( "targetFPS" ), pos, alignRight );
         pos.y += 52;
-        mainFont->drawString( translate( "currentFPS" ), pos, alignRight );
+        drawTextWithShadow( translate( "currentFPS" ), pos, alignRight );
         }
 
 
@@ -996,7 +1003,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "ENABLE NUDITY", pos, alignRight );
+        drawTextWithShadow( "ENABLE NUDITY", pos, alignRight );
         }
     if( mUISizeSlider.isVisible() ) {
         doublePair pos = mEnableNudeBox.getPosition();
@@ -1005,7 +1012,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y = mUISizeSlider.getPosition().y;
         pos.y -= 2;
 
-        mainFont->drawString( "UI SIZE", pos, alignRight );
+        drawTextWithShadow( "UI SIZE", pos, alignRight );
         }
         
     if( mUseCustomServerBox.isVisible() ) {
@@ -1014,14 +1021,14 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( translate( "useCustomServer" ), pos, alignRight );
+        drawTextWithShadow( translate( "useCustomServer" ), pos, alignRight );
         
         if( mUseCustomServerBox.getToggled() ) {
             pos.y += 2;
             pos.y -= 52 + 52/4;
-            mainFont->drawString( translate( "address" ), pos, alignRight );
+            drawTextWithShadow( translate( "address" ), pos, alignRight );
             pos.y -= 52 + 52/4;
-            mainFont->drawString( translate( "port" ), pos, alignRight );
+            drawTextWithShadow( translate( "port" ), pos, alignRight );
             }
         }
     
@@ -1031,7 +1038,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "ENABLE ZOOM", pos, alignRight );
+        drawTextWithShadow( "ENABLE ZOOM", pos, alignRight );
         }
     
     if( mEnableKActionsBox.isVisible() ) {
@@ -1040,7 +1047,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "KEYBOARD ACTIONS", pos, alignRight );
+        drawTextWithShadow( "KEYBOARD ACTIONS", pos, alignRight );
         }
     
     if( mEnableCenterCameraBox.isVisible() ) {
@@ -1049,7 +1056,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "CENTER CAMERA", pos, alignRight );
+        drawTextWithShadow( "CENTER CAMERA", pos, alignRight );
         }
 
 
@@ -1062,7 +1069,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x = xPos;
         pos.y += 37;
         
-        mainFont->drawString( translate( "cursor"), pos, alignRight );
+        drawTextWithShadow( translate( "cursor"), pos, alignRight );
         
         if( mCursorScaleSlider.isVisible() ) {
             
@@ -1071,7 +1078,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x = xPos;
             pos.y -= 2;
             
-            mainFont->drawString( translate( "scale"), pos, alignRight );
+            drawTextWithShadow( translate( "scale"), pos, alignRight );
             }
         }
 #ifdef USE_DISCORD
@@ -1081,7 +1088,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "RICH PRESENCE ", pos, alignRight );
+        drawTextWithShadow( "RICH PRESENCE ", pos, alignRight );
         }
     if( mEnableDiscordRichPresenceStatus.isVisible() ) {
         doublePair pos = mEnableDiscordRichPresenceStatus.getPosition();
@@ -1089,7 +1096,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "RICH PRESENCE STATUS", pos, alignRight );
+        drawTextWithShadow( "RICH PRESENCE STATUS", pos, alignRight );
         }
     if( mEnableDiscordShowAgeInStatus.isVisible() ) {
         doublePair pos = mEnableDiscordShowAgeInStatus.getPosition();
@@ -1097,7 +1104,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "SHOW AGE", pos, alignRight );
+        drawTextWithShadow( "SHOW AGE", pos, alignRight );
         }
     if( mEnableDiscordRichPresenceDetails.isVisible() ) {
         doublePair pos = mEnableDiscordRichPresenceDetails.getPosition();
@@ -1105,7 +1112,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "RICH PRESENCE DETAILS", pos, alignRight );
+        drawTextWithShadow( "RICH PRESENCE DETAILS", pos, alignRight );
         }
     if( mDiscordHideFirstNameInDetails.isVisible() ) {
         doublePair pos = mDiscordHideFirstNameInDetails.getPosition();
@@ -1113,7 +1120,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "HIDE FIRST NAME", pos, alignRight );
+        drawTextWithShadow( "HIDE FIRST NAME", pos, alignRight );
         }    
     // prevent someone from making spamming requests to update their status, discord may block our key, due to spamming requests!
     // allow for at least 2 seconds to pass until the user is allowed to change the discord setting again.
@@ -1129,51 +1136,51 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("SHOW USE ON HOVER", pos, alignRight);
+        drawTextWithShadow("SHOW USE ON HOVER", pos, alignRight);
         }
     if (mEnableCoordinatesBox.isVisible()) {
         doublePair pos = mEnableCoordinatesBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("SHOW COORDINATES", pos, alignRight);
+        drawTextWithShadow("SHOW COORDINATES", pos, alignRight);
         }
     if (mEnablePersistentEmoteBox.isVisible()) {
         doublePair pos = mEnablePersistentEmoteBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("USE PERMANENT EMOTE", pos, alignRight);
+        drawTextWithShadow("USE PERMANENT EMOTE", pos, alignRight);
         }
     if (mEnableYumFinderBox.isVisible()) {
         doublePair pos = mEnableYumFinderBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("ENABLE YUM FINDER", pos, alignRight);
+        drawTextWithShadow("ENABLE YUM FINDER", pos, alignRight);
         }
     if (mEnableObjectSearchBox.isVisible()) {
         doublePair pos = mEnableObjectSearchBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("ENABLE OBJECT FINDER", pos, alignRight);
+        drawTextWithShadow("ENABLE OBJECT FINDER", pos, alignRight);
         }
     if (mEnableFamilyDisplayBox.isVisible()) {
         doublePair pos = mEnableFamilyDisplayBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("ENABLE FAMILY DISPLAY", pos, alignRight);
+        drawTextWithShadow("ENABLE FAMILY DISPLAY", pos, alignRight);
         }
     if (mEnableDangerousTileBox.isVisible()) {
         doublePair pos = mEnableDangerousTileBox.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("ENABLE DANGER HIGHLIGHT", pos, alignRight);
+        drawTextWithShadow("ENABLE DANGER HIGHLIGHT", pos, alignRight);
         }
-}
+    }
 
 
 

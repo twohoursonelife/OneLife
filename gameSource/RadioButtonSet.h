@@ -16,7 +16,8 @@ class RadioButtonSet : public PageComponent, public ActionListenerList,
                         int inNumItems, const char **inItemNames,
                         // true to put labels on right side
                         char inRightLabels = false,
-                        double inDrawScale = 1.0 );
+                        double inDrawScale = 1.0,
+                        char inDrawNamesWithShadow = false );
         
 
         ~RadioButtonSet();
@@ -59,6 +60,8 @@ class RadioButtonSet : public PageComponent, public ActionListenerList,
         
 
         int mSelectedItem;
+
+        char mDrawNamesWithShadow;
     };
 
     
