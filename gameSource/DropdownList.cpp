@@ -169,7 +169,6 @@ void DropdownList::setContentsHidden( char inHidden ) {
 
 
 void DropdownList::setList( const char *inText ) {
-    delete [] mRawText;
 
     // obeys same rules as typing (skip blocked characters)
     SimpleVector<char> filteredText;
@@ -188,7 +187,8 @@ void DropdownList::setList( const char *inText ) {
     char **lines = split( rawStringWithEmptyLines, "\n", &numLines );
     delete [] rawStringWithEmptyLines;
     
-    mRawText = strdup("");
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = stringDuplicate("");
     
     for( int i=0; i<numLines; i++ ) {
         
@@ -218,7 +218,7 @@ void DropdownList::setList( const char *inText ) {
 
 char *DropdownList::getAndUpdateList() {
     
-    char *newList = strdup("");
+    char *newList = stringDuplicate("");
     listLen = 0;
     
     if( strcmp( mRawText, "" ) != 0 ) {
@@ -245,10 +245,10 @@ char *DropdownList::getAndUpdateList() {
     if( strcmp( mRawText, "" ) != 0 ) listLen += 1;
     newList = concatonate( mText, newList );
     
-    delete [] mRawText;
+    if( mRawText != NULL ) delete [] mRawText;
     mRawText = stringDuplicate( trimWhitespace( newList ) );
     
-    return stringDuplicate( newList );
+    return newList;
     }
     
     
@@ -294,8 +294,8 @@ void DropdownList::deleteOption( int index ) {
     int numLines;
     char **lines = split( mRawText, "\n", &numLines );
     
-    delete [] mRawText;
-    mRawText = strdup("");
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = stringDuplicate("");
     
     for( int i=0; i<numLines; i++ ) {
         

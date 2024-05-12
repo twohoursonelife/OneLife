@@ -1227,7 +1227,7 @@ void TextField::setIgnoredKey( unsigned char inASCII ) {
         delete [] mForbiddenChars;
         mForbiddenChars = NULL;
         }
-    mForbiddenChars = strdup( newChars.c_str() );
+    mForbiddenChars = stringDuplicate( newChars.c_str() );
     
     }
 
