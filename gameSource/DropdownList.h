@@ -34,8 +34,8 @@ class DropdownList : public PageComponent, public ActionListenerList {
         void setContentsHidden( char inHidden );
         
 
-		void setList( const char *inText  );
-		char *getAndUpdateList();
+        void setList( const char *inText  );
+        char *getAndUpdateList();
 
         // copied internally
         void setText( const char *inText );
@@ -43,10 +43,10 @@ class DropdownList : public PageComponent, public ActionListenerList {
 
         // destroyed by caller
         char *getText();
-		
-		
-		void selectOption( int index );
-		void deleteOption( int index );
+        
+        
+        void selectOption( int index );
+        void deleteOption( int index );
         
 
         // defaults to -1 (no limit)
@@ -118,7 +118,7 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
         // defaults to off
         void usePasteShortcut( char inShortcutOn );
-		
+        
         // defaults to off
         void useClearButton( char inClearButtonOn );
         
@@ -133,8 +133,8 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
         virtual void draw();
 
-		virtual void pointerMove( float inX, float inY );
-		virtual void pointerDown( float inX, float inY );
+        virtual void pointerMove( float inX, float inY );
+        virtual void pointerDown( float inX, float inY );
         virtual void pointerUp( float inX, float inY );
 
         virtual void keyDown( unsigned char inASCII );
@@ -203,15 +203,15 @@ class DropdownList : public PageComponent, public ActionListenerList {
         
 
         char *mRawText;
-		int listLen;
-		
-		int hoverIndex;
-		int insideIndex( float inX, float inY );
-		char isInsideTextBox( float inX, float inY );
-		bool nearRightEdge;
-		char isNearRightEdge( float inX, float inY );
-		bool mUseClearButton;
-		bool onClearButton;
+        int listLen;
+        
+        int hoverIndex;
+        int insideIndex( float inX, float inY );
+        char isInsideTextBox( float inX, float inY );
+        bool nearRightEdge;
+        char isNearRightEdge( float inX, float inY );
+        bool mUseClearButton;
+        bool onClearButton;
         
         
         char mFocused;

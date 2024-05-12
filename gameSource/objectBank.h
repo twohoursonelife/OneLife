@@ -427,10 +427,10 @@ typedef struct ObjectRecord {
         int horizontalVersionID;
         int verticalVersionID;
         int cornerVersionID;
-		
-		
-		char isTapOutTrigger;
-		
+        
+        
+        char isTapOutTrigger;
+        
         char autoDefaultTrans;
 
         char noBackAccess;
@@ -440,10 +440,10 @@ typedef struct ObjectRecord {
         char passwordAssigner;
         char passwordProtectable;
         
-		//2HOL mechanics to read written objects
-		char clickToRead;
-		char passToRead;
-		
+        //2HOL mechanics to read written objects
+        char clickToRead;
+        char passToRead;
+        
         SimpleVector<int> IndX;
         SimpleVector<int> IndY;
         SimpleVector<char*> IndPass;

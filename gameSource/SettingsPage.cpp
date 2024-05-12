@@ -69,8 +69,8 @@ SettingsPage::SettingsPage()
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
 
           // Gameplay
-		  mEnableFOVBox( 561, 128, 4 ),
-		  mEnableCenterCameraBox( 561, 52, 4 ),
+          mEnableFOVBox( 561, 128, 4 ),
+          mEnableCenterCameraBox( 561, 52, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
           mUISizeSlider( mainFont, -335, 148, 4, 200, 30,
                                        1.0, 1.75, 
@@ -89,7 +89,7 @@ SettingsPage::SettingsPage()
           mPasteButton( mainFont, 518, -216, translate( "paste" ) ),
           
           // Control
-		  mEnableKActionsBox( 561, 90, 4 ),
+          mEnableKActionsBox( 561, 90, 4 ),
           mCursorScaleSlider( mainFont, 297, 155, 4, 200, 30,
                                        1.0, 10.0, 
                                        translate( "scale" ) ),
@@ -207,7 +207,7 @@ SettingsPage::SettingsPage()
     addComponent( mCursorModeSet );
     mCursorModeSet->addActionListener( this );
     
-	addComponent( &mEnableKActionsBox );
+    addComponent( &mEnableKActionsBox );
     mEnableKActionsBox.addActionListener( this );
     
     // Gameplay
@@ -230,9 +230,9 @@ SettingsPage::SettingsPage()
     mUISizeSlider.addActionListener( this );
     addComponent( &mEnableNudeBox );
     mEnableNudeBox.addActionListener( this );
-	addComponent( &mEnableCenterCameraBox );
+    addComponent( &mEnableCenterCameraBox );
     mEnableCenterCameraBox.addActionListener( this );
-	addComponent( &mEnableFOVBox );
+    addComponent( &mEnableFOVBox );
     mEnableFOVBox.addActionListener( this );
     
     // Left pane
@@ -363,21 +363,21 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "nudeEnabled", 1 );
 
     mEnableNudeBox.setToggled( mEnableNudeSetting );
-	
-	mEnableFOVSetting =
-        SettingsManager::getIntSetting( "fovEnabled", 0 );
-	
-	mEnableFOVBox.setToggled( mEnableFOVSetting );
     
-	mEnableKActionsSetting =
+    mEnableFOVSetting =
+        SettingsManager::getIntSetting( "fovEnabled", 0 );
+    
+    mEnableFOVBox.setToggled( mEnableFOVSetting );
+    
+    mEnableKActionsSetting =
         SettingsManager::getIntSetting( "keyboardActions", 0 );
-	
-	mEnableKActionsBox.setToggled( mEnableKActionsSetting );
+    
+    mEnableKActionsBox.setToggled( mEnableKActionsSetting );
         
-	mEnableCenterCameraSetting =
+    mEnableCenterCameraSetting =
         SettingsManager::getIntSetting( "centerCamera", 0 );
-	
-	mEnableCenterCameraBox.setToggled( mEnableCenterCameraSetting );
+    
+    mEnableCenterCameraBox.setToggled( mEnableCenterCameraSetting );
 
 #ifdef USE_DISCORD
     mDiscordRichPresenceSetting =
@@ -575,7 +575,7 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         trippingEffectDisabled = newSetting;
         }
-	else if( inTarget == &mEnableNudeBox ) {
+    else if( inTarget == &mEnableNudeBox ) {
         int newSetting = mEnableNudeBox.getToggled();
         
         SettingsManager::setSetting( "nudeEnabled", newSetting );
@@ -592,21 +592,21 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
 
         }
-	else if( inTarget == &mUseCustomServerBox ) {
+    else if( inTarget == &mUseCustomServerBox ) {
         mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         }
-	else if( inTarget == &mEnableFOVBox ) {
+    else if( inTarget == &mEnableFOVBox ) {
         int newSetting = mEnableFOVBox.getToggled();
         
         SettingsManager::setSetting( "fovEnabled", newSetting );
         }
-	else if( inTarget == &mEnableKActionsBox ) {
+    else if( inTarget == &mEnableKActionsBox ) {
         int newSetting = mEnableKActionsBox.getToggled();
         
         SettingsManager::setSetting( "keyboardActions", newSetting );
         }
-	else if( inTarget == &mEnableCenterCameraBox ) {
+    else if( inTarget == &mEnableCenterCameraBox ) {
         int newSetting = mEnableCenterCameraBox.getToggled();
         
         SettingsManager::setSetting( "centerCamera", newSetting );
@@ -1024,7 +1024,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             mainFont->drawString( translate( "port" ), pos, alignRight );
             }
         }
-	
+    
     if( mEnableFOVBox.isVisible() ) {
         doublePair pos = mEnableFOVBox.getPosition();
         
@@ -1033,7 +1033,7 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString( "ENABLE ZOOM", pos, alignRight );
         }
-	
+    
     if( mEnableKActionsBox.isVisible() ) {
         doublePair pos = mEnableKActionsBox.getPosition();
         
@@ -1042,7 +1042,7 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         mainFont->drawString( "KEYBOARD ACTIONS", pos, alignRight );
         }
-	
+    
     if( mEnableCenterCameraBox.isVisible() ) {
         doublePair pos = mEnableCenterCameraBox.getPosition();
         

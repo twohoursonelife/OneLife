@@ -495,8 +495,8 @@ static void updateObjectSearchArray() {
 
     int maxObjectID = getMaxObjectID();
 
-	if (objectMatches != NULL) delete[] objectMatches;
-	objectMatches = new bool[maxObjectID];
+    if (objectMatches != NULL) delete[] objectMatches;
+    objectMatches = new bool[maxObjectID];
 
     for (int id=0; id<maxObjectID; id++) {
         objectMatches[id] = false;
@@ -723,7 +723,7 @@ static char stripFertilitySuffix( char *name ) {
 char *getLastName( const char *name ) {
     if( name == NULL ) return NULL;
     char *lastName = NULL;
-	SimpleVector<char *> *tokens = tokenizeString( name );
+    SimpleVector<char *> *tokens = tokenizeString( name );
     if( tokens->size() > 1 ) {
         lastName = stringDuplicate( tokens->getElementDirect( 1 ) );
         }
@@ -772,16 +772,16 @@ void LivingLifePage::updatePlayersAndFamilies() {
 
     LiveObject *ourLiveObject = getOurLiveObject();
 
-	for(int i=gameObjects.size()-1; i>=0; i--) {
-		LiveObject *player = gameObjects.getElement( i );
+    for(int i=gameObjects.size()-1; i>=0; i--) {
+        LiveObject *player = gameObjects.getElement( i );
 
         ObjectRecord *playerObject = getObject(player->displayID);
 
         char isFertile = false;
         char declaredInfertile = false;
-		if ( !playerObject->male ) {
+        if ( !playerObject->male ) {
             isFertile = true;
-			if( player->name != NULL ) {
+            if( player->name != NULL ) {
                 char tagPresent = strstr(player->name, "+INFERTILE+") != NULL;
                 isFertile = !tagPresent;
                 declaredInfertile = tagPresent;
@@ -790,11 +790,11 @@ void LivingLifePage::updatePlayersAndFamilies() {
                 double age = computeServerAge( computeCurrentAge( player ) );
                 if( age >= infertileAge ) isFertile = false;
                 }
-		    }
+            }
 
         int eveID = player->lineageEveID;
         DisplayedFamily *family = NULL;
-		for (int j=0; j<displayedFamilies.size(); j++) {
+        for (int j=0; j<displayedFamilies.size(); j++) {
             DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
             if( displayedFamily->eveID == eveID ) {
                 family = displayedFamily;
@@ -1951,7 +1951,7 @@ static char *getFullUpperCasedObjectDescription( int inID ) {
         return NULL;
         }
     return stringToUpperCase( o->description );
-}
+    }
 
 
 static char *getDisplayObjectDescription( int inID ) {
@@ -1975,13 +1975,13 @@ std::string LivingLifePage::minitechGetFullObjectDescription( int objID ) {
 std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) { 
     ObjectRecord *o = getObject( objId );
     if( o == NULL ) {
-		return "";
+        return "";
         }
-	char *descriptionChars = getDisplayObjectDescription(objId);
-	std::string description(descriptionChars);
-	delete [] descriptionChars;
-	return description;
-}
+    char *descriptionChars = getDisplayObjectDescription(objId);
+    std::string description(descriptionChars);
+    delete [] descriptionChars;
+    return description;
+    }
 
 static bool isAllDigits( std::string &str ) {
     return std::all_of(str.begin(), str.end(), ::isdigit);
@@ -2003,12 +2003,12 @@ static bool potentialContainerChangebyContTrans( int oldId, int newId ) {
         strstr( newObj->description, "+useOnContained" ) != NULL )
         return true;
     return false;
-}
+    }
 
 typedef enum messageType {
     SHUTDOWN,
     SERVER_FULL,
-	SEQUENCE_NUMBER,
+    SEQUENCE_NUMBER,
     ACCEPTED,
     NO_LIFE_TOKENS,
     REJECTED,
@@ -3175,174 +3175,174 @@ static double remapDelaySeconds = 30;
 
 //EXTENDED FUNCTIONALITY
 void LivingLifePage::setNextActionMessage(const char* msg, int x, int y) {
-	if( nextActionMessageToSend != NULL ) {
-		delete [] nextActionMessageToSend;
-		nextActionMessageToSend = NULL;
-	}
+    if( nextActionMessageToSend != NULL ) {
+        delete [] nextActionMessageToSend;
+        nextActionMessageToSend = NULL;
+    }
 
-	playerActionTargetX = x;
-	playerActionTargetY = y;
-	playerActionTargetNotAdjacent = true;
-	nextActionDropping = false;
-	nextActionEating = false;
-	nextActionMessageToSend = autoSprintf( "%s", msg );
+    playerActionTargetX = x;
+    playerActionTargetY = y;
+    playerActionTargetNotAdjacent = true;
+    nextActionDropping = false;
+    nextActionEating = false;
+    nextActionMessageToSend = autoSprintf( "%s", msg );
 }
 
 int LivingLifePage::getObjId( int tileX, int tileY ) {
-	int mapX = tileX - mMapOffsetX + mMapD / 2;
-	int mapY = tileY - mMapOffsetY + mMapD / 2;
-	int i = mapY * mMapD + mapX;
-	if (i < 0 || i >= mMapD*mMapD) return -1;
-	return mMap[i];
+    int mapX = tileX - mMapOffsetX + mMapD / 2;
+    int mapY = tileY - mMapOffsetY + mMapD / 2;
+    int i = mapY * mMapD + mapX;
+    if (i < 0 || i >= mMapD*mMapD) return -1;
+    return mMap[i];
 }
 
 bool LivingLifePage::objIdReverseAction( int objId ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	if (objId <= 0) return false;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    if (objId <= 0) return false;
 
-	bool r = false;
-	if ( ourLiveObject->holdingID <= 0 ) {
-		switch (objId) {
-			case 253: // full berry clay bowl
-			case 225: // wheat bundle
-				return true;
-				break;
-		}
-		if ( getObject(objId) ) {
-			char* descr	= getObject(objId)->description;
-			if ( strstr(descr, "Bowl of") != NULL ) {
-				return true;
-			}
-		}
-	}
-	return r;
+    bool r = false;
+    if ( ourLiveObject->holdingID <= 0 ) {
+        switch (objId) {
+            case 253: // full berry clay bowl
+            case 225: // wheat bundle
+                return true;
+                break;
+        }
+        if ( getObject(objId) ) {
+            char* descr    = getObject(objId)->description;
+            if ( strstr(descr, "Bowl of") != NULL ) {
+                return true;
+            }
+        }
+    }
+    return r;
 }
 
 void LivingLifePage::pickUpBabyInRange() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	if ( computeCurrentAge( ourLiveObject ) < 13 ) return;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    if ( computeCurrentAge( ourLiveObject ) < 13 ) return;
 
-	if ( ourLiveObject->holdingID != 0 ) {
-		dropTileRelativeToMe( 0, 0 );
-		return;
-	}
+    if ( ourLiveObject->holdingID != 0 ) {
+        dropTileRelativeToMe( 0, 0 );
+        return;
+    }
 
-	// find new baby to pick up - prefer babies further away
-	int babyFound = false;
-	int babyX = 0;
-	int babyY = 0;
-	for(int i=0; i<gameObjects.size(); i++) {
-		LiveObject *o = gameObjects.getElement( i );
-			
-		if ( computeCurrentAge( o ) > 5 ) continue;
+    // find new baby to pick up - prefer babies further away
+    int babyFound = false;
+    int babyX = 0;
+    int babyY = 0;
+    for(int i=0; i<gameObjects.size(); i++) {
+        LiveObject *o = gameObjects.getElement( i );
+            
+        if ( computeCurrentAge( o ) > 5 ) continue;
 
-		if ( o->xd != ourLiveObject->xd && o->yd != ourLiveObject->yd ) continue; 
-		if ( !babyFound ) {
-			if ( o->xd == ourLiveObject->xd && o->yd == ourLiveObject->yd ) {
-				babyFound = true;
-				babyX = o->xd;
-				babyY = o->yd;
-				continue;
-			}
-		}
-		int posDiff = 0;
-		if ( o->xd == ourLiveObject->xd) posDiff = o->yd - ourLiveObject->yd;
-		else if ( o->yd == ourLiveObject->yd) posDiff = o->xd - ourLiveObject->xd;
-		if (posDiff > 1 || posDiff < -1) continue;
+        if ( o->xd != ourLiveObject->xd && o->yd != ourLiveObject->yd ) continue; 
+        if ( !babyFound ) {
+            if ( o->xd == ourLiveObject->xd && o->yd == ourLiveObject->yd ) {
+                babyFound = true;
+                babyX = o->xd;
+                babyY = o->yd;
+                continue;
+            }
+        }
+        int posDiff = 0;
+        if ( o->xd == ourLiveObject->xd) posDiff = o->yd - ourLiveObject->yd;
+        else if ( o->yd == ourLiveObject->yd) posDiff = o->xd - ourLiveObject->xd;
+        if (posDiff > 1 || posDiff < -1) continue;
 
-		pickUpBaby( o->xd, o->yd );
-		return;
-	}
-	if ( !babyFound ) return;
-	pickUpBaby( babyX, babyY );
+        pickUpBaby( o->xd, o->yd );
+        return;
+    }
+    if ( !babyFound ) return;
+    pickUpBaby( babyX, babyY );
 }
 
 void LivingLifePage::pickUpBaby( int x, int y ) {
-	char msg[32];
-	sprintf( msg, "BABY %d %d#", x, y );
-	setNextActionMessage( msg, x, y );
+    char msg[32];
+    sprintf( msg, "BABY %d %d#", x, y );
+    setNextActionMessage( msg, x, y );
 }
 
 void LivingLifePage::useBackpack(bool replace) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int clothingSlot = 5; // backpack clothing slot
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int clothingSlot = 5; // backpack clothing slot
 
-	int x, y;
-	setOurSendPosXY(x, y);
+    int x, y;
+    setOurSendPosXY(x, y);
 
-	char msg[32];
-	if( ourLiveObject->holdingID > 0 ) {
-		if (replace) {
-			sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
-		} else {
-			sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot );
-		}
-		setNextActionMessage( msg, x, y );
-		nextActionDropping = true;
-	} else {
-		sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
-		setNextActionMessage( msg, x, y );
-	}
+    char msg[32];
+    if( ourLiveObject->holdingID > 0 ) {
+        if (replace) {
+            sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
+        } else {
+            sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot );
+        }
+        setNextActionMessage( msg, x, y );
+        nextActionDropping = true;
+    } else {
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
+        setNextActionMessage( msg, x, y );
+    }
 }
 
 void LivingLifePage::usePocket(int clothingID) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int x, y;
-	setOurSendPosXY(x, y);
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int x, y;
+    setOurSendPosXY(x, y);
 
-	char msg[32];
-	if( ourLiveObject->holdingID > 0 ) {
-		sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
-		setNextActionMessage( msg, x, y );
-		nextActionDropping = true;
-	} else {
-		sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingID, -1 );
-		setNextActionMessage( msg, x, y );
-	}
+    char msg[32];
+    if( ourLiveObject->holdingID > 0 ) {
+        sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
+        setNextActionMessage( msg, x, y );
+        nextActionDropping = true;
+    } else {
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingID, -1 );
+        setNextActionMessage( msg, x, y );
+    }
 }
 
 void LivingLifePage::useOnSelf() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int x, y;
-	setOurSendPosXY(x, y);
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int x, y;
+    setOurSendPosXY(x, y);
 
-	if( ourLiveObject->holdingID <= 0 ) return;
+    if( ourLiveObject->holdingID <= 0 ) return;
 
-	char msg[32];
-	sprintf( msg, "SELF %d %d %d#", x, y, -1 );
-	setNextActionMessage( msg, x, y );
+    char msg[32];
+    sprintf( msg, "SELF %d %d %d#", x, y, -1 );
+    setNextActionMessage( msg, x, y );
 
     // this is for eatEverything mode
     // not sure if these two condition are redundant
-	if( getObject( ourLiveObject->holdingID )->foodValue > 0 || holdingYumOrMeh )
-		nextActionEating = true;
+    if( getObject( ourLiveObject->holdingID )->foodValue > 0 || holdingYumOrMeh )
+        nextActionEating = true;
 }
 
 void LivingLifePage::takeOffBackpack() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	char message[32];
-	sprintf(message, "SELF %i %i 5#", ourLiveObject->xd, ourLiveObject->yd);
-	sendToServerSocket( message );
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    char message[32];
+    sprintf(message, "SELF %i %i 5#", ourLiveObject->xd, ourLiveObject->yd);
+    sendToServerSocket( message );
 }
 
 void LivingLifePage::setOurSendPosXY(int &x, int &y) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x = round( ourLiveObject->xd );
-	y = round( ourLiveObject->yd );
-	x = sendX(x);
-	y = sendY(y);
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x = round( ourLiveObject->xd );
+    y = round( ourLiveObject->yd );
+    x = sendX(x);
+    y = sendY(y);
 }
 
 bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
-	char tKey = key;
-	return (c == key || c == toupper(tKey) || 
+    char tKey = key;
+    return (c == key || c == toupper(tKey) || 
         c+64 == toupper(tKey) // ctrl + key
         );
 }
@@ -3622,13 +3622,13 @@ LivingLifePage::LivingLifePage()
     readPhrases( "passwordProtectingPhrases", &passwordProtectingPhrases );
 
     readPhrases( "commandShortcuts", &commandShortcuts );
-	
+    
     drunkEmotionIndex =
         SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
-	
+    
     trippingEmotionIndex =
         SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
-		
+        
     trippingEffectDisabled =
         SettingsManager::getIntSetting( "trippingEffectDisabled", 0 );
           
@@ -3835,29 +3835,29 @@ LivingLifePage::LivingLifePage()
     mLiveCravingSheetIndex = -1;
 
     //FOV
-	calcOffsetHUD();
+    calcOffsetHUD();
 
-	Image *tempImage = readTGAFile( "guiPanel.tga" );
-	Image *tempImage2;
+    Image *tempImage = readTGAFile( "guiPanel.tga" );
+    Image *tempImage2;
 
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
-	guiPanelLeftSprite = fillSprite( tempImage2 );
-	delete tempImage2;
+    tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
+    guiPanelLeftSprite = fillSprite( tempImage2 );
+    delete tempImage2;
 
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
-	guiPanelTileSprite = fillSprite( tempImage2 );
-	setSpriteWrapping( guiPanelTileSprite, true, false );
-	delete tempImage2;
+    tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
+    guiPanelTileSprite = fillSprite( tempImage2 );
+    setSpriteWrapping( guiPanelTileSprite, true, false );
+    delete tempImage2;
 
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
-	guiPanelRightSprite = fillSprite( tempImage2 );
-	delete tempImage2;
+    tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
+    guiPanelRightSprite = fillSprite( tempImage2 );
+    delete tempImage2;
 
-	delete tempImage;
+    delete tempImage;
 
     bottomPanelComponent.mActive = true;
 
-	//
+    //
 
     mMap = new int[ mMapD * mMapD ];
     mMapBiomes = new int[ mMapD * mMapD ];
@@ -3969,22 +3969,22 @@ LivingLifePage::LivingLifePage()
     if( ! tutorialDone ) {
         mTutorialNumber = 1;
         }
-		
-	minitech::setLivingLifePage(
-		this, 
-		&gameObjects, 
-		mMapD, 
-		pathFindingD, 
-		mMapContainedStacks, 
-		mMapSubContainedStacks,
-		mCellFillSprite,
-		mCellBorderSprite
+        
+    minitech::setLivingLifePage(
+        this, 
+        &gameObjects, 
+        mMapD, 
+        pathFindingD, 
+        mMapContainedStacks, 
+        mMapSubContainedStacks,
+        mCellFillSprite,
+        mCellBorderSprite
         );
     newbieTips::init(
-		this,
-		&gameObjects,
-		mMapD,
-		pathFindingD
+        this,
+        &gameObjects,
+        mMapD,
+        pathFindingD
         );
     }
 
@@ -4153,10 +4153,10 @@ LivingLifePage::~LivingLifePage() {
     freeSprite( mGuiPanelSprite );
     freeSprite( mGuiBloodSprite );
 
-	//FOV
-	freeSprite( guiPanelLeftSprite );
-	freeSprite( guiPanelTileSprite );
-	freeSprite( guiPanelRightSprite );
+    //FOV
+    freeSprite( guiPanelLeftSprite );
+    freeSprite( guiPanelTileSprite );
+    freeSprite( guiPanelRightSprite );
 
     freeSprite( bigSheet );
     
@@ -4358,93 +4358,93 @@ LiveObject *LivingLifePage::getLiveObject( int inID ) {
 
 
 bool LivingLifePage::tileBlocked( int x, int y ) {
-	int oid = getObjId( x, y );
-	int oid_right = getObjId( x + 1, y );
-	int oid_left = getObjId( x - 1, y );
-	ObjectRecord *o = NULL;
-	ObjectRecord *o_right = NULL;
-	ObjectRecord *o_left = NULL;
-	if( oid > 0 ) o = getObject( oid );
-	if( oid_right > 0 ) o_right = getObject( oid_right );
-	if( oid_left > 0 ) o_left = getObject( oid_left );
-	bool blocked_center = true;
-	bool blocked_from_right = true;
-	bool blocked_from_left = true;
-	if( oid == 0 || ( o != NULL && !o->blocksWalking ) ) blocked_center = false;
-	if( oid_right == 0 || ( o_right != NULL && o_right->leftBlockingRadius == 0 ) ) blocked_from_right = false;
-	if( oid_left == 0 || ( o_left != NULL && o_left->rightBlockingRadius == 0 ) ) blocked_from_left = false;
-	if( blocked_center || blocked_from_right || blocked_from_left ) return true;
-	return false;
-	}
-	
+    int oid = getObjId( x, y );
+    int oid_right = getObjId( x + 1, y );
+    int oid_left = getObjId( x - 1, y );
+    ObjectRecord *o = NULL;
+    ObjectRecord *o_right = NULL;
+    ObjectRecord *o_left = NULL;
+    if( oid > 0 ) o = getObject( oid );
+    if( oid_right > 0 ) o_right = getObject( oid_right );
+    if( oid_left > 0 ) o_left = getObject( oid_left );
+    bool blocked_center = true;
+    bool blocked_from_right = true;
+    bool blocked_from_left = true;
+    if( oid == 0 || ( o != NULL && !o->blocksWalking ) ) blocked_center = false;
+    if( oid_right == 0 || ( o_right != NULL && o_right->leftBlockingRadius == 0 ) ) blocked_from_right = false;
+    if( oid_left == 0 || ( o_left != NULL && o_left->rightBlockingRadius == 0 ) ) blocked_from_left = false;
+    if( blocked_center || blocked_from_right || blocked_from_left ) return true;
+    return false;
+    }
+    
 
 
 void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
-	
-	if( path == NULL ) return;	
-	if( pathLen >= 3 ) {
-		bool changeThis = true;
-		
-		for( int i = 1; i < pathLen - 1; i++ ) {
-			if( changeThis ) {
-				int xDis = path[ i + 1 ].x - path[ i - 1 ].x;
-				int yDis = path[ i + 1 ].y - path[ i - 1 ].y;
-				
-				if( abs(xDis) + abs(yDis) < 4 ) {
-					int newXDis = 2;
-					int newYDis = 2;
-					int signX = 0;
-					int signY = 0;
-					if( xDis != 0 ) signX = xDis / abs(xDis);
-					if( yDis != 0 ) signY = yDis / abs(yDis);
-				
-					if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
-					if( abs(xDis) == 1 ) newXDis = signX * randSource.getRandomBoundedInt( 0, 1 );
-					if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
-					if( abs(yDis) == 1 ) newYDis = signY * randSource.getRandomBoundedInt( 0, 1 );
-					
-					int newX = path[ i ].x;
-					int newY = path[ i ].y;
-					if( newXDis != 2 ) newX = path[ i - 1 ].x + newXDis;
-					if( newYDis != 2 ) newY = path[ i - 1 ].y + newYDis;
-					
-					if( !tileBlocked( newX, newY ) ) path[ i ] = { newX, newY };
-					}
-				}
-			changeThis = !changeThis;
-			}
-		}
-	else if( pathLen == 2 && !actionMove ) {
-		
-		int xDis = path[ 1 ].x - path[ 0 ].x;
-		int yDis = path[ 1 ].y - path[ 0 ].y;
-		int newXDis = 2;
-		int newYDis = 2;
-		
-		if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
-		if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
-		
-		int newX = path[ 1 ].x;
-		int newY = path[ 1 ].y;
-		if( newXDis != 2 ) newX = path[ 0 ].x + newXDis;
-		if( newYDis != 2 ) newY = path[ 0 ].y + newYDis;
-		
-		if( !tileBlocked( newX, newY ) ) path[ 1 ] = { newX, newY };
-		
-		}
-	
-	}
-	
+    
+    if( path == NULL ) return;    
+    if( pathLen >= 3 ) {
+        bool changeThis = true;
+        
+        for( int i = 1; i < pathLen - 1; i++ ) {
+            if( changeThis ) {
+                int xDis = path[ i + 1 ].x - path[ i - 1 ].x;
+                int yDis = path[ i + 1 ].y - path[ i - 1 ].y;
+                
+                if( abs(xDis) + abs(yDis) < 4 ) {
+                    int newXDis = 2;
+                    int newYDis = 2;
+                    int signX = 0;
+                    int signY = 0;
+                    if( xDis != 0 ) signX = xDis / abs(xDis);
+                    if( yDis != 0 ) signY = yDis / abs(yDis);
+                
+                    if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
+                    if( abs(xDis) == 1 ) newXDis = signX * randSource.getRandomBoundedInt( 0, 1 );
+                    if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
+                    if( abs(yDis) == 1 ) newYDis = signY * randSource.getRandomBoundedInt( 0, 1 );
+                    
+                    int newX = path[ i ].x;
+                    int newY = path[ i ].y;
+                    if( newXDis != 2 ) newX = path[ i - 1 ].x + newXDis;
+                    if( newYDis != 2 ) newY = path[ i - 1 ].y + newYDis;
+                    
+                    if( !tileBlocked( newX, newY ) ) path[ i ] = { newX, newY };
+                    }
+                }
+            changeThis = !changeThis;
+            }
+        }
+    else if( pathLen == 2 && !actionMove ) {
+        
+        int xDis = path[ 1 ].x - path[ 0 ].x;
+        int yDis = path[ 1 ].y - path[ 0 ].y;
+        int newXDis = 2;
+        int newYDis = 2;
+        
+        if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
+        if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
+        
+        int newX = path[ 1 ].x;
+        int newY = path[ 1 ].y;
+        if( newXDis != 2 ) newX = path[ 0 ].x + newXDis;
+        if( newYDis != 2 ) newY = path[ 0 ].y + newYDis;
+        
+        if( !tileBlocked( newX, newY ) ) path[ 1 ] = { newX, newY };
+        
+        }
+    
+    }
+    
 
 bool LivingLifePage::isTripping() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	if( ourLiveObject == NULL ) return false;
-	return 
-		trippingEmotionIndex != -1 &&
-		ourLiveObject->currentEmot != NULL &&
-		strcmp( ourLiveObject->currentEmot->triggerWord, 
-		getEmotion( trippingEmotionIndex )->triggerWord ) == 0;
-	}
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject == NULL ) return false;
+    return 
+        trippingEmotionIndex != -1 &&
+        ourLiveObject->currentEmot != NULL &&
+        strcmp( ourLiveObject->currentEmot->triggerWord, 
+        getEmotion( trippingEmotionIndex )->triggerWord ) == 0;
+    }
 
 
 
@@ -4530,9 +4530,9 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         delete lines;
         return;
         }
-		
-	float scale = 1.0;
-	if(tinyStyle) scale = 0.75;
+        
+    float scale = 1.0;
+    if(tinyStyle) scale = 0.75;
 
     double lineSpacing = 0.0;
     if( !tinyStyle ) {
@@ -6281,7 +6281,7 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             
             speechPos.x += 41;
             speechPos.y -= 41;
-			newbieTips::yumBubblePos = speechPos;
+            newbieTips::yumBubblePos = speechPos;
             
             setDrawColor( 1, 1, 1, 1 );
             if( holdingYumOrMeh == -1 ) {
@@ -6311,8 +6311,8 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
     
     
     //FOV
-	doublePair barPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
-						  lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+    doublePair barPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+                          lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
 
     barPos.x -= 12 * gui_fov_scale_hud;
     barPos.y -= 10 * gui_fov_scale_hud;
@@ -7564,7 +7564,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                             drawSprite( s->wholeSheet, sheetPos );
                             }
                         
-						if( !isTrippingEffectOn || trippingEffectDisabled ) {
+                        if( !isTrippingEffectOn || trippingEffectDisabled ) {
                         // mark all cells under sheet as drawn
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
@@ -7621,10 +7621,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-					if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
-					
+                    if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
+                    
                     if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
-					    leftB == b &&
+                        leftB == b &&
                         aboveB == b &&
                         diagB == b ) {
                         
@@ -9182,7 +9182,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         speechPos.y += headPos.y;
         
-		int width = 250 * gui_fov_scale_hud;
+        int width = 250 * gui_fov_scale_hud;
         int widthLimit = 250 * gui_fov_scale_hud;
         
         double fullWidth = 
@@ -10343,15 +10343,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
             setDrawColor( 1, 1, 1, 1 );
             //FOV
             // Hint sheets have to be manually cut off in centered mode.
-			if( gui_hud_mode != 0 && gui_fov_target_scale_hud > 1.0f ) {
-				doublePair sheetPos[4] = {
+            if( gui_hud_mode != 0 && gui_fov_target_scale_hud > 1.0f ) {
+                doublePair sheetPos[4] = {
                     { hintPos.x - getSpriteWidth( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud, hintPos.y + getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     { lastScreenViewCenter.x + 640 * gui_fov_scale_hud, hintPos.y + getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     { lastScreenViewCenter.x + 640 * gui_fov_scale_hud, hintPos.y - getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     { hintPos.x - getSpriteWidth( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud, hintPos.y - getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     };
                 double sheetLength = ( sheetPos[1].x - sheetPos[0].x ) / ( getSpriteWidth( mHintSheetSprites[0] ) * gui_fov_scale_hud );
-				doublePair sheetCoords[4] = {
+                doublePair sheetCoords[4] = {
                     { 0.0f, 0.0f },
                     { sheetLength, 0.0f },
                     { sheetLength, 1.0f },
@@ -10528,9 +10528,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 
         if( ! equal( mYumSlipPosOffset[i], mYumSlipHideOffset[i] ) ) {
-			
+            
             mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
-			
+            
             doublePair slipPos = 
                 add( mult( recalcOffset( mYumSlipPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -10575,9 +10575,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
         if( ! equal( mCravingPosOffset[i], mCravingHideOffset[i] ) ) {
             
             doublePair cravingPos  = 
-				add( mult( recalcOffset( mCravingPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
+                add( mult( recalcOffset( mCravingPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
             
-			cravingPos = add( cravingPos, mult( mCravingExtraOffset[i], gui_fov_scale_hud ) );
+            cravingPos = add( cravingPos, mult( mCravingExtraOffset[i], gui_fov_scale_hud ) );
             
             setDrawColor( 1, 1, 1, 1.0 );
             // flip, don't rotate
@@ -11233,7 +11233,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // This was the main description drawn on guiPanel
             // setDrawColor( 0, 0, 0, 1 );
             // pencilFont->drawString( stringUpper, pos, alignCenter );
-			
+            
             // Moved to be cursor-tips
             if( ! mXKeyDown )
             if( mCurMouseOverID != 0 &&
@@ -11948,42 +11948,42 @@ void LivingLifePage::draw( doublePair inViewCenter,
     // info panel at bottom, over top of all the other slips
     setDrawColor( 1, 1, 1, 1 );
     doublePair panelPos = lastScreenViewCenter;
-	
+    
     //FOV
-	panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
-	// First left part.
-	if( gui_hud_mode == 0 ) {
-		panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
-		drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
+    panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
+    // First left part.
+    if( gui_hud_mode == 0 ) {
+        panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
+        drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
         }
     else if ( gui_hud_mode == 1 && gui_fov_target_scale_hud > 1.0f ) {
-		drawHUDBarPart(	lastScreenViewCenter.x - 640 * gui_fov_scale,
-						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
-						( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
-						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+        drawHUDBarPart(    lastScreenViewCenter.x - 640 * gui_fov_scale,
+                        lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+                        ( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
+                        getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
         }
 
-	// Now the middle.
-	if( gui_hud_mode == 0 )	{
-		drawHUDBarPart(	lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale,
-						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
-						recalcOffsetX( 128 ) * 2 * gui_fov_scale,
-						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+    // Now the middle.
+    if( gui_hud_mode == 0 )    {
+        drawHUDBarPart(    lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale,
+                        lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+                        recalcOffsetX( 128 ) * 2 * gui_fov_scale,
+                        getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
         }
-	else {
-		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
+    else {
+        drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
         }
 
-	// And finally draw the right end.
-	if( gui_hud_mode == 0 )	{
-		panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
-		drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
+    // And finally draw the right end.
+    if( gui_hud_mode == 0 )    {
+        panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
+        drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
         }
-	else if ( gui_hud_mode == 1 && gui_fov_target_scale_hud > 1.0f )	{
-		drawHUDBarPart(	lastScreenViewCenter.x + 640 * gui_fov_scale_hud,
-						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
-						( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
-						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+    else if ( gui_hud_mode == 1 && gui_fov_target_scale_hud > 1.0f )    {
+        drawHUDBarPart(    lastScreenViewCenter.x + 640 * gui_fov_scale_hud,
+                        lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+                        ( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
+                        getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
         }
 
 
@@ -11998,7 +11998,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     bottomPanelComponent.setClickableArea( panelTL, panelBR );
 
 
-	panelPos.x = lastScreenViewCenter.x;
+    panelPos.x = lastScreenViewCenter.x;
 
     if( ourLiveObject != NULL &&
         ourLiveObject->dying  &&
@@ -12037,8 +12037,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         // show as a sigil to right of temp meter
-		doublePair curseTokenPos = { lastScreenViewCenter.x + ( recalcOffsetX( 621 ) * gui_fov_scale ), 
-									 lastScreenViewCenter.y - ( recalcOffsetY( 316 ) * gui_fov_scale )};
+        doublePair curseTokenPos = { lastScreenViewCenter.x + ( recalcOffsetX( 621 ) * gui_fov_scale ), 
+                                     lastScreenViewCenter.y - ( recalcOffsetY( 316 ) * gui_fov_scale )};
         curseTokenFont->drawString( "C", curseTokenPos, alignCenter );
         curseTokenFont->drawString( "+", curseTokenPos, alignCenter );
         curseTokenPos.x += ( 6 * gui_fov_scale_hud );
@@ -12071,7 +12071,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
                                lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
             pos.x += i * ( 30 * gui_fov_scale_hud );
-			
+            
             drawSprite( 
                     mHungerBoxSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
                     pos, gui_fov_scale_hud );
@@ -12089,9 +12089,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         for( int i=ourLiveObject->foodCapacity; 
              i < ourLiveObject->maxFoodCapacity; i++ ) {
-			doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
-							   lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
-			pos.x += i * ( 30 * gui_fov_scale_hud );
+            doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+                               lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
+            pos.x += i * ( 30 * gui_fov_scale_hud );
             
             drawSprite( 
                 mHungerBoxErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
@@ -12400,7 +12400,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawMessage( "bugMessage2", messagePos );
             }
         }
-		
+        
     if( true ) {
         setDrawColor( 0, 0, 0, 1 );
         doublePair drawPos;
@@ -12421,11 +12421,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
         delete [] genderString;
         }
 
-	
+    
     if( minitech::currentHintTrans.size() > 0 ) {
         minitech::drawIconOnHoverTips();
         }
-	
+    
     
     
     if( vogMode ) {
@@ -15081,9 +15081,9 @@ void LivingLifePage::step() {
     if( moveClick ) checkIfMoveClickIsDone();
 
 
-	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
-	
-	minitech::livingLifeStep();
+    if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
+    
+    minitech::livingLifeStep();
     stepCount++;
     if (stepCount > 10000) stepCount = 0;
     livingLifeStepCount = stepCount;
@@ -15303,8 +15303,8 @@ void LivingLifePage::step() {
             if( strlen( userEmail ) > 0 ) {
                 std::string seededEmail = std::string( userEmail );
 
-				// If user doesn't have a seed or targetFamily in their email field
-				if( seededEmail.find('|') == std::string::npos &&
+                // If user doesn't have a seed or targetFamily in their email field
+                if( seededEmail.find('|') == std::string::npos &&
                     seededEmail.find(':') == std::string::npos ) {
                     if( useSpawnSeed ) {
                         char *seedListFromFile = SettingsManager::getSettingContents( "spawnSeed", "" );
@@ -15337,7 +15337,7 @@ void LivingLifePage::step() {
                             seededEmail += targetFamily;
                             }
                         }
-					}
+                    }
 
                 tempEmail = stringDuplicate( seededEmail.c_str() );
                 }
@@ -16320,7 +16320,7 @@ void LivingLifePage::step() {
                 
                 if( !( mFirstServerMessagesReceived & 1 ) ) {
                     // first map chunk just recieved
-					
+                    
                     minitech::changeScale( 1.25 * gui_fov_scale_hud );
                     minitech::initOnBirth();
                     
@@ -16541,7 +16541,7 @@ void LivingLifePage::step() {
                             // Check for possible contained change as well as container change
                             // in a containment transition
                             containerChangebyContTrans = potentialContainerChangebyContTrans(old, newID);
-							
+                            
                             SimpleVector<int> oldContained;
                             // player triggered
                             // with no changed to container
@@ -17159,7 +17159,7 @@ void LivingLifePage::step() {
                             if( newObj->permanent && newObj->blocksWalking ) {
                                 // clear the locally-stored flip for this
                                 // tile
-								if( speed == 0 ) //allow blocking objects that move to flip e.g. beaver
+                                if( speed == 0 ) //allow blocking objects that move to flip e.g. beaver
                                 mMapTileFlips[mapI] = false;
                                 }    
                             }
@@ -18126,8 +18126,8 @@ void LivingLifePage::step() {
                             mNextHintObjectID = existing->holdingID;
                             mNextHintIndex = 
                                 mHintBookmarks[ mNextHintObjectID ];
-								
-							if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(mNextHintObjectID);
+                                
+                            if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(mNextHintObjectID);
                             }
 
 
@@ -19646,7 +19646,7 @@ void LivingLifePage::step() {
                 
                 ourID = ourObject->id;
                 if (ourObject) ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
-				
+                
 
                 if( ourID != lastPlayerID ) {
                     // different ID than last time, delete old home markers
@@ -20897,21 +20897,21 @@ void LivingLifePage::step() {
                                 char *nameStart = &( firstSpace[1] );
                                 
                                 existing->name = stringDuplicate( nameStart );
-								
-								LiveObject *ourLiveObject = getOurLiveObject();
-								if ( id == ourLiveObject->id && 
-									//Little hack here to not have the ding
-									//when we are just reconnected
-									//instead of a real name change
-									ourLiveObject->foodCapacity > 0 && 
-									mChimeSound != NULL ) {
-									playSound( 
-										mChimeSound,
-										0.03 * getSoundEffectsLoudness(), 
-										getVectorFromCamera( 
-											ourLiveObject->currentPos.x, 
-											ourLiveObject->currentPos.y ) );
-									}
+                                
+                                LiveObject *ourLiveObject = getOurLiveObject();
+                                if ( id == ourLiveObject->id && 
+                                    //Little hack here to not have the ding
+                                    //when we are just reconnected
+                                    //instead of a real name change
+                                    ourLiveObject->foodCapacity > 0 && 
+                                    mChimeSound != NULL ) {
+                                    playSound( 
+                                        mChimeSound,
+                                        0.03 * getSoundEffectsLoudness(), 
+                                        getVectorFromCamera( 
+                                            ourLiveObject->currentPos.x, 
+                                            ourLiveObject->currentPos.y ) );
+                                    }
                                 }
                             
                             break;
@@ -21083,7 +21083,7 @@ void LivingLifePage::step() {
                 if( oldYumBonus != mYumBonus ) {
                     
                     mOldYumBonusValue = oldYumBonus;
-					
+                    
                     // pull out of old stack, if present
                     for( int i=0; i<mOldYumBonus.size(); i++ ) {
                         if( mOldYumBonus.getElementDirect( i ) == mYumBonus ) {
@@ -21641,13 +21641,13 @@ void LivingLifePage::step() {
             
             setViewCenterPosition( lastScreenViewCenter.x, 
                                    lastScreenViewCenter.y );
-								   
-			getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-			screenToWorld( lastScreenMouseX,
-						   lastScreenMouseY,
-						   &lastMouseX,
-						   &lastMouseY );
-						   
+                                   
+            getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+            screenToWorld( lastScreenMouseX,
+                           lastScreenMouseY,
+                           &lastMouseX,
+                           &lastMouseY );
+                           
             // camera moved, simulate a pointer move to the last known position
             // to check again what the pointer is hitting
             pointerMove( lastMouseX, lastMouseY );
@@ -22838,7 +22838,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     mXKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
-	
+    
     upKeyDown = false;
     leftKeyDown = false;
     downKeyDown = false;
@@ -22914,14 +22914,14 @@ void LivingLifePage::makeActive( char inFresh ) {
           changeFOV( 1.0f );
           }
       
-		//reset camera if LivingLifePage is made active again
-		LiveObject *ourLiveObject = getOurLiveObject();
-		if ( ourLiveObject != NULL )
-		
-		lastScreenViewCenter.x = ourLiveObject->currentPos.x * CELL_D;
-		lastScreenViewCenter.y = ourLiveObject->currentPos.y * CELL_D;
-		setViewCenterPosition( lastScreenViewCenter.x,
-							   lastScreenViewCenter.y );
+        //reset camera if LivingLifePage is made active again
+        LiveObject *ourLiveObject = getOurLiveObject();
+        if ( ourLiveObject != NULL )
+        
+        lastScreenViewCenter.x = ourLiveObject->currentPos.x * CELL_D;
+        lastScreenViewCenter.y = ourLiveObject->currentPos.y * CELL_D;
+        setViewCenterPosition( lastScreenViewCenter.x,
+                               lastScreenViewCenter.y );
         return;
         }
 
@@ -23885,7 +23885,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             currHoverPlayerID = p.hitOtherPersonID;
             lastHoverPlayerID = p.hitOtherPersonID;
             lastHoverPlayerTime = game_getCurrentTime();
-			
+            
             overNothing = false;
             }
         }
@@ -24117,14 +24117,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     int mouseButton = getLastMouseButton();
     
-	bool scaling = false;
+    bool scaling = false;
     if( !mForceGroundClick ) {
         if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
         }
-	if ( blockMouseScaling ) { scaling = false; }
+    if ( blockMouseScaling ) { scaling = false; }
     
-	//FOV
-	if( scaling ) {
+    //FOV
+    if( scaling ) {
         // if ( isCommandKeyDown() ) {
         //     float currentHUDScale = gui_fov_target_scale_hud;
         //     float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
@@ -24135,9 +24135,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentScale /= 1.15f : currentScale *= 1.15f;
                 changeFOV( newScale );
             }
-		// }
-		return;
-	}
+        // }
+        return;
+    }
     
     if (!mForceGroundClick && 
         !isLastMouseButtonRight() &&
@@ -24164,7 +24164,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             return;
             }
         }
-	
+    
     lastMouseX = inX;
     lastMouseY = inY;
 
@@ -24176,7 +24176,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         // dead
         return;
         }
-	
+    
     if( vogMode ) {
         return;
         }
@@ -24780,20 +24780,20 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // give hint about dest object which will be unchanged 
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
                 }
             else if( tr->newActor > 0 && 
                      ourLiveObject->holdingID != tr->newActor ) {
                 // give hint about how what we're holding will change
                 mNextHintObjectID = tr->newActor;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newActor);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newActor);
                 }
             else if( tr->newTarget > 0 ) {
                 // give hint about changed target after we act on it
                 mNextHintObjectID = tr->newTarget;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newTarget);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newTarget);
                 }
             }
         else {
@@ -24803,7 +24803,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( getTrans( 0, destID ) == NULL ) {
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
                 }
             }
         }
@@ -25181,9 +25181,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     // for USE actions that specify a slot number
     int useExtraIParam = -1;
-	
-	// whether this move is short and 
-	// an action is gonna be sent shortly
+    
+    // whether this move is short and 
+    // an action is gonna be sent shortly
     bool actionMove = false;
 
     if( !killMode && 
@@ -25215,13 +25215,13 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
         char canExecute = false;
         char sideAccess = false;
-		char noBackAccess = false;
+        char noBackAccess = false;
         char requireExactTileUsage = false;
         
         if( destID > 0 && getObject( destID )->sideAccess ) {
             sideAccess = true;
             }
-			
+            
         if( destID > 0 && getObject( destID )->noBackAccess ) {
             noBackAccess = true;
             }
@@ -25459,9 +25459,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
 
         if( canExecute && ! killMode ) {
-			
+            
             actionMove = true;
-			
+            
             const char *action = "";
             char *extra = stringDuplicate( "" );
             
@@ -25893,14 +25893,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             freeSavedPath();
             }
             
-		if( drunkEmotionIndex != -1 &&
-			ourLiveObject->currentEmot != NULL &&
-			strcmp( ourLiveObject->currentEmot->triggerWord, 
-			getEmotion( drunkEmotionIndex )->triggerWord ) == 0 ) {
-			drunkWalk( (ourLiveObject->pathToDest), ourLiveObject->pathLength, actionMove );
-			ourLiveObject->xd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].x;
-			ourLiveObject->yd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].y;
-			}
+        if( drunkEmotionIndex != -1 &&
+            ourLiveObject->currentEmot != NULL &&
+            strcmp( ourLiveObject->currentEmot->triggerWord, 
+            getEmotion( drunkEmotionIndex )->triggerWord ) == 0 ) {
+            drunkWalk( (ourLiveObject->pathToDest), ourLiveObject->pathLength, actionMove );
+            ourLiveObject->xd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].x;
+            ourLiveObject->yd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].y;
+            }
 
         // send move right away
         //Thread::staticSleep( 2000 );
@@ -26093,11 +26093,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             return;
         }
     } else if( vogMode && !vogPickerOn ) {
-		if( !commandKey && inASCII == 9 ) { // TAB
-			addComponent( &mObjectPicker );
-			mObjectPicker.addActionListener( this );
-			vogPickerOn = true;
-		}
+        if( !commandKey && inASCII == 9 ) { // TAB
+            addComponent( &mObjectPicker );
+            mObjectPicker.addActionListener( this );
+            vogPickerOn = true;
+        }
     }
 
     if( !commandKey && !shiftKey && inASCII == 9 && mSayField.isFocused() ) {
@@ -26105,115 +26105,115 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
-		if (! mSayField.isFocused() && !vogMode) {
+    if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if (! mSayField.isFocused() && !vogMode) {
 
             // This doesn't work at all
             // when ESC is pressed the control is removed from LivingLifePage
             
-			// if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
-			// 	freeWASDKeyPress();
-			// }
+            // if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
+            //     freeWASDKeyPress();
+            // }
 
-			if (commandKey) {
-				if (isCharKey(inASCII, charKey_TileStandingOn)) {
-					actionBetaRelativeToMe( 0, 0 );
-					return;
-				}
-			} else {
-				if (isCharKey(inASCII, charKey_TileStandingOn)) {
-					actionAlphaRelativeToMe( 0, 0 );
-					return;
-				}
-			}
-			
-			if (!shiftKey && !commandKey) {
-				if (isCharKey(inASCII, charKey_Up)) {
-					upKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Left)) {
-					leftKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Down)) {
-					downKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Right)) {
-					rightKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-			} else if (commandKey) {
-				if (isCharKey(inASCII, charKey_Up)) {
-					actionBetaRelativeToMe( 0, 1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Left)) {
-					actionBetaRelativeToMe( -1, 0 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Down)) {
-					actionBetaRelativeToMe( 0, -1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Right)) {
-					actionBetaRelativeToMe( 1, 0 );
-					return;
-				}
-			} else if (shiftKey) {
-				if (isCharKey(inASCII, charKey_Up)) {
-					actionAlphaRelativeToMe( 0, 1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Left)) {
-					actionAlphaRelativeToMe( -1, 0 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Down)) {
-					actionAlphaRelativeToMe( 0, -1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Right)) {
-					actionAlphaRelativeToMe( 1, 0 );
-					return;
-				}
-			}
+            if (commandKey) {
+                if (isCharKey(inASCII, charKey_TileStandingOn)) {
+                    actionBetaRelativeToMe( 0, 0 );
+                    return;
+                }
+            } else {
+                if (isCharKey(inASCII, charKey_TileStandingOn)) {
+                    actionAlphaRelativeToMe( 0, 0 );
+                    return;
+                }
+            }
+            
+            if (!shiftKey && !commandKey) {
+                if (isCharKey(inASCII, charKey_Up)) {
+                    upKeyDown = true;
+                    //stopAutoRoadRun = true;
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Left)) {
+                    leftKeyDown = true;
+                    //stopAutoRoadRun = true;
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Down)) {
+                    downKeyDown = true;
+                    //stopAutoRoadRun = true;
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Right)) {
+                    rightKeyDown = true;
+                    //stopAutoRoadRun = true;
+                    return;
+                }
+            } else if (commandKey) {
+                if (isCharKey(inASCII, charKey_Up)) {
+                    actionBetaRelativeToMe( 0, 1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Left)) {
+                    actionBetaRelativeToMe( -1, 0 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Down)) {
+                    actionBetaRelativeToMe( 0, -1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Right)) {
+                    actionBetaRelativeToMe( 1, 0 );
+                    return;
+                }
+            } else if (shiftKey) {
+                if (isCharKey(inASCII, charKey_Up)) {
+                    actionAlphaRelativeToMe( 0, 1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Left)) {
+                    actionAlphaRelativeToMe( -1, 0 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Down)) {
+                    actionAlphaRelativeToMe( 0, -1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Right)) {
+                    actionAlphaRelativeToMe( 1, 0 );
+                    return;
+                }
+            }
 
-			if (!shiftKey && isCharKey(inASCII, charKey_Backpack)) {
-				useBackpack();
-				return;
-			}
-			if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Backpack)) {
-				useBackpack(true);
-				return;
-			}
-			if (isCharKey(inASCII, charKey_Eat)) {
-				useOnSelf();
-				return;
-			}
-			if (isCharKey(inASCII, charKey_Baby)) {
-				pickUpBabyInRange();
-				return;
-			}
-			if (!commandKey && !shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
-				takeOffBackpack();
-				return;
-			}
-			if (shiftKey && isCharKey(inASCII, charKey_Pocket)) {
-				usePocket(1);
-				return;
-			}
-			if (!shiftKey && isCharKey(inASCII, charKey_Pocket)) {
-				usePocket(4);
-				return;
-			}
-		}
-	}
+            if (!shiftKey && isCharKey(inASCII, charKey_Backpack)) {
+                useBackpack();
+                return;
+            }
+            if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Backpack)) {
+                useBackpack(true);
+                return;
+            }
+            if (isCharKey(inASCII, charKey_Eat)) {
+                useOnSelf();
+                return;
+            }
+            if (isCharKey(inASCII, charKey_Baby)) {
+                pickUpBabyInRange();
+                return;
+            }
+            if (!commandKey && !shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
+                takeOffBackpack();
+                return;
+            }
+            if (shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+                usePocket(1);
+                return;
+            }
+            if (!shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+                usePocket(4);
+                return;
+            }
+        }
+    }
 
     // Custom command shortcuts (was FOV emote keys)
     int commandIndex = -1;
@@ -26260,7 +26260,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-	if (!mSayField.isFocused() && !vogMode &&
+    if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
 
     if ((coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled) && 
@@ -26559,7 +26559,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case ' ':
-		if( ! mSayField.isFocused() && ! SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if( ! mSayField.isFocused() && ! SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
                 shouldMoveCamera = false;
                 }
             break;
@@ -26573,7 +26573,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
             // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
             // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
-			// calcOffsetHUD();
+            // calcOffsetHUD();
             }
             break;
         case 9: // tab
@@ -26899,17 +26899,17 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 
                                 int filterStringLen = 
                                     strlen( trimmedFilterString );
-							
+                            
                                 if( filterStringLen > 0 ) {
                                     // not blank
                                     mHintFilterString = 
                                         stringDuplicate( trimmedFilterString );
-										
-									minitech::inputHintStrToSearch( mHintFilterString );
+                                        
+                                    minitech::inputHintStrToSearch( mHintFilterString );
                                     }
-								else {
-									minitech::inputHintStrToSearch( "" );;
-								}
+                                else {
+                                    minitech::inputHintStrToSearch( "" );;
+                                }
                             
                                 delete [] trimmedFilterString;
                             
@@ -27011,14 +27011,14 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
     bool controlKey = isControlKeyDown();
     bool altKey = isAltKeyDown();
     bool shiftKey = isShiftKeyDown();
-		
+        
     if( inKeyCode == MG_KEY_F12) { // left this here as a way to clear persistent emote
         sendToServerSocket( (char*)"EMOT 0 0 -1#" );
         customPersistentEmotIndex = -1;
         return;
         }
-	if( ( inKeyCode == MG_KEY_LEFT || 
-		inKeyCode == MG_KEY_RIGHT ) && ! vogMode ) {
+    if( ( inKeyCode == MG_KEY_LEFT || 
+        inKeyCode == MG_KEY_RIGHT ) && ! vogMode ) {
         if ( isCommandKeyDown() ) {
             float currentHUDScale = gui_fov_target_scale_hud;
             float newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentHUDScale -= 0.10f : currentHUDScale += 0.10f;
@@ -27030,8 +27030,8 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 changeFOV( newScale );
                 }
             }
-		return;
-	    }
+        return;
+        }
 
     if( vogMode && ! TextField::isAnyFocused() ) {
         GridPos posOffset = { 0, 0 };
@@ -27192,40 +27192,40 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
     bool commandKey = isCommandKeyDown();
     bool shiftKey = isShiftKeyDown();
 
-	if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
-		upKeyDown = false;
-	}
-	if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
-		leftKeyDown = false;
-	}
-	if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
-		downKeyDown = false;
-	}
-	if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
-		rightKeyDown = false;
-	}
-	if (commandKey) {
-		if (inASCII+64 == toupper(charKey_Up)) {
-			upKeyDown = false;
-		}
-		if (inASCII+64 == toupper(charKey_Left)) {
-			leftKeyDown = false;
-		}
-		if (inASCII+64 == toupper(charKey_Down)) {
-			downKeyDown = false;
-		}
-		if (inASCII+64 == toupper(charKey_Right)) {
-			rightKeyDown = false;
-		}
-	}
+    if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
+        upKeyDown = false;
+    }
+    if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
+        leftKeyDown = false;
+    }
+    if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
+        downKeyDown = false;
+    }
+    if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
+        rightKeyDown = false;
+    }
+    if (commandKey) {
+        if (inASCII+64 == toupper(charKey_Up)) {
+            upKeyDown = false;
+        }
+        if (inASCII+64 == toupper(charKey_Left)) {
+            leftKeyDown = false;
+        }
+        if (inASCII+64 == toupper(charKey_Down)) {
+            downKeyDown = false;
+        }
+        if (inASCII+64 == toupper(charKey_Right)) {
+            rightKeyDown = false;
+        }
+    }
 
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) {
-		lastPosX = 9999;
-		lastPosY = 9999;
-		magnetMoveDir = -1;
-		magnetWrongMoveDir = -1;
-		magnetMoveCount = 0;
-	}
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) {
+        lastPosX = 9999;
+        lastPosY = 9999;
+        magnetMoveDir = -1;
+        magnetWrongMoveDir = -1;
+        magnetMoveCount = 0;
+    }
 
     if( runningYumFinder && !mSayField.isFocused() && !vogMode &&
         !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey)) {
@@ -27335,10 +27335,10 @@ void LivingLifePage::pushOldHintArrow( int inIndex ) {
 
 //FIELD OF VIEW
 void LivingLifePage::calcFontScale( float newScale, Font *font ) {
-	float scale = font->getScaleFactor();
-	scale /= gui_fov_scale;
-	scale *= newScale;
-	font->setScaleFactor( scale );
+    float scale = font->getScaleFactor();
+    scale /= gui_fov_scale;
+    scale *= newScale;
+    font->setScaleFactor( scale );
     }
 
 void LivingLifePage::changeFOV( float newScale ) {
@@ -27422,106 +27422,106 @@ void LivingLifePage::calcOffsetHUD() {
 
 //KEYBOARD ACTIONS
 void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
 
-	int objId = getObjId( x, y );
-	bool use = false;
+    int objId = getObjId( x, y );
+    bool use = false;
 
-	if (objId > 0) use = true;
-	else use = false;
+    if (objId > 0) use = true;
+    else use = false;
 
-	if( ourLiveObject->holdingID > 0 ) {
-		ObjectRecord *held = getObject( ourLiveObject->holdingID );
+    if( ourLiveObject->holdingID > 0 ) {
+        ObjectRecord *held = getObject( ourLiveObject->holdingID );
 
-		if( held->foodValue == 0 ) {
-			TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
-			if( r != NULL && r->newTarget != 0 ) { // a use-on-ground transition exists!
-                use = true;	// override the drop action
-			}
-		}
-	}
+        if( held->foodValue == 0 ) {
+            TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
+            if( r != NULL && r->newTarget != 0 ) { // a use-on-ground transition exists!
+                use = true;    // override the drop action
+            }
+        }
+    }
 
-	bool remove = false;
-	if (objIdReverseAction(objId)) remove = true;
-	
-	if ( ourLiveObject->holdingID < 0 ) {
-		remove = false;
-		use = false;
-	}
+    bool remove = false;
+    if (objIdReverseAction(objId)) remove = true;
+    
+    if ( ourLiveObject->holdingID < 0 ) {
+        remove = false;
+        use = false;
+    }
 
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
-	else if (use) sprintf( msg, "USE %d %d#", x, y);
-	else sprintf( msg, "DROP %d %d -1#", x, y);
-	setNextActionMessage( msg, x, y );
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
+    else if (use) sprintf( msg, "USE %d %d#", x, y);
+    else sprintf( msg, "DROP %d %d -1#", x, y);
+    setNextActionMessage( msg, x, y );
 }
 
 void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
 
-	bool remove = false;
-	if (ourLiveObject->holdingID <= 0) {
-		remove = true;
-	}
-	bool use = false;
-	int objId = getObjId( x, y );
-	if (objId > 0) {
-		ObjectRecord* obj = getObject(objId);
-		if (obj->numSlots == 0 && obj->blocksWalking) {
-			TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
-			if ( r != NULL && r->newTarget != 0 ) {
-				use = true;
-			}
-		}
-	}
+    bool remove = false;
+    if (ourLiveObject->holdingID <= 0) {
+        remove = true;
+    }
+    bool use = false;
+    int objId = getObjId( x, y );
+    if (objId > 0) {
+        ObjectRecord* obj = getObject(objId);
+        if (obj->numSlots == 0 && obj->blocksWalking) {
+            TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
+            if ( r != NULL && r->newTarget != 0 ) {
+                use = true;
+            }
+        }
+    }
 
-	if ( objIdReverseAction( objId ) ) use = true;
+    if ( objIdReverseAction( objId ) ) use = true;
 
-	if ( ourLiveObject->holdingID < 0 ) { // holding babay
-		remove = false;
-		use = false;
-	}
+    if ( ourLiveObject->holdingID < 0 ) { // holding babay
+        remove = false;
+        use = false;
+    }
 
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	if (use) sprintf( msg, "USE %d %d#", x, y);
-	else if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
-	else sprintf( msg, "DROP %d %d -1#", x, y);
-	setNextActionMessage( msg, x, y );
-	if (!remove) nextActionDropping = true;
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    if (use) sprintf( msg, "USE %d %d#", x, y);
+    else if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
+    else sprintf( msg, "DROP %d %d -1#", x, y);
+    setNextActionMessage( msg, x, y );
+    if (!remove) nextActionDropping = true;
 }
 
 void LivingLifePage::useTileRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	sprintf( msg, "USE %d %d#", x, y);
-	setNextActionMessage( msg, x, y );
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    sprintf( msg, "USE %d %d#", x, y);
+    setNextActionMessage( msg, x, y );
 }
 
 void LivingLifePage::dropTileRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	sprintf( msg, "DROP %d %d -1#", x, y);
-	setNextActionMessage( msg, x, y );
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    sprintf( msg, "DROP %d %d -1#", x, y);
+    setNextActionMessage( msg, x, y );
 }
 
 //KEYBOARD MOVEMENT
@@ -27575,158 +27575,158 @@ void LivingLifePage::checkIfMoveClickIsDone() {
     }
 
 void LivingLifePage::movementStep() {
-	LiveObject *ourLiveObject = getOurLiveObject();
+    LiveObject *ourLiveObject = getOurLiveObject();
     if( ourLiveObject == NULL ) return;
-	
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
+    
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
 
-	int x = round(ourLiveObject->currentPos.x);
-	int y = round(ourLiveObject->currentPos.y);
+    int x = round(ourLiveObject->currentPos.x);
+    int y = round(ourLiveObject->currentPos.y);
 
-	if (x == lastPosX && y == lastPosY && ourLiveObject->inMotion) return;
+    if (x == lastPosX && y == lastPosY && ourLiveObject->inMotion) return;
 
-	int objId = getObjId(x, y);
-	if (objId > 0 && getObject(objId)->blocksWalking && ourLiveObject->inMotion) return;
+    int objId = getObjId(x, y);
+    if (objId > 0 && getObject(objId)->blocksWalking && ourLiveObject->inMotion) return;
 
-	int sX = x;
-	int sY = y;
+    int sX = x;
+    int sY = y;
 
-	int dir = getMoveDirection();
-	if (dir <= 0) return;
+    int dir = getMoveDirection();
+    if (dir <= 0) return;
 
-	if (!findNextMove(x, y, dir)) return; // sets x and y
+    if (!findNextMove(x, y, dir)) return; // sets x and y
 
-	lastPosX = sX;
-	lastPosY = sY;
+    lastPosX = sX;
+    lastPosY = sY;
 
     bool nextStepIsDiagonal = 
         abs( (int)round(ourLiveObject->currentPos.x) - x ) + 
         abs( (int)round(ourLiveObject->currentPos.y) - y ) > 1;
 
-	if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
-		waitForDoorToOpen = false;
-	} else if (waitForDoorToOpen) {
-		if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
-			return;
-		waitForDoorToOpen = false;
-	} else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
-		char msg[32];
-		sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
-		setNextActionMessage( msg, x, y );
-		waitForDoorToOpen = true;
-		lastDoorToOpenX = (int)x;
-		lastDoorToOpenY = (int)y;
-		return;
-	}
+    if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
+        waitForDoorToOpen = false;
+    } else if (waitForDoorToOpen) {
+        if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
+            return;
+        waitForDoorToOpen = false;
+    } else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
+        char msg[32];
+        sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
+        setNextActionMessage( msg, x, y );
+        waitForDoorToOpen = true;
+        lastDoorToOpenX = (int)x;
+        lastDoorToOpenY = (int)y;
+        return;
+    }
 
-	x *= CELL_D;
-	y *= CELL_D;
+    x *= CELL_D;
+    y *= CELL_D;
 
     moveClick = false;
 
-	blockMouseScaling = true;
+    blockMouseScaling = true;
 
     clickMove(x, y);
-	
-	magnetMoveCount++;
-	
-	blockMouseScaling = false;
+    
+    magnetMoveCount++;
+    
+    blockMouseScaling = false;
 }
 
 bool LivingLifePage::findNextMove(int &x, int &y, int dir) {
-	if (dir <= 0) return false;
-	
-	if (magnetMoveDir > 0) {
-		if (magnetWrongMoveDir != dir || magnetMoveCount > 2) {
-			magnetWrongMoveDir = -1;
-			magnetMoveDir = -1;
-		} else {
-			if (setMoveDirIfSafe(x, y, magnetMoveDir)) {
-				magnetWrongMoveDir = -1;
-				magnetMoveDir = -1;
-				return true;
-			}
-		}
-	}
+    if (dir <= 0) return false;
+    
+    if (magnetMoveDir > 0) {
+        if (magnetWrongMoveDir != dir || magnetMoveCount > 2) {
+            magnetWrongMoveDir = -1;
+            magnetMoveDir = -1;
+        } else {
+            if (setMoveDirIfSafe(x, y, magnetMoveDir)) {
+                magnetWrongMoveDir = -1;
+                magnetMoveDir = -1;
+                return true;
+            }
+        }
+    }
 
-	if (setMoveDirIfSafe(x, y, dir)) return true;
+    if (setMoveDirIfSafe(x, y, dir)) return true;
 
-	int nextMoveDir = getNextMoveDir(dir, 1);
-	if (dirIsSafeToWalk(x, y, nextMoveDir)) {
-		setMoveDirection(x, y, nextMoveDir);
-		if (dir % 2 == 0) {
-			magnetWrongMoveDir = dir;
-			magnetMoveDir = getNextMoveDir(dir, -1);
-			magnetMoveCount = 0;
-		}
-		return true;
-	}
-	nextMoveDir = getNextMoveDir(dir, -1);
-	if (dirIsSafeToWalk(x, y, nextMoveDir)) {
-		setMoveDirection(x, y, nextMoveDir);
-		if (dir % 2 == 0) {
-			magnetWrongMoveDir = dir;
-			magnetMoveDir = getNextMoveDir(dir, 1);
-			magnetMoveCount = 0;
-		}
-		return true;
-	}
+    int nextMoveDir = getNextMoveDir(dir, 1);
+    if (dirIsSafeToWalk(x, y, nextMoveDir)) {
+        setMoveDirection(x, y, nextMoveDir);
+        if (dir % 2 == 0) {
+            magnetWrongMoveDir = dir;
+            magnetMoveDir = getNextMoveDir(dir, -1);
+            magnetMoveCount = 0;
+        }
+        return true;
+    }
+    nextMoveDir = getNextMoveDir(dir, -1);
+    if (dirIsSafeToWalk(x, y, nextMoveDir)) {
+        setMoveDirection(x, y, nextMoveDir);
+        if (dir % 2 == 0) {
+            magnetWrongMoveDir = dir;
+            magnetMoveDir = getNextMoveDir(dir, 1);
+            magnetMoveCount = 0;
+        }
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 int LivingLifePage::getNextMoveDir(int direction, int add) {
-	direction += add;
-	while (direction < 1) direction += 8;
-	while (direction > 8) direction -= 8;
-	return direction;
+    direction += add;
+    while (direction < 1) direction += 8;
+    while (direction > 8) direction -= 8;
+    return direction;
 }
 
 int LivingLifePage::getMoveDirection() {
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 0;
-	if (upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 1;
-	if (upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 2;
-	if (upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 3;
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 4;
-	if (!upKeyDown && !leftKeyDown && downKeyDown && rightKeyDown) return 5;
-	if (!upKeyDown && !leftKeyDown && downKeyDown && !rightKeyDown) return 6;
-	if (!upKeyDown && leftKeyDown && downKeyDown && !rightKeyDown) return 7;
-	if (!upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 8;
-	return 0;
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 0;
+    if (upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 1;
+    if (upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 2;
+    if (upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 3;
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 4;
+    if (!upKeyDown && !leftKeyDown && downKeyDown && rightKeyDown) return 5;
+    if (!upKeyDown && !leftKeyDown && downKeyDown && !rightKeyDown) return 6;
+    if (!upKeyDown && leftKeyDown && downKeyDown && !rightKeyDown) return 7;
+    if (!upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 8;
+    return 0;
 }
 
 bool LivingLifePage::setMoveDirIfSafe(int &x, int &y, int dir) {
-	if (!dirIsSafeToWalk(x, y, dir)) return false;
-	setMoveDirection(x, y, dir);
-	return true;
+    if (!dirIsSafeToWalk(x, y, dir)) return false;
+    setMoveDirection(x, y, dir);
+    return true;
 }
 
-//	move direction
-//	---------------
-//	1	2	3
-// 	8	0	4
-//	7	6	5
-//	---------------
+//    move direction
+//    ---------------
+//    1    2    3
+//    8    0    4
+//    7    6    5
+//    ---------------
 
 void LivingLifePage::setMoveDirection(int &x, int &y, int direction) {
-	switch (direction) {
-		case 1: x--; y++; break;
-		case 2: y++; break;
-		case 3: x++; y++; break;
-		case 4: x++; break;
-		case 5: x++; y--; break;
-		case 6: y--; break;
-		case 7: x--; y--; break;
-		case 8: x--; break;
-	}
+    switch (direction) {
+        case 1: x--; y++; break;
+        case 2: y++; break;
+        case 3: x++; y++; break;
+        case 4: x++; break;
+        case 5: x++; y--; break;
+        case 6: y--; break;
+        case 7: x--; y--; break;
+        case 8: x--; break;
+    }
 }
 
 bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
     if( !dangerousTileEnabled ) return true;
-	int objId = getObjId( x, y);
-	ObjectRecord *obj = getObject( objId, true );
+    int objId = getObjId( x, y);
+    ObjectRecord *obj = getObject( objId, true );
     if( obj == NULL ) return true;
-	char dangerous = isObjectDangerous(obj);
+    char dangerous = isObjectDangerous(obj);
     if( dangerous ) {
         LiveObject *ourLiveObject = getOurLiveObject();
         if( ourLiveObject != NULL && ourLiveObject->holdingID > 0 ) {
@@ -27734,7 +27734,7 @@ bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
         }
         return !dangerous;
     }
-	return true;
+    return true;
 }
 
 // doors or gates with +autoDefaultTrans tag is non-blocking
@@ -27761,57 +27761,57 @@ char isObjectClosedDoor( ObjectRecord *o ) {
     }
 
 bool LivingLifePage::tileHasClosedDoor(int x, int y) {
-	int objId = getObjId( x, y);
+    int objId = getObjId( x, y);
     ObjectRecord *obj = getObject( objId, true );
     return isObjectClosedDoor(obj);
 }
 
 bool LivingLifePage::tileIsSafeToWalk(int x, int y) {
-	int objId = getObjId( x, y);
-	if (objId > 0) {
+    int objId = getObjId( x, y);
+    if (objId > 0) {
         LiveObject *ourLiveObject = getOurLiveObject();
 
-		if (!tileHasNoDangerousAnimals(x, y)) return false;
+        if (!tileHasNoDangerousAnimals(x, y)) return false;
 
-		ObjectRecord* obj = getObject(objId);
-		if (obj && obj->blocksWalking) {
-			if (ourLiveObject->xd == x || ourLiveObject->yd == y)
-				if (tileHasClosedDoor( x, y )) return true;
-			return false;
-		}
-	}
-	return true;
+        ObjectRecord* obj = getObject(objId);
+        if (obj && obj->blocksWalking) {
+            if (ourLiveObject->xd == x || ourLiveObject->yd == y)
+                if (tileHasClosedDoor( x, y )) return true;
+            return false;
+        }
+    }
+    return true;
 }
 
 bool LivingLifePage::dirIsSafeToWalk(int x, int y, int dir) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int tX, tY;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int tX, tY;
 
-	tX = x; tY = y; setMoveDirection(tX, tY, dir);
+    tX = x; tY = y; setMoveDirection(tX, tY, dir);
     if (!tileIsSafeToWalk(tX, tY)) return false;
-	
-	// int objId = getObjId( tX, tY);
-	// if (objId > 0) {
+    
+    // int objId = getObjId( tX, tY);
+    // if (objId > 0) {
 
-	// 	ObjectRecord* obj = getObject(objId);
-	// 	if (obj && obj->blocksWalking) {
-	// 		if (ourLiveObject->xd == x || ourLiveObject->yd == y)
-	// 			if (!tileHasClosedDoor( x, y )) return false;
-	// 	}
-	// }
+    //     ObjectRecord* obj = getObject(objId);
+    //     if (obj && obj->blocksWalking) {
+    //         if (ourLiveObject->xd == x || ourLiveObject->yd == y)
+    //             if (!tileHasClosedDoor( x, y )) return false;
+    //     }
+    // }
 
-	if (dir % 2 == 0) return true; // is not a corner dir
+    if (dir % 2 == 0) return true; // is not a corner dir
 
-	int nextDir = getNextMoveDir(dir, 1);
-	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    int nextDir = getNextMoveDir(dir, 1);
+    tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
     if (!tileHasNoDangerousAnimals(tX, tY)) return false;
 
-	nextDir = getNextMoveDir(dir, -1);
-	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    nextDir = getNextMoveDir(dir, -1);
+    tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
     if (!tileHasNoDangerousAnimals(tX, tY)) return false;
 
-	return true;
+    return true;
 }
 
 

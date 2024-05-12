@@ -32,7 +32,7 @@ class SettingsPage : public GamePage, public ActionListener {
         
         virtual void makeActive( char inFresh );
         virtual void makeNotActive();
-		virtual void updatePage();
+        virtual void updatePage();
         virtual void checkRestartRequired();
 
     protected:
@@ -78,9 +78,9 @@ class SettingsPage : public GamePage, public ActionListener {
         TextButton mEditAccountButton;
 
         // Gameplay
-		CheckboxButton mEnableFOVBox;
-		CheckboxButton mEnableCenterCameraBox;
-		CheckboxButton mEnableNudeBox;
+        CheckboxButton mEnableFOVBox;
+        CheckboxButton mEnableCenterCameraBox;
+        CheckboxButton mEnableNudeBox;
         ValueSlider mUISizeSlider;
         
         CheckboxButton mUseCustomServerBox;
@@ -90,7 +90,7 @@ class SettingsPage : public GamePage, public ActionListener {
         TextButton mPasteButton;
         
         // Control
-		CheckboxButton mEnableKActionsBox;
+        CheckboxButton mEnableKActionsBox;
         RadioButtonSet *mCursorModeSet;
         ValueSlider mCursorScaleSlider;
 

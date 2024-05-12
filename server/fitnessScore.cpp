@@ -344,7 +344,7 @@ void logFitnessDeath( int inNumLivePlayers,
 
 
     SimpleVector<char> workingList;
-	SimpleVector<char> workingDataList;
+    SimpleVector<char> workingDataList;
     
     int num = inAncestorEmails->size();
     
@@ -366,7 +366,7 @@ void logFitnessDeath( int inNumLivePlayers,
 
         if( i < num-1 ) {    
             workingList.appendElementString( "," );
-			workingDataList.appendElementString( "," );
+            workingDataList.appendElementString( "," );
             }
         
         delete [] relNameNoSpace;
@@ -374,13 +374,13 @@ void logFitnessDeath( int inNumLivePlayers,
 
 
     char *ancestorList = workingList.getElementString();
-	char *ancestorDataList = workingDataList.getElementString();
+    char *ancestorDataList = workingDataList.getElementString();
     
     char *encodedList = URLUtils::urlEncode( ancestorList );
-	char *encodedDataList = URLUtils::urlEncode( ancestorDataList );
+    char *encodedDataList = URLUtils::urlEncode( ancestorDataList );
 
     delete [] ancestorList;
-	delete [] ancestorDataList;
+    delete [] ancestorDataList;
 
 
     r.extraParams = 
@@ -396,12 +396,12 @@ void logFitnessDeath( int inNumLivePlayers,
             inDisplayID,
             inAge,
             encodedList,
-			encodedDataList
-			);
+            encodedDataList
+            );
 
     delete [] encodedName;
     delete [] encodedList;
-	delete [] encodedDataList;
+    delete [] encodedDataList;
 
     r.isScoreRequest = false;
 

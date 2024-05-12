@@ -517,29 +517,29 @@ class LivingLifePage : public GamePage, public ActionListener {
         int getRequiredVersion() {
             return mRequiredVersion;
             }
-			
+            
 
-		void setNextActionMessage( const char* str, int x, int y );
-		int getObjId( int mapX, int mapY );
-		bool objIdReverseAction( int objId );
-		void pickUpBabyInRange();
-		void pickUpBaby( int x, int y );
-		void useBackpack( bool replace = false );
-		void usePocket( int clothingID );
-		void useOnSelf();
-		void takeOffBackpack();
-		void setOurSendPosXY(int &x, int &y);
-		bool isCharKey(unsigned char c, unsigned char key);
+        void setNextActionMessage( const char* str, int x, int y );
+        int getObjId( int mapX, int mapY );
+        bool objIdReverseAction( int objId );
+        void pickUpBabyInRange();
+        void pickUpBaby( int x, int y );
+        void useBackpack( bool replace = false );
+        void usePocket( int clothingID );
+        void useOnSelf();
+        void takeOffBackpack();
+        void setOurSendPosXY(int &x, int &y);
+        bool isCharKey(unsigned char c, unsigned char key);
         void drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing = false, bool border = true );
         void drawTileVanillaRainbowHighlight( int x, int y );
 
         void drawCursorTips( const char* text, doublePair offset = {0.0, 0.0} ); 
-		
-		void actionAlphaRelativeToMe( int x, int y );
-		void actionBetaRelativeToMe( int x, int y );
-		void useTileRelativeToMe( int x, int y ) ;
-		void dropTileRelativeToMe( int x, int y ) ;
-		
+        
+        void actionAlphaRelativeToMe( int x, int y );
+        void actionBetaRelativeToMe( int x, int y );
+        void useTileRelativeToMe( int x, int y ) ;
+        void dropTileRelativeToMe( int x, int y ) ;
+        
         int moveClickX = 0;
         int moveClickY = 0;
         char moveClickAlpha = false;
@@ -548,22 +548,22 @@ class LivingLifePage : public GamePage, public ActionListener {
         void moveToAndClickTile(int tileX, int tileY, bool alpha);
         void checkIfMoveClickIsDone();
 
-		void movementStep();
-		bool findNextMove(int &x, int &y, int dir);
-		int getNextMoveDir(int direction, int add);
-		int getMoveDirection();
-		bool setMoveDirIfSafe(int &x, int &y, int dir);
-		void setMoveDirection(int &x, int &y, int direction);
+        void movementStep();
+        bool findNextMove(int &x, int &y, int dir);
+        int getNextMoveDir(int direction, int add);
+        int getMoveDirection();
+        bool setMoveDirIfSafe(int &x, int &y, int dir);
+        void setMoveDirection(int &x, int &y, int direction);
         bool tileHasNoDangerousAnimals(int x, int y);
-		bool tileHasClosedDoor(int x, int y);
+        bool tileHasClosedDoor(int x, int y);
         bool tileIsSafeToWalk(int x, int y);
-		bool dirIsSafeToWalk(int x, int y, int dir);
+        bool dirIsSafeToWalk(int x, int y, int dir);
 
 
 
-		doublePair minitechGetLastScreenViewCenter();
+        doublePair minitechGetLastScreenViewCenter();
         std::string minitechGetFullObjectDescription(int objId);
-		std::string minitechGetDisplayObjectDescription(int objId);
+        std::string minitechGetDisplayObjectDescription(int objId);
 
         virtual void actionPerformed( GUIComponent *inTarget );
         
@@ -609,18 +609,18 @@ class LivingLifePage : public GamePage, public ActionListener {
         // conversion function for received coordinates into local coords
         void applyReceiveOffset( int *inX, int *inY );
         // converts local coors for sending back to server
-		
-	public:
+        
+    public:
         
         int sendX( int inX );
         int sendY( int inY );
 
 
         int mMapD;
-		
+        
         int *mMap;
         
-	protected:
+    protected:
         
         int *mMapBiomes;
         int *mMapFloors;
@@ -677,7 +677,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         public: // minitech
         int mMapOffsetX;
         int mMapOffsetY;
-		protected: // minitech
+        protected: // minitech
 
         char mEKeyEnabled;
         char mEKeyDown;
@@ -709,8 +709,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         SpriteHandle mCellFillSprite;
         
         SpriteHandle mHintArrowSprite;
-		SpriteHandle mYumIconSprite;
-		SpriteHandle mMehIconSprite;
+        SpriteHandle mYumIconSprite;
+        SpriteHandle mMehIconSprite;
         
 
         SpriteHandle mHomeSlipSprite;
@@ -910,8 +910,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         int mYumBonus;
         int mOldYumBonusValue;
-		bool mFirstYumEaten;
-		float mYumIncrementFade;
+        bool mFirstYumEaten;
+        float mYumIncrementFade;
         SimpleVector<int> mOldYumBonus;
         SimpleVector<float> mOldYumBonusFades;
 
@@ -992,14 +992,14 @@ class LivingLifePage : public GamePage, public ActionListener {
         char mForceGroundClick;
         
 
-		public: // minitech
+        public: // minitech
         LiveObject *getOurLiveObject();
         LiveObject *getLiveObject( int inID );
         protected: // minitech
-		
-		bool tileBlocked( int x, int y );
-		void drunkWalk( GridPos *path, int pathLen, bool actionMove );
-		bool isTripping();
+        
+        bool tileBlocked( int x, int y );
+        void drunkWalk( GridPos *path, int pathLen, bool actionMove );
+        bool isTripping();
 
         void clearLiveObjects();
         
@@ -1088,12 +1088,12 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         
         //FOV
-		public:
+        public:
         void changeHUDFOV( float newScale = 1.0f );
         void changeFOV( float newScale = 1.0f );
         void calcOffsetHUD();
         void calcFontScale( float newScale, Font* font );
-		protected:
+        protected:
 
         char mPlayerInFlight;
 

@@ -2409,11 +2409,11 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                     }
                 }
             }
-			
+            
         if( i == eyesIndex && drawWithEmots.size() > 0 ) {
             for( int e=0; e<drawWithEmots.size(); e++ ) {
                 if( drawWithEmots.getElementDirect(e)->eyeEmot != 0 && 
-				strstr( getObject( drawWithEmots.getElementDirect(e)->eyeEmot )->description, "Eyes" ) ) {
+                strstr( getObject( drawWithEmots.getElementDirect(e)->eyeEmot )->description, "Eyes" ) ) {
                     skipSprite = true;
                     break;
                     }
@@ -2799,11 +2799,11 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                 }
             
             int spriteID = obj->sprites[i];
-			
-			if( !multiplicative && !workingSpriteFade[i] == 0 ) {
-				if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
-				}
-			
+            
+            if( !multiplicative && !workingSpriteFade[i] == 0 ) {
+                if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
+                }
+            
             if( drawMouthShapes && spriteID == mouthAnchorID &&
                 mouthShapeFrame < numMouthShapeFrames ) {
                 drawSprite( mouthShapeFrameList[ mouthShapeFrame ], 

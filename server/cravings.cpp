@@ -18,7 +18,7 @@ int eatEverythingModeEnabled = 0;
 
 typedef struct CravingList {
         int lineageEveID;
-		int lineageMaxFoodDepth;
+        int lineageMaxFoodDepth;
         SimpleVector<Craving> cravedFoods;
     } CravingList;
     
@@ -48,7 +48,7 @@ static JenkinsRandomSource randSource;
 static Craving getRandomFood( int inLineageMaxFoodDepth, 
                               Craving inFoodToAvoid = noCraving ) {
 
-	SimpleVector<int> *allFoods = getAllPossibleFoodIDs();
+    SimpleVector<int> *allFoods = getAllPossibleFoodIDs();
     
     if( eatEverythingModeEnabled ) {
         // everything can be eaten
@@ -66,7 +66,7 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
         int maxCravingDepthGap = SettingsManager::getIntSetting( "maxCravingDepthGap", 10 );
         
         bool harderCravingOrNot = randSource.getRandomBoundedDouble( 0, 1 ) <= harderCravingProb;
-		
+        
         int maxDepth = 0;
         
         for( int i=0; i<allFoods->size(); i++ ) {
@@ -103,11 +103,11 @@ static Craving getRandomFood( int inLineageMaxFoodDepth,
                     if( id != inFoodToAvoid.foodID ) {
                         
                         int d = getObjectDepth( id );
-						if( d == UNREACHABLE ) continue;
+                        if( d == UNREACHABLE ) continue;
 
                         if( d == nextDepth ||
-							nextDepth > maxDepth // We reached the top of tech tree
-						) {
+                            nextDepth > maxDepth // We reached the top of tech tree
+                        ) {
                             possibleFoods.push_back( id );
                             }
                         }
@@ -197,7 +197,7 @@ Craving getCravedFood( int inLineageEveID, int inPlayerGenerationNumber,
         // push a new empty list
         CravingList newL;
         newL.lineageEveID = inLineageEveID;
-		newL.lineageMaxFoodDepth = 0;
+        newL.lineageMaxFoodDepth = 0;
         list.push_back( newL );
         
         l = getListForLineage( inLineageEveID );
@@ -242,17 +242,17 @@ void logFoodDepth( int inLineageEveID, int inEatenID ) {
         // push a new empty list
         CravingList newL;
         newL.lineageEveID = inLineageEveID;
-		newL.lineageMaxFoodDepth = 0;
+        newL.lineageMaxFoodDepth = 0;
         list.push_back( newL );
         
         l = getListForLineage( inLineageEveID );
         }
 
-	if( d > l->lineageMaxFoodDepth ) {
-		l->lineageMaxFoodDepth = d;
-		}
+    if( d > l->lineageMaxFoodDepth ) {
+        l->lineageMaxFoodDepth = d;
+        }
 
-	}
+    }
 
 
 void purgeStaleCravings( int inLowestUniqueID ) {
