@@ -6015,8 +6015,8 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
         centerAnchorOffset = rotate( centerAnchorOffset, 2 * M_PI * rot );
         
         double y = inObject->spritePos[i].y
-                   + centerOffset.y
                    + centerAnchorOffset.y
+                   - centerOffset.y
                    // there is no way to calculate the visible dimensions after rotation
                    // just use the pre-rotation height here for simplicity
                    - dimensions.y / 2;
