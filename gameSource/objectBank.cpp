@@ -5402,7 +5402,7 @@ double getClosestObjectPart( ObjectRecord *inObject,
                 ObjectRecord *contained = 
                     getObject( inContained->getElementDirect( i ) );
             
-                doublePair centOffset = getObjectCenterOffset( contained );
+                doublePair centOffset = computeContainedCenterOffset(inObject, contained);
                 
                 if( inObject->slotVert[i] ) {
                     double rotOffset = 
