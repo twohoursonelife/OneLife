@@ -2159,6 +2159,10 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         mSlotSizeField.setVisible( true );
         mSlotTimeStretchField.setVisible( true );
         mSlotsBoxCheckbox.setVisible( true );
+        if( mCurrentObject.numSlots == 1 ) {
+            mSlotsBoxCheckbox.setToggled( true );
+            mCurrentObject.slotStyle = 0;
+            }
         mSlotsTableCheckbox.setVisible( true );
         mSlotsGroundCheckbox.setVisible( true );
         mSlotsLockedCheckbox.setVisible( true );
@@ -2196,6 +2200,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                 mSlotsTableCheckbox.setVisible( false );
                 mSlotsGroundCheckbox.setToggled( false );
                 mSlotsGroundCheckbox.setVisible( false );
+                mCurrentObject.slotStyle = 0;
                 mSlotsLockedCheckbox.setToggled( false );
                 mSlotsLockedCheckbox.setVisible( false );
                 mSlotsNoSwapCheckbox.setToggled( false );
