@@ -33,9 +33,13 @@ class DropdownList : public PageComponent, public ActionListenerList {
         // automatically becomes non-hidden when focused
         void setContentsHidden( char inHidden );
         
+        // raw text is the content of the dropdown list
+        // first line is also put into the text field
+        void setListByRawText( const char *inText  );
 
-        void setList( const char *inText  );
-        char *getAndUpdateList();
+        // combine the text field content and the dropdown list
+        // and return the updated dropdown list
+        char *getAndUpdateRawText();
 
         // copied internally
         void setText( const char *inText );
@@ -44,7 +48,8 @@ class DropdownList : public PageComponent, public ActionListenerList {
         // destroyed by caller
         char *getText();
         
-        
+        // index below refers to index in the dropdown list
+        // content of text field not included
         void selectOption( int index );
         void deleteOption( int index );
         
@@ -201,11 +206,34 @@ class DropdownList : public PageComponent, public ActionListenerList {
         double mCharWidth;
         
         
-
+        // dropdown list items delimited by newlines
         char *mRawText;
+
+        // filter out disallowed characters
+        // and remove empty lines resulted from that
+        char *processRawText( const char *inRawText );
+
+        // dedup and combine the content of text field and dropdown list
+        char *updateRawText( char *inRawText, char *inText );
+
+        // length of the dropdown list
+        // regardless of whether the text field is empty
         int listLen;
         
+        // only show this many items in the dropdown list
+        int listLenDisplayed;
+
+        // index of the first item in the scroll window 
+        int startIndex;
+
+        // index of hovered item
         int hoverIndex;
+        
+
+
+
+        
+
         int insideIndex( float inX, float inY );
         char isInsideTextBox( float inX, float inY );
         bool nearRightEdge;
