@@ -27403,8 +27403,8 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
     if( newScale < 1.0f ) {
         newScale = 1.0f;
         } 
-    else if ( newScale > 1.75f ) {
-        newScale = 1.75f;
+    else if ( newScale > 2.0f ) {
+        newScale = 2.0f;
         }
 
     gui_fov_target_scale_hud = newScale;

@@ -228,8 +228,8 @@ void loadFovSettings() {
         gui_fov_target_scale_hud = 1.0f;
         SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
         }
-    else if( gui_fov_target_scale_hud > 1.75f ) {
-        gui_fov_target_scale_hud = 1.75f;
+    else if( gui_fov_target_scale_hud > 2.0f ) {
+        gui_fov_target_scale_hud = 2.0f;
         SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
         }
 

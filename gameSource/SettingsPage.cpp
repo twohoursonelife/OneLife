@@ -73,7 +73,7 @@ SettingsPage::SettingsPage()
           mEnableCenterCameraBox( 561, 52, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
           mUISizeSlider( mainFont, -335, 148, 4, 200, 30,
-                                       1.0, 1.75, 
+                                       0.5, 1.0, 
                                        "" ),
           
           mUseCustomServerBox( -168, -148, 4 ),
@@ -588,7 +588,7 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         }
     else if( inTarget == &mUISizeSlider ) {
             
-        gui_fov_target_scale_hud = mUISizeSlider.getValue();
+        gui_fov_target_scale_hud = 1 / mUISizeSlider.getValue();
         SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
 
         }
@@ -1232,7 +1232,7 @@ void SettingsPage::makeActive( char inFresh ) {
         setMusicLoudness( 0 );
         mMusicStartTime = 0;
 
-        mUISizeSlider.setValue( gui_fov_target_scale_hud );
+        mUISizeSlider.setValue( 1 / gui_fov_target_scale_hud );
         
         int tryCount = 0;
         
