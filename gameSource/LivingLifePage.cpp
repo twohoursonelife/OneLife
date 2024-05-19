@@ -3400,7 +3400,7 @@ void LivingLifePage::drawCursorTips( const char* text, doublePair offset ) {
     FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
     FloatColor txtColor = { 1, 1, 1, 1 };
     drawChalkBackgroundString( 
-        {lastMouseX + (16 + offset.x) * gui_fov_scale_hud, lastMouseY - (16 - offset.y) * gui_fov_scale_hud}, 
+        {lastMouseX + (24) * gui_fov_scale + offset.x * gui_fov_scale_hud, lastMouseY - (16) * gui_fov_scale + offset.y * gui_fov_scale_hud}, 
         text, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
     }
 
@@ -11266,7 +11266,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         }
                     if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawCursorTips( display, {6, -20} );
+                        drawCursorTips( display, {4, -20} );
                         delete [] display;
                         }
                     }
