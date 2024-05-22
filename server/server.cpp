@@ -7540,9 +7540,9 @@ int processLoggedInPlayer( char inAllowReconnect,
         newObject.foodStore = 2;
         }
     
-    if( newObject.isTutorial && newObject.foodStore > 10 ) {
+    if( newObject.isTutorial && newObject.foodStore > 5 ) {
         // so they can practice eating at the beginning of the tutorial
-        newObject.foodStore -= 6;
+        newObject.foodStore -= 4;
         }
     
     double currentTime = Time::getCurrentTime();
