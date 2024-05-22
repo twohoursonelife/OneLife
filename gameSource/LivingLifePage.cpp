@@ -244,6 +244,8 @@ static int trippingEmotionIndex = -1;
 extern bool isTrippingEffectOn;
 extern bool trippingEffectDisabled;
 
+static doublePair yumBubbleDrawPos = {0, 0};
+
 static int historyGraphLength = 100;
 
 static char showFPS = false;
@@ -6284,14 +6286,9 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             speechPos.x += 41;
             speechPos.y -= 41;
             newbieTips::yumBubblePos = speechPos;
-            
-            setDrawColor( 1, 1, 1, 1 );
-            if( holdingYumOrMeh == -1 ) {
-                drawSprite( mMehIconSprite, speechPos );
-                }
-            else if ( holdingYumOrMeh == 1 ) {
-                drawSprite( mYumIconSprite, speechPos );
-                }
+
+            // save the pos to draw the bubble later, on top of other objects in the world
+            yumBubbleDrawPos = speechPos;
                 
             }
             
@@ -9033,6 +9030,26 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawMapCell( mapI, screenX, screenY, true );
             }
         }
+
+
+
+    // yum slip / yum bubble
+    if( holdingYumOrMeh != 0 &&
+        // don't draw two meh bubbles (one as emote, one as yum slip)
+        // however this still doesn't fix the jump of positions between the two when *meh fades
+        ourLiveObject->currentEmot != getEmotion( getEmotionIndex( "*meh" ) )
+        ) {
+        
+        setDrawColor( 1, 1, 1, 1 );
+        if( holdingYumOrMeh == -1 ) {
+            drawSprite( mMehIconSprite, yumBubbleDrawPos );
+            }
+        else if ( holdingYumOrMeh == 1 ) {
+            drawSprite( mYumIconSprite, yumBubbleDrawPos );
+            }
+            
+        }
+            
     
 
     char pointerDrawn[2] = { false, false };
