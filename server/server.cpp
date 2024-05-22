@@ -6299,106 +6299,19 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
 
 
 static int getEatBonus( LiveObject *inPlayer ) {
-    int generation = inPlayer->parentChainLength - 1;
     
-    int b = lrint( 
-        ( eatBonus - eatBonusFloor ) * 
-        pow( 0.5, 
-             generation / eatBonusHalfLife )
-        + eatBonusFloor );
-    
-    b += inPlayer->personalEatBonus;
+    // in OHOL, this function returns the food value based on generational food decay
+    // now we just use it for newbie food buff
 
+    int b = 
+        // newbie food buff
+        inPlayer->personalEatBonus +
+        // plain server-wide food bonus for adjusting difficulty
+        // berry was worth 3 pips, plus 2 pips eatBonus.
+        // In OHOL, this bonus was then repurposed to be the base of generational food decay
+        eatBonus;
+    
     return b;
-    }
-
-
-
-static int getEatCost( LiveObject *inPlayer ) {
-
-    if( eatCostMax == 0 ||
-        eatCostGrowthRate == 0 ) {
-        return 0;
-        }
-
-    // using P(t) form of logistic function from here:
-    // https://en.wikipedia.org/wiki/Logistic_function#
-    //         In_ecology:_modeling_population_growth
-
-
-    int generation = inPlayer->parentChainLength - 1;
-
-    // P(0) is 1, so we subtract 1 from the result value.
-    // but add 1 to max param
-    double K = eatCostMax + 1;
-
-    double costFloat = 
-        K / 
-        ( 1 + ( K - 1 ) * 
-          pow( M_E, -eatCostGrowthRate * generation ) );
-    
-    int cost = lrint( costFloat - 1 );
-
-    return cost;
-    }
-
-
-
-static double getLinearFoodScaleFactor( LiveObject *inPlayer ) {
-    
-    if( foodScaleFactor == foodScaleFactorFloor ) {
-        return foodScaleFactor;
-        }
-
-    int generation = inPlayer->parentChainLength - 1;
-    
-    double f = ( foodScaleFactor - foodScaleFactorFloor ) * 
-        pow( 0.5, 
-             generation / foodScaleFactorHalfLife )
-        + foodScaleFactorFloor;
-    
-    return f;
-    }
-
-
-static int getScaledFoodValue( LiveObject *inPlayer, int inFoodValue ) {
-    int v = inFoodValue;
-    
-    if( foodScaleFactorGamma == 1 ) {
-        v = ceil( getLinearFoodScaleFactor( inPlayer ) * inFoodValue );
-        }
-    else {
-        // apply half-life to gamma
-        // gamma starts at 1.0 and approaches foodScaleFactorGamma over time
-        // getting half-way there after foodScaleFactorHalfLife generations
-        int generation = inPlayer->parentChainLength - 1;
-
-        double h = pow( 0.5, 
-                        generation / foodScaleFactorHalfLife );
-        double g = h * 1.0 + (1-h) * foodScaleFactorGamma;
-        
-        int maxFoodValue = getMaxFoodValue();
-        
-        double scaledValue = inFoodValue / (double)maxFoodValue;
-        
-        double powerValue = pow( scaledValue, g );
-        
-        double rescaledValue = maxFoodValue * powerValue;
-        
-        // apply linear factor at end
-        v = 
-            ceil( getLinearFoodScaleFactor( inPlayer ) * rescaledValue );
-        }
-
-    if( v > 1 ) {
-        v -= getEatCost( inPlayer );
-
-        if( v < 1 ) {
-            v = 1;
-            }
-        }
-    
-    return v;
     }
 
 
@@ -8429,7 +8342,9 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.personalEatBonus = 0;
     newObject.personalFoodDecrementSecondsBonus = 0;
 
-    if( isUsingStatsServer() &&
+    if( 
+        ! newObject.isTutorial &&
+        isUsingStatsServer() &&
         ! newObject.lifeStats.error ) {
         
         int sec = newObject.lifeStats.lifeTotalSeconds;
@@ -8445,47 +8360,6 @@ int processLoggedInPlayer( char inAllowReconnect,
             lrint( halfLifeFactor * newPlayerFoodDecrementSecondsBonus );
         }
     
-        
-    if( forceSpawn ) {
-        newObject.forceSpawn = true;
-        newObject.xs = forceSpawnInfo.pos.x;
-        newObject.ys = forceSpawnInfo.pos.y;
-        newObject.xd = forceSpawnInfo.pos.x;
-        newObject.yd = forceSpawnInfo.pos.y;
-        
-        newObject.birthPos = forceSpawnInfo.pos;
-        
-        newObject.lifeStartTimeSeconds = 
-            Time::getCurrentTime() -
-            forceSpawnInfo.age * ( 1.0 / getAgeRate() );
-        
-        newObject.displayedName = autoSprintf( "%s %s", 
-                                      forceSpawnInfo.firstName,
-                                      forceSpawnInfo.lastName );
-        newObject.displayID = forceSpawnInfo.displayID;
-        
-        newObject.clothing.hat = getObject( forceSpawnInfo.hatID, true );
-        newObject.clothing.tunic = getObject( forceSpawnInfo.tunicID, true );
-        newObject.clothing.bottom = getObject( forceSpawnInfo.bottomID, true );
-        newObject.clothing.frontShoe = 
-            getObject( forceSpawnInfo.frontShoeID, true );
-        newObject.clothing.backShoe = 
-            getObject( forceSpawnInfo.backShoeID, true );
-        newObject.clothing.backpack = 
-            getObject( forceSpawnInfo.backpackID, true );
-        
-        newObject.yummyBonusStore = 999;
-        
-        newObject.holdingID = getObject( forceSpawnInfo.holdingID, false )->id;
-
-        delete [] forceSpawnInfo.firstName;
-        delete [] forceSpawnInfo.lastName;
-        }
-    
-
-    newObject.lastGlobalMessageTime = 0;
-    
-
     newObject.foodDecrementETASeconds =
         currentTime + 
         computeFoodDecrementTimeSeconds( &newObject );
@@ -18399,13 +18273,14 @@ int main() {
                                     
                                     updateYum( nextPlayer, targetObj->id );
                                     
-
+                                    int bonus = getEatBonus( nextPlayer );
+                                    
                                     logEating( targetObj->id,
-                                               targetObj->foodValue,
+                                               targetObj->foodValue + bonus,
                                                computeAge( nextPlayer ),
                                                m.x, m.y );
                                     
-                                    nextPlayer->foodStore += eatBonus;
+                                    nextPlayer->foodStore += bonus;
 
                                     int cap = 
                                         nextPlayer->lastReportedFoodCapacity;
@@ -19350,23 +19225,27 @@ int main() {
                                     targetPlayer->lastAteFillMax =
                                         targetPlayer->foodStore;
                                     
+                                    int bonus = 0;
+                                    
                                     if ( eatEverythingMode ) {
                                         // set the sustenance of everything to 1
                                         targetPlayer->foodStore += 1;
                                     }
                                     else {
                                         targetPlayer->foodStore += obj->foodValue;
+
+                                        bonus = getEatBonus( targetPlayer );
                                     }
                                     
                                     updateYum( targetPlayer, obj->id,
                                                targetPlayer == nextPlayer );
 
                                     logEating( obj->id,
-                                               obj->foodValue,
+                                               obj->foodValue + bonus,
                                                computeAge( targetPlayer ),
                                                m.x, m.y );
                                     
-                                    targetPlayer->foodStore += eatBonus;
+                                    targetPlayer->foodStore += bonus;
 
                                     checkForFoodEatingEmot( targetPlayer,
                                                             obj->id );
