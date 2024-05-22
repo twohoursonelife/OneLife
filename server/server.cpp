@@ -21861,7 +21861,7 @@ int main() {
                                 decrementedPlayer->yummyBonusStore
                                 + decrementedPlayer->foodStore;
 
-                            double totalTime = decTime * totalFood;
+                            double totalTime = decTime * (totalFood + 1); // + 1 because we survive at 0 pip 
                             
                             if( totalTime < 20 ) {
                                 // 20 seconds left before death
