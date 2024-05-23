@@ -117,6 +117,8 @@ extern char userReconnect;
 static char vogMode = false;
 static char vogModeActuallyOn = false;
 
+static char debugMode = false;
+
 static doublePair vogPos = { 0, 0 };
 
 static char vogPickerOn = false;
@@ -3544,6 +3546,10 @@ LivingLifePage::LivingLifePage()
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
+        }
+
+    if( SettingsManager::getIntSetting( "debugInfo", 0 ) ) {
+        debugMode = true;
         }
 
     if( SettingsManager::getIntSetting( "coordinatesEnabled", 0 ) ) {
@@ -11265,14 +11271,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
                 if( isShowUseOnObjectHoverActive ) {
-                  const int playerSelfID = -99;
-                  std::string objComment = "";
-                  if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
+                    const int playerSelfID = -99;
+                    std::string objComment = "";
+                    if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
                     objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
-                    }
-                  else if( mCurMouseOverID > 0 ) {
+                        }
+                    else if( mCurMouseOverID > 0 ) {
                     objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
-                    }
+                        }
 
                     std::string displayedComment = objComment;
                     std::string tagName = " USE";
@@ -11317,7 +11323,40 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+    // debug info on cursor
+    if( debugMode ) {
 
+        int mouseX = int(round( lastMouseX / (float)CELL_D ));
+        int mouseY = int(round( lastMouseY / (float)CELL_D ));
+        int objID = getObjId(mouseX, mouseY);
+
+		char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
+        char *additionalLine = NULL;
+
+        int graveID = -1;
+        if( objID > 0 ) {
+            for( int g=0; g<mGraveInfo.size(); g++ ) {
+                GraveInfo *gI = mGraveInfo.getElement( g );
+                if( gI->worldPos.x == mouseX && gI->worldPos.y == mouseY ) {
+                    graveID = gI->playerID;
+                    }
+                }
+            }
+
+
+        if( currHoverPlayerID != 0 ) {
+            additionalLine = autoSprintf( "PID: %d", currHoverPlayerID );
+            }
+        else if( graveID != -1 ) {
+            additionalLine = autoSprintf( "GRAVE: %d", graveID );
+            }
+
+        if( additionalLine != NULL ) {
+            drawCursorTips( additionalLine, {0, -20-20-20} );
+            }
+        drawCursorTips( firstLine, {0, -20-20} );
+
+        }
 
 
     // Left Panel
@@ -15524,6 +15563,7 @@ void LivingLifePage::step() {
                     g.creationTimeUnknown = false;
                     g.lastMouseOverYears = -1;
                     g.lastMouseOverTime = g.creationTime;
+                    g.playerID = playerID;
                     
                     char *des = gravePerson->relationName;
                     char *desToDelete = NULL;
@@ -15727,6 +15767,7 @@ void LivingLifePage::step() {
                 GraveInfo g;
                 g.worldPos.x = posX;
                 g.worldPos.y = posY;
+                g.playerID = playerID;
                 
                 char *des = relationName;
                 char *desToDelete = NULL;
