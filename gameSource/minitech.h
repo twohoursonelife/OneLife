@@ -39,7 +39,8 @@ public:
         SimpleVector<int> *inmMapContainedStacks,
         SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
         SpriteHandle inmCellFillSprite,
-        SpriteHandle inmCellBorderSprite
+        SpriteHandle inmCellBorderSprite,
+        SpriteHandle inmTempArrowSprite
         );
     static LivingLifePage *livingLifePage;
     static LiveObject *ourLiveObject;

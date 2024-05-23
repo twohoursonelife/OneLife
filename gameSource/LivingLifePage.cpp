@@ -3982,7 +3982,8 @@ LivingLifePage::LivingLifePage()
         mMapContainedStacks, 
         mMapSubContainedStacks,
         mCellFillSprite,
-        mCellBorderSprite
+        mCellBorderSprite,
+        mTempArrowSprites[1]
         );
     newbieTips::init(
         this,

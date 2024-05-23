@@ -95,6 +95,7 @@ static int numBiomes = 9;
 
 static SpriteHandle mCellFillSprite;
 static SpriteHandle mCellBorderSprite;
+static SpriteHandle mTempArrowSprite;
 
 SpriteHandle sheet;
 SpriteHandle bigSheet;
@@ -107,7 +108,8 @@ void minitech::setLivingLifePage(
     SimpleVector<int> *inmMapContainedStacks,
     SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
     SpriteHandle inmCellFillSprite,
-    SpriteHandle inmCellBorderSprite
+    SpriteHandle inmCellBorderSprite,
+    SpriteHandle inmTempArrowSprite
     ) {
     
     maxObjects = getMaxObjectID() + 1;
@@ -127,6 +129,7 @@ void minitech::setLivingLifePage(
     
     mCellFillSprite = inmCellFillSprite;
     mCellBorderSprite = inmCellBorderSprite;
+    mTempArrowSprite = inmTempArrowSprite;
     
 }
 
@@ -1628,9 +1631,13 @@ void minitech::updateDrawTwoTech() {
         doublePair pos = posLineLCen;
         pos.x += iconSize/2;
         if (showPreviousPageButton) {
-            drawStr("<", pos, "main", false);
-            doublePair prevPageButtonTLPos = {pos.x - iconSize/2, pos.y + iconSize/2};
-            doublePair prevPageButtonBRPos = {pos.x + iconSize/2, pos.y - iconSize/2};
+            // drawStr("<", pos, "handwritten", false);
+            setDrawColor( 1, 1, 1, 1 );
+            toggleMultiplicativeBlend( true );
+            drawSprite(mTempArrowSprite, pos, guiScale / 1.25, 0.25 );
+            toggleMultiplicativeBlend( false );
+            doublePair prevPageButtonTLPos = {pos.x - iconSize/3, pos.y + iconSize/3};
+            doublePair prevPageButtonBRPos = {pos.x + iconSize/3, pos.y - iconSize/3};
             
             prevListener = getMouseListenerByArea(
                 &twotechMouseListeners, 
@@ -1638,7 +1645,7 @@ void minitech::updateDrawTwoTech() {
                 sub(prevPageButtonBRPos, screenPos));
             if (prevListener->mouseHover) {
                 setDrawColor( 0, 0, 0, 0.1 );
-                drawRect(pos, iconSize/2, iconSize/2);
+                drawRect(pos, iconSize/3, iconSize/3);
             }
         } else {
             prevListener = NULL;
@@ -1646,9 +1653,13 @@ void minitech::updateDrawTwoTech() {
         
         pos.x += iconSize*6;
         if (showNextPageButton) {
-            drawStr(">", pos, "main", false);
-            doublePair nextPageButtonTLPos = {pos.x - iconSize/2, pos.y + iconSize/2};
-            doublePair nextPageButtonBRPos = {pos.x + iconSize/2, pos.y - iconSize/2};
+            // drawStr(">", pos, "handwritten", false);
+            setDrawColor( 1, 1, 1, 1 );
+            toggleMultiplicativeBlend( true );
+            drawSprite(mTempArrowSprite, pos, guiScale / 1.25, 0.75 );
+            toggleMultiplicativeBlend( false );
+            doublePair nextPageButtonTLPos = {pos.x - iconSize/3, pos.y + iconSize/3};
+            doublePair nextPageButtonBRPos = {pos.x + iconSize/3, pos.y - iconSize/3};
             
             nextListener = getMouseListenerByArea(
                 &twotechMouseListeners, 
@@ -1656,7 +1667,7 @@ void minitech::updateDrawTwoTech() {
                 sub(nextPageButtonBRPos, screenPos));
             if (nextListener->mouseHover) {
                 setDrawColor( 0, 0, 0, 0.1 );
-                drawRect(pos, iconSize/2, iconSize/2);
+                drawRect(pos, iconSize/3, iconSize/3);
             }
         } else {
             nextListener = NULL;
@@ -1665,7 +1676,7 @@ void minitech::updateDrawTwoTech() {
         if (showPreviousPageButton || showNextPageButton) {
             pos.x -= iconSize*3;
             string pageInd = to_string(currentTwoTechPage + 1) + "/" + to_string(maxPage);
-            drawStr(pageInd, pos, "tinyMain", false);
+            drawStr(pageInd, pos, "tinyHandwritten", false);
         }
         
 
