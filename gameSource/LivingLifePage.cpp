@@ -2970,12 +2970,12 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
     }
     
     
-static FILE *outputMapFile = NULL;
-HashTable<char> outputMapSavedPos( 400 * 400, CHAR_MAX );
-int outputMapFile_w;
-int outputMapFile_h;
-int outputMapFile_oX;
-int outputMapFile_oY;
+static FILE *townPlannerMapFile = NULL;
+HashTable<char> townPlannerMapSavedPos( 400 * 400, CHAR_MAX );
+int townPlannerMapFile_w;
+int townPlannerMapFile_h;
+int townPlannerMapFile_oX;
+int townPlannerMapFile_oY;
 
 std::string getSeededEmail() {
     char *tempEmail;
@@ -3046,7 +3046,7 @@ static std::string url_encode(const std::string &value) {
     return escaped.str();
     }
 
-static void initOutputMap() {
+static void initTownPlannerMap() {
 
     File sceneDir( NULL, "scenes" );
     
@@ -3059,7 +3059,7 @@ static void initOutputMap() {
         return;
         }
 
-    int outputMapID = SettingsManager::getIntSetting( "outputMapID", -1 );
+    int townPlannerMapID = SettingsManager::getIntSetting( "townPlannerMapID", -1 );
     // Get seed from email, so it will find it whether added on in the settings
     // or input manually as the login.
     std::string seededEmail = getSeededEmail();
@@ -3073,48 +3073,48 @@ static void initOutputMap() {
     int nextID = nextFile->readFileIntContents( 0 );
     // Check to see if the tutorial is done. If it isn't, there is no seed spawn.
     int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
-    File *outputMapFileRaw = NULL;
+    File *townPlannerMapFileRaw = NULL;
     if( seed == "" || tutorialDone == 0 ) { // if there's no seed, or it's a tutorial, there's no repeatability.
-        outputMapID = nextID;
+        townPlannerMapID = nextID;
         do {
             // Differentiate between maps generated from random births and tutorial lives.
-            if( outputMapFileRaw != NULL) {
-                delete outputMapFileRaw;
-                outputMapFileRaw = NULL;
+            if( townPlannerMapFileRaw != NULL) {
+                delete townPlannerMapFileRaw;
+                townPlannerMapFileRaw = NULL;
                 }
-            char *name = autoSprintf( "%s_%02d.txt", tutorialDone ? "Auto" : "Tutorial", outputMapID );
-            outputMapFileRaw = sceneDir.getChildFile( name );
-            outputMapID++;
+            char *name = autoSprintf( "%s_%02d.txt", tutorialDone ? "Auto" : "Tutorial", townPlannerMapID );
+            townPlannerMapFileRaw = sceneDir.getChildFile( name );
+            townPlannerMapID++;
             delete [] name;
-        } while ( outputMapFileRaw->exists() ); // Keep incrementing until we know we're not using an existing file.
+        } while ( townPlannerMapFileRaw->exists() ); // Keep incrementing until we know we're not using an existing file.
 
-        nextID = outputMapID;
+        nextID = townPlannerMapID;
         nextFile->writeToFile( nextID ); // Save the number so we don't have to try as many next time.
         }
     else {
         std::string safe_seed = url_encode(seed); // Lots of characters are allowed in seeds that are not allowed in filenames.
         char *name = autoSprintf( "Seed_%s.txt", safe_seed.c_str() ); // URL Encoded strings could be turned back into the original.
-        outputMapFileRaw = sceneDir.getChildFile( name );
+        townPlannerMapFileRaw = sceneDir.getChildFile( name );
         delete [] name;
         }
     
     
-    if( !outputMapFileRaw->exists() ) {
-        outputMapFile = fopen( outputMapFileRaw->getFullFileName(), "ab" );
-        outputMapFile_w = SettingsManager::getIntSetting( "outputMapMapSizeX", 400 );
-        outputMapFile_h = SettingsManager::getIntSetting( "outputMapMapSizeY", 400 );
-        outputMapFile_oX = SettingsManager::getIntSetting( "outputMapInitCenterX", int(outputMapFile_w / 2) );
-        outputMapFile_oY = SettingsManager::getIntSetting( "outputMapInitCenterY", int(outputMapFile_h / 2) );
-        if( outputMapFile_w > 800 ) outputMapFile_w = 800;
-        if( outputMapFile_h > 800 ) outputMapFile_h = 800;
-        if( outputMapFile_oX >= outputMapFile_w || outputMapFile_w < 0 ) outputMapFile_oX = int(outputMapFile_w / 2);
-        if( outputMapFile_oY >= outputMapFile_h || outputMapFile_h < 0 ) outputMapFile_oY = int(outputMapFile_h / 2);
-        fprintf( outputMapFile, "w=%d\nh=%d\norigin=%d,%d\nfloorPresent\n", outputMapFile_w, outputMapFile_h, outputMapFile_oX, outputMapFile_oY );
+    if( !townPlannerMapFileRaw->exists() ) {
+        townPlannerMapFile = fopen( townPlannerMapFileRaw->getFullFileName(), "ab" );
+        townPlannerMapFile_w = SettingsManager::getIntSetting( "townPlannerMapMapSizeX", 400 );
+        townPlannerMapFile_h = SettingsManager::getIntSetting( "townPlannerMapMapSizeY", 400 );
+        townPlannerMapFile_oX = SettingsManager::getIntSetting( "townPlannerMapInitCenterX", int(townPlannerMapFile_w / 2) );
+        townPlannerMapFile_oY = SettingsManager::getIntSetting( "townPlannerMapInitCenterY", int(townPlannerMapFile_h / 2) );
+        if( townPlannerMapFile_w > 800 ) townPlannerMapFile_w = 800;
+        if( townPlannerMapFile_h > 800 ) townPlannerMapFile_h = 800;
+        if( townPlannerMapFile_oX >= townPlannerMapFile_w || townPlannerMapFile_w < 0 ) townPlannerMapFile_oX = int(townPlannerMapFile_w / 2);
+        if( townPlannerMapFile_oY >= townPlannerMapFile_h || townPlannerMapFile_h < 0 ) townPlannerMapFile_oY = int(townPlannerMapFile_h / 2);
+        fprintf( townPlannerMapFile, "w=%d\nh=%d\norigin=%d,%d\nfloorPresent\n", townPlannerMapFile_w, townPlannerMapFile_h, townPlannerMapFile_oX, townPlannerMapFile_oY );
         } 
     else {
-        outputMapFile = fopen( outputMapFileRaw->getFullFileName(), "ab" );
+        townPlannerMapFile = fopen( townPlannerMapFileRaw->getFullFileName(), "ab" );
         
-        char *fileText = outputMapFileRaw->readFileContents();
+        char *fileText = townPlannerMapFileRaw->readFileContents();
         
         if( fileText != NULL ) {
             
@@ -3125,13 +3125,13 @@ static void initOutputMap() {
             
             int next = 0;
             
-            sscanf( lines[next], "w=%d", &outputMapFile_w );
+            sscanf( lines[next], "w=%d", &townPlannerMapFile_w );
             next++;
-            sscanf( lines[next], "h=%d", &outputMapFile_h );
+            sscanf( lines[next], "h=%d", &townPlannerMapFile_h );
             next++;
 
             if( strstr( lines[next], "origin" ) != NULL ) {
-                sscanf( lines[next], "origin=%d,%d", &outputMapFile_oX, &outputMapFile_oY );
+                sscanf( lines[next], "origin=%d,%d", &townPlannerMapFile_oX, &townPlannerMapFile_oY );
                 next++;
                 }
             
@@ -3146,7 +3146,7 @@ static void initOutputMap() {
                 
                 if( numRead == 2 ) {
                     GridPos thisPos = { x, y };
-                    outputMapSavedPos.insert( thisPos.x, thisPos.y, 0, 0, 1 );
+                    townPlannerMapSavedPos.insert( thisPos.x, thisPos.y, 0, 0, 1 );
                     }
                 
                 next++;
@@ -3157,20 +3157,20 @@ static void initOutputMap() {
         }
     }
 
-static void clearOutputMap() {
-    if( outputMapFile != NULL ) {
-        fclose( outputMapFile );
-        outputMapFile = NULL;
+static void clearTownPlannerMap() {
+    if( townPlannerMapFile != NULL ) {
+        fclose( townPlannerMapFile );
+        townPlannerMapFile = NULL;
         }
-    outputMapSavedPos.clear();
+    townPlannerMapSavedPos.clear();
     }
 
-static void outputMap( SimpleVector<char *> *tokens, 
+static void saveChunkToTownPlannerMap( SimpleVector<char *> *tokens, 
     int sizeX, int sizeY,
     int x, int y,
     int mMapOffsetX, int mMapOffsetY, int mMapD ) {
     
-    if( outputMapFile != NULL ) {
+    if( townPlannerMapFile != NULL ) {
         
         for( int i=0; i<tokens->size(); i++ ) {
             int cX = i % sizeX;
@@ -3186,18 +3186,18 @@ static void outputMap( SimpleVector<char *> *tokens,
                 int mapI = mapY * mMapD + mapX;
                 
 
-                int realX = cX + x + outputMapFile_oX;
-                int realY = -( cY + y ) + outputMapFile_oY;
+                int realX = cX + x + townPlannerMapFile_oX;
+                int realY = -( cY + y ) + townPlannerMapFile_oY;
                 
-                if( realX >= outputMapFile_w ||
+                if( realX >= townPlannerMapFile_w ||
                     realX < 0 ||
-                    realY >= outputMapFile_h ||
+                    realY >= townPlannerMapFile_h ||
                     realY < 0 )
                     continue;
                 
 
                 char savedAlready = false;
-                outputMapSavedPos.lookup(realX, realY, 0, 0, &savedAlready);
+                townPlannerMapSavedPos.lookup(realX, realY, 0, 0, &savedAlready);
                 // the return value of lookup returns the value looked up, or the default value(CHAR_MAX)
                 // savedAlready returns whether the lookup succeeded or not.
 
@@ -3217,17 +3217,17 @@ static void outputMap( SimpleVector<char *> *tokens,
                 if( savedAlready ) continue;
                 // Saving a little later, because this way we have access to the map for later changes.
                 // The extra time at this point is negligible.
-                outputMapSavedPos.insert(realX, realY, 0, 0, biome);
+                townPlannerMapSavedPos.insert(realX, realY, 0, 0, biome);
 
                 oid = getObjectParent( oid );
                 
-                fprintf( outputMapFile, "x=%d,y=%d\n", realX, realY );
+                fprintf( townPlannerMapFile, "x=%d,y=%d\n", realX, realY );
                 
-                fprintf( outputMapFile, "biome=%d\n", biome );
+                fprintf( townPlannerMapFile, "biome=%d\n", biome );
                 
                 if( oid > 0 ) {
-                    fprintf( outputMapFile, "oID=%d\n", oid );
-                    fprintf( outputMapFile, "heldID=-1\n" );
+                    fprintf( townPlannerMapFile, "oID=%d\n", oid );
+                    fprintf( townPlannerMapFile, "heldID=-1\n" );
                     
                     int numContained = 0;
                     
@@ -3240,15 +3240,15 @@ static void outputMap( SimpleVector<char *> *tokens,
                         
                         numContained = numInts - 1;
                         
-                        fprintf( outputMapFile, "numCont=%d\n", numContained );
+                        fprintf( townPlannerMapFile, "numCont=%d\n", numContained );
                         
                         for( int c=0; c<numContained; c++ ) {
                             
                             int contained = atoi( ints[ c + 1 ] );
                             contained = getObjectParent( contained );
                             
-                            fprintf( outputMapFile, "cont=%d\n", contained );
-                            fprintf( outputMapFile, "numSubCont=0\n" );
+                            fprintf( townPlannerMapFile, "cont=%d\n", contained );
+                            fprintf( townPlannerMapFile, "numSubCont=0\n" );
 
                             delete [] ints[ c + 1 ];
                             }
@@ -3257,7 +3257,7 @@ static void outputMap( SimpleVector<char *> *tokens,
                         
                         } 
                     else {
-                        fprintf( outputMapFile, "numCont=%d\n", numContained );
+                        fprintf( townPlannerMapFile, "numCont=%d\n", numContained );
                         }
                     
 
@@ -3265,21 +3265,21 @@ static void outputMap( SimpleVector<char *> *tokens,
                     ObjectRecord *obj = getObject( oid );
                     if( obj != NULL ) numUses = obj->numUses;
                     
-                    fprintf( outputMapFile, "hat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=%d\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\nempty\n", numUses );
+                    fprintf( townPlannerMapFile, "hat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=%d\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\nempty\n", numUses );
                     
                     } 
                 else {
-                    fprintf( outputMapFile, "empty\n" );
-                    fprintf( outputMapFile, "empty\n" );
+                    fprintf( townPlannerMapFile, "empty\n" );
+                    fprintf( townPlannerMapFile, "empty\n" );
                     }
                 
                 if( floor > 0 ) {
                     
-                    fprintf( outputMapFile, "oID=%d\nheldID=-1\nnumCont=0\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=0\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\n", floor );
+                    fprintf( townPlannerMapFile, "oID=%d\nheldID=-1\nnumCont=0\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=0\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\n", floor );
                     
                     } 
                 else {
-                    fprintf( outputMapFile, "empty\n" );
+                    fprintf( townPlannerMapFile, "empty\n" );
                     }
                 
                 }
@@ -3497,7 +3497,7 @@ static double apocalypseDisplaySeconds = 6;
 static double remapPeakSeconds = 60;
 static double remapDelaySeconds = 30;
 
-int outputMapMode = 0;
+char generateTownPlannerMaps = 0;
 
 
 //EXTENDED FUNCTIONALITY
@@ -3869,8 +3869,9 @@ LivingLifePage::LivingLifePage()
         mUsingSteam = true;
         }
 
-    outputMapMode = SettingsManager::getIntSetting( "outputMapOn", 0 );
-    if( outputMapMode > 1 || outputMapMode < 0 ) outputMapMode = 0;
+    if( SettingsManager::getIntSetting( "generateTownPlannerMaps", 0 ) ) {
+        generateTownPlannerMaps = true;
+        }
 
     if( SettingsManager::getIntSetting( "debugInfo", 0 ) ) {
         debugMode = true;
@@ -13015,7 +13016,7 @@ void LivingLifePage::handleOurDeath( char inDisconnect ) {
     // so sound tails are not still playing when we we get reborn
     fadeSoundSprites( 0.1 );
     setSoundLoudness( 0 );
-    clearOutputMap();
+    clearTownPlannerMap();
     }
 
 
@@ -16572,9 +16573,9 @@ void LivingLifePage::step() {
                 
                 if( tokens->size() == numCells ) {
                     
-                    if( outputMapMode == 1 ) {
-                        if( outputMapFile == NULL ) initOutputMap();
-                        outputMap( tokens, sizeX, sizeY, x, y, mMapOffsetX, mMapOffsetY, mMapD );
+                    if( generateTownPlannerMaps ) {
+                        if( townPlannerMapFile == NULL ) initTownPlannerMap();
+                        saveChunkToTownPlannerMap( tokens, sizeX, sizeY, x, y, mMapOffsetX, mMapOffsetY, mMapD );
                         }
                     
                     for( int i=0; i<tokens->size(); i++ ) {

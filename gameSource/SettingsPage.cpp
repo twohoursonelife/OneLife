@@ -126,7 +126,7 @@ SettingsPage::SettingsPage()
         mEnableObjectSearchBox(0, 8, 4),
         mEnableFamilyDisplayBox(0, -32, 4),
         mEnableDangerousTileBox(0, -72, 4),
-        mOutputMapBox( 561, 52, 4 ) {
+        mGenerateTownPlannerMapsBox( 561, 52, 4 ) {
                             
 
     
@@ -135,8 +135,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
-    addComponent( &mOutputMapBox );
-    mOutputMapBox.addActionListener( this );
+    addComponent( &mGenerateTownPlannerMapsBox );
+    mGenerateTownPlannerMapsBox.addActionListener( this );
     addComponent(&mEnableDangerousTileBox);
     mEnableDangerousTileBox.addActionListener(this);
     addComponent(&mEnableFamilyDisplayBox);
@@ -306,7 +306,7 @@ SettingsPage::SettingsPage()
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
     mEnableCenterCameraBox.setCursorTip( "ALWAYS CENTER THE CAMERA VIEW ON YOUR CHARACTER" );
     mEnableNudeBox.setCursorTip( "ENABLE NUDITY" );
-    mOutputMapBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
+    mGenerateTownPlannerMapsBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
     
     mUseCustomServerBox.setCursorTip( "CONNECT TO A CUSTOM SERVER" );
     mCustomServerAddressField.setCursorTip( "CUSTOM SERVER ADDRESS" );
@@ -369,10 +369,10 @@ SettingsPage::SettingsPage()
     mEnableNudeBox.setToggled( mEnableNudeSetting );
 
 
-    mOldOutputMapSetting = 
-        SettingsManager::getIntSetting( "outputMapOn", 0 );
+    mOldGenerateTownPlannerMapsSetting = 
+        SettingsManager::getIntSetting( "generateTownPlannerMaps", 0 );
 
-    mOutputMapBox.setToggled( mOldOutputMapSetting );
+    mGenerateTownPlannerMapsBox.setToggled( mOldGenerateTownPlannerMapsSetting );
     
     mEnableFOVSetting =
         SettingsManager::getIntSetting( "fovEnabled", 0 );
@@ -915,10 +915,10 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         SettingsManager::setSetting("dangerousTileEnabled",
                                     newSetting);
         }
-    else if( inTarget == &mOutputMapBox ) {
-        int newSetting = mOutputMapBox.getToggled();
+    else if( inTarget == &mGenerateTownPlannerMapsBox ) {
+        int newSetting = mGenerateTownPlannerMapsBox.getToggled();
         
-        SettingsManager::setSetting( "outputMapOn", newSetting );
+        SettingsManager::setSetting( "generateTownPlannerMaps", newSetting );
         }
 
     checkRestartRequired();
@@ -1030,8 +1030,8 @@ void SettingsPage::draw( doublePair inViewCenter,
         drawTextWithShadow( "UI SIZE", pos, alignRight );
         }
         
-    if( mOutputMapBox.isVisible() ) {
-        doublePair pos = mOutputMapBox.getPosition();
+    if( mGenerateTownPlannerMapsBox.isVisible() ) {
+        doublePair pos = mGenerateTownPlannerMapsBox.getPosition();
         
         pos.x -= 30;
         pos.y -= 2;
@@ -1347,7 +1347,7 @@ void SettingsPage::updatePage() {
     mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
     mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
     mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
-    mOutputMapBox.setPosition(0, lineSpacing * -4);
+    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -4);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1397,7 +1397,7 @@ void SettingsPage::updatePage() {
     mEnableObjectSearchBox.setVisible(mPage == 5);
     mEnableFamilyDisplayBox.setVisible(mPage == 5);
     mEnableDangerousTileBox.setVisible(mPage == 5);
-    mOutputMapBox.setVisible(mPage == 5);
+    mGenerateTownPlannerMapsBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
@@ -1417,7 +1417,7 @@ void SettingsPage::checkRestartRequired() {
         mOldBorderlessSetting != mBorderlessBox.getToggled() ||
         getCountingOnVsync() != mVsyncBox.getToggled() ||
         ( mTargetFrameRateField.isVisible() && mTargetFrameRateField.getInt() != targetFramesPerSecond ) ||
-        mOldOutputMapSetting != mOutputMapBox.getToggled()
+        mOldGenerateTownPlannerMapsSetting != mGenerateTownPlannerMapsBox.getToggled()
         ) {
         setStatusDirect( "RESTART REQUIRED##FOR NEW SETTINGS TO TAKE EFFECT", true );
         // Do not show RESTART button when setting page is accessed mid-game

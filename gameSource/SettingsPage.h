@@ -39,7 +39,7 @@ class SettingsPage : public GamePage, public ActionListener {
         
         int mOldFullscreenSetting;
         int mOldBorderlessSetting;
-        int mOldOutputMapSetting;
+        int mOldGenerateTownPlannerMapsSetting;
         int mTrippingEffectDisabledSetting;
         int mEnableNudeSetting;
         int mEnableFOVSetting;
@@ -124,7 +124,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnableObjectSearchBox;
         CheckboxButton mEnableFamilyDisplayBox;
         CheckboxButton mEnableDangerousTileBox;
-        CheckboxButton mOutputMapBox;
+        CheckboxButton mGenerateTownPlannerMapsBox;
         
         
         void checkRestartButtonVisibility();
