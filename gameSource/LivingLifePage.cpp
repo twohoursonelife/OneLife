@@ -117,6 +117,10 @@ extern char userReconnect;
 
 static char vogMode = false;
 static char vogModeActuallyOn = false;
+static char vogJumpCameraOnNextVU = false;
+static char vogStopUsualCameraMovement = false;
+static char vogResumingUsualCameraMovementOnNextVU = false;
+static double lastVogMoveTime = 0;
 
 static char debugMode = false;
 
@@ -380,10 +384,11 @@ static doublePair recalcOffset( doublePair ofs, bool force = false ) {
     return ofs;
     }
 
-static bool isHoveringPicker( float x, float y ) {
+bool LivingLifePage::isHoveringPicker( float x, float y ) {
     if( !vogPickerOn ) return false;
-    if( abs(x - (vogPos.x * CELL_D + 510)) <= 90 &&
-        abs(y - (vogPos.y * CELL_D + 90 - 85)) <= 245 ) {
+    doublePair pickerPos = mObjectPicker.getPosition();
+    if( abs(x - (pickerPos.x)) <= 90 &&
+        abs(y - (pickerPos.y - 85)) <= 245 ) {
         return true;
     }
     return false;
@@ -5850,7 +5855,10 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
     returnPack.inObjectID = -1;
 
 
-    if( inObj->hide || inObj->outOfRange ) {
+    if( inObj->hide || inObj->outOfRange || 
+        // in vogMode, currentPos may not align with even vogPos
+        // too confusing, don't draw character
+        (inObj->id == ourID && vogModeActuallyOn) ) {
         return returnPack;
         }
 
@@ -7530,7 +7538,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     double drawStartTime = showFPS ? game_getCurrentTime() : 0;
 
-
+    if( !vogStopUsualCameraMovement )
     setViewCenterPosition( lastScreenViewCenter.x,
                            lastScreenViewCenter.y );
 
@@ -8399,6 +8407,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
+
+    if( vogModeActuallyOn ) {
+        GridPos viewingGridPos = {
+            lrintf( lastScreenViewCenter.x / CELL_D ),
+            lrintf( lastScreenViewCenter.y / CELL_D )
+            };
+        drawTileVanillaHighlight( viewingGridPos.x, viewingGridPos.y, {1.0, 0.0, 1.0, 1.0} );
+        }
 
     if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
         doublePair mousePos = { lastMouseX, lastMouseY };
@@ -11655,7 +11671,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int mouseY = int(round( lastMouseY / (float)CELL_D ));
         int objID = getObjId(mouseX, mouseY);
 
-		char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
+        char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
         char *additionalLine = NULL;
 
         int graveID = -1;
@@ -11677,10 +11693,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         if( additionalLine != NULL ) {
-            drawCursorTips( additionalLine, {0, -20-20-20} );
+            drawCursorTips( additionalLine, {0, -20 * 3} );
             }
-        drawCursorTips( firstLine, {0, -20-20} );
+        drawCursorTips( firstLine, {0, -20 * 2} );
 
+        if( firstLine != NULL ) delete [] firstLine;
+        if( additionalLine != NULL ) delete [] additionalLine;
         }
 
 
@@ -16221,19 +16239,36 @@ void LivingLifePage::step() {
             int numRead = sscanf( message, "VU\n%d %d",
                                   &posX, &posY );
             if( numRead == 2 ) {
-                vogModeActuallyOn = true;
+                if( vogMode ) vogModeActuallyOn = true;
                 
                 vogPos.x = posX;
                 vogPos.y = posY;
 
-                mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
-                                           vogPos.y * CELL_D + 90 );
+                if( vogJumpCameraOnNextVU ) {
+                    vogJumpCameraOnNextVU = false;
 
-                // jump camp instantly
-                lastScreenViewCenter.x = posX * CELL_D;
-                lastScreenViewCenter.y = posY * CELL_D;
-                setViewCenterPosition( lastScreenViewCenter.x,
-                                       lastScreenViewCenter.y );
+                    LiveObject *ourLiveObject = getOurLiveObject();
+                    ourLiveObject->xd = posX;
+                    ourLiveObject->yd = posY;
+                    // changing currentPos will draw the character where 
+                    // vogPos is if character is drawn 
+                    ourLiveObject->currentPos.x = posX;
+                    ourLiveObject->currentPos.y = posY;
+
+                    mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
+                                               vogPos.y * CELL_D + 90 );
+
+                    // jump camp instantly
+                    lastScreenViewCenter.x = posX * CELL_D;
+                    lastScreenViewCenter.y = posY * CELL_D;
+                    setViewCenterPosition( lastScreenViewCenter.x,
+                                           lastScreenViewCenter.y );
+                    }
+
+                if( vogResumingUsualCameraMovementOnNextVU ) {
+                    vogResumingUsualCameraMovementOnNextVU = false;
+                    vogStopUsualCameraMovement = false;
+                    }
 
                 mCurMouseOverCellFade = 1.0;
                 
@@ -21082,7 +21117,7 @@ void LivingLifePage::step() {
                                     // TODO: If fertility age is ever not hard coded, maybe put it here?
                                     if (automaticInfertilityAsEve > 0 and existing->lineageEveID == ourID and existing->age < 15.0) {
                                         // We are Eve, not yet fertile, and have chosen not to eat the fruit. No BB plz.
-                                        Thread::staticSleep( 1000 ); // Server ignores say commands sent in the first second after creation.
+                                        // Thread::staticSleep( 1000 ); // Server ignores say commands sent in the first second after creation.
                                         sendToServerSocket((char*)"SAY 0 0 NO BB#");
                                         printf("automaticInfertilityAsEve set, making Eve infertile.\n");
                                         }
@@ -21800,7 +21835,7 @@ void LivingLifePage::step() {
             
         int centerCamera = SettingsManager::getIntSetting( "centerCamera", 0 );
         
-        if( vogMode || centerCamera ) {
+        if( vogMode || centerCamera || vogStopUsualCameraMovement ) {
             // don't adjust camera
             }
         else if( 
@@ -21942,6 +21977,7 @@ void LivingLifePage::step() {
 
             moveStep.x = lrint( moveStep.x );
                         
+            if( !vogStopUsualCameraMovement )
             if( fabs( moveStep.x ) > 0 ) {
                 lastScreenViewCenter.x += moveStep.x;
                 viewChange = true;
@@ -21956,6 +21992,7 @@ void LivingLifePage::step() {
 
             moveStep.y = lrint( moveStep.y );
                         
+            if( !vogStopUsualCameraMovement )
             if( fabs( moveStep.y ) > 0 ) {
                 lastScreenViewCenter.y += moveStep.y;
                 viewChange = true;
@@ -21973,6 +22010,7 @@ void LivingLifePage::step() {
             moveStep.x = lrint( moveStep.x );
             moveStep.y = lrint( moveStep.y );
                         
+            if( !vogStopUsualCameraMovement )
             if( length( moveStep ) > 0 ) {
                 lastScreenViewCenter = add( lastScreenViewCenter, 
                                             moveStep );
@@ -21981,10 +22019,11 @@ void LivingLifePage::step() {
             }
         
 
-        if( viewChange ) {
+        if( viewChange || vogStopUsualCameraMovement ) {
             //lastScreenViewCenter.x = screenTargetPos.x;
             //lastScreenViewCenter.y = screenTargetPos.y;
             
+            if( !vogStopUsualCameraMovement )
             setViewCenterPosition( lastScreenViewCenter.x, 
                                    lastScreenViewCenter.y );
                                    
@@ -23310,6 +23349,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     mPlayerInFlight = false;
     
     vogMode = false;
+    vogModeActuallyOn = false;
     
     showFPS = false;
     showNet = false;
@@ -24334,6 +24374,61 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             }
         }
     
+    // VOG move, with smooth screen scrolling
+    if( vogModeActuallyOn && vogScrollingMode ) {
+        double lastMouseX_relative = lastMouseX - lastScreenViewCenter.x;
+        double lastMouseY_relative = lastMouseY - lastScreenViewCenter.y;
+        double lastMouseX_abs = abs(lastMouseX_relative);
+        double lastMouseY_abs = abs(lastMouseY_relative);
+        double lastMouseX_percentage = lastMouseX_abs / (visibleViewWidth/2);
+        double lastMouseY_percentage = lastMouseY_abs / (viewHeight/2);
+
+        if( lastMouseX_percentage >= 0.97 || lastMouseY_percentage >= 0.97 ) {
+
+            vogStopUsualCameraMovement = true;
+
+            int dirX = 0;
+            int dirY = 0;
+            if( lastMouseX_percentage >= 0.97 ) {
+                if( lastMouseX_relative > 0 ) dirX = 1;
+                if( lastMouseX_relative < 0 ) dirX = -1;
+                }
+            if( lastMouseY_percentage >= 0.97 ) {
+                if( lastMouseY_relative > 0 ) dirY = 1;
+                if( lastMouseY_relative < 0 ) dirY = -1;
+                }
+
+            double distPerStep = 16 * gui_fov_scale;
+
+            lastScreenViewCenter.x = lastScreenViewCenter.x + distPerStep * dirX;
+            lastScreenViewCenter.y = lastScreenViewCenter.y + distPerStep * dirY;
+            
+            setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+
+            mObjectPicker.setPosition( lastScreenViewCenter.x + 510,
+                                       lastScreenViewCenter.y + 90 );
+            }
+
+        GridPos viewingGridPos = {
+            lrintf( lastScreenViewCenter.x / CELL_D ),
+            lrintf( lastScreenViewCenter.y / CELL_D )
+            };
+
+        if( // maxChunkDimension/2 is the border of loaded area
+            abs(viewingGridPos.x - vogPos.x) > maxChunkDimension/2 /2 ||
+            abs(viewingGridPos.y - vogPos.y) > maxChunkDimension/2 /2
+            ) {
+
+            if( game_getCurrentTime() - lastVogMoveTime > 0.5 ) { // don't spam VOGM
+                char *message = autoSprintf( "VOGM %d %d#", viewingGridPos.x, viewingGridPos.y );
+                sendToServerSocket( message );
+                delete [] message;
+
+                lastVogMoveTime = game_getCurrentTime();
+                }
+
+            }
+        }
     
     }
 
@@ -26724,6 +26819,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                     lastScreenViewCenter.y = vogPos.y * CELL_D;
                     setViewCenterPosition( lastScreenViewCenter.x,
                                            lastScreenViewCenter.y );
+
+                    vogMove( vogPos.x, vogPos.y );
+
+                    vogStopUsualCameraMovement = true;
                     }
                 else {
                     sendToServerSocket( (char*)"VOGX 0 0#" );
@@ -26734,6 +26833,14 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         mObjectPicker.removeActionListener( this );
                         }
                     vogPickerOn = false;
+                    if( vogModeActuallyOn ) {
+                        vogJumpCameraOnNextVU = true;
+                        vogResumingUsualCameraMovementOnNextVU = true;
+                        }
+                    else {
+                        vogStopUsualCameraMovement = false;
+                        }
+                    vogModeActuallyOn = false;
                     }
                 }
             break;
@@ -26743,12 +26850,25 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 SettingsManager::getIntSetting( "vogModeOn", 0 ) ) {
                 
                 if( vogMode ) {
+
+                    GridPos viewingGridPos = {
+                        lrintf( lastScreenViewCenter.x / CELL_D ),
+                        lrintf( lastScreenViewCenter.y / CELL_D )
+                        };
+
+                    if( viewingGridPos.x != lrint( vogPos.x ) || viewingGridPos.y != lrint( vogPos.y ) ) {
+                        char *message2 = autoSprintf( "VOGM %d %d#",
+                                                    viewingGridPos.x, 
+                                                    viewingGridPos.y );
+                        sendToServerSocket( message2 );
+                        delete [] message2;
+                        }
                     
                     // Send coords different than (0, 0) to teleport
                     // Coords relative to the vog birth pos
                     char *message = autoSprintf( "VOGX %d %d#",
-                                                 lrint( vogPos.x ), 
-                                                 lrint( vogPos.y ) );
+                                                 viewingGridPos.x, 
+                                                 viewingGridPos.y );
                     
                     sendToServerSocket( message );
                     
@@ -26760,6 +26880,14 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         mObjectPicker.removeActionListener( this );
                         }
                     vogPickerOn = false;
+                    if( vogModeActuallyOn ) {
+                        vogJumpCameraOnNextVU = true;
+                        vogResumingUsualCameraMovementOnNextVU = true;
+                        }
+                    else {
+                        vogStopUsualCameraMovement = false;
+                        }
+                    vogModeActuallyOn = false;
                     
                     // Grave info is no longer valid as we will teleport
                     for( int i=0; i<mGraveInfo.size(); i++ ) {
@@ -26791,6 +26919,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 serverSocketConnected &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGP 0 0#" );
+                vogJumpCameraOnNextVU = true;
                 }
             break;
         case 'M':
@@ -26798,6 +26927,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 serverSocketConnected &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGN 0 0#" );
+                vogJumpCameraOnNextVU = true;
                 }
             break;
         case 'S':
@@ -27407,8 +27537,8 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         if( posOffset.x != 0 || posOffset.y != 0 ) {
             
             GridPos newPos;
-            newPos.x = vogPos.x;
-            newPos.y = vogPos.y;
+            newPos.x = lrintf( lastScreenViewCenter.x / CELL_D );
+            newPos.y = lrintf( lastScreenViewCenter.y / CELL_D );
             
             newPos.x += posOffset.x;
             newPos.y += posOffset.y;
@@ -27417,6 +27547,11 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                                          newPos.x, newPos.y );
             sendToServerSocket( message );
             delete [] message;
+
+            // vogPos.x = newPos.x;
+            // vogPos.y = newPos.y;
+            vogJumpCameraOnNextVU = true;
+
             }
         }
     else if( inKeyCode == MG_KEY_UP ||

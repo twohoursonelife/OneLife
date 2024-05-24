@@ -501,6 +501,7 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         void freeWASDKeyPress();
 
+        bool isHoveringPicker( float x, float y );
         char isAnyUIHovered();
 
         DisplayedFamily* getOurFamily();
