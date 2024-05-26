@@ -907,6 +907,12 @@ bool hoveringResumeButton = false;
 bool hoveringSettingsButton = false;
 bool hoveringQuitButton = false;
 
+bool hoveringNextPageButton = false;
+bool hoveringPrevPageButton = false;
+
+int currentHelpPage = 0;
+int totalNumOfHelpPages = 0;
+
 
 static void drawPauseScreen() {
     
@@ -1024,6 +1030,9 @@ static void drawPauseScreen() {
         setDrawColor( 1.0f, 1.0f, 1.0f, 0.1*pauseScreenFade );
         drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
         
+        int totalNumOfHelpSheets = -1;
+        int numOfSheetsPerPage = -1;
+
         
         File languagesDir( NULL, "languages" );
         if ( languagesDir.exists() && languagesDir.isDirectory() ) {
@@ -1034,11 +1043,15 @@ static void drawPauseScreen() {
                 int numLines;
                 char **lines = split( helpFileContents, "\n", &numLines );
                 char *subString;
+                int picturePosX;
+                int picturePosY;
 
                 for( int i=0; i<numLines; i++ ) {
                     bool isTitle = false;
                     bool isSub = false;
                     bool isComment = false;
+                    bool isPicture = false;
+                    int pictureOnPageNumber = -1;
                     // bool isSheet = false;
                     if ( (lines[i][0] == '\0') || (lines[i][0] == '\r') ) {
                         //continue;
@@ -1082,6 +1095,14 @@ static void drawPauseScreen() {
                         lineHeight = gui_fov_scale * temp;
                         continue;
                         }
+                    else if ( strstr( lines[i], "@NUMOFSHEETS" ) != NULL ) {
+                        sscanf( lines[i], "@NUMOFSHEETS=%d", &( totalNumOfHelpSheets ) );
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@SHEETSPERPAGE" ) != NULL ) {
+                        sscanf( lines[i], "@SHEETSPERPAGE=%d", &( numOfSheetsPerPage ) );
+                        continue;
+                        }
                     else if ( strstr( lines[i], "warning$" ) != NULL ) {
                         int hNumLines;
                         char **holder;
@@ -1110,9 +1131,31 @@ static void drawPauseScreen() {
                         writePos.y -= lineHeight * lineScale;
                         continue;
                         }
+                    else if ( strstr( lines[i], "pic$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        sscanf( holder[1], "%d", &( picturePosX ) );
+                        sscanf( holder[2], "%d", &( picturePosY ) );
+                        isPicture = true;
+                        pictureOnPageNumber = (int)ceil((double)columnNumber / (double)numOfSheetsPerPage) - 1;
+                        }
+
+                    if( totalNumOfHelpSheets == -1 || numOfSheetsPerPage == -1 ) continue;
+                    
+                    totalNumOfHelpPages = (int)ceil((double)totalNumOfHelpSheets / (double)numOfSheetsPerPage);
+
+                    if( currentHelpPage < 0 ) currentHelpPage = 0;
+                    if( currentHelpPage >= totalNumOfHelpPages ) currentHelpPage = totalNumOfHelpPages - 1;
+
+                    if( columnNumber-1 < (currentHelpPage) * numOfSheetsPerPage || 
+                        columnNumber-1 >= (currentHelpPage + 1) * numOfSheetsPerPage )
+                        continue;
+
+                    int columnNumberInPage = columnNumber - (currentHelpPage) * numOfSheetsPerPage;
                         
-                    if ( columnNumber > 1 ) {
-                        int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
+                    if ( columnNumberInPage > 1 ) {
+                        int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumberInPage - 1 );
                         writePos.x = lastScreenViewCenter.x + current_columnX;
                         }
                         
@@ -1134,6 +1177,15 @@ static void drawPauseScreen() {
                         pencilFont->drawString( subString, { writePos.x + subSize + 60 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
                         writePos.y -= lineHeight;
                         }
+                    else if ( isPicture ) {
+                        if( currentHelpPage != pictureOnPageNumber ) continue;
+                        doublePair picturePos = {
+                            lastScreenViewCenter.x + picturePosX * gui_fov_scale, 
+                            lastScreenViewCenter.y + picturePosY * gui_fov_scale
+                            };
+                        setDrawColor( 0.0f, 0.0f, 0.0f, 0.75*pauseScreenFade );
+                        drawSprite( instructionsSprite, picturePos );
+                        }
                     else {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
                         pencilFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
@@ -1153,6 +1205,9 @@ static void drawPauseScreen() {
         doublePair resumeButtonPos = { 460*gui_fov_scale, -112*gui_fov_scale };
         doublePair settingsButtonPos = { 460*gui_fov_scale, -192*gui_fov_scale };
         doublePair quitButtonPos = { 460*gui_fov_scale, -272*gui_fov_scale };
+
+        doublePair nextPageButtonPos = { 300*gui_fov_scale, -272*gui_fov_scale };
+        doublePair prevPageButtonPos = { 200*gui_fov_scale, -272*gui_fov_scale };
         
 
         if( 1 ) { // Resume button
@@ -1167,7 +1222,7 @@ static void drawPauseScreen() {
                 
             setDrawColor( 0, 0, 0, 1*pauseScreenFade );
             
-            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
                 abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
                 hoveringResumeButton = true;
                 setDrawColor( 1, 1, 1, 1*pauseScreenFade );
@@ -1190,7 +1245,7 @@ static void drawPauseScreen() {
                 
             setDrawColor( 0, 0, 0, 1*pauseScreenFade );
             
-            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
                 abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
                 hoveringSettingsButton = true;
                 setDrawColor( 1, 1, 1, 1*pauseScreenFade );
@@ -1213,13 +1268,63 @@ static void drawPauseScreen() {
                 
             setDrawColor( 0, 0, 0, 1*pauseScreenFade );
             
-            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
                 abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
                 hoveringQuitButton = true;
                 setDrawColor( 1, 1, 1, 1*pauseScreenFade );
                 }
             else {
                 hoveringQuitButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+
+        hoveringNextPageButton = false;
+        hoveringPrevPageButton = false;
+
+        if( currentHelpPage < totalNumOfHelpPages - 1 ) { // Next Page button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + nextPageButtonPos.x, 
+                lastScreenViewCenter.y + nextPageButtonPos.y
+                };
+                
+            char *buttonText = (char*)"[NEXT]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringNextPageButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringNextPageButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+        if( currentHelpPage > 0 ) { // Prev Page button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + prevPageButtonPos.x, 
+                lastScreenViewCenter.y + prevPageButtonPos.y
+                };
+                
+            char *buttonText = (char*)"[PREV]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringPrevPageButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringPrevPageButton = false;
                 }
                 
             handwritingFont->drawString( buttonText, buttonPos, alignCenter );
@@ -2707,6 +2812,12 @@ void pointerUp( float inX, float inY ) {
             pauseGame();
             pauseScreenFade = 0;
             showSettings();
+            }
+        if( currentHelpPage < totalNumOfHelpPages - 1 && hoveringNextPageButton ) {
+            currentHelpPage += 1;
+            }
+        if( currentHelpPage > 0 && hoveringPrevPageButton ) {
+            currentHelpPage -= 1;
             }
         }
     
