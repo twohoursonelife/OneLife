@@ -42,6 +42,8 @@ extern char objectSearchEnabled;
 extern char familyDisplayEnabled;
 extern char dangerousTileEnabled;
 
+extern char *commandShortcutsRawText;
+
 #ifdef USE_DISCORD
 // extern from DiscordController.h
 DiscordController *discordControllerInstance; 
@@ -119,7 +121,11 @@ SettingsPage::SettingsPage()
           mEnableDiscordRichPresenceDetails(0, 48, 4),
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
-        , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
+        , mCustomCommands( mainFont, -360, -176, 10, true, 
+                                     "",
+                                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ 0123456789",
+                                     NULL, 4 ),
+        mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
         mEnableCoordinatesBox(0, 128, 4),
         mEnablePersistentEmoteBox(0, 88, 4),
         mEnableYumFinderBox(0, 48, 4),
@@ -151,6 +157,11 @@ SettingsPage::SettingsPage()
     mEnableCoordinatesBox.addActionListener(this);
     addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
     mEnableAdvancedShowUseOnObjectHoverKeybind.addActionListener(this);
+    addComponent(&mCustomCommands);
+    mCustomCommands.addActionListener(this);
+    mCustomCommands.setWidth( 360 );
+    mCustomCommands.useClearButton( true );
+    mCustomCommands.setFireOnLoseFocus( true );
     
 #ifdef USE_DISCORD
     // Discord
@@ -329,6 +340,7 @@ SettingsPage::SettingsPage()
     mDiscordHideFirstNameInDetails.setCursorTip("HIDE FIRST NAME IN THE STATUS");
 #endif // USE_DISCORD
 
+    mCustomCommands.setCursorTip( "SAVED COMMANDS OR SPEECH. ACCESS WITH NUM KEYS OR ALT + NUM KEYS." );
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
     mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING. PRESS G TO TOGGLE PANEL." );
@@ -416,6 +428,16 @@ SettingsPage::SettingsPage()
     mDiscordHideFirstNameInDetails.setToggled(mDiscordHideFirstNameInDetailsSetting);
 #endif // USE_DISCORD
 
+    commandShortcutsRawText = 
+        SettingsManager::getSettingContents( "commandShortcuts", "" );
+
+    mCustomCommands.setListByRawText( commandShortcutsRawText );
+
+    // the UI is used to view and edit a list
+    // the textbox is merely a way to input text
+    // keep it empty when the UI is not focused
+    mCustomCommands.setText( "" );
+    
     mAdvancedShowUseOnObjectHoverKeybindSetting = 
         SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
 
@@ -495,9 +517,19 @@ void SettingsPage::checkRestartButtonVisibility() {
     }
 
 
-
-
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
+
+    if( inTarget == &mCustomCommands ) {
+        commandShortcutsRawText = mCustomCommands.getAndUpdateRawText();
+        SettingsManager::setSetting( "commandShortcuts", commandShortcutsRawText );
+        if( !mCustomCommands.isFocused() ) {
+            // the UI is used to view and edit a list
+            // the textbox is merely a way to input text
+            // keep it empty when the UI is not focused
+            mCustomCommands.setText( "" );
+            }
+        }
+
     if( inTarget == &mBackButton ) {
         
         int useCustomServer = 0;
@@ -1155,6 +1187,13 @@ void SettingsPage::draw( doublePair inViewCenter,
     mDiscordHideFirstNameInDetails.setActive(time(0) - last_discord_setting_change > 2);
 #endif // USE_DISCORD
 
+    if (mCustomCommands.isVisible()) {
+        doublePair pos = mCustomCommands.getPosition();
+        pos.x = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition().x - 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("SAVED COMMANDS", pos, alignRight);
+        }
     if (mEnableAdvancedShowUseOnObjectHoverKeybind.isVisible()) {
         doublePair pos = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition();
         pos.x -= 30;
@@ -1213,6 +1252,18 @@ void SettingsPage::step() {
         markSoundUsageLive( mTestSound );
         }
     stepMusicPlayer();
+
+    int blockClicks = false;
+    if( mCustomCommands.isFocused() ) blockClicks = true;
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setIgnoreEvents( blockClicks );
+    mEnableCoordinatesBox.setIgnoreEvents( blockClicks );
+    mEnablePersistentEmoteBox.setIgnoreEvents( blockClicks );
+    mEnableYumFinderBox.setIgnoreEvents( blockClicks );
+    // mEnableObjectSearchBox.setIgnoreEvents( blockClicks );
+    // mEnableFamilyDisplayBox.setIgnoreEvents( blockClicks );
+    // mEnableDangerousTileBox.setIgnoreEvents( blockClicks );
+    // mGenerateTownPlannerMapsBox.setIgnoreEvents( blockClicks );
+    
     }
 
 
@@ -1340,14 +1391,15 @@ void SettingsPage::updatePage() {
     mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
-    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
-    mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
-    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
-    mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
-    mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
-    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
-    mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
-    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -4);
+    mCustomCommands.setPosition(180 - 16, lineSpacing * 3);
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 2);
+    mEnableCoordinatesBox.setPosition(0, lineSpacing * 1);
+    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 0);
+    mEnableYumFinderBox.setPosition(0, lineSpacing * -1);
+    mEnableObjectSearchBox.setPosition(0, lineSpacing * -2);
+    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -3);
+    mEnableDangerousTileBox.setPosition(0, lineSpacing * -4);
+    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -5);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1390,6 +1442,7 @@ void SettingsPage::updatePage() {
                                         && mEnableDiscordRichPresenceStatus.getToggled());
 #endif // USE_DISCORD
 
+    mCustomCommands.setVisible(mPage == 5);
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
     mEnableCoordinatesBox.setVisible(mPage == 5);
     mEnablePersistentEmoteBox.setVisible(mPage == 5);

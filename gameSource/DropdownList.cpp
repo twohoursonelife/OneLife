@@ -27,7 +27,8 @@ DropdownList::DropdownList( Font *inDisplayFont,
                       char inForceCaps,
                       const char *inLabelText,
                       const char *inAllowedChars,
-                      const char *inForbiddenChars )
+                      const char *inForbiddenChars,
+                      int inListLenDisplayed )
         : PageComponent( inX, inY ),
           mActive( true ),
           mContentsHidden( false ),
@@ -47,8 +48,7 @@ DropdownList::DropdownList( Font *inDisplayFont,
           mRawText( new char[1] ),
           hoverIndex( -1 ),
           startIndex( 0 ),
-          // arbitrary, just about the max len for seed dropdown list in login page
-          listLenDisplayed( 3 ), 
+          listLenDisplayed( inListLenDisplayed ), 
           nearRightEdge( 0 ),
           mUseClearButton( false ),
           onClearButton( false ),
@@ -177,6 +177,9 @@ char *DropdownList::processRawText( const char *inRawText ) {
     int length = strlen( inRawText );
     for( int i=0; i<length; i++ ) {
         unsigned char processedChar = processCharacter( inRawText[i] );
+
+        // newline is allowed, that's our delimiter of items in the list
+        if( inRawText[i] == '\n' ) processedChar = inRawText[i];
         
         if( processedChar != 0 ) {
             filteredText.push_back( processedChar );
@@ -195,15 +198,14 @@ char *DropdownList::processRawText( const char *inRawText ) {
         if( i == 0 ) setText( lines[i] );
         
         if( strcmp( lines[i], "" ) != 0 ) {
+            if( strcmp( processedRawText, "" ) != 0 )
+                processedRawText = concatonate( processedRawText, "\n" );
             processedRawText = concatonate( processedRawText, lines[i] );
-            processedRawText = concatonate( processedRawText, "\n" );
             }
         
         delete [] lines[i];
         }
     delete [] lines;
-    
-    processedRawText = trimWhitespace( processedRawText );
     
     for( int i=0; i<numLines; i++ ) {
         delete [] lines[i];
@@ -222,23 +224,23 @@ void DropdownList::setListByRawText( const char *inText ) {
     if( mRawText != NULL ) delete [] mRawText;
     mRawText = processRawText( inText );
 
-    int numLines;
-    char **lines = split( mRawText, "\n", &numLines );
+    if( strcmp( mRawText, "" ) != 0 ) {
+        int numLines;
+        char **lines = split( mRawText, "\n", &numLines );
 
-    if( numLines == 0 ) {
+        listLen = numLines;
+        setText( lines[0] );
+
+        for( int i=0; i<numLines; i++ ) {
+            delete [] lines[i];
+            }
+        delete [] lines;
+        }
+    else {
         listLen = 0;
         setText( "" );
         }
-    else {
-        listLen = numLines - 1;
-        setText( lines[0] );
-        }
-    
-    for( int i=0; i<numLines; i++ ) {
-        delete [] lines[i];
-        }
-    delete [] lines;
-    
+
     }
 
 
@@ -255,22 +257,23 @@ char *DropdownList::updateRawText( char *inRawText, char *inText ) {
         
         for( int i=0; i<numLines; i++ ) {
             if( strcmp( inText, lines[i] ) != 0 ) {
-                newRawText = concatonate( newRawText, "\n" );
+                if( strcmp( newRawText, "" ) != 0 )
+                    newRawText = concatonate( newRawText, "\n" );
                 newRawText = concatonate( newRawText, lines[i] );
                 }
             delete [] lines[i];
             }
         delete [] lines;
-        
-        newRawText = trimWhitespace( newRawText );
         }
 
-    if( strcmp( newRawText, "" ) != 0 ) {
+    if( strcmp( newRawText, "" ) != 0 && strcmp( inText, "" ) != 0 ) {
         newRawText = concatonate( "\n", newRawText );
+        newRawText = concatonate( inText, newRawText );
         }
-
-    newRawText = concatonate( inText, newRawText );
-    newRawText = trimWhitespace( newRawText );
+    else if( strcmp( inText, "" ) != 0 ) {
+        if( newRawText != NULL ) delete [] newRawText;
+        newRawText = stringDuplicate( inText );
+        }
 
     return newRawText;
     }
@@ -283,15 +286,20 @@ char *DropdownList::getAndUpdateRawText() {
     if( mRawText != NULL ) delete [] mRawText;
     mRawText = newRawText;
 
-    int numLines;
-    char **lines = split( mRawText, "\n", &numLines );
-    
-    listLen = numLines;
+    if( strcmp( mRawText, "" ) != 0 ) {
+        int numLines;
+        char **lines = split( mRawText, "\n", &numLines );
+        
+        listLen = numLines;
 
-    for( int i=0; i<numLines; i++ ) {
-        delete [] lines[i];
+        for( int i=0; i<numLines; i++ ) {
+            delete [] lines[i];
+            }
+        delete [] lines;
         }
-    delete [] lines;
+    else {
+        listLen = 0;
+        }
     
     return mRawText;
     }
@@ -343,21 +351,23 @@ void DropdownList::deleteOption( int index ) {
     int numLines;
     char **lines = split( mRawText, "\n", &numLines );
     
-    if( mRawText != NULL ) delete [] mRawText;
-    mRawText = stringDuplicate("");
+    char *newRawText = stringDuplicate("");
     
     for( int i=0; i<numLines; i++ ) {
         
         if( i != index ) {
-            mRawText = concatonate( mRawText, lines[i] );
-            if( i < numLines - 1 ) mRawText = concatonate( mRawText, "\n" );
+            if( strcmp( newRawText, "" ) != 0 )
+                    newRawText = concatonate( newRawText, "\n" );
+            newRawText = concatonate( newRawText, lines[i] );
             }
         
         delete [] lines[i];
         }
     delete [] lines;
+
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = newRawText;
     
-    mRawText = trimWhitespace( mRawText );
     listLen = listLen - 1;
     
     }
@@ -862,6 +872,7 @@ int DropdownList::insideIndex( float inX, float inY ) {
     if( fabs( inX ) >= mWide / 2 ) return -1;
     int index = - ( inY - mHigh / 2 ) / mHigh;
     index = index - 1;
+    if( index >= listLenDisplayed ) return -1;
     index = index + startIndex;
     if( index < 0 ) return -1;
     if( index >= listLen ) return -1;
@@ -900,6 +911,9 @@ void DropdownList::pointerDown( float inX, float inY ) {
         if( startIndex > listLen - listLenDisplayed ) {
             startIndex = listLen - listLenDisplayed;
             }
+        if( startIndex < 0 ) {
+            startIndex = 0;
+            }
         return;
         }
     else if ( mouseButton == MouseButton::WHEELUP ) { 
@@ -913,9 +927,7 @@ void DropdownList::pointerDown( float inX, float inY ) {
     
     
     hoverIndex = insideIndex( inX, inY );
-    if( !isInsideTextBox( inX, inY ) && 
-        // they are not clicking the clear buttons for the list items
-        !(nearRightEdge && hoverIndex != -1) ) {
+    if( !mHover ) {
         unfocus();
         }
     if( onClearButton && mFocused ) setText( "" );
@@ -923,10 +935,16 @@ void DropdownList::pointerDown( float inX, float inY ) {
     if( isInsideTextBox( inX, inY ) ) return;
     if( !nearRightEdge ) {
         selectOption( hoverIndex );
+        fireActionPerformed( this );
     } else {
         deleteOption( hoverIndex );
+        if( startIndex > listLen - listLenDisplayed ) {
+            startIndex = listLen - listLenDisplayed;
+            }
+        if( startIndex < 0 ) {
+            startIndex = 0;
+            }
         }
-    fireActionPerformed( this );
     }
 
 
@@ -934,8 +952,6 @@ void DropdownList::pointerUp( float inX, float inY ) {
         
     int mouseButton = getLastMouseButton();
     if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
-
-    if( !isInsideTextBox( inX, inY ) && !nearRightEdge ) unfocus();
     
     if( mIgnoreMouse || mIgnoreEvents ) {
         return;
@@ -1527,6 +1543,9 @@ void DropdownList::specialKeyDown( int inKeyCode ) {
                 }
             if( startIndex > listLen - listLenDisplayed ) {
                 startIndex = listLen - listLenDisplayed;
+                }
+            if( startIndex < 0 ) {
+                startIndex = 0;
                 }
             break;
         case MG_KEY_UP:

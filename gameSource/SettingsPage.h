@@ -117,6 +117,7 @@ class SettingsPage : public GamePage, public ActionListener {
 #endif // USE_DISCORD
 
         // Advanced
+        DropdownList mCustomCommands;
         CheckboxButton mEnableAdvancedShowUseOnObjectHoverKeybind;
         CheckboxButton mEnableCoordinatesBox;
         CheckboxButton mEnablePersistentEmoteBox;

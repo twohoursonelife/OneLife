@@ -495,6 +495,7 @@ static char addCoordinates( SavedCoordinates newCoords ) {
     return false;
     }
 
+char *commandShortcutsRawText;
 static SimpleVector<char*> commandShortcuts;
 
 // Object search
@@ -1080,6 +1081,24 @@ static void readPhrases( const char *inSettingsName,
     delete [] parts;
     }
     
+static void readPhrasesFromRawText( const char *inRawText, 
+                  SimpleVector<char*> *inList ) {
+    
+    if( strcmp( inRawText, "" ) == 0 ) {
+        return;    
+        }
+    
+    int numParts;
+    char **parts = split( inRawText, "\n", &numParts );
+    
+    for( int i=0; i<numParts; i++ ) {
+        if( strcmp( parts[i], "" ) != 0 ) {
+            inList->push_back( stringToUpperCase( parts[i] ) );
+            }
+        delete [] parts[i];
+        }
+    delete [] parts;
+    }
 
 
 // most recent home at end
@@ -23287,6 +23306,10 @@ void LivingLifePage::makeActive( char inFresh ) {
         displayedFamiliesClickable->mActive = false;
         }
 
+
+    // reload command shortcuts
+    commandShortcuts.deallocateStringElements();
+    readPhrasesFromRawText( commandShortcutsRawText, &commandShortcuts );
 
     // this may have been changed in settings page, recalculate
     changeHUDFOV( gui_fov_target_scale_hud );
