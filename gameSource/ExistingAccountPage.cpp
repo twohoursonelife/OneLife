@@ -42,6 +42,7 @@ extern Font *mainFont;
 extern char gamePlayingBack;
 
 extern char useSpawnSeed;
+extern char *spawnSeed;
 extern char useTargetFamily;
 extern char *userEmail;
 extern char *accountKey;
@@ -317,6 +318,7 @@ ExistingAccountPage::ExistingAccountPage()
     
 
     mSpawnSeed.useClearButton( true );
+    mSpawnSeed.setFireOnLoseFocus( true );
 
     
     // this section have all buttons with the same width
@@ -424,6 +426,8 @@ ExistingAccountPage::ExistingAccountPage()
     mSpawnSeed.setListByRawText( seed );
         
     delete [] seed;
+
+    spawnSeed = mSpawnSeed.getText();
     
     
     FILE *f = fopen( "wordList.txt", "r" );
@@ -734,14 +738,6 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         updatefieldsAndLockButtons();
         
         }
-
-
-    char *seed = 
-        SettingsManager::getSettingContents( "spawnSeed", "" );
-
-    mSpawnSeed.setListByRawText( seed );
-        
-    delete [] seed;
     
     specifySpawn = SettingsManager::getIntSetting( "specifySpawn", 0 );
     if( specifySpawn == 1 ) {
@@ -968,8 +964,8 @@ void ExistingAccountPage::pointerUp( float inX, float inY ) {
             }
         keyUIElementsClicked = false;
         }
-    if( mSpawnSeed.isVisible() && !insideTextField( inX, inY, &mSpawnSeed ) ) {
-        if( !seedUIElementsClicked ) {
+    if( mSpawnSeed.isVisible() && !mSpawnSeed.isMouseOver() ) {
+        if( !seedUIElementsClicked ) { // NOT unlock button clicked
             seedFieldLockedMode = 0;
             mSpawnSeed.unfocus();
             updatefieldsAndLockButtons();
@@ -982,12 +978,6 @@ void ExistingAccountPage::pointerUp( float inX, float inY ) {
 
 void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
     
-    if( inTarget != &mSpawnSeed ) {
-        //save seed setting on any action performed
-        //except seed field itself cause we're still editing it
-        char *seedList = mSpawnSeed.getAndUpdateRawText();
-        SettingsManager::setSetting( "spawnSeed", seedList );
-        }
     if( inTarget != &mTargetFamily ) {
         char *text = mTargetFamily.getText();
         char *targetFamily = trimWhitespace( text );
@@ -1043,7 +1033,6 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
             mTargetFamily.setVisible( true );
             }
         
-        seedUIElementsClicked = true;
         }
     else if( inTarget == &mRandomButton ) {
 
@@ -1186,7 +1175,10 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         twinUIElementsClicked = true;
         }
     else if( inTarget == &mSpawnSeed ) {
-        seedUIElementsClicked = true;
+        char *seedList = mSpawnSeed.getAndUpdateRawText();
+        SettingsManager::setSetting( "spawnSeed", seedList );
+        if( spawnSeed != NULL ) delete [] spawnSeed;
+        spawnSeed = mSpawnSeed.getText();
         }
     else if( inTarget == &mGenesButton ) {
         setSignal( "genes" );
@@ -1397,7 +1389,8 @@ void ExistingAccountPage::keyDown( unsigned char inASCII ) {
         // enter key
 
         if( mSpawnSeed.isFocused() ) {
-            mSpawnSeed.unfocus();
+            // seed dropdown list takes enter key as input
+            // don't handle here
             }
         else {
             nextPage();

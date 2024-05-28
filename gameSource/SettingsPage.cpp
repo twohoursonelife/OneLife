@@ -519,17 +519,6 @@ void SettingsPage::checkRestartButtonVisibility() {
 
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
 
-    if( inTarget == &mCustomCommands ) {
-        commandShortcutsRawText = mCustomCommands.getAndUpdateRawText();
-        SettingsManager::setSetting( "commandShortcuts", commandShortcutsRawText );
-        if( !mCustomCommands.isFocused() ) {
-            // the UI is used to view and edit a list
-            // the textbox is merely a way to input text
-            // keep it empty when the UI is not focused
-            mCustomCommands.setText( "" );
-            }
-        }
-
     if( inTarget == &mBackButton ) {
         
         int useCustomServer = 0;
@@ -896,6 +885,16 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
 
     else if ( inTarget == &mAdvancedButton ) {
         mPage = 5;
+        }
+    else if( inTarget == &mCustomCommands ) {
+        commandShortcutsRawText = mCustomCommands.getAndUpdateRawText();
+        SettingsManager::setSetting( "commandShortcuts", commandShortcutsRawText );
+        if( !mCustomCommands.isFocused() ) {
+            // the UI is used to view and edit a list
+            // the textbox is merely a way to input text
+            // keep it empty when the UI is not focused
+            mCustomCommands.setText( "" );
+            }
         }
     else if ( inTarget == &mEnableAdvancedShowUseOnObjectHoverKeybind ) {
         int newSetting = mEnableAdvancedShowUseOnObjectHoverKeybind.getToggled();

@@ -127,6 +127,7 @@ int serverPort = 0;
 
 char useTargetFamily;
 char useSpawnSeed;
+char *spawnSeed = NULL;
 
 char *userEmail = NULL;
 char *accountKey = NULL;

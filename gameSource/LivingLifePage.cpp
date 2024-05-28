@@ -3001,43 +3001,37 @@ int townPlannerMapFile_h;
 int townPlannerMapFile_oX;
 int townPlannerMapFile_oY;
 
+extern char *spawnSeed;
+
 std::string getSeededEmail() {
     char *tempEmail;
 
     if( strlen( userEmail ) > 0 ) {
-	std::string seededEmail = std::string( userEmail );
+        std::string seededEmail = std::string( userEmail );
 
         // If user doesn't have a seed in their email field
-	if( seededEmail.find('|') == std::string::npos ) {
-		char *seedListFromFile = SettingsManager::getSettingContents( "spawnSeed", "" );
-		std::string seedList(seedListFromFile);
-		delete [] seedListFromFile;
-		std::string seed = "";
-		if( seedList == "" ) {
-			seed = "";
-		} else if( seedList.find('\n') == std::string::npos ) {
-			seed = seedList;
-		} else if( seedList.find('\n') != std::string::npos ) {
-			seed = seedList.substr( 0, seedList.find('\n') );
-		}
+        if( seededEmail.find('|') == std::string::npos ) {
+            if( spawnSeed != NULL ) {
+                std::string seed( spawnSeed );
 
-		// And if the user has a seed set in settings
-		if( seed != "" ) {
-			// Add seed delim and then seed
-			seededEmail += '|';
-			seededEmail += seed;
-			}
-		}
+                // And if the user has a seed set in settings
+                if( seed != "" ) {
+                    // Add seed delim and then seed
+                    seededEmail += '|';
+                    seededEmail += seed;
+                    }
+                }
+            }
 
-	tempEmail = stringDuplicate( seededEmail.c_str() );
-	}
+        tempEmail = stringDuplicate( seededEmail.c_str() );
+        }
     else {
-	// a blank email
-	// this will cause LOGIN message to have one less token
+        // a blank email
+        // this will cause LOGIN message to have one less token
 
-	// stick a place-holder in there instead
-	tempEmail = stringDuplicate( "blank_email" );
-	}
+        // stick a place-holder in there instead
+        tempEmail = stringDuplicate( "blank_email" );
+        }
     std::string seededEmail = std::string( tempEmail );
     delete [] tempEmail;
     return seededEmail;
