@@ -720,6 +720,7 @@ static double infertileAge = 104.0;
 
 static const char *infertilitySuffix = "+INFERTILE+";
 // static char *fertilitySuffix = "+FERTILE+";
+static char automaticInfertilityPendingLineageCheck = false;
 
 // return true if infertile tag is found
 static char stripFertilitySuffix( char *name ) {
@@ -20062,6 +20063,14 @@ void LivingLifePage::step() {
                     // allow searches across lives
                     // objectSearchQueries.deleteAll();
                     // updateObjectSearchArray();
+
+                    int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
+                    // TODO: If fertility age is ever not hard coded, maybe put it here?
+                    if (automaticInfertilityAsEve > 0) {
+                        printf("automaticInfertilityPendingLineageCheck\n");
+                        automaticInfertilityPendingLineageCheck = true;
+                        }
+
                     }
                 homePosStack.push_back_other( &oldHomePosStack );
 
@@ -21125,14 +21134,17 @@ void LivingLifePage::step() {
                                 // exiting VOG or flight landing both cause the server to resend the lineage message
                                 // hence we use our age to differentiate
                                 
-                                if( id == ourID && !vogMode ) {
-                                    int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
-                                    // TODO: If fertility age is ever not hard coded, maybe put it here?
-                                    if (automaticInfertilityAsEve > 0 and existing->lineageEveID == ourID and existing->age < 15.0) {
+                                // actually we can tell if we are in a new life by comparing ourID and lastPlayerID
+                                // the check happened elsewhere for auto-NO BB
+                                if( id == ourID && automaticInfertilityPendingLineageCheck ) {
+                                    if ( existing->lineageEveID == ourID 
+                                        //  && existing->age < 15.0 // no longer needs to use age to differentiate
+                                         ) {
                                         // We are Eve, not yet fertile, and have chosen not to eat the fruit. No BB plz.
-                                        // Thread::staticSleep( 1000 ); // Server ignores say commands sent in the first second after creation.
+                                        Thread::staticSleep( 1000 ); // Server ignores say commands sent in the first second after creation.
                                         sendToServerSocket((char*)"SAY 0 0 NO BB#");
                                         printf("automaticInfertilityAsEve set, making Eve infertile.\n");
+                                        automaticInfertilityPendingLineageCheck = false;
                                         }
                                     }
                                 
