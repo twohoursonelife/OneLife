@@ -520,6 +520,14 @@ static void updateObjectSearchArray() {
         char *query = stringToLowerCase( queryString.c_str() );
         int numTerms;
         char **terms = split( query, " ", &numTerms );
+
+        char *exactQuery = NULL;
+        int queryLen = strlen( query );
+        if( queryLen > 0 && query[queryLen-1] == '.' ) {
+            exactQuery = stringDuplicate( query );
+            exactQuery[queryLen-1] = '\0';
+            }
+
         delete [] query;
 
         ObjectRecord **hitsSimpleVector = NULL;
@@ -527,6 +535,7 @@ static void updateObjectSearchArray() {
 
         SimpleVector<char*> validTerms;
         SimpleVector<char*> avoidTerms;
+        SimpleVector<char*> exactTerms;
 
         for( int i=0; i<numTerms; i++ ) {
             int termLen = strlen( terms[i] );
@@ -541,6 +550,12 @@ static void updateObjectSearchArray() {
                     // user is probably in the middle of typing an avoid-term
                     }
                 else {
+
+                    if( termLen > 1 && terms[i][termLen-1] == '.' ) {
+                        terms[i][termLen-1] = '\0';
+                        exactTerms.push_back( terms[i] );
+                        }
+
                     validTerms.push_back( terms[i] );
                     }
                 }
@@ -570,16 +585,47 @@ static void updateObjectSearchArray() {
                         mainResults[i]->description;
                 
                     char *mainNameLower = stringToLowerCase( mainResultName );
+
+                    // int numTermsInName;
+                    // char **termsInName = split( mainNameLower, " ", &numTermsInName );
                     
                     
                     char matchFailed = false;
+
+                    if( exactQuery != NULL &&
+                        strcmp( exactQuery, mainNameLower ) != 0
+                        ) {
+                        matchFailed = true;
+                        }
+
+                    // for( int j=0; j<exactTerms.size(); j++ ) {
+                    //     char *term = exactTerms.getElementDirect( j );
+
+                    //     char exactMatched = false;
+                    //     for( int k=0; k<numTermsInName; k++ ) {
+                    //         int termLen = strlen( termsInName[k] );
+                    //         if( termLen > 0 ) {
+                    //             if( strcmp( term, termsInName[k] ) == 0 ) {
+                    //                 exactMatched = true;
+                    //                 break;
+                    //                 }
+                    //             }
+                    //         }
+                    //     if( !exactMatched ) {
+                    //         matchFailed = true;
+                    //         break;
+                    //         }
+
+                    //     }
                     
-                    for( int j=1; j<validTerms.size(); j++ ) {
-                        char *term = validTerms.getElementDirect( j );
-                        
-                        if( strstr( mainNameLower, term ) == NULL ) {
-                            matchFailed = true;
-                            break;
+                    if( ! matchFailed ) {
+                        for( int j=1; j<validTerms.size(); j++ ) {
+                            char *term = validTerms.getElementDirect( j );
+                            
+                            if( strstr( mainNameLower, term ) == NULL ) {
+                                matchFailed = true;
+                                break;
+                                }
                             }
                         }
 
@@ -626,6 +672,8 @@ static void updateObjectSearchArray() {
             delete [] terms[i];
             }
         delete [] terms;
+
+        if( exactQuery != NULL ) delete [] exactQuery;
         }
     }
 

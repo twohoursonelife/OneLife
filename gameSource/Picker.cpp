@@ -102,8 +102,8 @@ void Picker::redoSearch( char inClearPageSkip ) {
 
     char multiTermDone = false;
     
-    if( strstr( search, " " ) != NULL && 
-        strstr( search, "." ) == NULL ) {
+    if( strstr( search, " " ) != NULL || 
+        (strstr( search, "." ) != NULL && strcmp( search, "." ) != 0) ) {
         
         // special case, multi-term search
         
@@ -111,6 +111,13 @@ void Picker::redoSearch( char inClearPageSkip ) {
 
         int numTerms;
         char **terms = split( searchLower, " ", &numTerms );
+
+        char *exactQuery = NULL;
+        int queryLen = strlen( searchLower );
+        if( queryLen > 0 && searchLower[queryLen-1] == '.' ) {
+            exactQuery = stringDuplicate( searchLower );
+            exactQuery[queryLen-1] = '\0';
+            }
         
         delete [] searchLower;
 
@@ -118,6 +125,9 @@ void Picker::redoSearch( char inClearPageSkip ) {
         
         // any term that starts with - is a term to avoid
         SimpleVector<char*> avoidTerms;
+
+        // any term that ends with . is a term to exact-match
+        SimpleVector<char*> exactTerms;
         
         for( int i=0; i<numTerms; i++ ) {
             int termLen = strlen( terms[i] );
@@ -133,6 +143,12 @@ void Picker::redoSearch( char inClearPageSkip ) {
                     // user is probably in the middle of typing an avoid-term
                     }
                 else {
+
+                    if( termLen > 1 && terms[i][termLen-1] == '.' ) {
+                        terms[i][termLen-1] = '\0';
+                        exactTerms.push_back( terms[i] );
+                        }
+
                     validTerms.push_back( terms[i] );
                     }
                 }
@@ -165,16 +181,47 @@ void Picker::redoSearch( char inClearPageSkip ) {
                         mPickable->getText( mainResults[i] );
                 
                     char *mainNameLower = stringToLowerCase( mainResultName );
+
+                    // int numTermsInName;
+                    // char **termsInName = split( mainNameLower, " ", &numTermsInName );
                     
                     
                     char matchFailed = false;
+
+                    if( exactQuery != NULL &&
+                        strcmp( exactQuery, mainNameLower ) != 0
+                        ) {
+                        matchFailed = true;
+                        }
+
+                    // for( int j=0; j<exactTerms.size(); j++ ) {
+                    //     char *term = exactTerms.getElementDirect( j );
+
+                    //     char exactMatched = false;
+                    //     for( int k=0; k<numTermsInName; k++ ) {
+                    //         int termLen = strlen( termsInName[k] );
+                    //         if( termLen > 0 ) {
+                    //             if( strcmp( term, termsInName[k] ) == 0 ) {
+                    //                 exactMatched = true;
+                    //                 break;
+                    //                 }
+                    //             }
+                    //         }
+                    //     if( !exactMatched ) {
+                    //         matchFailed = true;
+                    //         break;
+                    //         }
+
+                    //     }
                     
-                    for( int j=1; j<validTerms.size(); j++ ) {
-                        char *term = validTerms.getElementDirect( j );
-                        
-                        if( strstr( mainNameLower, term ) == NULL ) {
-                            matchFailed = true;
-                            break;
+                    if( ! matchFailed ) {
+                        for( int j=1; j<validTerms.size(); j++ ) {
+                            char *term = validTerms.getElementDirect( j );
+                            
+                            if( strstr( mainNameLower, term ) == NULL ) {
+                                matchFailed = true;
+                                break;
+                                }
                             }
                         }
 
@@ -224,6 +271,8 @@ void Picker::redoSearch( char inClearPageSkip ) {
             delete [] terms[i];
             }
         delete [] terms;
+
+        if( exactQuery != NULL ) delete [] exactQuery;
         }
 
     if( !multiTermDone ) {
