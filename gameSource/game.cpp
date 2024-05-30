@@ -137,6 +137,8 @@ char userReconnect = false;
 
 char showingInGameSettings = false;
 
+char showPipsOfFoodHeld = false;
+
 
 // these are needed by ServerActionPage, but we don't use them
 int userID = -1;

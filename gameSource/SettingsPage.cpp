@@ -41,6 +41,7 @@ extern char yumFinderEnabled;
 extern char objectSearchEnabled;
 extern char familyDisplayEnabled;
 extern char dangerousTileEnabled;
+extern char showPipsOfFoodHeld;
 
 extern char *commandShortcutsRawText;
 
@@ -132,7 +133,8 @@ SettingsPage::SettingsPage()
         mEnableObjectSearchBox(0, 8, 4),
         mEnableFamilyDisplayBox(0, -32, 4),
         mEnableDangerousTileBox(0, -72, 4),
-        mGenerateTownPlannerMapsBox( 561, 52, 4 ) {
+        mGenerateTownPlannerMapsBox( 561, 52, 4 ),
+        mEnableShowingHeldFoodPips( 561, 52, 4 ) {
                             
 
     
@@ -141,6 +143,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent( &mEnableShowingHeldFoodPips );
+    mEnableShowingHeldFoodPips.addActionListener( this );
     addComponent( &mGenerateTownPlannerMapsBox );
     mGenerateTownPlannerMapsBox.addActionListener( this );
     addComponent(&mEnableDangerousTileBox);
@@ -317,7 +321,6 @@ SettingsPage::SettingsPage()
     mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
     mEnableCenterCameraBox.setCursorTip( "ALWAYS CENTER THE CAMERA VIEW ON YOUR CHARACTER" );
     mEnableNudeBox.setCursorTip( "ENABLE NUDITY" );
-    mGenerateTownPlannerMapsBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
     
     mUseCustomServerBox.setCursorTip( "CONNECT TO A CUSTOM SERVER" );
     mCustomServerAddressField.setCursorTip( "CUSTOM SERVER ADDRESS" );
@@ -349,6 +352,8 @@ SettingsPage::SettingsPage()
     mEnableObjectSearchBox.setCursorTip( "ENABLE OBJECT FINDER. PRESS J TO TOGGLE PANEL." );
     mEnableFamilyDisplayBox.setCursorTip( "ENABLE DISPLAY OF LIST OF FAMILIES. PRESS P TO TOGGLE PANEL." );
     mEnableDangerousTileBox.setCursorTip( "HIGHLIGHT DANGEROUS TILES AND BLOCK PATHING INTO THEM ON KEYBOARD." );
+    mGenerateTownPlannerMapsBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
+    mEnableShowingHeldFoodPips.setCursorTip( "SHOW FOOD PIPS OF THE FOOD YOU'RE HOLDING" );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -381,11 +386,6 @@ SettingsPage::SettingsPage()
     mEnableNudeBox.setToggled( mEnableNudeSetting );
 
 
-    mOldGenerateTownPlannerMapsSetting = 
-        SettingsManager::getIntSetting( "generateTownPlannerMaps", 0 );
-
-    mGenerateTownPlannerMapsBox.setToggled( mOldGenerateTownPlannerMapsSetting );
-    
     mEnableFOVSetting =
         SettingsManager::getIntSetting( "fovEnabled", 0 );
     
@@ -471,6 +471,16 @@ SettingsPage::SettingsPage()
     dangerousTileEnabled = SettingsManager::getIntSetting("dangerousTileEnabled", 0);
 
     mEnableDangerousTileBox.setToggled( dangerousTileEnabled );
+
+    mOldGenerateTownPlannerMapsSetting = SettingsManager::getIntSetting( "generateTownPlannerMaps", 0 );
+
+    mGenerateTownPlannerMapsBox.setToggled( mOldGenerateTownPlannerMapsSetting );
+
+    showPipsOfFoodHeld = SettingsManager::getIntSetting( "showPipsOfFoodHeldEnabled", 0 );
+
+    mEnableShowingHeldFoodPips.setToggled( showPipsOfFoodHeld );
+    
+    
 
     mPage = 0;
     
@@ -951,6 +961,12 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         SettingsManager::setSetting( "generateTownPlannerMaps", newSetting );
         }
+    else if( inTarget == &mEnableShowingHeldFoodPips ) {
+        int newSetting = mEnableShowingHeldFoodPips.getToggled();
+        showPipsOfFoodHeld = false;
+        if( newSetting ) showPipsOfFoodHeld = true;
+        SettingsManager::setSetting( "showPipsOfFoodHeldEnabled", newSetting );
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1059,15 +1075,6 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y -= 2;
 
         drawTextWithShadow( "UI SIZE", pos, alignRight );
-        }
-        
-    if( mGenerateTownPlannerMapsBox.isVisible() ) {
-        doublePair pos = mGenerateTownPlannerMapsBox.getPosition();
-        
-        pos.x -= 30;
-        pos.y -= 2;
-
-        drawTextWithShadow( "SAVE MAP FILES", pos, alignRight );
         }
         
     if( mUseCustomServerBox.isVisible() ) {
@@ -1242,6 +1249,21 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         drawTextWithShadow("ENABLE DANGER HIGHLIGHT", pos, alignRight);
         }
+    if( mGenerateTownPlannerMapsBox.isVisible() ) {
+        doublePair pos = mGenerateTownPlannerMapsBox.getPosition();
+        
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow( "SAVE MAP FILES", pos, alignRight );
+        }
+    if (mEnableShowingHeldFoodPips.isVisible()) {
+        doublePair pos = mEnableShowingHeldFoodPips.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("SHOW HELD FOOD PIPS", pos, alignRight);
+        }
     }
 
 
@@ -1390,15 +1412,16 @@ void SettingsPage::updatePage() {
     mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
-    mCustomCommands.setPosition(180 - 16, lineSpacing * 3);
-    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 2);
-    mEnableCoordinatesBox.setPosition(0, lineSpacing * 1);
-    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 0);
-    mEnableYumFinderBox.setPosition(0, lineSpacing * -1);
-    mEnableObjectSearchBox.setPosition(0, lineSpacing * -2);
-    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -3);
-    mEnableDangerousTileBox.setPosition(0, lineSpacing * -4);
-    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -5);
+    mCustomCommands.setPosition(180 - 16, lineSpacing * 4);
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
+    mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
+    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
+    mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
+    mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
+    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
+    mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
+    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -4);
+    mEnableShowingHeldFoodPips.setPosition(0, lineSpacing * -5);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1450,6 +1473,7 @@ void SettingsPage::updatePage() {
     mEnableFamilyDisplayBox.setVisible(mPage == 5);
     mEnableDangerousTileBox.setVisible(mPage == 5);
     mGenerateTownPlannerMapsBox.setVisible(mPage == 5);
+    mEnableShowingHeldFoodPips.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );

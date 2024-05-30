@@ -251,6 +251,8 @@ static int trippingEmotionIndex = -1;
 extern bool isTrippingEffectOn;
 extern bool trippingEffectDisabled;
 
+extern char showPipsOfFoodHeld;
+
 static doublePair yumBubbleDrawPos = {0, 0};
 
 static int historyGraphLength = 100;
@@ -12531,6 +12533,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
         setDrawColor( 1, 1, 1, 1 );
         toggleMultiplicativeBlend( true );
 
+        // feature from Hetuw
+        int foodStoreWithHolding = ourLiveObject->foodStore;
+        if( ourLiveObject->holdingID > 0 && getObject( ourLiveObject->holdingID )->foodValue > 0 )
+            foodStoreWithHolding += getObject( ourLiveObject->holdingID )->foodValue;
+
         for( int i=0; i<ourLiveObject->foodCapacity; i++ ) {
             doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
                                lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
@@ -12545,6 +12552,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     mHungerBoxFillSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
                     pos, gui_fov_scale_hud );
                 }
+            else if( i < foodStoreWithHolding && showPipsOfFoodHeld ) {
+                drawSprite( 
+                    mHungerBoxFillSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
+                    pos, 0.4 );
+				}
             else if( i < ourLiveObject->maxFoodStore ) {
                 drawSprite( 
                     mHungerBoxFillErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
