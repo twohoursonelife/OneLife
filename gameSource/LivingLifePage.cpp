@@ -769,17 +769,31 @@ static SimpleVector<ClickableComponent> displayedFamiliesComponentList;
 static double infertileAge = 104.0;
 
 static const char *infertilitySuffix = "+INFERTILE+";
-// static char *fertilitySuffix = "+FERTILE+";
+static char *fertilitySuffix = "+FERTILE+";
 static char automaticInfertilityPendingLineageCheck = false;
 
 // return true if infertile tag is found
+// false if fertile tag or no tag is found
 static char stripFertilitySuffix( char *name ) {
     if( name == NULL ) return false;
     char *foundSuffix = strstr( name, infertilitySuffix );
     if( foundSuffix != NULL ) {
-        // there is always a blank space before the tag
-        foundSuffix[-1] = '\0';
+        if( strcmp(foundSuffix, name) != 0 ) {
+            // there is a blank space before the tag if they are named
+            foundSuffix[-1] = '\0';
+            }
+        else {
+            delete [] name;
+            foundSuffix[0] = '\0';
+            }
         return true;
+        }
+    foundSuffix = strstr( name, fertilitySuffix );
+    if( foundSuffix != NULL ) {
+        // if fertility tag is in the name, they must be unnamed
+        delete [] name;
+        foundSuffix[0] = '\0';
+        return false;
         }
     return false;
     }
@@ -1025,8 +1039,7 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
     if( o->name != NULL ) {
         name = stringDuplicate( o->name );
         stripFertilitySuffix( name );
-        if( name[0] == '\0' ) {
-            delete [] name;
+        if( name[0] == NULL ) {
             name = NULL;
             }
         }
@@ -11246,8 +11259,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( o->name != NULL ) {
                 name = stringDuplicate(o->name);
                 infertilityTagPresent = stripFertilitySuffix( name );
-                if( name[0] == '\0' ) {
-                    delete [] name;
+                if( name[0] == NULL ) {
                     name = NULL;
                     }
                 }
