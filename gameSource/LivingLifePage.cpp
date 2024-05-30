@@ -769,7 +769,7 @@ static SimpleVector<ClickableComponent> displayedFamiliesComponentList;
 static double infertileAge = 104.0;
 
 static const char *infertilitySuffix = "+INFERTILE+";
-static char *fertilitySuffix = "+FERTILE+";
+static const char *fertilitySuffix = "+FERTILE+";
 static char automaticInfertilityPendingLineageCheck = false;
 
 // return true if infertile tag is found
@@ -959,12 +959,12 @@ static double lastHoverPlayerTime = 0;
 
 static char *getDisplayObjectDescription( int inID );
 
-void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
+void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* rawLine ) {
     if ( inO == NULL ) return;
     LiveObject *ourLiveObject = getOurLiveObject();
     if ( ourLiveObject == NULL ) return;
 
-    bool isDeathMsg = ( strstr( line, "X X" ) != NULL );
+    bool isDeathMsg = ( strstr( rawLine, "X X" ) != NULL );
     if ( !isDeathMsg ) return;
 
     LiveObject *o = getLiveObject(inO->id);
@@ -980,6 +980,7 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
     const char *reasonSuccumbed = "reason_succumbed_";
     const char *reasonSuicide = "reason_suicide_";
 
+    char *line = stringDuplicate(rawLine);
     char isKilled = strstr(line, reasonKilled) != NULL;
     char isSuccumbed = strstr(line, reasonSuccumbed) != NULL;
     char isSuicide = strstr(line, reasonSuicide) != NULL;
@@ -1039,7 +1040,7 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
     if( o->name != NULL ) {
         name = stringDuplicate( o->name );
         stripFertilitySuffix( name );
-        if( name[0] == NULL ) {
+        if( name[0] == '\0' ) {
             name = NULL;
             }
         }
@@ -1087,6 +1088,8 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* line ) {
     if( name != NULL ) delete [] name;
     delete [] deathCause;
     delete [] deathMessage;
+    
+    delete [] line;
 
     }
 
@@ -3265,7 +3268,7 @@ static void saveChunkToTownPlannerMap( SimpleVector<char *> *tokens,
                 &&
                 mapY >= 0 && mapY < mMapD ) {
                 
-                int mapI = mapY * mMapD + mapX;
+                // int mapI = mapY * mMapD + mapX;
                 
 
                 int realX = cX + x + townPlannerMapFile_oX;
@@ -11259,7 +11262,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( o->name != NULL ) {
                 name = stringDuplicate(o->name);
                 infertilityTagPresent = stripFertilitySuffix( name );
-                if( name[0] == NULL ) {
+                if( name[0] == '\0' ) {
                     name = NULL;
                     }
                 }
