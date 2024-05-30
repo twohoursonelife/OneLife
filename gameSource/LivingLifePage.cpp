@@ -3062,7 +3062,7 @@ std::string getSeededEmail() {
 
         // If user doesn't have a seed in their email field
         if( seededEmail.find('|') == std::string::npos ) {
-            if( spawnSeed != NULL ) {
+            if( useSpawnSeed && spawnSeed != NULL ) {
                 std::string seed( spawnSeed );
 
                 // And if the user has a seed set in settings
