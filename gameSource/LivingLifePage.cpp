@@ -12051,10 +12051,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 pos.y -= lineHeight * gui_fov_scale_hud;
                 tinyHandwritingFont->drawString( translate( "findCommandHelp4" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
-                pos.y -= lineHeight * gui_fov_scale_hud;
                 tinyHandwritingFont->drawString( translate( "findCommandHelp5" ), pos, alignCenter );
                 pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
                 tinyHandwritingFont->drawString( translate( "findCommandHelp6" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp7" ), pos, alignCenter );
 
                 }
 

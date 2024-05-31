@@ -443,7 +443,7 @@ markCommand "/MARK"
 markCommandHelp1 "TO MARK A SPOT:"
 markCommandHelp2 "/MARK X Y NAME"
 
-markCommandHelp3 "E.G. /MARK 20 90 MINE"
+markCommandHelp3 "E.G. /MARK 200 90 MINE"
 markCommandHelp4 "E.G. /MARK VILLAGE"
 markCommandHelp5 "E.G. /MARK 89 -64"
 
@@ -460,11 +460,12 @@ findCommand "/FIND"
 findCommandHelp1 "OBJECT SEARCH BY NAME:"
 findCommandHelp2 "/FIND QUERY"
 
-findCommandHelp3 "E.G. /FIND MAPLE"
-findCommandHelp4 "E.G. /FIND STONE -SHARP"
+findCommandHelp3 "E.G. /FIND BERRY"
+findCommandHelp4 "E.G. /FIND MAPLE -FIELD"
+findCommandHelp5 "E.G. /FIND STONE."
 
-findCommandHelp5 "CLICK EMPTY SPACE"
-findCommandHelp6 "TO CLOSE"
+findCommandHelp6 "CLICK EMPTY SPACE"
+findCommandHelp7 "TO CLOSE"
 
 objQueryTips "CLICK TO REMOVE"
 objSearchTips "CLICK TO SHOW ACTIVE OBJECT SEARCHES"
