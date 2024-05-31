@@ -26775,9 +26775,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         }
     if( commandIndex != -1 ) {
         if( commandIndex < commandShortcuts.size() ) {
-            char *customCommand = commandShortcuts.getElementDirect( commandIndex );
+            char *command = commandShortcuts.getElementDirect( commandIndex );
 
-            char *commandWorking = stringDuplicate(customCommand);
+            char *commandWorking = stringDuplicate(command);
 
             LiveObject *ourLiveObject = getOurLiveObject();
 

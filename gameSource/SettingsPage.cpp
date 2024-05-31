@@ -122,7 +122,7 @@ SettingsPage::SettingsPage()
           mEnableDiscordRichPresenceDetails(0, 48, 4),
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
-        , mCustomCommands( mainFont, -360, -176, 10, true, 
+        , mCommandShortcuts( mainFont, -360, -176, 10, true, 
                                      "",
                                      "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ 0123456789",
                                      NULL, 4 ),
@@ -161,11 +161,11 @@ SettingsPage::SettingsPage()
     mEnableCoordinatesBox.addActionListener(this);
     addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
     mEnableAdvancedShowUseOnObjectHoverKeybind.addActionListener(this);
-    addComponent(&mCustomCommands);
-    mCustomCommands.addActionListener(this);
-    mCustomCommands.setWidth( 360 );
-    mCustomCommands.useClearButton( true );
-    mCustomCommands.setFireOnLoseFocus( true );
+    addComponent(&mCommandShortcuts);
+    mCommandShortcuts.addActionListener(this);
+    mCommandShortcuts.setWidth( 360 );
+    mCommandShortcuts.useClearButton( true );
+    mCommandShortcuts.setFireOnLoseFocus( true );
     
 #ifdef USE_DISCORD
     // Discord
@@ -343,7 +343,7 @@ SettingsPage::SettingsPage()
     mDiscordHideFirstNameInDetails.setCursorTip("HIDE FIRST NAME IN THE STATUS");
 #endif // USE_DISCORD
 
-    mCustomCommands.setCursorTip( "SAVED COMMANDS OR SPEECH. ACCESS WITH NUM KEYS OR ALT + NUM KEYS." );
+    mCommandShortcuts.setCursorTip( "SAVED COMMANDS OR SPEECH, TO BE ACCESSED WITH NUM KEYS OR ALT + NUM KEYS." );
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
     mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING. PRESS G TO TOGGLE PANEL." );
@@ -431,12 +431,12 @@ SettingsPage::SettingsPage()
     commandShortcutsRawText = 
         SettingsManager::getSettingContents( "commandShortcuts", "" );
 
-    mCustomCommands.setListByRawText( commandShortcutsRawText );
+    mCommandShortcuts.setListByRawText( commandShortcutsRawText );
 
     // the UI is used to view and edit a list
     // the textbox is merely a way to input text
     // keep it empty when the UI is not focused
-    mCustomCommands.setText( "" );
+    mCommandShortcuts.setText( "" );
     
     mAdvancedShowUseOnObjectHoverKeybindSetting = 
         SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
@@ -896,14 +896,14 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
     else if ( inTarget == &mAdvancedButton ) {
         mPage = 5;
         }
-    else if( inTarget == &mCustomCommands ) {
-        commandShortcutsRawText = mCustomCommands.getAndUpdateRawText();
+    else if( inTarget == &mCommandShortcuts ) {
+        commandShortcutsRawText = mCommandShortcuts.getAndUpdateRawText();
         SettingsManager::setSetting( "commandShortcuts", commandShortcutsRawText );
-        if( !mCustomCommands.isFocused() ) {
+        if( !mCommandShortcuts.isFocused() ) {
             // the UI is used to view and edit a list
             // the textbox is merely a way to input text
             // keep it empty when the UI is not focused
-            mCustomCommands.setText( "" );
+            mCommandShortcuts.setText( "" );
             }
         }
     else if ( inTarget == &mEnableAdvancedShowUseOnObjectHoverKeybind ) {
@@ -1193,12 +1193,12 @@ void SettingsPage::draw( doublePair inViewCenter,
     mDiscordHideFirstNameInDetails.setActive(time(0) - last_discord_setting_change > 2);
 #endif // USE_DISCORD
 
-    if (mCustomCommands.isVisible()) {
-        doublePair pos = mCustomCommands.getPosition();
+    if (mCommandShortcuts.isVisible()) {
+        doublePair pos = mCommandShortcuts.getPosition();
         pos.x = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition().x - 30;
         pos.y -= 2;
 
-        drawTextWithShadow("SAVED COMMANDS", pos, alignRight);
+        drawTextWithShadow("COMMAND SHORTCUTS", pos, alignRight);
         }
     if (mEnableAdvancedShowUseOnObjectHoverKeybind.isVisible()) {
         doublePair pos = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition();
@@ -1275,7 +1275,7 @@ void SettingsPage::step() {
     stepMusicPlayer();
 
     int blockClicks = false;
-    if( mCustomCommands.isFocused() ) blockClicks = true;
+    if( mCommandShortcuts.isFocused() ) blockClicks = true;
     mEnableAdvancedShowUseOnObjectHoverKeybind.setIgnoreEvents( blockClicks );
     mEnableCoordinatesBox.setIgnoreEvents( blockClicks );
     mEnablePersistentEmoteBox.setIgnoreEvents( blockClicks );
@@ -1412,7 +1412,7 @@ void SettingsPage::updatePage() {
     mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
-    mCustomCommands.setPosition(180 - 16, lineSpacing * 4);
+    mCommandShortcuts.setPosition(180 - 16, lineSpacing * 4);
     mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
     mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
     mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
@@ -1464,7 +1464,7 @@ void SettingsPage::updatePage() {
                                         && mEnableDiscordRichPresenceStatus.getToggled());
 #endif // USE_DISCORD
 
-    mCustomCommands.setVisible(mPage == 5);
+    mCommandShortcuts.setVisible(mPage == 5);
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
     mEnableCoordinatesBox.setVisible(mPage == 5);
     mEnablePersistentEmoteBox.setVisible(mPage == 5);
