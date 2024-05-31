@@ -206,11 +206,6 @@ char *DropdownList::processRawText( const char *inRawText ) {
         delete [] lines[i];
         }
     delete [] lines;
-    
-    for( int i=0; i<numLines; i++ ) {
-        delete [] lines[i];
-        }
-    delete [] lines;
 
     return processedRawText;
     
