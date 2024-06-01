@@ -120,6 +120,7 @@ static char vogModeActuallyOn = false;
 static char vogJumpCameraOnNextVU = false;
 static char vogStopUsualCameraMovement = false;
 static char vogResumingUsualCameraMovementOnNextVU = false;
+static char vogScrollingMode = true;
 static double lastVogMoveTime = 0;
 
 static char debugMode = false;
@@ -8493,7 +8494,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             lrintf( lastScreenViewCenter.x / CELL_D ),
             lrintf( lastScreenViewCenter.y / CELL_D )
             };
-        drawTileVanillaHighlight( viewingGridPos.x, viewingGridPos.y, {1.0, 0.0, 1.0, 1.0} );
+        FloatColor tileColor = {0.5, 0.0, 1.0, 1.0};
+        if( vogScrollingMode ) tileColor = {1.0, 0.0, 1.0, 1.0};
+        drawTileVanillaHighlight( viewingGridPos.x, viewingGridPos.y, tileColor );
         }
 
     if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
@@ -24506,7 +24509,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
                 if( lastMouseY_relative < 0 ) dirY = -1;
                 }
 
-            double distPerStep = 16 * gui_fov_scale;
+            double distPerStep = 12 * gui_fov_scale;
 
             lastScreenViewCenter.x = lastScreenViewCenter.x + distPerStep * dirX;
             lastScreenViewCenter.y = lastScreenViewCenter.y + distPerStep * dirY;
@@ -27151,6 +27154,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         case 'F':
             if( ! mSayField.isFocused() && SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
                 shouldMoveCamera = false;
+                }
+            if( vogMode && !TextField::isAnyFocused() ) {
+                vogScrollingMode = !vogScrollingMode;
                 }
             break;
         case 96: { // grave
