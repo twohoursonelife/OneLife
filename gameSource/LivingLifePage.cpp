@@ -14296,6 +14296,8 @@ void LivingLifePage::displayGlobalMessage( char *inMessage, char forceRight, cha
     
     mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
 
+    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].y = 0;
+
     if( forceSingleLine ) mTutorialExtraOffset[ mLiveTutorialSheetIndex ].y = -34;
     
     
