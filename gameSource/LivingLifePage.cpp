@@ -129,6 +129,12 @@ static doublePair vogPos = { 0, 0 };
 
 static char vogPickerOn = false;
 
+void LivingLifePage::vogMove( int x, int y ) {
+    char *message = autoSprintf( "VOGM %d %d#", x, y );
+    sendToServerSocket( message );
+    delete [] message;
+    }
+
     
 
 extern float musicLoudness;
@@ -24531,9 +24537,8 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             ) {
 
             if( game_getCurrentTime() - lastVogMoveTime > 0.5 ) { // don't spam VOGM
-                char *message = autoSprintf( "VOGM %d %d#", viewingGridPos.x, viewingGridPos.y );
-                sendToServerSocket( message );
-                delete [] message;
+                
+                vogMove( viewingGridPos.x, viewingGridPos.y );
 
                 lastVogMoveTime = game_getCurrentTime();
                 }
@@ -26967,12 +26972,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         lrintf( lastScreenViewCenter.y / CELL_D )
                         };
 
-                    if( viewingGridPos.x != lrint( vogPos.x ) || viewingGridPos.y != lrint( vogPos.y ) ) {
-                        char *message2 = autoSprintf( "VOGM %d %d#",
-                                                    viewingGridPos.x, 
-                                                    viewingGridPos.y );
-                        sendToServerSocket( message2 );
-                        delete [] message2;
+                    if( viewingGridPos.x != lrint( vogPos.x ) || 
+                        viewingGridPos.y != lrint( vogPos.y ) ) {
+                        vogMove( viewingGridPos.x, viewingGridPos.y );
                         }
                     
                     // Send coords different than (0, 0) to teleport
@@ -27515,6 +27517,16 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         
                         if( vogMode ) {
                             sayCommand = "VOGT";
+
+                            GridPos viewingGridPos = {
+                                lrintf( lastScreenViewCenter.x / CELL_D ),
+                                lrintf( lastScreenViewCenter.y / CELL_D )
+                                };
+
+                            if( viewingGridPos.x != lrint( vogPos.x ) || 
+                                viewingGridPos.y != lrint( vogPos.y ) ) {
+                                vogMove( viewingGridPos.x, viewingGridPos.y );
+                                }
                             }
                         
                         char *message = 

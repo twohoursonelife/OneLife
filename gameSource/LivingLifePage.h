@@ -499,6 +499,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         
         virtual void keyUp( unsigned char inASCII );
 
+        void vogMove( int x, int y );
+        
         void freeWASDKeyPress();
 
         bool isHoveringPicker( float x, float y );
