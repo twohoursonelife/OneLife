@@ -1290,6 +1290,11 @@ void SettingsPage::step() {
 
 
 
+void SettingsPage::pressBackButton() {
+    actionPerformed( &mBackButton );
+    }
+
+
 
 void SettingsPage::makeActive( char inFresh ) {
     

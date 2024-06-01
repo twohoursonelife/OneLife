@@ -919,7 +919,8 @@ int totalNumOfHelpPages = 0;
 
 static void drawPauseScreen() {
     
-    if( currentGamePage == existingAccountPage && isPaused() ) {
+    if( isPaused() &&
+        ( currentGamePage == existingAccountPage || currentGamePage == settingsPage )  ) {
         pauseGame();
         return;
         }
@@ -2842,6 +2843,10 @@ void keyDown( unsigned char inASCII ) {
     
     if( inASCII == 27 ) { // ESCAPE KEY
         TextField::unfocusAll();
+        if ( currentGamePage == settingsPage ) {
+            settingsPage->pressBackButton();
+            return;
+            }
         return;
         }
 

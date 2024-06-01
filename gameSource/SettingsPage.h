@@ -27,6 +27,8 @@ class SettingsPage : public GamePage, public ActionListener {
 
         virtual void step();
 
+        void pressBackButton();
+
         virtual void actionPerformed( GUIComponent *inTarget );
 
         
