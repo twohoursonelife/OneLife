@@ -1096,7 +1096,7 @@ static void drawPauseScreen() {
                         }
                     else if ( strstr( lines[i], "@LINEHEIGHT" ) != NULL ) {
                         sscanf( lines[i], "@LINEHEIGHT=%d", &( temp ) );
-                        lineHeight = gui_fov_scale * temp;
+                        lineHeight = gui_fov_scale_hud * temp;
                         continue;
                         }
                     else if ( strstr( lines[i], "@NUMOFSHEETS" ) != NULL ) {
@@ -1188,7 +1188,7 @@ static void drawPauseScreen() {
                             lastScreenViewCenter.y + picturePosY * gui_fov_scale
                             };
                         setDrawColor( 0.0f, 0.0f, 0.0f, 0.75*pauseScreenFade );
-                        drawSprite( instructionsSprite, picturePos );
+                        drawSprite( instructionsSprite, picturePos, gui_fov_scale_hud );
                         }
                     else {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
