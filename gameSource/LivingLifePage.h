@@ -513,6 +513,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         char isTileDangerousWithHeldObject( int heldID, int groundID );
 
+        void drawGrid();
+
         
         // handles error detection, total byte counting, etc.
         void sendToServerSocket( char *inMessage );

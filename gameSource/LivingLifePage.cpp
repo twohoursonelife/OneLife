@@ -1130,6 +1130,37 @@ char LivingLifePage::isTileDangerousWithHeldObject( int heldID, int groundID ) {
     return true;
     }
 
+// Draw grid
+
+static char drawGridToggle = false;
+
+void LivingLifePage::drawGrid() {
+    setDrawColor( 0.0, 0.0, 0.0, 0.8 );
+    doublePair drawPos = lastScreenViewCenter;
+
+    double recWidth = 1.0 * (double)gui_fov_scale;
+
+    double startX = drawPos.x - visibleViewWidth/2.0;
+    double endX = drawPos.x + visibleViewWidth/2.0;
+    double startY = drawPos.y - viewHeight/2.0;
+    double endY = drawPos.y + viewHeight/2.0;
+
+    double offsetX = fmod(startX, (double)CELL_D) + ((double)CELL_D / 2.0);
+    double offsetY = fmod(startY, (double)CELL_D) + ((double)CELL_D / 2.0);
+
+    drawPos.x = startX;
+    drawPos.y = startY;
+    for (double x = startX-offsetX; x < endX; x += CELL_D) {
+        drawPos.x = x;
+        drawRect( drawPos, recWidth, viewHeight );
+        }
+    drawPos.x = startX;
+    for (double y = startY-offsetY; y < endY; y += CELL_D) {
+        drawPos.y = y;
+        drawRect( drawPos, visibleViewWidth, recWidth );
+        }
+    }
+
 
 static SimpleVector<char*> passwordProtectingPhrases;
 
@@ -10438,6 +10469,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
     
+
+    if( drawGridToggle ) {
+        drawGrid();
+        }
 
     
     if( hideGuiPanel ) {
@@ -27168,6 +27203,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             // calcOffsetHUD();
             }
             break;
+        // case 'k':
+        case 'K':
+            if( !TextField::isAnyFocused() ) {
+                drawGridToggle = !drawGridToggle;
+                }
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
                 
