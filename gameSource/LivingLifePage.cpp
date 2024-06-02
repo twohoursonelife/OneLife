@@ -484,6 +484,40 @@ static char *formatCoordinate( int num, char allowThousands = false ) {
     return numString;
     }
 
+static char *extractMapName( char *input ) {
+    int maxNameLen = 8;
+    char *returnString = NULL;
+    char *working = stringDuplicate( input );
+    if ( working[0] == ':' && strlen( working ) > 1 ) {
+        working += 1;
+        }
+    if( strstr(working, " ") != NULL ) {
+        int wordCount;
+        char **tokens = split( working, " ", &wordCount );
+
+        for( int i=0; i<wordCount; i++ ) {
+            if( strlen(tokens[i]) > 0 && strlen(tokens[i]) <= maxNameLen ) {
+                if( returnString != NULL ) delete [] returnString;
+                returnString = stringDuplicate( tokens[i] );
+                break;
+                }
+            }
+
+        for( int i=0; i<wordCount; i++ ) {
+            delete [] tokens[i];
+            }
+        delete [] tokens;
+        }
+    else if( strlen(working) <= maxNameLen ) {
+        returnString = stringDuplicate( working );
+        }
+    if( returnString == NULL ) {
+        returnString = autoSprintf( "%s %d", translate("mapLocation"), nextSavedCoordinatesLetter );
+        }
+    delete [] working;
+    return returnString;
+    }
+
 // return false when it is blocked
 static char addCoordinates( SavedCoordinates newCoords ) {
     for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
@@ -20943,12 +20977,13 @@ void LivingLifePage::step() {
                                                                  personID,
                                                                  personKey );
                                             
-                                            SavedCoordinates mapCoords = {mapX, mapY, translate("mapLocation"), 2};
+                                            SavedCoordinates mapCoords = {
+                                                mapX, mapY, 
+                                                extractMapName(existing->currentSpeech),
+                                                2
+                                                };
                                             addCoordinates( mapCoords );
                                             }
-
-                                        // trim it off
-                                        starPos[0] ='\0';
 
                                         doublePair dest = { (double)mapX, 
                                                             (double)mapY };
