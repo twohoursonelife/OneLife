@@ -152,6 +152,8 @@ bool downKeyDown;
 bool leftKeyDown;
 bool rightKeyDown;
 
+char allowAutoRun = false;
+
 int lastDoorToOpenX;
 int lastDoorToOpenY;
 
@@ -22684,7 +22686,7 @@ void LivingLifePage::step() {
                             }
                         }
                     }
-                else if( o->id == ourID && o->pathLength >= 2 &&
+                else if( o->id == ourID && o->pathLength >= 2 && allowAutoRun &&
                          nextActionMessageToSend == NULL &&
                          distance( endPos, o->currentPos )
                          < o->currentSpeed ) {
@@ -23406,6 +23408,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     mXKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
+
+    allowAutoRun = false;
     
     upKeyDown = false;
     leftKeyDown = false;
@@ -24834,6 +24838,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     if( mFirstServerMessagesReceived != 3 || ! mDoneLoadingFirstObjectSet ) {
         return;
         }
+
+    if( !mForceGroundClick || isAltKeyDown() )
+        allowAutoRun = true;
 
     if( playerActionPending ) {
         printf( "Skipping click, action pending\n" );
@@ -26685,9 +26692,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-    bool commandKey = isCommandKeyDown();
+    bool altKey = isAltKeyDown();
+    bool commandKey = isCommandKeyDown() && !altKey;
     // bool controlKey = isControlKeyDown();
-    // bool altKey = isAltKeyDown();
     bool shiftKey = isShiftKeyDown();
 
     if( vogMode && vogPickerOn ) {
@@ -26757,22 +26764,22 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if (!shiftKey && !commandKey) {
                 if (isCharKey(inASCII, charKey_Up)) {
                     upKeyDown = true;
-                    //stopAutoRoadRun = true;
+                    allowAutoRun = isAltKeyDown();
                     return;
                 }
                 if (isCharKey(inASCII, charKey_Left)) {
                     leftKeyDown = true;
-                    //stopAutoRoadRun = true;
+                    allowAutoRun = isAltKeyDown();
                     return;
                 }
                 if (isCharKey(inASCII, charKey_Down)) {
                     downKeyDown = true;
-                    //stopAutoRoadRun = true;
+                    allowAutoRun = isAltKeyDown();
                     return;
                 }
                 if (isCharKey(inASCII, charKey_Right)) {
                     rightKeyDown = true;
-                    //stopAutoRoadRun = true;
+                    allowAutoRun = isAltKeyDown();
                     return;
                 }
             } else if (commandKey) {
