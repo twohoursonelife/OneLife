@@ -515,6 +515,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         void drawGrid();
 
+        LiveObject *getClosestLiveObject( doublePair fromPos );
+
         
         // handles error detection, total byte counting, etc.
         void sendToServerSocket( char *inMessage );

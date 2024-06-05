@@ -122,6 +122,8 @@ static char vogStopUsualCameraMovement = false;
 static char vogResumingUsualCameraMovementOnNextVU = false;
 static char vogScrollingMode = true;
 static double lastVogMoveTime = 0;
+static char vogFollowMode = false;
+static int vogFollowPlayerID = -1;
 
 static char debugMode = false;
 
@@ -3817,6 +3819,34 @@ void LivingLifePage::takeOffBackpack() {
     sendToServerSocket( message );
 }
 
+// VOG follow
+
+LiveObject *LivingLifePage::getClosestLiveObject( doublePair fromPos ) {
+
+    double shortestDistance = 999999.0;
+    LiveObject *closestLiveObject = NULL;
+
+    for( int i=0; i<gameObjects.size(); i++ ) {
+    
+        LiveObject *o = gameObjects.getElement( i );
+        
+        if( o == NULL ) continue;
+        if( o->outOfRange ) continue;
+        if( o->currentPos.x == 1977.0 && o->currentPos.y == 1977.0 ) continue;
+        if( o->id == ourID ) continue;
+
+        double d = distance( fromPos, o->currentPos );
+        if( d < shortestDistance ) {
+            shortestDistance = d;
+            closestLiveObject = o;
+
+            if( d == 0 ) break;
+            }
+        }
+    
+    return closestLiveObject;
+    }
+
 void LivingLifePage::setOurSendPosXY(int &x, int &y) {
     LiveObject *ourLiveObject = getOurLiveObject();
     
@@ -4064,7 +4094,6 @@ LivingLifePage::LivingLifePage()
     yumFinderKey = yumFinderKeyFromSetting[0];
     delete [] yumFinderKeyFromSetting;
 
-    // TODO init
     updateObjectSearchArray();
 
     mHomeSlipSprites[0] = mHomeSlipSprite;
@@ -4098,6 +4127,7 @@ LivingLifePage::LivingLifePage()
     mObjectPicker.setIgnoredKey( 'M' );
     mObjectPicker.setIgnoredKey( 'N' );
     mObjectPicker.setIgnoredKey( 'T' );
+    mObjectPicker.setIgnoredKey( 'G' );
     
     initLiveTriggers();
 
@@ -11832,6 +11862,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
         char *additionalLine = NULL;
+        char *debugLine = NULL;
 
         int graveID = -1;
         if( objID > 0 ) {
@@ -11850,14 +11881,21 @@ void LivingLifePage::draw( doublePair inViewCenter,
         else if( graveID != -1 ) {
             additionalLine = autoSprintf( "GRAVE: %d", graveID );
             }
+        else if( vogFollowMode && vogFollowPlayerID != -1 ) {
+            additionalLine = autoSprintf( "FOLLOWING PID: %d", vogFollowPlayerID );
+            }
 
+        drawCursorTips( firstLine, {0, -20 * 2} );
         if( additionalLine != NULL ) {
             drawCursorTips( additionalLine, {0, -20 * 3} );
             }
-        drawCursorTips( firstLine, {0, -20 * 2} );
+        if( debugLine != NULL ) {
+            drawCursorTips( debugLine, {0, -20 * 4} );
+            }
 
         if( firstLine != NULL ) delete [] firstLine;
         if( additionalLine != NULL ) delete [] additionalLine;
+        if( debugLine != NULL ) delete [] debugLine;
         }
 
 
@@ -22133,6 +22171,50 @@ void LivingLifePage::step() {
         if( !shouldMoveCamera ) {
             screenTargetPos = lastScreenViewCenter;
             }
+
+        if( vogFollowMode ) {
+
+            LiveObject *targetPlayer = getLiveObject( vogFollowPlayerID );
+
+            if( targetPlayer != NULL ) {
+                if( targetPlayer->outOfRange ) {
+                    targetPlayer = NULL;
+                    }
+                else if( targetPlayer->currentPos.x == 1977.0 && targetPlayer->currentPos.y == 1977.0 ) {
+                    // these are the dummy coordinates for far-away players
+                    targetPlayer = NULL;
+                    }
+                }
+
+            if( targetPlayer == NULL ) {
+                vogFollowPlayerID = -1;
+                vogFollowMode = false;
+                }
+            else {
+
+                lastScreenViewCenter.x = targetPlayer->currentPos.x * CELL_D;
+                lastScreenViewCenter.y = targetPlayer->currentPos.y * CELL_D;
+                
+                setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
+
+                mObjectPicker.setPosition( lastScreenViewCenter.x + 510,
+                                           lastScreenViewCenter.y + 90 );
+
+                if( // maxChunkDimension/2 is the border of loaded area
+                    abs(targetPlayer->currentPos.x - vogPos.x) > maxChunkDimension/2 /2 ||
+                    abs(targetPlayer->currentPos.y - vogPos.y) > maxChunkDimension/2 /2
+                    ) {
+
+                    if( game_getCurrentTime() - lastVogMoveTime > 0.5 ) { // don't spam VOGM
+                        
+                        vogMove( lrintf(targetPlayer->currentPos.x), lrintf(targetPlayer->currentPos.y) );
+
+                        lastVogMoveTime = game_getCurrentTime();
+                        }
+                    }
+                }
+
+            }
         
 
         doublePair dir = sub( screenTargetPos, lastScreenViewCenter );
@@ -24462,6 +24544,10 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             currHoverPlayerID = p.hitOtherPersonID;
             lastHoverPlayerID = p.hitOtherPersonID;
             lastHoverPlayerTime = game_getCurrentTime();
+
+            if( !vogFollowMode || vogFollowPlayerID == -1 ) {
+                vogFollowPlayerID = p.hitOtherPersonID;
+                }
             
             overNothing = false;
             }
@@ -24566,7 +24652,7 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         }
     
     // VOG move, with smooth screen scrolling
-    if( vogModeActuallyOn && vogScrollingMode ) {
+    if( vogModeActuallyOn && vogScrollingMode && !vogFollowMode ) {
         double lastMouseX_relative = lastMouseX - lastScreenViewCenter.x;
         double lastMouseY_relative = lastMouseY - lastScreenViewCenter.y;
         double lastMouseX_abs = abs(lastMouseX_relative);
@@ -27034,6 +27120,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         vogStopUsualCameraMovement = false;
                         }
                     vogModeActuallyOn = false;
+                    vogFollowMode = false;
                     }
                 }
             break;
@@ -27078,6 +27165,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         vogStopUsualCameraMovement = false;
                         }
                     vogModeActuallyOn = false;
+                    vogFollowMode = false;
                     
                     // Grave info is no longer valid as we will teleport
                     for( int i=0; i<mGraveInfo.size(); i++ ) {
@@ -27087,6 +27175,25 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                     
                     graveRequestPos.deleteAll();
                     }
+                }
+            break;
+        case 'g':
+            if( vogModeActuallyOn && !TextField::isAnyFocused() ) {
+                vogFollowMode = !vogFollowMode;
+
+                if( vogFollowMode && vogFollowPlayerID == -1 ) {
+                    doublePair mouseCoords = {
+                        lastMouseX / (float)CELL_D,
+                        lastMouseY / (float)CELL_D
+                        };
+                    LiveObject *closestLiveObject = getClosestLiveObject( mouseCoords );
+                    if( closestLiveObject != NULL ) vogFollowPlayerID = closestLiveObject->id;
+                    }
+                }
+            break;
+        case 'G':
+            if( vogModeActuallyOn && !TextField::isAnyFocused() ) {
+                vogFollowPlayerID = -1;
                 }
             break;
         case 'I':
@@ -27110,6 +27217,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGP 0 0#" );
                 vogJumpCameraOnNextVU = true;
+                vogFollowMode = false;
                 }
             break;
         case 'M':
@@ -27118,6 +27226,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGN 0 0#" );
                 vogJumpCameraOnNextVU = true;
+                vogFollowMode = false;
                 }
             break;
         case 'S':
