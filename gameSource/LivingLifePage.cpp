@@ -87,6 +87,8 @@ extern Font *tinyHandwritingFont;
 static float pencilErasedFontExtraFade = 0.75;
 
 
+// last pos of screen center
+// value is translatable with worldMouseX and worldMouseY
 extern doublePair lastScreenViewCenter;
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
@@ -211,6 +213,10 @@ static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
 
 
+// last cursor pos, updated by getLastMouseScreenPos
+// top left is (0, 0)
+// screenToWorld gives worldMouseX and worldMouseY
+// worldMouseX / CELL_D is the actual x coordinate of the tile where the cursor is hovering
 static int lastScreenMouseX, lastScreenMouseY;
 static char mouseDown = false;
 static int mouseDownFrames = 0;
@@ -221,6 +227,8 @@ static int minMouseDownFrames = 30;
 static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
 
 
+// last pos of pointer events, updated by pointerMove, pointerDown etc
+// lastMouseX / CELL_D is the actual x coordinate of the tile where the cursor is hovering
 static float lastMouseX = 0;
 static float lastMouseY = 0;
 
