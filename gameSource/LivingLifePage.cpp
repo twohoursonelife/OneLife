@@ -139,6 +139,21 @@ void LivingLifePage::vogMove( int x, int y ) {
     delete [] message;
     }
 
+void LivingLifePage::vogMoveCamera( float newScreenViewCenterX, float newScreenViewCenterY ) {
+    lastScreenViewCenter.x = newScreenViewCenterX;
+    lastScreenViewCenter.y = newScreenViewCenterY;
+    
+    setViewCenterPosition( 
+        lastScreenViewCenter.x, 
+        lastScreenViewCenter.y
+        );
+
+    mObjectPicker.setPosition( 
+        lastScreenViewCenter.x + 510,
+        lastScreenViewCenter.y + 90
+        );
+    }
+
     
 
 extern float musicLoudness;
@@ -16474,14 +16489,8 @@ void LivingLifePage::step() {
                     ourLiveObject->currentPos.x = posX;
                     ourLiveObject->currentPos.y = posY;
 
-                    mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
-                                               vogPos.y * CELL_D + 90 );
-
                     // jump camp instantly
-                    lastScreenViewCenter.x = posX * CELL_D;
-                    lastScreenViewCenter.y = posY * CELL_D;
-                    setViewCenterPosition( lastScreenViewCenter.x,
-                                           lastScreenViewCenter.y );
+                    vogMoveCamera( posX * CELL_D, posY * CELL_D );
                     }
 
                 if( vogResumingUsualCameraMovementOnNextVU ) {
@@ -22180,6 +22189,7 @@ void LivingLifePage::step() {
             screenTargetPos = lastScreenViewCenter;
             }
 
+        // VOG follow mode
         if( vogFollowMode ) {
 
             LiveObject *targetPlayer = getLiveObject( vogFollowPlayerID );
@@ -22200,13 +22210,7 @@ void LivingLifePage::step() {
                 }
             else {
 
-                lastScreenViewCenter.x = targetPlayer->currentPos.x * CELL_D;
-                lastScreenViewCenter.y = targetPlayer->currentPos.y * CELL_D;
-                
-                setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-
-                mObjectPicker.setPosition( lastScreenViewCenter.x + 510,
-                                           lastScreenViewCenter.y + 90 );
+                vogMoveCamera(targetPlayer->currentPos.x * CELL_D, targetPlayer->currentPos.y * CELL_D);
 
                 if( // maxChunkDimension/2 is the border of loaded area
                     abs(targetPlayer->currentPos.x - vogPos.x) > maxChunkDimension/2 /2 ||
@@ -24663,35 +24667,31 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     if( vogModeActuallyOn && vogScrollingMode && !vogFollowMode ) {
         double lastMouseX_relative = lastMouseX - lastScreenViewCenter.x;
         double lastMouseY_relative = lastMouseY - lastScreenViewCenter.y;
-        double lastMouseX_abs = abs(lastMouseX_relative);
-        double lastMouseY_abs = abs(lastMouseY_relative);
-        double lastMouseX_percentage = lastMouseX_abs / (visibleViewWidth/2);
-        double lastMouseY_percentage = lastMouseY_abs / (viewHeight/2);
 
-        if( lastMouseX_percentage >= 0.97 || lastMouseY_percentage >= 0.97 ) {
+        double lastMouseX_percentage = abs(lastMouseX_relative) / (visibleViewWidth/2);
+        double lastMouseY_percentage = abs(lastMouseY_relative) / (viewHeight/2);
+
+        int dirX = 0;
+        int dirY = 0;
+        if( lastMouseX_percentage >= 0.97 ) {
+            if( lastMouseX_relative > 0 ) dirX = 1;
+            if( lastMouseX_relative < 0 ) dirX = -1;
+            }
+        if( lastMouseY_percentage >= 0.97 ) {
+            if( lastMouseY_relative > 0 ) dirY = 1;
+            if( lastMouseY_relative < 0 ) dirY = -1;
+            }
+
+        if( dirX != 0 || dirY != 0 ) {
 
             vogStopUsualCameraMovement = true;
 
-            int dirX = 0;
-            int dirY = 0;
-            if( lastMouseX_percentage >= 0.97 ) {
-                if( lastMouseX_relative > 0 ) dirX = 1;
-                if( lastMouseX_relative < 0 ) dirX = -1;
-                }
-            if( lastMouseY_percentage >= 0.97 ) {
-                if( lastMouseY_relative > 0 ) dirY = 1;
-                if( lastMouseY_relative < 0 ) dirY = -1;
-                }
-
             double distPerStep = 12 * gui_fov_scale;
 
-            lastScreenViewCenter.x = lastScreenViewCenter.x + distPerStep * dirX;
-            lastScreenViewCenter.y = lastScreenViewCenter.y + distPerStep * dirY;
-            
-            setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
-
-            mObjectPicker.setPosition( lastScreenViewCenter.x + 510,
-                                       lastScreenViewCenter.y + 90 );
+            vogMoveCamera(
+                lastScreenViewCenter.x + distPerStep * dirX,
+                lastScreenViewCenter.y + distPerStep * dirY
+                );
             }
 
         GridPos viewingGridPos = {
@@ -27098,14 +27098,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
                     vogPos = getOurLiveObject()->currentPos;
                     vogPickerOn = false;
-                    mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
-                                               vogPos.y * CELL_D + 90 );
-                    
+
                     // jump camp instantly
-                    lastScreenViewCenter.x = vogPos.x * CELL_D;
-                    lastScreenViewCenter.y = vogPos.y * CELL_D;
-                    setViewCenterPosition( lastScreenViewCenter.x,
-                                           lastScreenViewCenter.y );
+                    vogMoveCamera( vogPos.x * CELL_D, vogPos.y * CELL_D );
 
                     vogMove( vogPos.x, vogPos.y );
 
@@ -27717,6 +27712,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         if( vogMode ) {
                             sayCommand = "VOGT";
 
+                            // do a VOG move first if the camera 
+                            // is not pointing at vogPos
+                            // otherwise the VOG speech bubble will be
+                            // at the wrong position
+                            
                             GridPos viewingGridPos = {
                                 lrintf( lastScreenViewCenter.x / CELL_D ),
                                 lrintf( lastScreenViewCenter.y / CELL_D )
@@ -27868,13 +27868,8 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
             newPos.x += posOffset.x;
             newPos.y += posOffset.y;
             
-            char *message = autoSprintf( "VOGM %d %d#",
-                                         newPos.x, newPos.y );
-            sendToServerSocket( message );
-            delete [] message;
+            vogMove( newPos.x, newPos.y );
 
-            // vogPos.x = newPos.x;
-            // vogPos.y = newPos.y;
             vogJumpCameraOnNextVU = true;
 
             }
