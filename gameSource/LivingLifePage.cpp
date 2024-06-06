@@ -405,11 +405,11 @@ static doublePair recalcOffset( doublePair ofs, bool force = false ) {
     return ofs;
     }
 
-bool LivingLifePage::isHoveringPicker( float x, float y ) {
+bool LivingLifePage::isHoveringPicker( float worldMouseX, float worldMouseY ) {
     if( !vogPickerOn ) return false;
     doublePair pickerPos = mObjectPicker.getPosition();
-    if( abs(x - (pickerPos.x)) <= 90 &&
-        abs(y - (pickerPos.y - 85)) <= 245 ) {
+    if( abs(worldMouseX - (pickerPos.x)) <= 90 &&
+        abs(worldMouseY - (pickerPos.y - 85)) <= 245 ) {
         return true;
     }
     return false;
