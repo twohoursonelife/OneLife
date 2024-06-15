@@ -13,7 +13,8 @@ ValueSlider::ValueSlider( Font *inDisplayFont,
                           double inWidth, double inHeight,
                           double inLowValue,
                           double inHighValue,
-                          const char *inLabelText )
+                          const char *inLabelText,
+                          char inDrawLabelWithShadow )
         : PageComponent( inX, inY ),
           mFillColor( 0.8, 0.8, 0, 1 ),
           mBackFillColor( 0, 0, 0, 1 ),
@@ -21,7 +22,7 @@ ValueSlider::ValueSlider( Font *inDisplayFont,
           mValueField( inDisplayFont, 0, 0, 5,
                        false,
                        inLabelText,
-                       ".0123456789-" ),
+                       ".0123456789-", NULL, inDrawLabelWithShadow ),
           mLowValue( inLowValue ),
           mHighValue( inHighValue ),
           mValue( inLowValue ),
@@ -192,8 +193,8 @@ char ValueSlider::isInBar( float inX, float inY ) {
 
 void ValueSlider::pointerDown( float inX, float inY ) {
     
-	int mouseButton = getLastMouseButton();
-	if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
     
     if( isInBar( inX, inY ) ) {
         mPointerDown = true;
@@ -232,8 +233,8 @@ void ValueSlider::pointerDrag( float inX, float inY ) {
 
 void ValueSlider::pointerUp( float inX, float inY ) {
     
-	int mouseButton = getLastMouseButton();
-	if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
     
     char wasDown = mPointerDown;
     

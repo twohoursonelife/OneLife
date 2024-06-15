@@ -85,8 +85,12 @@ class ObjectPickable : public Pickable {
 
             inPos = sub( inPos, mult( c, zoom ) );
 
+            setDrawnObjectScale( zoom );
+
             drawObject( r, 2, inPos, 0, false, false, 20, 0, false, false,
-                        getEmptyClothingSet(), zoom );
+                        getEmptyClothingSet() );
+
+            setDrawnObjectScale( 1.0 );
             }
 
 

@@ -240,11 +240,15 @@ Font *oldMainFont;
 Font *smallFont;
 Font *mainFontFixed;
 Font *numbersFontFixed;
-Font *tinyHandwritingFont;
+Font *tinyHandwritingFontFixedSize;
 
 char *shutdownMessage = NULL;
 
-
+float getLivingLifeBouncingYOffset( int oid ) {
+    // dummy function because this is expected in objectBank and animationBank
+    // it is used for yum finder and object finder in the client
+    return 0.0;
+    }
 
 
 
@@ -329,8 +333,8 @@ void initDrawString( int inWidth, int inHeight ) {
     mainFont->setMinimumPositionPrecision( 1 );
     oldMainFont = new Font( getFontTGAFileName(), 6, 6, false, 16 );
     oldMainFont->setMinimumPositionPrecision( 1 );
-	tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
-	tinyHandwritingFont->setMinimumPositionPrecision( 1 );
+    tinyHandwritingFontFixedSize = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+    tinyHandwritingFontFixedSize->setMinimumPositionPrecision( 1 );
 
     setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
 
@@ -1693,7 +1697,7 @@ void specialKeyDown( int inKey ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyDown( inKey );
         }
-	}
+    }
 
 
 
@@ -1705,7 +1709,7 @@ void specialKeyUp( int inKey ) {
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyUp( inKey );
         }
-	} 
+    } 
 
 
 

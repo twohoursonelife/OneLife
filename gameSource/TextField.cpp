@@ -30,7 +30,8 @@ TextField::TextField( Font *inDisplayFont,
                       char inForceCaps,
                       const char *inLabelText,
                       const char *inAllowedChars,
-                      const char *inForbiddenChars )
+                      const char *inForbiddenChars,
+                      char inDrawLabelWithShadow )
         : PageComponent( inX, inY ),
           mActive( true ),
           mContentsHidden( false ),
@@ -58,7 +59,8 @@ TextField::TextField( Font *inDisplayFont,
           mSelectionEnd( -1 ),
           mShiftPlusArrowsCanSelect( false ),
           mCursorFlashSteps( 0 ),
-          mUsePasteShortcut( false ) {
+          mUsePasteShortcut( false ),
+          mDrawLabelWithShadow( inDrawLabelWithShadow ) {
     
     if( inLabelText != NULL ) {
         mLabelText = stringDuplicate( inLabelText );
@@ -374,6 +376,13 @@ void TextField::draw() {
             }
         
         doublePair labelPos = { xPos, yPos };
+
+        if( mDrawLabelWithShadow ) {
+            setDrawColor( 0, 0, 0, 1 );
+            doublePair shadowOffset = {-2, 2};
+            mFont->drawString( mLabelText, add(labelPos, shadowOffset), a );
+            setDrawColor( 1, 1, 1, 1 );
+            }
         
         mFont->drawString( mLabelText, labelPos, a );
         }
@@ -615,8 +624,8 @@ void TextField::pointerUp( float inX, float inY ) {
         return;
         }
         
-	int mouseButton = getLastMouseButton();
-	if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
     
     if( inX > - mWide / 2 &&
         inX < + mWide / 2 &&
@@ -1227,7 +1236,7 @@ void TextField::setIgnoredKey( unsigned char inASCII ) {
         delete [] mForbiddenChars;
         mForbiddenChars = NULL;
         }
-    mForbiddenChars = strdup( newChars.c_str() );
+    mForbiddenChars = stringDuplicate( newChars.c_str() );
     
     }
 
@@ -1239,8 +1248,8 @@ void TextField::focus() {
         // unfocus last focused
         sFocusedTextField->unfocus();
         }
-		
-	DropdownList::unfocusAll();
+        
+    DropdownList::unfocusAll();
 
     mFocused = true;
     sFocusedTextField = this;

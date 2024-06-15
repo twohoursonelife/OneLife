@@ -46,6 +46,7 @@
 #include "minorGems/util/log/AppLog.h"
 
 #include "minorGems/crypto/hashes/sha1.h"
+#include "OneLife/server/HashTable.h"
 
 #include <stdlib.h>//#include <math.h>
 #include <string>
@@ -60,6 +61,8 @@ static ObjectPickable objectPickable;
 #include "minitech.h"
 #include "newbieTips.h"
 
+#include "ClickableComponent.h"
+
 #define MAP_D 64
 #define MAP_NUM_CELLS 4096
 
@@ -69,19 +72,23 @@ extern int dataVersionNumber;
 extern double frameRateFactor;
 
 extern Font *mainFont;
-extern Font *oldMainFont;
+
 extern Font *numbersFontFixed;
 extern Font *mainFontReview;
+
 extern Font *handwritingFont;
 extern Font *pencilFont;
 extern Font *pencilErasedFont;
-extern Font *titleFont;
+
+extern Font *tinyHandwritingFont;
 
 
 // to make all erased pencil fonts lighter
 static float pencilErasedFontExtraFade = 0.75;
 
 
+// last pos of screen center
+// value is translatable with worldMouseX and worldMouseY
 extern doublePair lastScreenViewCenter;
 doublePair LivingLifePage::minitechGetLastScreenViewCenter() { return lastScreenViewCenter; }
 
@@ -112,16 +119,46 @@ extern char userReconnect;
 
 static char vogMode = false;
 static char vogModeActuallyOn = false;
+static char vogJumpCameraOnNextVU = false;
+static char vogStopUsualCameraMovement = false;
+static char vogResumingUsualCameraMovementOnNextVU = false;
+static char vogScrollingMode = true;
+static double lastVogMoveTime = 0;
+static char vogFollowMode = false;
+static int vogFollowPlayerID = -1;
+
+static char debugMode = false;
 
 static doublePair vogPos = { 0, 0 };
 
 static char vogPickerOn = false;
 
+void LivingLifePage::vogMove( int x, int y ) {
+    char *message = autoSprintf( "VOGM %d %d#", x, y );
+    sendToServerSocket( message );
+    delete [] message;
+    }
+
+void LivingLifePage::vogMoveCamera( float newScreenViewCenterX, float newScreenViewCenterY ) {
+    lastScreenViewCenter.x = newScreenViewCenterX;
+    lastScreenViewCenter.y = newScreenViewCenterY;
+    
+    setViewCenterPosition( 
+        lastScreenViewCenter.x, 
+        lastScreenViewCenter.y
+        );
+
+    mObjectPicker.setPosition( 
+        lastScreenViewCenter.x + 510,
+        lastScreenViewCenter.y + 90
+        );
+    }
+
     
 
 extern float musicLoudness;
 
-//KB
+//Keyboard action
 bool blockMouseScaling = false;
 
 bool firstMovementStep = true;
@@ -133,6 +170,8 @@ bool upKeyDown;
 bool downKeyDown;
 bool leftKeyDown;
 bool rightKeyDown;
+
+char allowAutoRun = false;
 
 int lastDoorToOpenX;
 int lastDoorToOpenY;
@@ -154,6 +193,15 @@ unsigned char charKey_Baby = 'c';
 
 static bool waitForDoorToOpen;
 
+void LivingLifePage::freeWASDKeyPress() {
+    upKeyDown = false;
+    downKeyDown = false;
+    leftKeyDown = false;
+    rightKeyDown = false;
+    lastPosX = 9999;
+    lastPosY = 9999;
+    }
+
 //FOV
 extern int gui_hud_mode;
 extern float gui_fov_scale;
@@ -165,11 +213,25 @@ static SpriteHandle guiPanelLeftSprite;
 static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 
+char coordinatesEnabled = false;
+unsigned char coordinatesPanelToggleKey = 'g';
+char persistentEmoteEnabled = false;
+char yumFinderEnabled = false;
+unsigned char yumFinderKey = 'y';
+char objectSearchEnabled = false;
+unsigned char objectSearchPanelToggleKey = 'j';
+char familyDisplayEnabled = false;
+unsigned char familyDisplayPanelToggleKey = 'p';
+char dangerousTileEnabled = false;
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
 
 
+// last cursor pos, updated by getLastMouseScreenPos
+// top left is (0, 0)
+// screenToWorld gives worldMouseX and worldMouseY
+// worldMouseX / CELL_D is the actual x coordinate of the tile where the cursor is hovering
 static int lastScreenMouseX, lastScreenMouseY;
 static char mouseDown = false;
 static int mouseDownFrames = 0;
@@ -180,6 +242,8 @@ static int minMouseDownFrames = 30;
 static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
 
 
+// last pos of pointer events, updated by pointerMove, pointerDown etc
+// lastMouseX / CELL_D is the actual x coordinate of the tile where the cursor is hovering
 static float lastMouseX = 0;
 static float lastMouseY = 0;
 
@@ -211,6 +275,8 @@ static char *photoSig = NULL;
 
 
 static double emotDuration = 10;
+static int customPersistentEmotIndex = -1;
+static double timeLastPersistentEmotSent = 0;
 
 static int drunkEmotionIndex = -1;
 static int trippingEmotionIndex = -1;
@@ -218,6 +284,10 @@ static int trippingEmotionIndex = -1;
 //defined in animationBank
 extern bool isTrippingEffectOn;
 extern bool trippingEffectDisabled;
+
+extern char showPipsOfFoodHeld;
+
+static doublePair yumBubbleDrawPos = {0, 0};
 
 static int historyGraphLength = 100;
 
@@ -349,28 +419,809 @@ static doublePair recalcOffset( doublePair ofs, bool force = false ) {
     ofs.y = recalcOffsetY( ofs.y );
     return ofs;
     }
-    
-    
-    
-static void drawTileRect( int x, int y, std::string color, bool flashing ) {
-    doublePair pos = { (double)x, (double)y };
-    pos.x *= CELL_D;
-    pos.y *= CELL_D;
-    float alpha = 0.5;
-    if (color == "red") setDrawColor( 1, 0, 0, alpha );
-    if (color == "green") setDrawColor( 0, 1, 0, alpha );
-    if (color == "blue") setDrawColor( 0, 0, 1, alpha );
-    drawRect( pos, CELL_D/2, CELL_D/2 );
-}
 
-static bool isHoveringPicker( float x, float y ) {
+bool LivingLifePage::isHoveringPicker( float worldMouseX, float worldMouseY ) {
     if( !vogPickerOn ) return false;
-    if( abs(x - (vogPos.x * CELL_D + 510)) <= 90 &&
-        abs(y - (vogPos.y * CELL_D + 90 - 85)) <= 245 ) {
+    doublePair pickerPos = mObjectPicker.getPosition();
+    if( abs(worldMouseX - (pickerPos.x)) <= 90 &&
+        abs(worldMouseY - (pickerPos.y - 85)) <= 245 ) {
         return true;
     }
     return false;
 }
+
+
+// Left Panel
+
+// 0 for saved coords
+// 1 for object search queries
+int leftPanelPageNumber = 0;
+
+char LivingLifePage::isAnyUIHovered() {
+    return 
+        leftPanelComponent.mHover ||
+        topLeftSlipComponent.mHover ||
+        bottomPanelComponent.mHover ||
+        minitech::isMinitechHovered;
+    }
+
+
+// Saved Coords
+typedef struct SavedCoordinates {
+        int x;
+        int y;
+        std::string name;
+        // 0 custom
+        // 1 birth location and home markers
+        // 2 maps
+        // 3 others
+        int type;
+    } SavedCoordinates;
+
+static SimpleVector<SavedCoordinates> SavedCoordinatesList;
+static SimpleVector<ClickableComponent> SavedCoordinatesComponentList;
+static SavedCoordinates savedOrigin;
+static int nextSavedCoordinatesLetter = 1;
+
+static char *formatCoordinate( int num, char allowThousands = false ) {
+    char sign = 1;
+    if( num < 0 ) {
+        sign = -1;
+        num = -num;
+        }
+    char *numString = NULL;
+    char exception = num > 1000 && num < 10000 && allowThousands;
+    if( num > 1000 && !exception ) {
+        double thousands = num / 1000;
+            
+        if( thousands < 1000  ) {
+            if( thousands < 10 ) {
+                numString = autoSprintf( "%.1fK", thousands );
+                }
+            else {
+                numString = autoSprintf( "%.0fK", 
+                                            thousands );
+                }
+            }
+        else {
+            double millions = num / 1000000;
+            if( millions < 1000 ) {
+                if( millions < 10 ) {
+                    numString = autoSprintf( "%.1fM", millions );
+                    }
+                else {
+                    numString = autoSprintf( "%.0fM", millions );
+                    }
+                }
+            else {
+                double billions = num / 1000000000;
+                    
+                numString = autoSprintf( "%.1fG", billions );
+                }
+            }
+        }
+    else {
+        numString = autoSprintf( "%d", num );
+        }
+    
+    if( sign == -1 ) {
+        numString = autoSprintf( "-%s", numString );
+        }
+    
+    return numString;
+    }
+
+static char *extractMapName( char *input ) {
+    int maxNameLen = 8;
+    char *returnString = NULL;
+    char *working = stringDuplicate( input );
+    if ( working[0] == ':' && strlen( working ) > 1 ) {
+        working += 1;
+        }
+    if( strstr(working, " ") != NULL ) {
+        int wordCount;
+        char **tokens = split( working, " ", &wordCount );
+
+        for( int i=0; i<wordCount; i++ ) {
+            if( strlen(tokens[i]) > 0 && strlen(tokens[i]) <= maxNameLen ) {
+                if( returnString != NULL ) delete [] returnString;
+                returnString = stringDuplicate( tokens[i] );
+                break;
+                }
+            }
+
+        for( int i=0; i<wordCount; i++ ) {
+            delete [] tokens[i];
+            }
+        delete [] tokens;
+        }
+    else if( strlen(working) <= maxNameLen ) {
+        returnString = stringDuplicate( working );
+        }
+    if( returnString == NULL ) {
+        returnString = autoSprintf( "%s %d", translate("mapLocation"), nextSavedCoordinatesLetter );
+        }
+    delete [] working;
+    return returnString;
+    }
+
+// return false when it is blocked
+static char addCoordinates( SavedCoordinates newCoords ) {
+    for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+        SavedCoordinates oldCoords = SavedCoordinatesList.getElementDirect( i );
+        if( oldCoords.x == newCoords.x && oldCoords.y == newCoords.y ) {
+            if( oldCoords.name != newCoords.name ) {
+                    (*( SavedCoordinatesList.getElement( i ) )).name = newCoords.name;
+                }
+            return true;
+            }
+        }
+    if( SavedCoordinatesList.size() < 12 ) {
+        SavedCoordinatesList.push_back( newCoords );
+        ClickableComponent clickableLine;
+        SavedCoordinatesComponentList.push_back( clickableLine );
+        return true;
+        }
+    return false;
+    }
+
+char *commandShortcutsRawText;
+static SimpleVector<char*> commandShortcuts;
+
+// Object search
+
+static SimpleVector<std::string> objectSearchQueries;
+static SimpleVector<ClickableComponent> objectSearchQueriesComponentList;
+bool *objectMatches = NULL;
+
+static void updateObjectSearchArray() {
+
+    int maxObjectID = getMaxObjectID();
+
+    if (objectMatches != NULL) delete[] objectMatches;
+    objectMatches = new bool[maxObjectID];
+
+    for (int id=0; id<maxObjectID; id++) {
+        objectMatches[id] = false;
+        }
+
+    for( int k=0; k<objectSearchQueries.size(); k++ ) {
+        std::string queryString = objectSearchQueries.getElementDirect( k );
+        char *query = stringToLowerCase( queryString.c_str() );
+        int numTerms;
+        char **terms = split( query, " ", &numTerms );
+
+        char *exactQuery = NULL;
+        int queryLen = strlen( query );
+        if( queryLen > 0 && query[queryLen-1] == '.' ) {
+            exactQuery = stringDuplicate( query );
+            exactQuery[queryLen-1] = '\0';
+            }
+
+        delete [] query;
+
+        ObjectRecord **hitsSimpleVector = NULL;
+        int numHits = 0;
+
+        SimpleVector<char*> validTerms;
+        SimpleVector<char*> avoidTerms;
+        SimpleVector<char*> exactTerms;
+
+        for( int i=0; i<numTerms; i++ ) {
+            int termLen = strlen( terms[i] );
+            
+            if( termLen > 0 ) {
+                if( terms[i][0] == '-' ) {
+                    if( termLen > 1 ) {
+                        // skip the - character
+                        avoidTerms.push_back( &( terms[i][1] ) );
+                        }
+                    // ignore single - characters
+                    // user is probably in the middle of typing an avoid-term
+                    }
+                else {
+
+                    if( termLen > 1 && terms[i][termLen-1] == '.' ) {
+                        terms[i][termLen-1] = '\0';
+                        exactTerms.push_back( terms[i] );
+                        }
+
+                    validTerms.push_back( terms[i] );
+                    }
+                }
+            }
+        
+        if( validTerms.size() > 0 ) {
+            // do full search for first term
+            
+            int numMainResults, numMainRemain;
+            ObjectRecord **mainResults = 
+                searchObjects( validTerms.getElementDirect( 0 ),
+                                    0,
+                                    // limit of 1 million
+                                    1000000,
+                                    &numMainResults, &numMainRemain );
+            if( numMainResults == 0 ) {
+                hitsSimpleVector = mainResults;
+                numHits = numMainResults;
+                }
+            else {
+                // at least one main result
+                
+                SimpleVector<ObjectRecord*> passingResults;
+                
+                for( int i=0; i<numMainResults; i++ ) {
+                    const char *mainResultName = 
+                        mainResults[i]->description;
+                
+                    char *mainNameLower = stringToLowerCase( mainResultName );
+
+                    // int numTermsInName;
+                    // char **termsInName = split( mainNameLower, " ", &numTermsInName );
+                    
+                    
+                    char matchFailed = false;
+
+                    if( exactQuery != NULL &&
+                        strcmp( exactQuery, mainNameLower ) != 0
+                        ) {
+                        matchFailed = true;
+                        }
+
+                    // for( int j=0; j<exactTerms.size(); j++ ) {
+                    //     char *term = exactTerms.getElementDirect( j );
+
+                    //     char exactMatched = false;
+                    //     for( int k=0; k<numTermsInName; k++ ) {
+                    //         int termLen = strlen( termsInName[k] );
+                    //         if( termLen > 0 ) {
+                    //             if( strcmp( term, termsInName[k] ) == 0 ) {
+                    //                 exactMatched = true;
+                    //                 break;
+                    //                 }
+                    //             }
+                    //         }
+                    //     if( !exactMatched ) {
+                    //         matchFailed = true;
+                    //         break;
+                    //         }
+
+                    //     }
+                    
+                    if( ! matchFailed ) {
+                        for( int j=1; j<validTerms.size(); j++ ) {
+                            char *term = validTerms.getElementDirect( j );
+                            
+                            if( strstr( mainNameLower, term ) == NULL ) {
+                                matchFailed = true;
+                                break;
+                                }
+                            }
+                        }
+
+                    if( ! matchFailed ) {
+                        for( int j=0; j<avoidTerms.size(); j++ ) {
+                            char *term = avoidTerms.getElementDirect( j );
+                        
+                            if( strstr( mainNameLower, term ) != NULL ) {
+                                matchFailed = true;
+                                break;
+                                }
+                            }
+                        }
+                    
+                    if( !matchFailed ) {
+                        passingResults.push_back( mainResults[i] );
+                        }
+
+                    delete [] mainNameLower;
+                    }
+                
+                
+                int totalNumResults = passingResults.size();
+                numHits = totalNumResults;
+                hitsSimpleVector = new ObjectRecord*[ numHits ];
+                
+                for( int j=0; j<numHits; j++ ) {
+                    hitsSimpleVector[j] = passingResults.getElementDirect(j);
+                    }
+                
+                delete [] mainResults;
+                }
+            
+            }
+
+        for (int i=0; i<numHits; i++) {
+            int id = hitsSimpleVector[i]->id;
+            objectMatches[id] = true;
+            }
+
+        delete [] hitsSimpleVector;
+        
+        for( int i=0; i<numTerms; i++ ) {
+            delete [] terms[i];
+            }
+        delete [] terms;
+
+        if( exactQuery != NULL ) delete [] exactQuery;
+        }
+    }
+
+
+// Yum finder
+char runningYumFinder = false;
+int livingLifeStepCount = 0;
+int bouncingAnimationStepOffset = 0;
+
+SimpleVector<int> yummyFoodChain;
+
+static char isFood( int inID );
+
+extern int *becomeFoodMap;
+
+static int getFoodParent( int oid ) {
+    oid = getObjectParent( oid );
+    return becomeFoodMap[oid];
+    }
+
+static void addToYummyFoodChain( int foodID ) {
+    foodID = getFoodParent( foodID );
+    if( yummyFoodChain.getElementIndex( foodID ) != -1 ) return;
+    yummyFoodChain.push_back( foodID );
+    }
+
+char livingLifeBouncingYOffsetToggle = true;
+
+void setLivingLifeBouncingYOffsetToggle( char b ) {
+    livingLifeBouncingYOffsetToggle = b;
+    }
+
+// calculation for the jumping animation of yum finder 
+float getLivingLifeBouncingYOffset( int oid ) {
+
+    if( !livingLifeBouncingYOffsetToggle ) return 0.0;
+
+    if( !yumFinderEnabled && !objectSearchEnabled ) return 0.0;
+
+    int parentID = getObjectParent( oid );
+    char objectSearchHit = objectSearchEnabled && objectMatches[parentID];
+    int foodParentID = getFoodParent( oid );
+    char yumHit = 
+        yumFinderEnabled && runningYumFinder && isFood( foodParentID ) && 
+        yummyFoodChain.getElementIndex( foodParentID ) == -1;
+
+    if( !yumHit && !objectSearchHit ) return 0.0;
+
+    int cycleLength = 90 / frameRateFactor;
+    int phraseDifference = 0;
+
+    if( objectSearchHit ) phraseDifference = cycleLength/2;
+
+    int onCycleLength = cycleLength*3/4;
+
+    float runningFraction = ((bouncingAnimationStepOffset + livingLifeStepCount + phraseDifference) % cycleLength);
+    if( runningFraction < 0 ) runningFraction += cycleLength;
+
+    if( runningFraction < onCycleLength ) {
+        // controls the height of the drop and rebounce
+        float xOffset = 0.42;
+
+        // rescale to 0 to 1
+        runningFraction = runningFraction / onCycleLength;
+        // rescale to -1 to 1
+        runningFraction -= 0.5;
+        runningFraction *= 2;
+
+        // basically a negative parabolic curve
+        // shifted towards negative x
+        // then mirrored along y-axis
+        if( runningFraction > 0 ) runningFraction = -runningFraction;
+        runningFraction += xOffset;
+        runningFraction = - runningFraction * runningFraction;
+
+        // adjust y so that y = 0 when x = -1
+        runningFraction -= 1 - (-1 + xOffset) * (-1 + xOffset);
+        runningFraction += 1;
+        }
+    else {
+        runningFraction = 0;
+        }
+    return runningFraction * CELL_D;
+    }
+
+
+// Players / families display
+
+static SimpleVector<DisplayedFamily*> displayedFamilies;
+static SimpleVector<ClickableComponent> displayedFamiliesComponentList;
+static double infertileAge = 104.0;
+
+static const char *infertilitySuffix = "+INFERTILE+";
+static const char *fertilitySuffix = "+FERTILE+";
+static char automaticInfertilityPendingLineageCheck = false;
+
+// return true if infertile tag is found
+// false if fertile tag or no tag is found
+static char stripFertilitySuffix( char *name ) {
+    if( name == NULL ) return false;
+    char *foundSuffix = strstr( name, infertilitySuffix );
+    if( foundSuffix != NULL ) {
+        if( strcmp(foundSuffix, name) != 0 ) {
+            // there is a blank space before the tag if they are named
+            foundSuffix[-1] = '\0';
+            }
+        else {
+            delete [] name;
+            foundSuffix[0] = '\0';
+            }
+        return true;
+        }
+    foundSuffix = strstr( name, fertilitySuffix );
+    if( foundSuffix != NULL ) {
+        // if fertility tag is in the name, they must be unnamed
+        delete [] name;
+        foundSuffix[0] = '\0';
+        return false;
+        }
+    return false;
+    }
+
+char *getLastName( const char *name ) {
+    if( name == NULL ) return NULL;
+    char *lastName = NULL;
+    SimpleVector<char *> *tokens = tokenizeString( name );
+    if( tokens->size() > 1 ) {
+        lastName = stringDuplicate( tokens->getElementDirect( 1 ) );
+        }
+    tokens->deallocateStringElements();
+    delete tokens;
+    if( lastName != NULL && strstr(lastName, infertilitySuffix) != NULL ) {
+        delete [] lastName;
+        return NULL;
+        }
+    return lastName;
+    }
+
+DisplayedFamily* LivingLifePage::getOurFamily() {
+    for (int j=0; j<displayedFamilies.size(); j++) {
+        DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+        if( displayedFamily->isOurFamily ) return displayedFamily;
+        }
+    // reached here, check if we are unnamed solo eve
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject == NULL || ourLiveObject->name == NULL ) return NULL;
+    char isUnnamedSoloEve = 
+        ourLiveObject->id == ourLiveObject->lineageEveID && // we are eve
+        strstr(ourLiveObject->name, "+INFERTILE+") != NULL && // we declared interfile
+        getLastName(ourLiveObject->name) == NULL; // we are unnamed
+    if( isUnnamedSoloEve ) {
+        for (int j=0; j<displayedFamilies.size(); j++) {
+            DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+            if( displayedFamily->areSoloEves ) return displayedFamily;
+            }
+        }
+    return NULL;
+    }
+
+// youngest last
+SimpleVector<LiveObject> gameObjects;
+
+static double computeCurrentAge( LiveObject *inObj );
+
+void LivingLifePage::updatePlayersAndFamilies() {
+
+    for (int j=0; j<displayedFamilies.size(); j++) {
+        DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+        delete displayedFamily;
+        }
+    displayedFamilies.deleteAll();
+
+    LiveObject *ourLiveObject = getOurLiveObject();
+
+    for(int i=gameObjects.size()-1; i>=0; i--) {
+        LiveObject *player = gameObjects.getElement( i );
+
+        ObjectRecord *playerObject = getObject(player->displayID);
+
+        char isFertile = false;
+        char declaredInfertile = false;
+        if ( !playerObject->male ) {
+            isFertile = true;
+            if( player->name != NULL ) {
+                char tagPresent = strstr(player->name, "+INFERTILE+") != NULL;
+                isFertile = !tagPresent;
+                declaredInfertile = tagPresent;
+                }
+            if( isFertile ) {
+                double age = computeServerAge( computeCurrentAge( player ) );
+                if( age >= infertileAge ) isFertile = false;
+                }
+            }
+
+        int eveID = player->lineageEveID;
+        DisplayedFamily *family = NULL;
+        for (int j=0; j<displayedFamilies.size(); j++) {
+            DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+            if( displayedFamily->eveID == eveID ) {
+                family = displayedFamily;
+                break;
+                }
+            }
+
+        char isUnnamedSoloEve = false;
+        char *lastName = getLastName(player->name);
+        if( family == NULL && // they have no descendants
+            declaredInfertile && // they declared infertile
+            eveID == player->id && // they are the Eve
+            lastName == NULL // they are unnamed
+            ) {
+            // so they are unnamed solo eve
+            // group them together for display purpose
+            isUnnamedSoloEve = true;
+            lastName = stringDuplicate( "SOLO EVES" );
+            for (int j=0; j<displayedFamilies.size(); j++) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( j );
+                if( displayedFamily->areSoloEves ) {
+                    family = displayedFamily;
+                    break;
+                    }
+                }
+            }
+        
+        if( family == NULL ) {
+            if( lastName == NULL ) lastName = stringDuplicate( "UNNAMED" );
+            std::string lastNameString( lastName );
+
+            DisplayedFamily *newFamily = new DisplayedFamily();
+            newFamily->name = lastNameString;
+            newFamily->eveID = player->lineageEveID;
+            newFamily->generation = player->lineage.size()+1;
+            if( player == ourLiveObject ) newFamily->isOurFamily = true;
+            if( isUnnamedSoloEve ) newFamily->areSoloEves = true;
+
+            displayedFamilies.push_back( newFamily );
+            ClickableComponent clickableLine;
+            displayedFamiliesComponentList.push_back( clickableLine );
+            family = newFamily;
+            }
+        else {
+            if( family->name == "UNNAMED" ) {
+                char *lastName = getLastName(player->name);
+                if( lastName != NULL ) {
+                    // we're here if the youngest member of a named family is not named
+                    std::string lastNameString( lastName );
+                    family->name = lastNameString;
+                    delete [] lastName;
+                    }
+                }
+            if( player == ourLiveObject ) {
+                // we're here if we're not the youngest in the family
+                family->isOurFamily = true;
+                }
+            }
+        
+        family->count++;
+        if( isFertile ) family->fertileCount++;
+
+        delete [] lastName;
+        }
+
+    for (int j=displayedFamiliesComponentList.size()-1; j>=0; j--) {
+        if( j >= displayedFamilies.size() ) {
+            displayedFamiliesComponentList.deleteElement( j );
+            }
+        else {
+            break;
+            }
+        }
+    }
+
+
+// Player labels
+
+static int lastHoverPlayerID = 0;
+static int currHoverPlayerID = 0;
+static double lastHoverPlayerTime = 0;
+
+// Death messages
+
+static char *getDisplayObjectDescription( int inID );
+
+void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* rawLine ) {
+    if ( inO == NULL ) return;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if ( ourLiveObject == NULL ) return;
+
+    bool isDeathMsg = ( strstr( rawLine, "X X" ) != NULL );
+    if ( !isDeathMsg ) return;
+
+    LiveObject *o = getLiveObject(inO->id);
+    if ( o == NULL ) return;
+
+    int diffX = o->xd - ourLiveObject->xd;
+    int diffY = o->yd - ourLiveObject->yd;
+    if( abs(diffX) > 200 || abs(diffY) > 200 ) return;
+
+    char *deathCause;
+
+    const char *reasonKilled = "reason_killed_";
+    const char *reasonSuccumbed = "reason_succumbed_";
+    const char *reasonSuicide = "reason_suicide_";
+
+    char *line = stringDuplicate(rawLine);
+    char isKilled = strstr(line, reasonKilled) != NULL;
+    char isSuccumbed = strstr(line, reasonSuccumbed) != NULL;
+    char isSuicide = strstr(line, reasonSuicide) != NULL;
+
+    if ( isKilled || isSuccumbed || isSuicide ) {
+
+        char *sstr = NULL;
+        if( isKilled ) 
+            sstr = strstr(line, reasonKilled) + strlen(reasonKilled);
+        else if( isSuccumbed )
+            sstr = strstr(line, reasonSuccumbed) + strlen(reasonSuccumbed);
+        else if( isSuicide )
+            sstr = strstr(line, reasonSuicide) + strlen(reasonSuicide);
+
+        for (unsigned i = 0; i < strlen(sstr); i++) {
+            if (sstr[i] < '0' || sstr[i] > '9') {
+                sstr[i] = '\0';
+                break;
+                }
+            }
+        int killerObjId = atoi(sstr);
+        char *killerDescription = getDisplayObjectDescription( killerObjId );;
+        if ( killerDescription != NULL ) {
+            if( isSuccumbed ) {
+                deathCause = autoSprintf( "SUCCUMBED TO %s", killerDescription );
+                }
+            else {
+                deathCause = autoSprintf( "WAS KILLED BY %s", killerDescription );
+                }
+            delete [] killerDescription;
+            }
+        else {
+            if( isSuicide ) {
+                deathCause = stringDuplicate( "DIED OF UNNATURAL CAUSE" );
+                }
+            else {
+                deathCause = stringDuplicate( "DIED OF UNKNOWN CAUSE" );
+                }
+            }
+
+    } else if ( strstr(line, "reason_hunger") || strstr(line, "reason_nursing_hunger") ) {
+        deathCause = stringDuplicate( "STARVED" );
+    // } else if ( strstr(line, "reason_SID") ) {
+    //     deathCause = stringDuplicate( "DIED OF SUDDEN INFANT DEATH" );
+    } else if ( strstr(line, "reason_age") ) {
+        deathCause = stringDuplicate( "DIED OF OLD AGE" );
+    } else {
+        deathCause = stringDuplicate( "DIED OF UNKNOWN CAUSE" );
+    }
+
+    double deathAgeDouble = 0.0;
+    char *xxPos = strstr( line, "X X" );
+    if( xxPos != NULL ) sscanf( xxPos, "X X %lf", &( deathAgeDouble ) );
+    int deathAge = (int)floor( deathAgeDouble );
+
+    char *name = NULL;
+    if( o->name != NULL ) {
+        name = stringDuplicate( o->name );
+        stripFertilitySuffix( name );
+        if( name[0] == '\0' ) {
+            name = NULL;
+            }
+        }
+
+    char *deathMessage = NULL;
+
+    if( name != NULL && o->relationName != NULL ) {
+        deathMessage = autoSprintf( "%s, %s, %s AT %d", o->relationName, name, deathCause, deathAge );
+        }
+    else if( name == NULL && o->relationName != NULL ) {
+        deathMessage = autoSprintf( "%s %s AT %d", o->relationName, deathCause, deathAge );
+        }
+    else if( name != NULL && o->relationName == NULL ) {
+        deathMessage = autoSprintf( "%s %s AT %d", name, deathCause, deathAge );
+        }
+    else {
+        deathMessage = autoSprintf( "AN UNNAMED STRANGER %s AT %d", deathCause, deathAge );
+        }
+    
+    double len = handwritingFont->measureString( deathMessage ) / gui_fov_scale_hud;
+    if( len > 778.0 ) {
+
+        delete [] deathMessage;
+
+        if( name != NULL && o->relationName != NULL ) {
+            deathMessage = autoSprintf( "%s, %s##%s AT %d", o->relationName, name, deathCause, deathAge );
+            }
+        else if( name == NULL && o->relationName != NULL ) {
+            deathMessage = autoSprintf( "%s##%s AT %d", o->relationName, deathCause, deathAge );
+            }
+        else if( name != NULL && o->relationName == NULL ) {
+            deathMessage = autoSprintf( "%s %s##AT %d", name, deathCause, deathAge );
+            }
+        else {
+            deathMessage = autoSprintf( "AN UNNAMED STRANGER %s##AT %d", deathCause, deathAge );
+            }
+
+        displayGlobalMessage( deathMessage, true, false );
+
+        }
+    else {
+        displayGlobalMessage( deathMessage, true, true );
+        }
+
+    if( name != NULL ) delete [] name;
+    delete [] deathCause;
+    delete [] deathMessage;
+    
+    delete [] line;
+
+    }
+
+// Dangerous tiles
+
+char isObjectDangerous( ObjectRecord *o ) {
+    if( o == NULL ) return false;
+    return o->permanent && o->deadlyDistance > 0;
+    }
+
+char LivingLifePage::isTileDangerousWithHeldObject( int heldID, int groundID ) {
+
+    ObjectRecord *groundObj = getObject( groundID, true );
+    if( groundObj == NULL ) return false;
+    if( !( isObjectDangerous( groundObj ) ) ) return false;
+
+    ObjectRecord *heldObj = getObject( heldID, true );
+    if( heldObj != NULL && heldObj->rideable ) {
+        TransRecord *trans = getTrans( heldID, groundID );
+        if( trans != NULL ) {
+            if( heldID != trans->newActor ) {
+                // to keep it simple, it is considered dangerous if
+                // what we're riding interacts with the object on ground
+                // and the interaction changes our ride
+                return true;
+                }
+            }
+        return false;
+        }
+
+    return true;
+    }
+
+// Draw grid
+
+static char drawGridToggle = false;
+
+void LivingLifePage::drawGrid() {
+    setDrawColor( 0.0, 0.0, 0.0, 0.8 );
+    doublePair drawPos = lastScreenViewCenter;
+
+    double recWidth = 1.0 * (double)gui_fov_scale;
+
+    double startX = drawPos.x - visibleViewWidth/2.0;
+    double endX = drawPos.x + visibleViewWidth/2.0;
+    double startY = drawPos.y - viewHeight/2.0;
+    double endY = drawPos.y + viewHeight/2.0;
+
+    double offsetX = fmod(startX, (double)CELL_D) + ((double)CELL_D / 2.0);
+    double offsetY = fmod(startY, (double)CELL_D) + ((double)CELL_D / 2.0);
+
+    drawPos.x = startX;
+    drawPos.y = startY;
+    for (double x = startX-offsetX; x < endX; x += CELL_D) {
+        drawPos.x = x;
+        drawRect( drawPos, recWidth, viewHeight );
+        }
+    drawPos.x = startX;
+    for (double y = startY-offsetY; y < endY; y += CELL_D) {
+        drawPos.y = y;
+        drawRect( drawPos, visibleViewWidth, recWidth );
+        }
+    }
+
 
 static SimpleVector<char*> passwordProtectingPhrases;
 
@@ -396,6 +1247,24 @@ static void readPhrases( const char *inSettingsName,
     delete [] parts;
     }
     
+static void readPhrasesFromRawText( const char *inRawText, 
+                  SimpleVector<char*> *inList ) {
+    
+    if( strcmp( inRawText, "" ) == 0 ) {
+        return;    
+        }
+    
+    int numParts;
+    char **parts = split( inRawText, "\n", &numParts );
+    
+    for( int i=0; i<numParts; i++ ) {
+        if( strcmp( parts[i], "" ) != 0 ) {
+            inList->push_back( stringToUpperCase( parts[i] ) );
+            }
+        delete [] parts[i];
+        }
+    delete [] parts;
+    }
 
 
 // most recent home at end
@@ -518,6 +1387,9 @@ static void addHomeLocation( int inX, int inY ) {
     p.temporary = false;
     
     homePosStack.push_back( p );
+
+    SavedCoordinates homeCoords = {inX, inY, translate("homeLocation"), 1};
+    addCoordinates( homeCoords );
     }
 
 
@@ -1260,18 +2132,23 @@ static void stripDescriptionComment( char *inString ) {
     char *firstPound = strstr( inString, "#" );
             
     if( firstPound != NULL ) {
-        firstPound[0] = '\0';
+        if( firstPound[-1] == ' ' ) {
+            firstPound[-1] = '\0';
+            }
+        else {
+            firstPound[0] = '\0';
+            }
         }
     }
 
 
 static char *getFullUpperCasedObjectDescription( int inID ) {
-    ObjectRecord *o = getObject( inID );
+    ObjectRecord *o = getObject( inID, true );
     if( o == NULL ) {
         return NULL;
         }
     return stringToUpperCase( o->description );
-}
+    }
 
 
 static char *getDisplayObjectDescription( int inID ) {
@@ -1295,13 +2172,13 @@ std::string LivingLifePage::minitechGetFullObjectDescription( int objID ) {
 std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) { 
     ObjectRecord *o = getObject( objId );
     if( o == NULL ) {
-		return "";
+        return "";
         }
-	char *descriptionChars = getDisplayObjectDescription(objId);
-	std::string description(descriptionChars);
-	delete [] descriptionChars;
-	return description;
-}
+    char *descriptionChars = getDisplayObjectDescription(objId);
+    std::string description(descriptionChars);
+    delete [] descriptionChars;
+    return description;
+    }
 
 static bool isAllDigits( std::string &str ) {
     return std::all_of(str.begin(), str.end(), ::isdigit);
@@ -1323,12 +2200,12 @@ static bool potentialContainerChangebyContTrans( int oldId, int newId ) {
         strstr( newObj->description, "+useOnContained" ) != NULL )
         return true;
     return false;
-}
+    }
 
 typedef enum messageType {
     SHUTDOWN,
     SERVER_FULL,
-	SEQUENCE_NUMBER,
+    SEQUENCE_NUMBER,
     ACCEPTED,
     NO_LIFE_TOKENS,
     REJECTED,
@@ -1885,8 +2762,7 @@ double LivingLifePage::computePathSpeedMod( LiveObject *inObject,
 
 
 
-// youngest last
-SimpleVector<LiveObject> gameObjects;
+
 
 // for determining our ID when we're not youngest on the server
 // (so we're not last in the list after receiving the first PU message)
@@ -2282,6 +3158,318 @@ void LivingLifePage::computePathToDest( LiveObject *inObject ) {
     
     delete [] blockedMap;
     }
+    
+    
+static FILE *townPlannerMapFile = NULL;
+HashTable<char> townPlannerMapSavedPos( 400 * 400, CHAR_MAX );
+int townPlannerMapFile_w;
+int townPlannerMapFile_h;
+int townPlannerMapFile_oX;
+int townPlannerMapFile_oY;
+
+extern char *spawnSeed;
+
+std::string getSeededEmail() {
+    char *tempEmail;
+
+    if( strlen( userEmail ) > 0 ) {
+        std::string seededEmail = std::string( userEmail );
+
+        // If user doesn't have a seed in their email field
+        if( seededEmail.find('|') == std::string::npos ) {
+            if( useSpawnSeed && spawnSeed != NULL ) {
+                std::string seed( spawnSeed );
+
+                // And if the user has a seed set in settings
+                if( seed != "" ) {
+                    // Add seed delim and then seed
+                    seededEmail += '|';
+                    seededEmail += seed;
+                    }
+                }
+            }
+
+        tempEmail = stringDuplicate( seededEmail.c_str() );
+        }
+    else {
+        // a blank email
+        // this will cause LOGIN message to have one less token
+
+        // stick a place-holder in there instead
+        tempEmail = stringDuplicate( "blank_email" );
+        }
+    std::string seededEmail = std::string( tempEmail );
+    delete [] tempEmail;
+    return seededEmail;
+
+}
+
+static std::string url_encode(const std::string &value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for( std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+        std::string::value_type c = (*i);
+
+        // Keep alphanumeric and other accepted characters intact
+        if( isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+            }
+
+        // Any other characters are percent-encoded
+	if( int((unsigned char) c) < 17 ) {
+            escaped << "0";
+	    }
+        escaped << std::uppercase;
+        escaped << '%' << int((unsigned char) c);
+        escaped << std::nouppercase;
+        }
+
+    return escaped.str();
+    }
+
+static void initTownPlannerMap() {
+
+    File sceneDir( NULL, "scenes" );
+    
+    if( ! sceneDir.exists() ) {
+        Directory::makeDirectory( &sceneDir );
+        }
+
+    if( ! sceneDir.isDirectory() ) {
+        AppLog::error( "Non-directory scenes is in the way" );
+        return;
+        }
+
+    int townPlannerMapID = SettingsManager::getIntSetting( "townPlannerMapID", -1 );
+    // Get seed from email, so it will find it whether added on in the settings
+    // or input manually as the login.
+    std::string seededEmail = getSeededEmail();
+    std::string seed = "";
+    auto npos = seededEmail.find("|");
+    if (npos != std::string::npos) {
+        seed = seededEmail.substr(npos + 1);
+        }
+
+    File *nextFile = sceneDir.getChildFile( "next.txt" );
+    int nextID = nextFile->readFileIntContents( 0 );
+    // Check to see if the tutorial is done. If it isn't, there is no seed spawn.
+    int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
+    File *townPlannerMapFileRaw = NULL;
+    if( seed == "" || tutorialDone == 0 ) { // if there's no seed, or it's a tutorial, there's no repeatability.
+        townPlannerMapID = nextID;
+        do {
+            // Differentiate between maps generated from random births and tutorial lives.
+            if( townPlannerMapFileRaw != NULL) {
+                delete townPlannerMapFileRaw;
+                townPlannerMapFileRaw = NULL;
+                }
+            char *name = autoSprintf( "%s_%02d.txt", tutorialDone ? "Auto" : "Tutorial", townPlannerMapID );
+            townPlannerMapFileRaw = sceneDir.getChildFile( name );
+            townPlannerMapID++;
+            delete [] name;
+        } while ( townPlannerMapFileRaw->exists() ); // Keep incrementing until we know we're not using an existing file.
+
+        nextID = townPlannerMapID;
+        nextFile->writeToFile( nextID ); // Save the number so we don't have to try as many next time.
+        }
+    else {
+        std::string safe_seed = url_encode(seed); // Lots of characters are allowed in seeds that are not allowed in filenames.
+        char *name = autoSprintf( "Seed_%s.txt", safe_seed.c_str() ); // URL Encoded strings could be turned back into the original.
+        townPlannerMapFileRaw = sceneDir.getChildFile( name );
+        delete [] name;
+        }
+    
+    
+    if( !townPlannerMapFileRaw->exists() ) {
+        townPlannerMapFile = fopen( townPlannerMapFileRaw->getFullFileName(), "ab" );
+        townPlannerMapFile_w = SettingsManager::getIntSetting( "townPlannerMapMapSizeX", 400 );
+        townPlannerMapFile_h = SettingsManager::getIntSetting( "townPlannerMapMapSizeY", 400 );
+        townPlannerMapFile_oX = SettingsManager::getIntSetting( "townPlannerMapInitCenterX", int(townPlannerMapFile_w / 2) );
+        townPlannerMapFile_oY = SettingsManager::getIntSetting( "townPlannerMapInitCenterY", int(townPlannerMapFile_h / 2) );
+        if( townPlannerMapFile_w > 800 ) townPlannerMapFile_w = 800;
+        if( townPlannerMapFile_h > 800 ) townPlannerMapFile_h = 800;
+        if( townPlannerMapFile_oX >= townPlannerMapFile_w || townPlannerMapFile_w < 0 ) townPlannerMapFile_oX = int(townPlannerMapFile_w / 2);
+        if( townPlannerMapFile_oY >= townPlannerMapFile_h || townPlannerMapFile_h < 0 ) townPlannerMapFile_oY = int(townPlannerMapFile_h / 2);
+        fprintf( townPlannerMapFile, "w=%d\nh=%d\norigin=%d,%d\nfloorPresent\n", townPlannerMapFile_w, townPlannerMapFile_h, townPlannerMapFile_oX, townPlannerMapFile_oY );
+        } 
+    else {
+        townPlannerMapFile = fopen( townPlannerMapFileRaw->getFullFileName(), "ab" );
+        
+        char *fileText = townPlannerMapFileRaw->readFileContents();
+        
+        if( fileText != NULL ) {
+            
+            int numLines = 0;
+            
+            char **lines = split( fileText, "\n", &numLines );
+            delete [] fileText;
+            
+            int next = 0;
+            
+            sscanf( lines[next], "w=%d", &townPlannerMapFile_w );
+            next++;
+            sscanf( lines[next], "h=%d", &townPlannerMapFile_h );
+            next++;
+
+            if( strstr( lines[next], "origin" ) != NULL ) {
+                sscanf( lines[next], "origin=%d,%d", &townPlannerMapFile_oX, &townPlannerMapFile_oY );
+                next++;
+                }
+            
+            if( strstr( lines[next], "floorPresent" ) != NULL ) {
+                next++;
+                }
+        
+            while( next < numLines ) {
+                
+                int x, y;
+                int numRead = sscanf( lines[next], "x=%d,y=%d", &x, &y );
+                
+                if( numRead == 2 ) {
+                    GridPos thisPos = { x, y };
+                    townPlannerMapSavedPos.insert( thisPos.x, thisPos.y, 0, 0, 1 );
+                    }
+                
+                next++;
+                
+                }
+        
+            }
+        }
+    }
+
+static void clearTownPlannerMap() {
+    if( townPlannerMapFile != NULL ) {
+        fclose( townPlannerMapFile );
+        townPlannerMapFile = NULL;
+        }
+    townPlannerMapSavedPos.clear();
+    }
+
+static void saveChunkToTownPlannerMap( SimpleVector<char *> *tokens, 
+    int sizeX, int sizeY,
+    int x, int y,
+    int mMapOffsetX, int mMapOffsetY, int mMapD ) {
+    
+    if( townPlannerMapFile != NULL ) {
+        
+        for( int i=0; i<tokens->size(); i++ ) {
+            int cX = i % sizeX;
+            int cY = i / sizeX;
+            
+            int mapX = cX + x - mMapOffsetX + mMapD / 2;
+            int mapY = cY + y - mMapOffsetY + mMapD / 2;
+            
+            if( mapX >= 0 && mapX < mMapD
+                &&
+                mapY >= 0 && mapY < mMapD ) {
+                
+                // int mapI = mapY * mMapD + mapX;
+                
+
+                int realX = cX + x + townPlannerMapFile_oX;
+                int realY = -( cY + y ) + townPlannerMapFile_oY;
+                
+                if( realX >= townPlannerMapFile_w ||
+                    realX < 0 ||
+                    realY >= townPlannerMapFile_h ||
+                    realY < 0 )
+                    continue;
+                
+
+                char savedAlready = false;
+                townPlannerMapSavedPos.lookup(realX, realY, 0, 0, &savedAlready);
+                // the return value of lookup returns the value looked up, or the default value(CHAR_MAX)
+                // savedAlready returns whether the lookup succeeded or not.
+
+
+                
+                
+                int biome = -1;
+                int floor = 0;
+                int oid = 0;
+                
+                sscanf( tokens->getElementDirect(i),
+                        "%d:%d:%d", 
+                        &( biome ),
+                        &( floor ),
+                        &( oid ) );
+
+                if( savedAlready ) continue;
+                // Saving a little later, because this way we have access to the map for later changes.
+                // The extra time at this point is negligible.
+                townPlannerMapSavedPos.insert(realX, realY, 0, 0, biome);
+
+                oid = getObjectParent( oid );
+                
+                fprintf( townPlannerMapFile, "x=%d,y=%d\n", realX, realY );
+                
+                fprintf( townPlannerMapFile, "biome=%d\n", biome );
+                
+                if( oid > 0 ) {
+                    fprintf( townPlannerMapFile, "oID=%d\n", oid );
+                    fprintf( townPlannerMapFile, "heldID=-1\n" );
+                    
+                    int numContained = 0;
+                    
+                    if( strstr( tokens->getElementDirect(i), "," ) != NULL ) {
+                        
+                        int numInts;
+                        char **ints = split( tokens->getElementDirect(i), ",", &numInts );
+                        
+                        delete [] ints[0];
+                        
+                        numContained = numInts - 1;
+                        
+                        fprintf( townPlannerMapFile, "numCont=%d\n", numContained );
+                        
+                        for( int c=0; c<numContained; c++ ) {
+                            
+                            int contained = atoi( ints[ c + 1 ] );
+                            contained = getObjectParent( contained );
+                            
+                            fprintf( townPlannerMapFile, "cont=%d\n", contained );
+                            fprintf( townPlannerMapFile, "numSubCont=0\n" );
+
+                            delete [] ints[ c + 1 ];
+                            }
+                            
+                        delete [] ints;
+                        
+                        } 
+                    else {
+                        fprintf( townPlannerMapFile, "numCont=%d\n", numContained );
+                        }
+                    
+
+                    int numUses = 0;
+                    ObjectRecord *obj = getObject( oid );
+                    if( obj != NULL ) numUses = obj->numUses;
+                    
+                    fprintf( townPlannerMapFile, "hat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=%d\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\nempty\n", numUses );
+                    
+                    } 
+                else {
+                    fprintf( townPlannerMapFile, "empty\n" );
+                    fprintf( townPlannerMapFile, "empty\n" );
+                    }
+                
+                if( floor > 0 ) {
+                    
+                    fprintf( townPlannerMapFile, "oID=%d\nheldID=-1\nnumCont=0\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nflipH=0\nage=-1.000000\nheldAge=-1.000000\nhat=0\ntunic=0\nfrontShoe=0\nbackShoe=0\nbottom=0\nbackpack=0\nanim=0\nfrozenAnimTime=-2.000000\nnumUsesRemaining=0\nxOffset=0\nyOffset=0\ndestCellXOffset=0\ndestCellYOffset=0\nmoveDelayTime=0.000000\n", floor );
+                    
+                    } 
+                else {
+                    fprintf( townPlannerMapFile, "empty\n" );
+                    }
+                
+                }
+            }
+        }
+    }
 
 
 
@@ -2493,180 +3681,265 @@ static double apocalypseDisplaySeconds = 6;
 static double remapPeakSeconds = 60;
 static double remapDelaySeconds = 30;
 
+char generateTownPlannerMaps = 0;
+
 
 //EXTENDED FUNCTIONALITY
 void LivingLifePage::setNextActionMessage(const char* msg, int x, int y) {
-	if( nextActionMessageToSend != NULL ) {
-		delete [] nextActionMessageToSend;
-		nextActionMessageToSend = NULL;
-	}
+    if( nextActionMessageToSend != NULL ) {
+        delete [] nextActionMessageToSend;
+        nextActionMessageToSend = NULL;
+    }
 
-	playerActionTargetX = x;
-	playerActionTargetY = y;
-	playerActionTargetNotAdjacent = true;
-	nextActionDropping = false;
-	nextActionEating = false;
-	nextActionMessageToSend = autoSprintf( "%s", msg );
+    playerActionTargetX = x;
+    playerActionTargetY = y;
+    playerActionTargetNotAdjacent = true;
+    nextActionDropping = false;
+    nextActionEating = false;
+    nextActionMessageToSend = autoSprintf( "%s", msg );
 }
 
 int LivingLifePage::getObjId( int tileX, int tileY ) {
-	int mapX = tileX - mMapOffsetX + mMapD / 2;
-	int mapY = tileY - mMapOffsetY + mMapD / 2;
-	int i = mapY * mMapD + mapX;
-	if (i < 0 || i >= mMapD*mMapD) return -1;
-	return mMap[i];
+    int mapX = tileX - mMapOffsetX + mMapD / 2;
+    int mapY = tileY - mMapOffsetY + mMapD / 2;
+    int i = mapY * mMapD + mapX;
+    if (i < 0 || i >= mMapD*mMapD) return -1;
+    return mMap[i];
 }
 
 bool LivingLifePage::objIdReverseAction( int objId ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	if (objId <= 0) return false;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    if (objId <= 0) return false;
 
-	bool r = false;
-	if ( ourLiveObject->holdingID <= 0 ) {
-		switch (objId) {
-			case 253: // full berry clay bowl
-			case 225: // wheat bundle
-				return true;
-				break;
-		}
-		if ( getObject(objId) ) {
-			char* descr	= getObject(objId)->description;
-			if ( strstr(descr, "Bowl of") != NULL ) {
-				return true;
-			}
-		}
-	}
-	return r;
+    bool r = false;
+    if ( ourLiveObject->holdingID <= 0 ) {
+        switch (objId) {
+            case 253: // full berry clay bowl
+            case 225: // wheat bundle
+                return true;
+                break;
+        }
+        if ( getObject(objId) ) {
+            char* descr    = getObject(objId)->description;
+            if ( strstr(descr, "Bowl of") != NULL ) {
+                return true;
+            }
+        }
+    }
+    return r;
 }
 
 void LivingLifePage::pickUpBabyInRange() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	if ( computeCurrentAge( ourLiveObject ) < 13 ) return;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    if ( computeCurrentAge( ourLiveObject ) < 13 ) return;
 
-	if ( ourLiveObject->holdingID != 0 ) {
-		dropTileRelativeToMe( 0, 0 );
-		return;
-	}
+    if ( ourLiveObject->holdingID != 0 ) {
+        dropTileRelativeToMe( 0, 0 );
+        return;
+    }
 
-	// find new baby to pick up - prefer babies further away
-	int babyFound = false;
-	int babyX = 0;
-	int babyY = 0;
-	for(int i=0; i<gameObjects.size(); i++) {
-		LiveObject *o = gameObjects.getElement( i );
-			
-		if ( computeCurrentAge( o ) > 5 ) continue;
+    // find new baby to pick up - prefer babies further away
+    int babyFound = false;
+    int babyX = 0;
+    int babyY = 0;
+    for(int i=0; i<gameObjects.size(); i++) {
+        LiveObject *o = gameObjects.getElement( i );
+            
+        if ( computeCurrentAge( o ) > 5 ) continue;
 
-		if ( o->xd != ourLiveObject->xd && o->yd != ourLiveObject->yd ) continue; 
-		if ( !babyFound ) {
-			if ( o->xd == ourLiveObject->xd && o->yd == ourLiveObject->yd ) {
-				babyFound = true;
-				babyX = o->xd;
-				babyY = o->yd;
-				continue;
-			}
-		}
-		int posDiff = 0;
-		if ( o->xd == ourLiveObject->xd) posDiff = o->yd - ourLiveObject->yd;
-		else if ( o->yd == ourLiveObject->yd) posDiff = o->xd - ourLiveObject->xd;
-		if (posDiff > 1 || posDiff < -1) continue;
+        if ( o->xd != ourLiveObject->xd && o->yd != ourLiveObject->yd ) continue; 
+        if ( !babyFound ) {
+            if ( o->xd == ourLiveObject->xd && o->yd == ourLiveObject->yd ) {
+                babyFound = true;
+                babyX = o->xd;
+                babyY = o->yd;
+                continue;
+            }
+        }
+        int posDiff = 0;
+        if ( o->xd == ourLiveObject->xd) posDiff = o->yd - ourLiveObject->yd;
+        else if ( o->yd == ourLiveObject->yd) posDiff = o->xd - ourLiveObject->xd;
+        if (posDiff > 1 || posDiff < -1) continue;
 
-		pickUpBaby( o->xd, o->yd );
-		return;
-	}
-	if ( !babyFound ) return;
-	pickUpBaby( babyX, babyY );
+        pickUpBaby( o->xd, o->yd );
+        return;
+    }
+    if ( !babyFound ) return;
+    pickUpBaby( babyX, babyY );
 }
 
 void LivingLifePage::pickUpBaby( int x, int y ) {
-	char msg[32];
-	sprintf( msg, "BABY %d %d#", x, y );
-	setNextActionMessage( msg, x, y );
+    char msg[32];
+    sprintf( msg, "BABY %d %d#", x, y );
+    setNextActionMessage( msg, x, y );
 }
 
 void LivingLifePage::useBackpack(bool replace) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int clothingSlot = 5; // backpack clothing slot
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int clothingSlot = 5; // backpack clothing slot
 
-	int x, y;
-	setOurSendPosXY(x, y);
+    int x, y;
+    setOurSendPosXY(x, y);
 
-	char msg[32];
-	if( ourLiveObject->holdingID > 0 ) {
-		if (replace) {
-			sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
-		} else {
-			sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot );
-		}
-		setNextActionMessage( msg, x, y );
-		nextActionDropping = true;
-	} else {
-		sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
-		setNextActionMessage( msg, x, y );
-	}
+    char msg[32];
+    if( ourLiveObject->holdingID > 0 ) {
+        if (replace) {
+            sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
+        } else {
+            sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot );
+        }
+        setNextActionMessage( msg, x, y );
+        nextActionDropping = true;
+    } else {
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
+        setNextActionMessage( msg, x, y );
+    }
 }
 
 void LivingLifePage::usePocket(int clothingID) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int x, y;
-	setOurSendPosXY(x, y);
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int x, y;
+    setOurSendPosXY(x, y);
 
-	char msg[32];
-	if( ourLiveObject->holdingID > 0 ) {
-		sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
-		setNextActionMessage( msg, x, y );
-		nextActionDropping = true;
-	} else {
-		sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingID, -1 );
-		setNextActionMessage( msg, x, y );
-	}
+    char msg[32];
+    if( ourLiveObject->holdingID > 0 ) {
+        sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
+        setNextActionMessage( msg, x, y );
+        nextActionDropping = true;
+    } else {
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingID, -1 );
+        setNextActionMessage( msg, x, y );
+    }
 }
 
 void LivingLifePage::useOnSelf() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int x, y;
-	setOurSendPosXY(x, y);
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int x, y;
+    setOurSendPosXY(x, y);
 
-	if( ourLiveObject->holdingID <= 0 ) return;
+    if( ourLiveObject->holdingID <= 0 ) return;
 
-	char msg[32];
-	sprintf( msg, "SELF %d %d %d#", x, y, -1 );
-	setNextActionMessage( msg, x, y );
+    char msg[32];
+    sprintf( msg, "SELF %d %d %d#", x, y, -1 );
+    setNextActionMessage( msg, x, y );
 
     // this is for eatEverything mode
     // not sure if these two condition are redundant
-	if( getObject( ourLiveObject->holdingID )->foodValue > 0 || holdingYumOrMeh )
-		nextActionEating = true;
+    if( getObject( ourLiveObject->holdingID )->foodValue > 0 || holdingYumOrMeh )
+        nextActionEating = true;
 }
 
 void LivingLifePage::takeOffBackpack() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	char message[32];
-	sprintf(message, "SELF %i %i 5#", ourLiveObject->xd, ourLiveObject->yd);
-	sendToServerSocket( message );
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    char message[32];
+    sprintf(message, "SELF %i %i 5#", ourLiveObject->xd, ourLiveObject->yd);
+    sendToServerSocket( message );
 }
 
+// VOG follow
+
+LiveObject *LivingLifePage::getClosestLiveObject( doublePair fromPos ) {
+
+    double shortestDistance = 999999.0;
+    LiveObject *closestLiveObject = NULL;
+
+    for( int i=0; i<gameObjects.size(); i++ ) {
+    
+        LiveObject *o = gameObjects.getElement( i );
+        
+        if( o == NULL ) continue;
+        if( o->outOfRange ) continue;
+        if( o->currentPos.x == 1977.0 && o->currentPos.y == 1977.0 ) continue;
+        if( o->id == ourID ) continue;
+
+        double d = distance( fromPos, o->currentPos );
+        if( d < shortestDistance ) {
+            shortestDistance = d;
+            closestLiveObject = o;
+
+            if( d == 0 ) break;
+            }
+        }
+    
+    return closestLiveObject;
+    }
+
 void LivingLifePage::setOurSendPosXY(int &x, int &y) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x = round( ourLiveObject->xd );
-	y = round( ourLiveObject->yd );
-	x = sendX(x);
-	y = sendY(y);
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x = round( ourLiveObject->xd );
+    y = round( ourLiveObject->yd );
+    x = sendX(x);
+    y = sendY(y);
 }
 
 bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
-	char tKey = key;
-	return (c == key || c == toupper(tKey) || 
+    char tKey = key;
+    return (c == key || c == toupper(tKey) || 
         c+64 == toupper(tKey) // ctrl + key
         );
 }
+
+void LivingLifePage::drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing, bool border ) {
+    doublePair startPos = { (double)x, (double)y };
+    startPos.x *= CELL_D;
+    startPos.y *= CELL_D;
+    float alpha = 1.0;
+    if (flashing) {
+        float maxAlpha = 0.8;
+        float minAlpha = 0.2;
+        alpha = (stepCount % 80) / 80.0;
+        if (alpha > 0.5) alpha = 1 - alpha;
+        alpha *= 2;
+        alpha = alpha * (maxAlpha - minAlpha) + minAlpha;
+        floatColor.a = alpha;
+    }
+    setDrawColor( floatColor );
+    drawSprite( mCellFillSprite, startPos );
+    
+    if(border) {
+        setDrawColor( 0, 0, 0, alpha );
+        drawSprite( mCellBorderSprite, startPos );
+        }
+    }
+
+void LivingLifePage::drawTileVanillaRainbowHighlight( int x, int y ) {
+    doublePair startPos = { (double)x, (double)y };
+    startPos.x *= CELL_D;
+    startPos.y *= CELL_D;
+    FloatColor c = { 0, 0, 0, 1 };
+
+    int speed = 60 / frameRateFactor;
+
+    float interv = stepCount % speed / (float)speed;
+    if (interv > 0.5) interv = 1 - interv;
+    c.r = interv * 2;
+    interv = (stepCount+speed/3) % speed / (float)speed;
+    if (interv > 0.5) interv = 1 - interv;
+    c.g = interv * 2;
+    interv = (stepCount+speed*2/3) % speed / (float)speed;
+    if (interv > 0.5) interv = 1 - interv;
+    c.b = interv * 2;
+    
+    setDrawColor( c );
+    drawSprite( mCellFillSprite, startPos );
+    }
+
+
+void LivingLifePage::drawCursorTips( const char* text, doublePair offset ) {
+    if( text == NULL ) return;
+    FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+    FloatColor txtColor = { 1, 1, 1, 1 };
+    drawChalkBackgroundString( 
+        {lastMouseX + (24) * gui_fov_scale + offset.x * gui_fov_scale_hud, lastMouseY - (16) * gui_fov_scale + offset.y * gui_fov_scale_hud}, 
+        text, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+    }
 
 
 
@@ -2789,18 +4062,62 @@ LivingLifePage::LivingLifePage()
           mChalkBlotSprite( loadWhiteSprite( "chalkBlot.tga" ) ),
           mPathMarkSprite( loadWhiteSprite( "pathMark.tga" ) ),
           mSayField( handwritingFont, 0, 1000, 10, true, NULL,
-                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ " ),
+                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ 0123456789" ),
           mDeathReason( NULL ),
           mShowHighlights( true ),
           mUsingSteam( false ),
           mZKeyDown( false ),
           mXKeyDown( false ),
-          mObjectPicker( &objectPickable, +510, 90 ) {
+          mObjectPicker( &objectPickable, +510, 90 ),
+          topLeftSlipComponent(),
+          coordinatesSlipComponent(),
+          objectSearchSlipComponent(),
+          familyDisplaySlipComponent(),
+          leftPanelComponent(),
+          bottomPanelComponent() {
 
 
     if( SettingsManager::getIntSetting( "useSteamUpdate", 0 ) ) {
         mUsingSteam = true;
         }
+
+    if( SettingsManager::getIntSetting( "generateTownPlannerMaps", 0 ) ) {
+        generateTownPlannerMaps = true;
+        }
+
+    if( SettingsManager::getIntSetting( "debugInfo", 0 ) ) {
+        debugMode = true;
+        }
+
+    if( SettingsManager::getIntSetting( "coordinatesEnabled", 0 ) ) {
+        coordinatesEnabled = true;
+        }
+    if( SettingsManager::getIntSetting( "objectSearchEnabled", 0 ) ) {
+        objectSearchEnabled = true;
+        }
+    if( SettingsManager::getIntSetting( "persistentEmoteEnabled", 0 ) ) {
+        persistentEmoteEnabled = true;
+        }
+    if( SettingsManager::getIntSetting( "yumFinderEnabled", 0 ) ) {
+        yumFinderEnabled = true;
+        }
+    if( SettingsManager::getIntSetting( "familyDisplayEnabled", 0 ) ) {
+        familyDisplayEnabled = true;
+        }
+    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelToggleKey", "g");
+    coordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
+    delete [] coordinatesPanelToggleKeyFromSetting;
+    char *objectSearchPanelToggleKeyFromSetting = SettingsManager::getStringSetting("objectSearchPanelToggleKey", "j");
+    objectSearchPanelToggleKey = objectSearchPanelToggleKeyFromSetting[0];
+    delete [] objectSearchPanelToggleKeyFromSetting;
+    char *familyDisplayPanelToggleKeyFromSetting = SettingsManager::getStringSetting("familyDisplayPanelToggleKey", "p");
+    familyDisplayPanelToggleKey = familyDisplayPanelToggleKeyFromSetting[0];
+    delete [] familyDisplayPanelToggleKeyFromSetting;
+    char *yumFinderKeyFromSetting = SettingsManager::getStringSetting("yumFinderKey", "y");
+    yumFinderKey = yumFinderKeyFromSetting[0];
+    delete [] yumFinderKeyFromSetting;
+
+    updateObjectSearchArray();
 
     mHomeSlipSprites[0] = mHomeSlipSprite;
     mHomeSlipSprites[1] = mHomeSlip2Sprite;
@@ -2833,6 +4150,7 @@ LivingLifePage::LivingLifePage()
     mObjectPicker.setIgnoredKey( 'M' );
     mObjectPicker.setIgnoredKey( 'N' );
     mObjectPicker.setIgnoredKey( 'T' );
+    mObjectPicker.setIgnoredKey( 'G' );
     
     initLiveTriggers();
 
@@ -2849,13 +4167,15 @@ LivingLifePage::LivingLifePage()
     emotDuration = SettingsManager::getFloatSetting( "emotDuration", 10 );
     
     readPhrases( "passwordProtectingPhrases", &passwordProtectingPhrases );
-	
+
+    readPhrases( "commandShortcuts", &commandShortcuts );
+    
     drunkEmotionIndex =
         SettingsManager::getIntSetting( "drunkEmotionIndex", 2 );
-	
+    
     trippingEmotionIndex =
         SettingsManager::getIntSetting( "trippingEmotionIndex", 2 );
-		
+        
     trippingEffectDisabled =
         SettingsManager::getIntSetting( "trippingEffectDisabled", 0 );
           
@@ -2986,6 +4306,15 @@ LivingLifePage::LivingLifePage()
         
         mNumTotalHints[i] = 0;
         }
+
+    bigSheet = loadSprite( "bigHintSheet.tga", false );
+
+    topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+    coordinatesSlipComponent.mActive = coordinatesEnabled;
+    objectSearchSlipComponent.mActive = objectSearchEnabled;
+    familyDisplaySlipComponent.mActive = familyDisplayEnabled;
+
+    leftPanelComponent.mActive = !hideGuiPanel;
     
     mLiveHintSheetIndex = -1;
 
@@ -3053,26 +4382,29 @@ LivingLifePage::LivingLifePage()
     mLiveCravingSheetIndex = -1;
 
     //FOV
-	calcOffsetHUD();
+    calcOffsetHUD();
 
-	Image *tempImage = readTGAFile( "guiPanel.tga" );
-	Image *tempImage2;
+    Image *tempImage = readTGAFile( "guiPanel.tga" );
+    Image *tempImage2;
 
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
-	guiPanelLeftSprite = fillSprite( tempImage2 );
-	delete tempImage2;
+    tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 640, 0, 512, tempImage->getHeight() );
+    guiPanelLeftSprite = fillSprite( tempImage2 );
+    delete tempImage2;
 
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
-	guiPanelTileSprite = fillSprite( tempImage2 );
-	setSpriteWrapping( guiPanelTileSprite, true, false );
-	delete tempImage2;
+    tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 - 128, 0, 256, tempImage->getHeight() );
+    guiPanelTileSprite = fillSprite( tempImage2 );
+    setSpriteWrapping( guiPanelTileSprite, true, false );
+    delete tempImage2;
 
-	tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
-	guiPanelRightSprite = fillSprite( tempImage2 );
-	delete tempImage2;
+    tempImage2 = tempImage->getSubImage( tempImage->getWidth() / 2 + 640 - 512, 0, 512, tempImage->getHeight() );
+    guiPanelRightSprite = fillSprite( tempImage2 );
+    delete tempImage2;
 
-	delete tempImage;
-	//
+    delete tempImage;
+
+    bottomPanelComponent.mActive = true;
+
+    //
 
     mMap = new int[ mMapD * mMapD ];
     mMapBiomes = new int[ mMapD * mMapD ];
@@ -3184,22 +4516,23 @@ LivingLifePage::LivingLifePage()
     if( ! tutorialDone ) {
         mTutorialNumber = 1;
         }
-		
-	minitech::setLivingLifePage(
-		this, 
-		&gameObjects, 
-		mMapD, 
-		pathFindingD, 
-		mMapContainedStacks, 
-		mMapSubContainedStacks,
-		mCellFillSprite,
-		mCellBorderSprite
+        
+    minitech::setLivingLifePage(
+        this, 
+        &gameObjects, 
+        mMapD, 
+        pathFindingD, 
+        mMapContainedStacks, 
+        mMapSubContainedStacks,
+        mCellFillSprite,
+        mCellBorderSprite,
+        mTempArrowSprites[1]
         );
     newbieTips::init(
-		this,
-		&gameObjects,
-		mMapD,
-		pathFindingD
+        this,
+        &gameObjects,
+        mMapD,
+        pathFindingD
         );
     }
 
@@ -3368,10 +4701,12 @@ LivingLifePage::~LivingLifePage() {
     freeSprite( mGuiPanelSprite );
     freeSprite( mGuiBloodSprite );
 
-	//FOV
-	freeSprite( guiPanelLeftSprite );
-	freeSprite( guiPanelTileSprite );
-	freeSprite( guiPanelRightSprite );
+    //FOV
+    freeSprite( guiPanelLeftSprite );
+    freeSprite( guiPanelTileSprite );
+    freeSprite( guiPanelRightSprite );
+
+    freeSprite( bigSheet );
     
     freeSprite( mFloorSplitSprite );
     
@@ -3571,93 +4906,93 @@ LiveObject *LivingLifePage::getLiveObject( int inID ) {
 
 
 bool LivingLifePage::tileBlocked( int x, int y ) {
-	int oid = getObjId( x, y );
-	int oid_right = getObjId( x + 1, y );
-	int oid_left = getObjId( x - 1, y );
-	ObjectRecord *o = NULL;
-	ObjectRecord *o_right = NULL;
-	ObjectRecord *o_left = NULL;
-	if( oid > 0 ) o = getObject( oid );
-	if( oid_right > 0 ) o_right = getObject( oid_right );
-	if( oid_left > 0 ) o_left = getObject( oid_left );
-	bool blocked_center = true;
-	bool blocked_from_right = true;
-	bool blocked_from_left = true;
-	if( oid == 0 || ( o != NULL && !o->blocksWalking ) ) blocked_center = false;
-	if( oid_right == 0 || ( o_right != NULL && o_right->leftBlockingRadius == 0 ) ) blocked_from_right = false;
-	if( oid_left == 0 || ( o_left != NULL && o_left->rightBlockingRadius == 0 ) ) blocked_from_left = false;
-	if( blocked_center || blocked_from_right || blocked_from_left ) return true;
-	return false;
-	}
-	
+    int oid = getObjId( x, y );
+    int oid_right = getObjId( x + 1, y );
+    int oid_left = getObjId( x - 1, y );
+    ObjectRecord *o = NULL;
+    ObjectRecord *o_right = NULL;
+    ObjectRecord *o_left = NULL;
+    if( oid > 0 ) o = getObject( oid );
+    if( oid_right > 0 ) o_right = getObject( oid_right );
+    if( oid_left > 0 ) o_left = getObject( oid_left );
+    bool blocked_center = true;
+    bool blocked_from_right = true;
+    bool blocked_from_left = true;
+    if( oid == 0 || ( o != NULL && !o->blocksWalking ) ) blocked_center = false;
+    if( oid_right == 0 || ( o_right != NULL && o_right->leftBlockingRadius == 0 ) ) blocked_from_right = false;
+    if( oid_left == 0 || ( o_left != NULL && o_left->rightBlockingRadius == 0 ) ) blocked_from_left = false;
+    if( blocked_center || blocked_from_right || blocked_from_left ) return true;
+    return false;
+    }
+    
 
 
 void LivingLifePage::drunkWalk( GridPos *path, int pathLen, bool actionMove ) {
-	
-	if( path == NULL ) return;	
-	if( pathLen >= 3 ) {
-		bool changeThis = true;
-		
-		for( int i = 1; i < pathLen - 1; i++ ) {
-			if( changeThis ) {
-				int xDis = path[ i + 1 ].x - path[ i - 1 ].x;
-				int yDis = path[ i + 1 ].y - path[ i - 1 ].y;
-				
-				if( abs(xDis) + abs(yDis) < 4 ) {
-					int newXDis = 2;
-					int newYDis = 2;
-					int signX = 0;
-					int signY = 0;
-					if( xDis != 0 ) signX = xDis / abs(xDis);
-					if( yDis != 0 ) signY = yDis / abs(yDis);
-				
-					if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
-					if( abs(xDis) == 1 ) newXDis = signX * randSource.getRandomBoundedInt( 0, 1 );
-					if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
-					if( abs(yDis) == 1 ) newYDis = signY * randSource.getRandomBoundedInt( 0, 1 );
-					
-					int newX = path[ i ].x;
-					int newY = path[ i ].y;
-					if( newXDis != 2 ) newX = path[ i - 1 ].x + newXDis;
-					if( newYDis != 2 ) newY = path[ i - 1 ].y + newYDis;
-					
-					if( !tileBlocked( newX, newY ) ) path[ i ] = { newX, newY };
-					}
-				}
-			changeThis = !changeThis;
-			}
-		}
-	else if( pathLen == 2 && !actionMove ) {
-		
-		int xDis = path[ 1 ].x - path[ 0 ].x;
-		int yDis = path[ 1 ].y - path[ 0 ].y;
-		int newXDis = 2;
-		int newYDis = 2;
-		
-		if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
-		if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
-		
-		int newX = path[ 1 ].x;
-		int newY = path[ 1 ].y;
-		if( newXDis != 2 ) newX = path[ 0 ].x + newXDis;
-		if( newYDis != 2 ) newY = path[ 0 ].y + newYDis;
-		
-		if( !tileBlocked( newX, newY ) ) path[ 1 ] = { newX, newY };
-		
-		}
-	
-	}
-	
+    
+    if( path == NULL ) return;    
+    if( pathLen >= 3 ) {
+        bool changeThis = true;
+        
+        for( int i = 1; i < pathLen - 1; i++ ) {
+            if( changeThis ) {
+                int xDis = path[ i + 1 ].x - path[ i - 1 ].x;
+                int yDis = path[ i + 1 ].y - path[ i - 1 ].y;
+                
+                if( abs(xDis) + abs(yDis) < 4 ) {
+                    int newXDis = 2;
+                    int newYDis = 2;
+                    int signX = 0;
+                    int signY = 0;
+                    if( xDis != 0 ) signX = xDis / abs(xDis);
+                    if( yDis != 0 ) signY = yDis / abs(yDis);
+                
+                    if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
+                    if( abs(xDis) == 1 ) newXDis = signX * randSource.getRandomBoundedInt( 0, 1 );
+                    if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
+                    if( abs(yDis) == 1 ) newYDis = signY * randSource.getRandomBoundedInt( 0, 1 );
+                    
+                    int newX = path[ i ].x;
+                    int newY = path[ i ].y;
+                    if( newXDis != 2 ) newX = path[ i - 1 ].x + newXDis;
+                    if( newYDis != 2 ) newY = path[ i - 1 ].y + newYDis;
+                    
+                    if( !tileBlocked( newX, newY ) ) path[ i ] = { newX, newY };
+                    }
+                }
+            changeThis = !changeThis;
+            }
+        }
+    else if( pathLen == 2 && !actionMove ) {
+        
+        int xDis = path[ 1 ].x - path[ 0 ].x;
+        int yDis = path[ 1 ].y - path[ 0 ].y;
+        int newXDis = 2;
+        int newYDis = 2;
+        
+        if( abs(xDis) == 0 ) newXDis = randSource.getRandomBoundedInt( -1, 1 );
+        if( abs(yDis) == 0 ) newYDis = randSource.getRandomBoundedInt( -1, 1 );
+        
+        int newX = path[ 1 ].x;
+        int newY = path[ 1 ].y;
+        if( newXDis != 2 ) newX = path[ 0 ].x + newXDis;
+        if( newYDis != 2 ) newY = path[ 0 ].y + newYDis;
+        
+        if( !tileBlocked( newX, newY ) ) path[ 1 ] = { newX, newY };
+        
+        }
+    
+    }
+    
 
 bool LivingLifePage::isTripping() {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	if( ourLiveObject == NULL ) return false;
-	return 
-		trippingEmotionIndex != -1 &&
-		ourLiveObject->currentEmot != NULL &&
-		strcmp( ourLiveObject->currentEmot->triggerWord, 
-		getEmotion( trippingEmotionIndex )->triggerWord ) == 0;
-	}
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if( ourLiveObject == NULL ) return false;
+    return 
+        trippingEmotionIndex != -1 &&
+        ourLiveObject->currentEmot != NULL &&
+        strcmp( ourLiveObject->currentEmot->triggerWord, 
+        getEmotion( trippingEmotionIndex )->triggerWord ) == 0;
+    }
 
 
 
@@ -3743,22 +5078,30 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         delete lines;
         return;
         }
-		
-	float scale = 1.0;
-	if(tinyStyle) scale = 0.5;
+        
+    float scale = 1.0;
+    if(tinyStyle) scale = 0.75;
 
     double lineSpacing = 0.0;
     if( !tinyStyle ) {
         lineSpacing = handwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
         }
     else {
-        lineSpacing = minitech::tinyHandwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
+        lineSpacing = tinyHandwritingFont->getFontHeight() / 2 + ( 5 * scale * gui_fov_scale_hud );
         }
     
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
     
     if( firstLineY > lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale ) {
+        // off top of screen
         firstLineY = lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale;
+        }
+
+    if( inPos.y < lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale ) {
+        // off bottom of screen
+        double lastLineY = lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale;
+        
+        firstLineY = lastLineY + ( lines->size() - 1 ) * lineSpacing;
         }
 
     
@@ -3813,7 +5156,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
             length = handwritingFont->measureString( line );
             } 
         else {
-            length = minitech::tinyHandwritingFont->measureString( line );
+            length = tinyHandwritingFont->measureString( line );
             }
             
         int numBlots = lrint( 0.25 + length / 20 / scale / gui_fov_scale_hud ) + 1;
@@ -3895,7 +5238,7 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
             handwritingFont->drawString( line, lineStart, alignLeft );
             }
         else {
-            minitech::tinyHandwritingFont->drawString( line, lineStart, alignLeft );
+            tinyHandwritingFont->drawString( line, lineStart, alignLeft );
             }
         delete [] line;
         }
@@ -4242,6 +5585,8 @@ void LivingLifePage::drawMapCell( int inMapI,
     if( oID > 0 ) {
         
         objectHeight = getObjectHeight( oID );
+
+        if( mXKeyDown && objectHeight > .75 * CELL_D ) setObjectDrawAlpha( 0.3 );
         
         double oldFrameCount = mMapAnimationFrameCount[ inMapI ];
 
@@ -4470,6 +5815,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         
         if( ! mShowHighlights ) {
             if( inHighlightOnly ) {
+                setObjectDrawAlpha( 1.0 );
                 return;
                 }
             highlight = false;
@@ -4486,6 +5832,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         
         if( highlight && obj->noHighlight ) {
             if( inHighlightOnly ) {
+                setObjectDrawAlpha( 1.0 );
                 return;
                 }
             highlight = false;
@@ -4669,6 +6016,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         drawSquare( pos, 14 );
         }
 
+    setObjectDrawAlpha( 1.0 );
     }
 
 
@@ -4714,7 +6062,10 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
     returnPack.inObjectID = -1;
 
 
-    if( inObj->hide || inObj->outOfRange ) {
+    if( inObj->hide || inObj->outOfRange || 
+        // in vogMode, currentPos may not align with even vogPos
+        // too confusing, don't draw character
+        (inObj->id == ourID && vogModeActuallyOn) ) {
         return returnPack;
         }
 
@@ -5481,15 +6832,10 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             
             speechPos.x += 41;
             speechPos.y -= 41;
-			newbieTips::yumBubblePos = speechPos;
-            
-            setDrawColor( 1, 1, 1, 1 );
-            if( holdingYumOrMeh == -1 ) {
-                drawSprite( mMehIconSprite, speechPos );
-                }
-            else if ( holdingYumOrMeh == 1 ) {
-                drawSprite( mYumIconSprite, speechPos );
-                }
+            newbieTips::yumBubblePos = speechPos;
+
+            // save the pos to draw the bubble later, on top of other objects in the world
+            yumBubbleDrawPos = speechPos;
                 
             }
             
@@ -5511,8 +6857,8 @@ void LivingLifePage::drawHungerMaxFillLine( doublePair inAteWordsPos,
     
     
     //FOV
-	doublePair barPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
-						  lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
+    doublePair barPos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+                          lastScreenViewCenter.y - ( recalcOffsetY( 334 ) * gui_fov_scale )};
 
     barPos.x -= 12 * gui_fov_scale_hud;
     barPos.y -= 10 * gui_fov_scale_hud;
@@ -6399,7 +7745,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     double drawStartTime = showFPS ? game_getCurrentTime() : 0;
 
-
+    if( !vogStopUsualCameraMovement )
     setViewCenterPosition( lastScreenViewCenter.x,
                            lastScreenViewCenter.y );
 
@@ -6541,6 +7887,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     //setDrawColor( 1, 1, 1, 1 );
     //drawSquare( lastScreenViewCenter, visibleViewWidth );
+
+    float worldMouseX, worldMouseY;
+    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
     
 
     //if( currentGamePage != NULL ) {
@@ -6760,7 +8110,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                             drawSprite( s->wholeSheet, sheetPos );
                             }
                         
-						if( !isTrippingEffectOn || trippingEffectDisabled ) {
+                        if( !isTrippingEffectOn || trippingEffectDisabled ) {
                         // mark all cells under sheet as drawn
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
@@ -6817,10 +8167,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-					if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
-					
+                    if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
+                    
                     if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
-					    leftB == b &&
+                        leftB == b &&
                         aboveB == b &&
                         diagB == b ) {
                         
@@ -7049,6 +8399,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 
                 
+                if( mXKeyDown ) setObjectDrawAlpha( 0.3 );
+
                 char used;
                 drawObjectAnim( oID, 2, 
                                 ground, timeVal,
@@ -7064,6 +8416,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                 false, -1,
                                 false, false, false,
                                 getEmptyClothingSet(), NULL );
+
+                if( mXKeyDown ) setObjectDrawAlpha( 1.0 );
 
                 if( p > 0 ) {
                     stopStencil();
@@ -7185,12 +8539,102 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
     if( showFPS ) startCountingSpritePixelsDrawn();
 
+
+    LiveObject *ourLiveObject = getOurLiveObject();
+
+    // draw object search tile highlight
+    if( objectSearchEnabled || dangerousTileEnabled )
+    for( int y=yEnd; y>=yStart; y-- ) {
+        
+        int worldY = y + mMapOffsetY - mMapD / 2;
+        
+        for( int x=xStart; x<=xEnd; x++ ) {
+            
+            int worldX = x + mMapOffsetX - mMapD / 2;
+
+            int mapI = y * mMapD + x;
+
+            char highlight = false;
+            char dangerous = false;
+            
+            if( mMap[mapI] > 0 ) {
+                int id = getObjectParent( mMap[mapI] );
+                ObjectRecord *o = getObject( id, true );
+                if( o != NULL && objectMatches[o->id] ) highlight = true;
+                if( dangerousTileEnabled &&
+                    (o != NULL && isObjectDangerous(o)) ) {
+                    dangerous = true;
+                    // take into account what we are holding
+                    if( ourLiveObject != NULL && ourLiveObject->holdingID > 0 ) {
+                        dangerous = isTileDangerousWithHeldObject( ourLiveObject->holdingID, id );
+                        }
+                    }
+                }
+
+            if( objectSearchEnabled ) {
+                if( !highlight && mMapContainedStacks[mapI].size() > 0 ) {
+                    for (int i=0; i<mMapContainedStacks[mapI].size(); i++) {
+                        int id = mMapContainedStacks[mapI].getElementDirect(i);
+                        id = getObjectParent(id);
+                        ObjectRecord *o = getObject( id, true );
+                        if( o != NULL && objectMatches[o->id] ) {
+                            highlight = true;
+                            break;
+                            }
+                        }
+                    }
+                if( !highlight && mMapSubContainedStacks[mapI].size() > 0 ) {
+                    for (int i=0; i<mMapSubContainedStacks[mapI].size(); i++) {
+                        SimpleVector<int> subStack = mMapSubContainedStacks[mapI].getElementDirect(i);
+                        for (int j=0; j<subStack.size(); j++) {
+                            int id = subStack.getElementDirect(j);
+                            id = getObjectParent(id);
+                            ObjectRecord *o = getObject( id, true );
+                            if( o != NULL && objectMatches[o->id] ) {
+                                highlight = true;
+                                break;
+                                }
+                            }
+                        if( highlight ) break;
+                        }
+                    }
+                }
+
+            if( dangerousTileEnabled && dangerous ) {
+                drawTileVanillaHighlight( worldX, worldY, {1, 0, 0, 1.0}, true, false );
+                }
+            else if( objectSearchEnabled && highlight ) {
+                drawTileVanillaRainbowHighlight( worldX, worldY );
+                }
+            
+
+            }
+        }
+
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
 
+    if( vogModeActuallyOn ) {
+        GridPos viewingGridPos = {
+            lrintf( lastScreenViewCenter.x / CELL_D ),
+            lrintf( lastScreenViewCenter.y / CELL_D )
+            };
+        FloatColor tileColor = {0.5, 0.0, 1.0, 1.0};
+        if( vogScrollingMode ) tileColor = {1.0, 0.0, 1.0, 1.0};
+        drawTileVanillaHighlight( viewingGridPos.x, viewingGridPos.y, tileColor );
+        }
 
-    if( mShowHighlights 
+    if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
+        doublePair mousePos = { lastMouseX, lastMouseY };
+        int mouseX = int(round( mousePos.x / (float)CELL_D ));
+        int mouseY = int(round( mousePos.y / (float)CELL_D ));
+        drawTileVanillaHighlight( mouseX, mouseY, {0.0, 1.0, 0.0, 1.0} );
+        }
+    else if (minitech::highlightObjId > 0) {
+        minitech::drawHintObjectTile();
+        }
+    else if( mShowHighlights 
         &&
         mCurMouseOverCellFade > 0 
         &&
@@ -7352,7 +8796,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // draw long path for our character
-    LiveObject *ourLiveObject = getOurLiveObject();
+    // LiveObject *ourLiveObject = getOurLiveObject();
     
     if( ourLiveObject != NULL ) {
         
@@ -8143,6 +9587,26 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawMapCell( mapI, screenX, screenY, true );
             }
         }
+
+
+
+    // yum slip / yum bubble
+    if( holdingYumOrMeh != 0 &&
+        // don't draw two meh bubbles (one as emote, one as yum slip)
+        // however this still doesn't fix the jump of positions between the two when *meh fades
+        ourLiveObject->currentEmot != getEmotion( getEmotionIndex( "*meh" ) )
+        ) {
+        
+        setDrawColor( 1, 1, 1, 1 );
+        if( holdingYumOrMeh == -1 ) {
+            drawSprite( mMehIconSprite, yumBubbleDrawPos );
+            }
+        else if ( holdingYumOrMeh == 1 ) {
+            drawSprite( mYumIconSprite, yumBubbleDrawPos );
+            }
+            
+        }
+            
     
 
     char pointerDrawn[2] = { false, false };
@@ -8294,7 +9758,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         speechPos.y += headPos.y;
         
-		int width = 250 * gui_fov_scale_hud;
+        int width = 250 * gui_fov_scale_hud;
         int widthLimit = 250 * gui_fov_scale_hud;
         
         double fullWidth = 
@@ -9095,6 +10559,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
     
 
+    if( drawGridToggle ) {
+        drawGrid();
+        }
+
     
     if( hideGuiPanel ) {
         // skip gui
@@ -9402,7 +10870,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
     
 
-
+    if( !coordinatesEnabled )
     for( int j=0; j<2; j++ ) {
         doublePair slipPos = add( mult( recalcOffset( mHomeSlipPosOffset[j] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -9455,15 +10923,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
             setDrawColor( 1, 1, 1, 1 );
             //FOV
             // Hint sheets have to be manually cut off in centered mode.
-			if( gui_hud_mode != 0 && gui_fov_target_scale_hud > 1.0f ) {
-				doublePair sheetPos[4] = {
+            if( gui_hud_mode != 0 && gui_fov_target_scale_hud > 1.0f ) {
+                doublePair sheetPos[4] = {
                     { hintPos.x - getSpriteWidth( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud, hintPos.y + getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     { lastScreenViewCenter.x + 640 * gui_fov_scale_hud, hintPos.y + getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     { lastScreenViewCenter.x + 640 * gui_fov_scale_hud, hintPos.y - getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     { hintPos.x - getSpriteWidth( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud, hintPos.y - getSpriteHeight( mHintSheetSprites[0] ) / 2.0f * gui_fov_scale_hud },
                     };
                 double sheetLength = ( sheetPos[1].x - sheetPos[0].x ) / ( getSpriteWidth( mHintSheetSprites[0] ) * gui_fov_scale_hud );
-				doublePair sheetCoords[4] = {
+                doublePair sheetCoords[4] = {
                     { 0.0f, 0.0f },
                     { sheetLength, 0.0f },
                     { sheetLength, 1.0f },
@@ -9539,60 +11007,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+    
 
 
-    // now draw tutorial sheets
-    if( mTutorialNumber > 0 || mGlobalMessageShowing )
-    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
-        if( ! equal( mTutorialPosOffset[i], mTutorialHideOffset[i] ) ) {
-            
-            doublePair tutorialPos  = 
-                add( mult( recalcOffset( mTutorialPosOffset[i], true ), gui_fov_scale ), lastScreenViewCenter );
-            
-            if( i % 2 == 1 ) {
-                tutorialPos = sub( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
-                }
-            else {
-                tutorialPos = add( tutorialPos, mult( mTutorialExtraOffset[i], gui_fov_scale_hud ) );
-                }
-            
-            setDrawColor( 1, 1, 1, 1 );
-            // rotate 180
-            drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_scale_hud, 0.5,
-                        mTutorialFlips[i] );
-            
 
-            setDrawColor( 0, 0, 0, 1.0f );
-            double lineSpacing = handwritingFont->getFontHeight() / 2 + 16 * gui_fov_scale_hud;
-            
-            int numLines;
-            
-            char **lines = split( mTutorialMessage[i], "##", &numLines );
-            
-            doublePair lineStart = tutorialPos;
-            
-            if( i % 2 == 1 ) {
-                lineStart.x -= 289 * gui_fov_scale_hud;
-                //lineStart.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
-                }
-            else {
-                lineStart.x += 289 * gui_fov_scale_hud;
-                lineStart.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
-                }
-            
-            lineStart.y += 8 * gui_fov_scale_hud;
-            for( int l=0; l<numLines; l++ ) {
-                
-                handwritingFont->drawString( lines[l], 
-                                             lineStart, alignLeft );
-                    
-                delete [] lines[l];
-                
-                lineStart.y -= lineSpacing;
-                }
-            delete [] lines;
-            }
-        }
 
 
 
@@ -9631,7 +11049,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mHungerSlipWiggleAmp[i] > 0 ) {
                 
                 double distFromHidden =
-                    ( mHungerSlipPosOffset[i].y - mHungerSlipHideOffsets[i].y ) * gui_fov_scale_hud;
+                    ( mHungerSlipPosOffset[i].y - mHungerSlipHideOffsets[i].y );
 
                 // amplitude grows when we are further from
                 // hidden, and shrinks again as we go back down
@@ -9640,7 +11058,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     ( 0.5 * ( 1 - cos( mHungerSlipWiggleTime[i] ) ) ) *
                     mHungerSlipWiggleAmp[i] * distFromHidden;
                 
-                slipPos.y += slipHarmonic;
+                slipPos.y += slipHarmonic * gui_fov_scale_hud;
                 
 
                 if( i == 2 ) {
@@ -9690,9 +11108,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
     for( int i=0; i<NUM_YUM_SLIPS; i++ ) {
 
         if( ! equal( mYumSlipPosOffset[i], mYumSlipHideOffset[i] ) ) {
-			
+            
             mYumSlipPosOffset[i] = mYumSlipHideOffset[i];
-			
+            
             doublePair slipPos = 
                 add( mult( recalcOffset( mYumSlipPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
         
@@ -9737,9 +11155,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
         if( ! equal( mCravingPosOffset[i], mCravingHideOffset[i] ) ) {
             
             doublePair cravingPos  = 
-				add( mult( recalcOffset( mCravingPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
+                add( mult( recalcOffset( mCravingPosOffset[i] ), gui_fov_scale ), lastScreenViewCenter );
             
-			cravingPos = add( cravingPos, mult( mCravingExtraOffset[i], gui_fov_scale_hud ) );
+            cravingPos = add( cravingPos, mult( mCravingExtraOffset[i], gui_fov_scale_hud ) );
             
             setDrawColor( 1, 1, 1, 1.0 );
             // flip, don't rotate
@@ -9792,7 +11210,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
 
     
-
+    // always draw the say field text box outside the screen
+    mSayField.setPosition( 0, visibleViewWidth + lastScreenViewCenter.y );
+    
     doublePair paperPos = add( mult( recalcOffset( mNotePaperPosOffset ), gui_fov_scale ), lastScreenViewCenter );
 
     if( mSayField.isFocused() ) {
@@ -9950,7 +11370,82 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
 
+
+    // Player labels
+    int playerLabelSec = 3;
+    int playerLabelFadeSec = 1;
+    if( game_getCurrentTime() - lastHoverPlayerTime > playerLabelSec + playerLabelFadeSec ) {
+        lastHoverPlayerID = 0;
+        }
+
+    if( lastHoverPlayerID != 0 ) {
+
+        LiveObject *o = getLiveObject( lastHoverPlayerID );
+
+        if( o != NULL && o->heldByAdultID == -1 ) {
+
+            float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
+            float fade = 1.0;
+            if( delta > playerLabelSec ) 
+                fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
+
+            
+            char *name = NULL;
+            char infertilityTagPresent = false;
+            if( o->name != NULL ) {
+                name = stringDuplicate(o->name);
+                infertilityTagPresent = stripFertilitySuffix( name );
+                if( name[0] == '\0' ) {
+                    name = NULL;
+                    }
+                }
+            char *infertilityString = NULL;
+            if( infertilityTagPresent ) {
+                infertilityString = stringDuplicate( " (INFERTILE)" );
+                }
+            else {
+                infertilityString = stringDuplicate( "" );
+                }
+
+            double age = computeServerAge( computeCurrentAge( o ) );
+            
+            char *label;
+            if( name != NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f, %s%s", name, age, o->relationName, infertilityString);
+                }
+            else if( name == NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f%s", o->relationName, age, infertilityString);
+                }
+            else if( name != NULL && o->relationName == NULL ) {
+                label = autoSprintf("%s %.1f%s", name, age, infertilityString);
+                }
+            else {
+                label = autoSprintf("UNNAMED STRANGER %.1f%s", age, infertilityString);
+                }
+
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+
+            doublePair labelPos = mult( o->currentPos, CELL_D );
+
+            double labelWidth = tinyHandwritingFont->measureString( label );
+            labelPos.x -= labelWidth / 2;
+            labelPos.y -= 16;
+
+            drawChalkBackgroundString( 
+                labelPos,
+                label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
+            
+            if( name != NULL ) delete [] name;
+            delete [] label;
+
+            }
+
+        }
+
+
     // cursor-tips
+    if( !isAnyUIHovered() )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -10317,28 +11812,26 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // This was the main description drawn on guiPanel
             // setDrawColor( 0, 0, 0, 1 );
             // pencilFont->drawString( stringUpper, pos, alignCenter );
-			
+            
             // Moved to be cursor-tips
             if( ! mXKeyDown )
-            if( mCurMouseOverID != 0 ) {
-                FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-                FloatColor txtColor = { 1, 1, 1, 1 };
-                drawChalkBackgroundString( 
-                    {lastMouseX + 16 * gui_fov_scale_hud, lastMouseY - 16 * gui_fov_scale_hud}, 
-                    stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
-
+            if( mCurMouseOverID != 0 &&
+                // If we're hovering another player
+                // player label will be drawn instead of cursor-tips
+                currHoverPlayerID == 0
+                ) {
                 const bool isShowUseOnObjectHoverActive =
                     ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
                 if( isShowUseOnObjectHoverActive ) {
-                  const int playerSelfID = -99;
-                  std::string objComment = "";
-                  if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
+                    const int playerSelfID = -99;
+                    std::string objComment = "";
+                    if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
                     objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
-                    }
-                  else if( mCurMouseOverID > 0 ) {
+                        }
+                    else if( mCurMouseOverID > 0 ) {
                     objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
-                    }
+                        }
 
                     std::string displayedComment = objComment;
                     std::string tagName = " USE";
@@ -10350,12 +11843,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         }
                     if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawChalkBackgroundString( 
-                            {lastMouseX + 22 * gui_fov_scale_hud, lastMouseY - 34 * gui_fov_scale_hud},
-                            display, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true );
+                        drawCursorTips( display, {4, -20} );
                         delete [] display;
                         }
                     }
+
+                drawCursorTips( stringUpper );
+
                 }
             delete [] stringUpper;
             }
@@ -10382,55 +11876,753 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+    // debug info on cursor
+    if( debugMode ) {
+
+        int mouseX = int(round( lastMouseX / (float)CELL_D ));
+        int mouseY = int(round( lastMouseY / (float)CELL_D ));
+        int objID = getObjId(mouseX, mouseY);
+
+        char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
+        char *additionalLine = NULL;
+        char *debugLine = NULL;
+
+        int graveID = -1;
+        if( objID > 0 ) {
+            for( int g=0; g<mGraveInfo.size(); g++ ) {
+                GraveInfo *gI = mGraveInfo.getElement( g );
+                if( gI->worldPos.x == mouseX && gI->worldPos.y == mouseY ) {
+                    graveID = gI->playerID;
+                    }
+                }
+            }
+
+
+        if( currHoverPlayerID != 0 ) {
+            additionalLine = autoSprintf( "PID: %d", currHoverPlayerID );
+            }
+        else if( graveID != -1 ) {
+            additionalLine = autoSprintf( "GRAVE: %d", graveID );
+            }
+        else if( vogFollowMode && vogFollowPlayerID != -1 ) {
+            additionalLine = autoSprintf( "FOLLOWING PID: %d", vogFollowPlayerID );
+            }
+
+        drawCursorTips( firstLine, {0, -20 * 2} );
+        if( additionalLine != NULL ) {
+            drawCursorTips( additionalLine, {0, -20 * 3} );
+            }
+        if( debugLine != NULL ) {
+            drawCursorTips( debugLine, {0, -20 * 4} );
+            }
+
+        if( firstLine != NULL ) delete [] firstLine;
+        if( additionalLine != NULL ) delete [] additionalLine;
+        if( debugLine != NULL ) delete [] debugLine;
+        }
+
+
+    // Left Panel
+    // drawn behind tutorial sheets / global message
+    if( ( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled ) && 
+        leftPanelComponent.mActive ) {
+
+        doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
+        doublePair coordinatesPanelHidePos = {-198, 196};
+
+
+        double coordinatesPanelWidth = 0;
+        double paddingX = 12.0;
+        double paddingY = 4.0;
+        
+        double longestCoords = 0;
+        double longestName = 0;
+        double spaceX = 12.0;
+
+        double longestLine = 0.0;
+
+        char *coordsLine = NULL;
+
+        if( leftPanelPageNumber == 0 ) {
+
+            coordsLine = autoSprintf( "(%s, %s)", 
+                formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
+                formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
+                );
+            double len = handwritingFont->measureString( coordsLine ) / gui_fov_scale_hud;
+            if( len < 120 ) len = 120;
+            else if( len < 160 ) len = 160;
+
+            for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+                SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+                char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
+                char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
+                double lenCoords = handwritingFont->measureString( lineCoords ) / gui_fov_scale_hud;
+                double lenName = handwritingFont->measureString( lineName ) / gui_fov_scale_hud;
+                if( lenCoords > longestCoords ) longestCoords = lenCoords;
+                if( lenName > longestName ) longestName = lenName;
+                delete [] lineCoords;
+                delete [] lineName;
+                }
+
+            coordinatesPanelWidth = paddingX + longestName + spaceX + longestCoords + paddingX;
+            if( len > coordinatesPanelWidth ) coordinatesPanelWidth = len;
+
+            }
+        else if( leftPanelPageNumber == 1 ) {
+
+            longestLine =  handwritingFont->measureString( "OBJECT FINDER" ) / gui_fov_scale_hud;
+
+            for( int i=0; i<objectSearchQueries.size(); i++ ) {
+                std::string queryString = objectSearchQueries.getElementDirect( i );
+                char *query = stringDuplicate( queryString.c_str() );
+                double lenQuery = handwritingFont->measureString( query ) / gui_fov_scale_hud;
+                if( lenQuery > longestLine ) longestLine = lenQuery;
+                delete [] query;
+                }
+
+            coordinatesPanelWidth = paddingX + longestLine + paddingX;
+
+            }
+        else if( leftPanelPageNumber == 2 ) {
+
+            longestLine =  handwritingFont->measureString( "FAMILY LIST" ) / gui_fov_scale_hud;
+
+            int familyListSize = displayedFamilies.size();
+            if( familyListSize > 12 ) familyListSize = 12;
+
+            for( int i=0; i<familyListSize; i++ ) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( i );
+                char *line = autoSprintf( "%d IN %s", 
+                    displayedFamily->count,
+                    displayedFamily->name.c_str()
+                    );
+                double lenLine = handwritingFont->measureString( line ) / gui_fov_scale_hud;
+                if( lenLine > longestLine ) longestLine = lenLine;
+                delete [] line;
+                }
+
+            coordinatesPanelWidth = paddingX + longestLine + paddingX;
+
+            }
+
+        char drawingHelpMessage = 
+            (leftPanelPageNumber == 0 && SavedCoordinatesList.size() <= 1) ||
+            (leftPanelPageNumber == 1 && objectSearchQueries.size() <= 1);
+
+        if( coordinatesPanelWidth < 160 && !drawingHelpMessage ) { // space for help message
+            coordinatesPanelWidth = 160;
+            }
+        else if( coordinatesPanelWidth < 220 ) {
+            coordinatesPanelWidth = 220;
+            }
+        else if( coordinatesPanelWidth < 240 ) {
+            coordinatesPanelWidth = 240;
+            }
+
+        doublePair coordinatesPanelSize = {coordinatesPanelWidth, -452};
+
+        doublePair coordinatesPanelPos = add( coordinatesPanelHidePos, coordinatesPanelSize);
+
+        coordinatesPanelPos = mult( coordinatesPanelPos, gui_fov_scale_hud );
+        coordinatesPanelPos = add( coordinatesPanelPos, screenTL );
+        coordinatesPanelPos = add( coordinatesPanelPos, lastScreenViewCenter );
+
+        doublePair coordinatesPanelTL = screenTL;
+        doublePair coordinatesPanelBR = add(coordinatesPanelTL, mult( coordinatesPanelSize, gui_fov_scale_hud ) );
+        // coordinatesPanelTL = add( coordinatesPanelTL, lastScreenViewCenter );
+        // coordinatesPanelBR = add( coordinatesPanelBR, lastScreenViewCenter );
+
+        leftPanelComponent.setClickableArea( coordinatesPanelTL, coordinatesPanelBR );
+
+        setDrawColor( 1, 1, 1, 0.9 );
+        if( leftPanelComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        drawSprite( bigSheet, coordinatesPanelPos, gui_fov_scale_hud );
+
+
+        double spacingY = 0.0;
+        double lineHeight = 32.0;
+
+        doublePair pos = screenTL;
+        pos.x += paddingX * gui_fov_scale_hud;
+        pos.y -= (64.0) * gui_fov_scale_hud;
+        
+        pos = add( pos, lastScreenViewCenter );
+
+        if( leftPanelPageNumber == 0 ) {
+
+            doublePair textPos = {
+                coordinatesPanelWidth * 0.5,
+                -paddingY - lineHeight/2
+                };
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+            setDrawColor( 0, 0, 0, 1 );
+            handwritingFont->drawString( coordsLine, textPos, alignCenter );
+
+            for( int i=0; i<SavedCoordinatesList.size(); i++ ) {
+                SavedCoordinates savedCoords = SavedCoordinatesList.getElementDirect( i );
+                char *lineCoords = autoSprintf( "(%s, %s)", formatCoordinate(savedCoords.x - savedOrigin.x), formatCoordinate(savedCoords.y - savedOrigin.y) );
+                char *lineName = autoSprintf( "%s", savedCoords.name.c_str() );
+                
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                
+                doublePair lineClickableTL = pos;
+                lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+                doublePair lineClickableBR = {
+                    lineClickableTL.x + (longestName + spaceX + longestCoords) * gui_fov_scale_hud,
+                    lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                    };
+                lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+                lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+                savedCoordsClickable->setClickableArea( lineClickableTL, lineClickableBR );
+                
+                setDrawColor( 0, 0, 0, 1.0 );
+                if( savedCoordsClickable->mHover ) {
+                    setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+                    }
+                else if( savedCoords.type == 1 ) {
+                    setDrawColor( 0.45, 0.53, 0.5, 1.0 ); // green
+                    }
+                else if( savedCoords.type == 2 ) {
+                    setDrawColor( 0.1, 0.16, 0.49, 1.0 ); // blue
+                    }
+                else if( savedCoords.type == 3 ) {
+                    setDrawColor( 0.50, 0.36, 0.55, 1.0 ); // purple
+                    }
+
+                handwritingFont->drawString( lineName, pos, alignLeft );
+                
+                pos.x += (longestName + spaceX) * gui_fov_scale_hud;
+                handwritingFont->drawString( lineCoords, pos, alignLeft );
+                
+                pos.x -= (longestName + spaceX) * gui_fov_scale_hud;
+                pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+                delete [] lineCoords;
+                delete [] lineName;
+                }
+
+            if( SavedCoordinatesList.size() <= 1 ) {
+
+                doublePair pos = screenTL;
+                pos = add( pos, mult(coordinatesPanelSize, 0.5 * gui_fov_scale_hud) );
+                pos = add( pos, lastScreenViewCenter );
+
+                double lineHeight = 24.0;
+
+                setDrawColor( 0, 0, 0, 0.25 );
+                pos.y += 4 * lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp1" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp2" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp3" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp4" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp5" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp6" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "markCommandHelp7" ), pos, alignCenter );
+
+                }
+            }
+        else if( leftPanelPageNumber == 1 ) {
+
+            doublePair textPos = {
+                coordinatesPanelWidth * 0.5,
+                -paddingY - lineHeight/2
+                };
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+            setDrawColor( 0, 0, 0, 1 );
+            handwritingFont->drawString( "OBJECT FINDER", textPos, alignCenter );
+
+            for( int i=0; i<objectSearchQueries.size(); i++ ) {
+                std::string queryString = objectSearchQueries.getElementDirect( i );
+                char *query = stringDuplicate( queryString.c_str() );
+                
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                
+                doublePair lineClickableTL = pos;
+                lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+                doublePair lineClickableBR = {
+                    lineClickableTL.x + (longestLine) * gui_fov_scale_hud,
+                    lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                    };
+                lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+                lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+                objectSearchQueryClickable->setClickableArea( lineClickableTL, lineClickableBR );
+                
+                setDrawColor( 0, 0, 0, 1.0 );
+                if( objectSearchQueryClickable->mHover ) {
+                    setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+                    }
+                handwritingFont->drawString( query, pos, alignLeft );
+
+                pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+                delete [] query;
+                }
+
+            if( objectSearchQueries.size() <= 1 ) {
+
+                doublePair pos = screenTL;
+                pos = add( pos, mult(coordinatesPanelSize, 0.5 * gui_fov_scale_hud) );
+                pos = add( pos, lastScreenViewCenter );
+
+                double lineHeight = 24.0;
+
+                setDrawColor( 0, 0, 0, 0.25 );
+                pos.y += 4 * lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp1" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp2" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp3" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp4" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp5" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp6" ), pos, alignCenter );
+                pos.y -= lineHeight * gui_fov_scale_hud;
+                tinyHandwritingFont->drawString( translate( "findCommandHelp7" ), pos, alignCenter );
+
+                }
+
+            }
+        else if( leftPanelPageNumber == 2 ) {
+
+            doublePair textPos = {
+                coordinatesPanelWidth * 0.5,
+                -paddingY - lineHeight/2
+                };
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+            setDrawColor( 0, 0, 0, 1 );
+            handwritingFont->drawString( "FAMILY LIST", textPos, alignCenter );
+
+            int familyListSize = displayedFamilies.size();
+            if( familyListSize > 12 ) familyListSize = 12;
+
+            for( int i=0; i<familyListSize; i++ ) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( i );
+                
+                char *connective;
+                if( displayedFamily->areSoloEves ) {
+                    connective = stringDuplicate("");
+                    }
+                else {
+                    connective = stringDuplicate("IN ");
+                    }
+
+                char *line = autoSprintf( "%d %s%s", 
+                    displayedFamily->count,
+                    connective,
+                    displayedFamily->name.c_str()
+                    );
+                
+                if( connective != NULL ) delete [] connective;
+
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
+                
+                doublePair lineClickableTL = pos;
+                lineClickableTL.y += lineHeight/2 * gui_fov_scale_hud;
+                doublePair lineClickableBR = {
+                    lineClickableTL.x + (longestLine) * gui_fov_scale_hud,
+                    lineClickableTL.y - (lineHeight) * gui_fov_scale_hud
+                    };
+                lineClickableTL = sub( lineClickableTL, lastScreenViewCenter );
+                lineClickableBR = sub( lineClickableBR, lastScreenViewCenter );
+                displayedFamiliesClickable->setClickableArea( lineClickableTL, lineClickableBR );
+                
+                setDrawColor( 0, 0, 0, 1.0 );
+                handwritingFont->drawString( line, pos, alignLeft );
+
+                pos.y -= (lineHeight + spacingY) * gui_fov_scale_hud;
+
+                delete [] line;
+                }
+
+            }
+
+
+        }
+
+    // Left Panel Collapsed into Top Left Slip 
+    // drawn behind tutorial sheets / global message
+    // drawn above coordinates panel
+    if( ( topLeftSlipComponent.mActive ) && 
+        ourLiveObject != NULL ) {
+
+        char *coordsLine = NULL;
+        char *objectSearchLine = NULL;
+        char *familyDisplayLine = NULL;
+
+        DisplayedFamily* ourFamily = NULL;
+        if( familyDisplayEnabled ) ourFamily = getOurFamily();
+
+        double longestLineLen = 0.0;
+        int numOfLines = 0;
+
+        if( coordinatesEnabled ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
+            coordsLine = autoSprintf( "(%s, %s)", 
+                formatCoordinate( (int)ourLiveObject->currentPos.x - savedOrigin.x, true ), 
+                formatCoordinate( (int)ourLiveObject->currentPos.y - savedOrigin.y, true )
+                );
+            double len = handwritingFont->measureString( coordsLine ) / gui_fov_scale_hud;
+            if( len < 120 ) len = 120;
+            else if( len < 160 ) len = 160;
+            if( len > longestLineLen ) longestLineLen = len;
+            numOfLines += 1;
+            }
+        if( familyDisplayEnabled && ourFamily != NULL ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 ) ) {
+            if( ourFamily->areSoloEves ) {
+                familyDisplayLine = autoSprintf( "%d %s", 
+                    ourFamily->count,
+                    ourFamily->name.c_str()
+                    );
+                }
+            else {
+                familyDisplayLine = autoSprintf( "%s:%d F:%d", 
+                    ourFamily->name.c_str(),
+                    ourFamily->count,
+                    ourFamily->fertileCount
+                    );
+                }
+            double len = handwritingFont->measureString( familyDisplayLine ) / gui_fov_scale_hud;
+            if( len > longestLineLen ) longestLineLen = len;
+            numOfLines += 1;
+            }
+        if( objectSearchEnabled ) { //&& ( topLeftSlipComponent.mHover || numOfLines < 1 || objectSearchQueries.size() > 0 ) ) {
+            if( objectSearchQueries.size() > 0 ) {
+                objectSearchLine = stringDuplicate("FINDER ON");
+                }
+            else {
+                objectSearchLine = stringDuplicate("FINDER OFF");
+                }
+            double len = handwritingFont->measureString( objectSearchLine ) / gui_fov_scale_hud;
+            if( len > longestLineLen ) longestLineLen = len;
+            numOfLines += 1;
+            }
+        
+
+
+        double paddingX = 16.0;
+        double paddingY = 4.0;
+        double lineHeight = 32.0;
+        double spacingY = 8.0;
+
+        doublePair screenTL = {-visibleViewWidth/2, viewHeight/2};
+        // doublePair slipHidePos = {-307, 45};
+        doublePair slipHidePos = {-198, 196};
+        doublePair slipSize = { paddingX + longestLineLen + paddingX, -( paddingY + numOfLines * (lineHeight + spacingY) - spacingY + paddingY )};
+
+        doublePair slipPos = add( slipHidePos, slipSize );
+
+        slipPos = mult( slipPos, gui_fov_scale_hud );
+        slipPos = add( slipPos, screenTL );
+        slipPos = add( slipPos, lastScreenViewCenter );
+
+        doublePair slipTL = screenTL;
+        doublePair slipBR = add(slipTL, mult( slipSize, gui_fov_scale_hud ) );
+        topLeftSlipComponent.setClickableArea( slipTL, slipBR );
+
+        int lineAreaSet = 0;
+
+        coordinatesSlipComponent.mActive = false;
+        objectSearchSlipComponent.mActive = false;
+        familyDisplaySlipComponent.mActive = false;
+
+        if( coordinatesEnabled ) { //&& ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
+            doublePair TL = screenTL;
+            TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
+            doublePair BR = TL;
+            BR.x += slipSize.x * gui_fov_scale_hud;
+            BR.y -= lineHeight * gui_fov_scale_hud;
+            coordinatesSlipComponent.setClickableArea( TL, BR );
+            coordinatesSlipComponent.mActive = true;
+            lineAreaSet += 1;
+            }
+        if( familyDisplayEnabled && ourFamily != NULL ) { //&& ( topLeftSlipComponent.mHover || lineAreaSet < 1 ) ) {
+            doublePair TL = screenTL;
+            TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
+            doublePair BR = TL;
+            BR.x += slipSize.x * gui_fov_scale_hud;
+            BR.y -= lineHeight * gui_fov_scale_hud;
+            familyDisplaySlipComponent.setClickableArea( TL, BR );
+            familyDisplaySlipComponent.mActive = true;
+            lineAreaSet += 1;
+            }
+        if( objectSearchEnabled ) { //&& ( topLeftSlipComponent.mHover || lineAreaSet < 1 || objectSearchQueries.size() > 0 ) ) {
+            doublePair TL = screenTL;
+            TL.y -= (paddingY + lineAreaSet * (lineHeight + spacingY)) * gui_fov_scale_hud;
+            doublePair BR = TL;
+            BR.x += slipSize.x * gui_fov_scale_hud;
+            BR.y -= lineHeight * gui_fov_scale_hud;
+            objectSearchSlipComponent.setClickableArea( TL, BR );
+            objectSearchSlipComponent.mActive = true;
+            lineAreaSet += 1;
+            }
+
+        setDrawColor( 1, 1, 1, 0.9 );
+        if( topLeftSlipComponent.mHover ) setDrawColor( 1, 1, 1, 1.0 );
+        // drawSprite( mHintSheetSprites[0], slipPos, gui_fov_scale_hud, 0.5 );
+        drawSprite( bigSheet, slipPos, gui_fov_scale_hud );
+
+
+        int lineDrawn = 0;
+
+        if( coordinatesEnabled && coordinatesSlipComponent.mActive ) {
+            doublePair textPos = {slipSize.x * 0.5, - paddingY - lineDrawn * (lineHeight + spacingY) - lineHeight/2};
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+
+            setDrawColor( 0, 0, 0, 1 );
+            if( coordinatesSlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+            handwritingFont->drawString( coordsLine, textPos, alignCenter );
+
+            lineDrawn += 1;
+            }
+        if( familyDisplayEnabled && ourFamily != NULL && familyDisplaySlipComponent.mActive ) {
+            doublePair textPos = {slipSize.x * 0.5, - paddingY - lineDrawn * (lineHeight + spacingY) - lineHeight/2};
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+
+            setDrawColor( 0, 0, 0, 1 );
+            if( familyDisplaySlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+            handwritingFont->drawString( familyDisplayLine, textPos, alignCenter );
+
+            lineDrawn += 1;
+            }
+        if( objectSearchEnabled && objectSearchSlipComponent.mActive ) {
+            doublePair textPos = {slipSize.x * 0.5, - paddingY - lineDrawn * (lineHeight + spacingY) - lineHeight/2};
+            textPos = mult( textPos, gui_fov_scale_hud );
+            textPos = add( textPos, screenTL );
+            textPos = add( textPos, lastScreenViewCenter );
+
+            setDrawColor( 0, 0, 0, 1 );
+            if( objectSearchSlipComponent.mHover ) setDrawColor( 1, 0.55, 0, 1.0 ); // orange
+            handwritingFont->drawString( objectSearchLine, textPos, alignCenter );
+
+            lineDrawn += 1;
+            }
+
+        if( coordsLine != NULL ) delete [] coordsLine;
+        if( objectSearchLine != NULL ) delete [] objectSearchLine;
+        if( familyDisplayLine != NULL ) delete [] familyDisplayLine;
+        }
+
+    // cursorTips for Coordinates and Panel
+    if( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled )
+    if( leftPanelComponent.mActive ||
+        coordinatesSlipComponent.mHover ||
+        objectSearchSlipComponent.mHover ||
+        familyDisplaySlipComponent.mHover
+        ) {
+        char *coordsTips = NULL;
+        if( leftPanelComponent.mActive ) {
+            char anyCoordsHover = false;
+            char anyQueryHover = false;
+            char anyFamilyHover = false;
+            int familyHoverIndex = -1;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent savedCoords = SavedCoordinatesComponentList.getElementDirect( i );
+                if( savedCoords.mHover ) {
+                    anyCoordsHover = true;
+                    break;
+                    }
+                }
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent objectSearchQueryClickable = objectSearchQueriesComponentList.getElementDirect( i );
+                if( objectSearchQueryClickable.mHover ) {
+                    anyQueryHover = true;
+                    break;
+                    }
+                }
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent displayedFamiliesClickable = displayedFamiliesComponentList.getElementDirect( i );
+                if( displayedFamiliesClickable.mHover ) {
+                    anyFamilyHover = true;
+                    familyHoverIndex = i;
+                    break;
+                    }
+                }
+
+            if( anyCoordsHover ) {
+                coordsTips = autoSprintf( "%s", translate("savedCoordsTips") );
+                }
+            else if( anyQueryHover ) {
+                coordsTips = autoSprintf( "%s", translate("objQueryTips") );
+                }
+            else if( anyFamilyHover ) {
+                DisplayedFamily *displayedFamily = displayedFamilies.getElementDirect( familyHoverIndex );
+                if( displayedFamily != NULL ) {
+                    char *fertileWord;
+                    if( displayedFamily->fertileCount == 1 ) {
+                        fertileWord = stringDuplicate( "FERTILE" );
+                        }
+                    else {
+                        fertileWord = stringDuplicate( "FERTILES" );
+                        }
+                    coordsTips = autoSprintf( "%d %s ALIVE, IN GENERATION %d", 
+                        displayedFamily->fertileCount,
+                        fertileWord,
+                        displayedFamily->generation
+                        );
+                    delete [] fertileWord;
+                    }
+                }
+            else if( leftPanelComponent.mHover ) {
+                coordsTips = autoSprintf( "%s", translate("leftPanelTips") );
+                }
+            }
+        else if( coordinatesSlipComponent.mHover ) {
+            coordsTips = autoSprintf( "%s (%C)", translate("coordsTips"), toupper(coordinatesPanelToggleKey) );
+            }
+        else if( objectSearchSlipComponent.mHover ) {
+            coordsTips = autoSprintf( "%s (%C)", translate("objSearchTips"), toupper(objectSearchPanelToggleKey) );
+            }
+        else if( familyDisplaySlipComponent.mHover ) {
+            coordsTips = autoSprintf( "%s (%C)", translate("famDisplayTips"), toupper(familyDisplayPanelToggleKey) );
+            }
+        if( coordsTips != NULL ) {
+            drawCursorTips( coordsTips );
+            }
+
+        delete [] coordsTips;
+        }
+
+    // now draw tutorial sheets
+    if( mTutorialNumber > 0 || mGlobalMessageShowing )
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        if( ! equal( mTutorialPosOffset[i], mTutorialHideOffset[i] ) ) {
+            
+            doublePair tutorialPos  = 
+                add( mult( recalcOffset( mTutorialPosOffset[i], true ), gui_fov_scale ), lastScreenViewCenter );
+            
+            if( i % 2 == 1 ) {
+                tutorialPos.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
+                }
+            else {
+                tutorialPos.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
+                }
+
+            tutorialPos.y -= mTutorialExtraOffset[i].y * gui_fov_scale_hud;
+            
+            setDrawColor( 1, 1, 1, 1 );
+            // rotate 180
+            drawSprite( mHintSheetSprites[i], tutorialPos, gui_fov_scale_hud, 0.5,
+                        mTutorialFlips[i] );
+            
+
+            setDrawColor( 0, 0, 0, 1.0f );
+            double lineSpacing = handwritingFont->getFontHeight() / 2 + 16 * gui_fov_scale_hud;
+            
+            int numLines;
+            
+            char **lines = split( mTutorialMessage[i], "##", &numLines );
+            
+            doublePair lineStart = tutorialPos;
+
+            lineStart.y += mTutorialExtraOffset[i].y * gui_fov_scale_hud;
+            
+            if( i % 2 == 1 ) {
+                lineStart.x -= 289 * gui_fov_scale_hud;
+                //lineStart.x += mTutorialExtraOffset[i].x * gui_fov_scale_hud;
+                }
+            else {
+                lineStart.x += 289 * gui_fov_scale_hud;
+                lineStart.x -= mTutorialExtraOffset[i].x * gui_fov_scale_hud;
+                }
+            
+            lineStart.y += 8 * gui_fov_scale_hud;
+            for( int l=0; l<numLines; l++ ) {
+                
+                handwritingFont->drawString( lines[l], 
+                                             lineStart, alignLeft );
+                    
+                delete [] lines[l];
+                
+                lineStart.y -= lineSpacing;
+                }
+            delete [] lines;
+            }
+        }
+
 
     // draw minitech gui before, to hide the background behind the bottom bar
-    float worldMouseX, worldMouseY;
-    getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-    screenToWorld( lastScreenMouseX, lastScreenMouseY, &worldMouseX, &worldMouseY );
     minitech::livingLifeDraw(worldMouseX, worldMouseY);
 
     // info panel at bottom, over top of all the other slips
     setDrawColor( 1, 1, 1, 1 );
     doublePair panelPos = lastScreenViewCenter;
-	
-	    //FOV
-	panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
-	// First left part.
-	if( gui_hud_mode == 0 ) {
-		panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
-		drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
+    
+    //FOV
+    panelPos.y -= recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale;
+    // First left part.
+    if( gui_hud_mode == 0 ) {
+        panelPos.x = lastScreenViewCenter.x - recalcOffsetX( 384 ) * gui_fov_scale;
+        drawSprite( guiPanelLeftSprite, panelPos, gui_fov_scale_hud );
         }
     else if ( gui_hud_mode == 1 && gui_fov_target_scale_hud > 1.0f ) {
-		drawHUDBarPart(	lastScreenViewCenter.x - 640 * gui_fov_scale,
-						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
-						( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
-						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+        drawHUDBarPart(    lastScreenViewCenter.x - 640 * gui_fov_scale,
+                        lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+                        ( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
+                        getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
         }
 
-	// Now the middle.
-	if( gui_hud_mode == 0 )	{
-		drawHUDBarPart(	lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale,
-						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
-						recalcOffsetX( 128 ) * 2 * gui_fov_scale,
-						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+    // Now the middle.
+    if( gui_hud_mode == 0 )    {
+        drawHUDBarPart(    lastScreenViewCenter.x - recalcOffsetX( 128 ) * gui_fov_scale,
+                        lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+                        recalcOffsetX( 128 ) * 2 * gui_fov_scale,
+                        getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
         }
-	else {
-		drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
-        }
-
-	// And finally draw the right end.
-	if( gui_hud_mode == 0 )	{
-		panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
-		drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
-        }
-	else if ( gui_hud_mode == 1 && gui_fov_target_scale_hud > 1.0f )	{
-		drawHUDBarPart(	lastScreenViewCenter.x + 640 * gui_fov_scale_hud,
-						lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
-						( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
-						getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+    else {
+        drawSprite( mGuiPanelSprite, panelPos, gui_fov_scale_hud );
         }
 
-	panelPos.x = lastScreenViewCenter.x;
+    // And finally draw the right end.
+    if( gui_hud_mode == 0 )    {
+        panelPos.x = lastScreenViewCenter.x + recalcOffsetX( 384 ) * gui_fov_scale;
+        drawSprite( guiPanelRightSprite, panelPos, gui_fov_scale_hud );
+        }
+    else if ( gui_hud_mode == 1 && gui_fov_target_scale_hud > 1.0f )    {
+        drawHUDBarPart(    lastScreenViewCenter.x + 640 * gui_fov_scale_hud,
+                        lastScreenViewCenter.y - recalcOffsetY( 360 ) * gui_fov_scale,
+                        ( 1280.0 * gui_fov_scale / 2.0 ) - 640 * gui_fov_scale_hud,
+                        getSpriteHeight( guiPanelTileSprite ) * gui_fov_scale_hud );
+        }
+
+
+    doublePair panelTL = {
+        -visibleViewWidth/2,
+        -recalcOffsetY( 242 + 32 + 16 + 6 ) * gui_fov_scale
+        };
+    doublePair panelBR = {
+        visibleViewWidth/2,
+        -viewHeight/2
+        };
+    bottomPanelComponent.setClickableArea( panelTL, panelBR );
+
+
+    panelPos.x = lastScreenViewCenter.x;
 
     if( ourLiveObject != NULL &&
         ourLiveObject->dying  &&
@@ -10440,6 +12632,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
         bloodPos.y -= 32 * gui_fov_scale_hud;
         bloodPos.x -= 32 * gui_fov_scale_hud;
         drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
+
+        if( gui_hud_mode == 0 || gui_hud_mode == 1 ) {
+            float width = 2700.0;
+            bloodPos.x -= width / 2 * gui_fov_scale_hud;
+            drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
+            bloodPos.x += width * gui_fov_scale_hud;
+            drawSprite( mGuiBloodSprite, bloodPos, gui_fov_scale_hud );
+            }
+
         toggleMultiplicativeBlend( false );
         }
     
@@ -10460,8 +12661,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
 
         // show as a sigil to right of temp meter
-		doublePair curseTokenPos = { lastScreenViewCenter.x + ( recalcOffsetX( 621 ) * gui_fov_scale ), 
-									 lastScreenViewCenter.y - ( recalcOffsetY( 316 ) * gui_fov_scale )};
+        doublePair curseTokenPos = { lastScreenViewCenter.x + ( recalcOffsetX( 621 ) * gui_fov_scale ), 
+                                     lastScreenViewCenter.y - ( recalcOffsetY( 316 ) * gui_fov_scale )};
         curseTokenFont->drawString( "C", curseTokenPos, alignCenter );
         curseTokenFont->drawString( "+", curseTokenPos, alignCenter );
         curseTokenPos.x += ( 6 * gui_fov_scale_hud );
@@ -10490,11 +12691,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
         setDrawColor( 1, 1, 1, 1 );
         toggleMultiplicativeBlend( true );
 
+        // feature from Hetuw
+        int foodStoreWithHolding = ourLiveObject->foodStore;
+        if( ourLiveObject->holdingID > 0 && getObject( ourLiveObject->holdingID )->foodValue > 0 )
+            foodStoreWithHolding += getObject( ourLiveObject->holdingID )->foodValue;
+
         for( int i=0; i<ourLiveObject->foodCapacity; i++ ) {
             doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
                                lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
             pos.x += i * ( 30 * gui_fov_scale_hud );
-			
+            
             drawSprite( 
                     mHungerBoxSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
                     pos, gui_fov_scale_hud );
@@ -10504,6 +12710,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     mHungerBoxFillSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
                     pos, gui_fov_scale_hud );
                 }
+            else if( i < foodStoreWithHolding && showPipsOfFoodHeld ) {
+                drawSprite( 
+                    mHungerBoxFillSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
+                    pos, 0.4 );
+				}
             else if( i < ourLiveObject->maxFoodStore ) {
                 drawSprite( 
                     mHungerBoxFillErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
@@ -10512,9 +12723,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         for( int i=ourLiveObject->foodCapacity; 
              i < ourLiveObject->maxFoodCapacity; i++ ) {
-			doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
-							   lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
-			pos.x += i * ( 30 * gui_fov_scale_hud );
+            doublePair pos = { lastScreenViewCenter.x - ( recalcOffsetX( 590 ) * gui_fov_scale ), 
+                               lastScreenViewCenter.y - ( recalcOffsetY( 340 ) * gui_fov_scale )};
+            pos.x += i * ( 30 * gui_fov_scale_hud );
             
             drawSprite( 
                 mHungerBoxErasedSprites[ i % NUM_HUNGER_BOX_SPRITES ], 
@@ -10608,11 +12819,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
         // Food bar is not loaded if the game just has just reconnected
         // Draw the bonus part of the food bar after the food bar is loaded
         if( ourLiveObject->maxFoodCapacity > 0 ) {
+
+            int foodBarBoxesForLabel = ourLiveObject->maxFoodCapacity;
+            if( foodBarBoxesForLabel < 5 ) foodBarBoxesForLabel = 5; // If food bar is too short, the labels are too close to "Food Meter"
             
             // 2HOL food UI - Yum Bonus label
             char *yumString3 = autoSprintf( "BONUS:" );
             double yumStringSize3 = handwritingFont->measureString( yumString3 );
-            yumPos.x += ourLiveObject->maxFoodCapacity * ( 30 * gui_fov_scale_hud );
+            yumPos.x += foodBarBoxesForLabel * ( 30 * gui_fov_scale_hud );
             yumPos.y -= 2 * gui_fov_scale_hud;
             doublePair pos = yumPos;
             pos.x += yumStringSize3 / 2 + 16 * gui_fov_scale_hud;
@@ -10820,33 +13034,32 @@ void LivingLifePage::draw( doublePair inViewCenter,
             drawMessage( "bugMessage2", messagePos );
             }
         }
-		
-	if( true ) {
-		setDrawColor( 0, 0, 0, 1 );
-		doublePair drawPos;
-		char sBuf[32];
-		int age = (int)(ourAge*10);
-		int ageDecimal = age - int(age*0.1)*10;
-		age = (int)((age-ageDecimal)*0.1);
-		sprintf(sBuf, "%c  %i.%i", ourGender, age, ageDecimal);
-		drawPos = lastScreenViewCenter;
-		drawPos.x += recalcOffsetX( 290 ) * gui_fov_scale + 30 * gui_fov_scale_hud;
-		drawPos.y -= viewHeight/2 - 25 * gui_fov_scale_hud;
-		handwritingFont->drawString( sBuf, drawPos, alignCenter );
-		}
+        
+    if( true ) {
+        setDrawColor( 0, 0, 0, 1 );
+        doublePair drawPos;
+        int age = (int)(ourAge*10);
+        int ageDecimal = age - int(age*0.1)*10;
+        age = (int)((age-ageDecimal)*0.1);
+        char *ageString = autoSprintf( "AGE: %i.%i", age, ageDecimal);
+        char *genderString = autoSprintf( "SEX: %c", ourGender);
+        drawPos = lastScreenViewCenter;
+        drawPos.x += recalcOffsetX( 210 ) * gui_fov_scale + 30 * gui_fov_scale_hud;
+        drawPos.y -= recalcOffsetY( 340 ) * gui_fov_scale;
+        drawPos.y -= 2 * gui_fov_scale_hud;
+        handwritingFont->drawString( genderString, drawPos, alignLeft );
+        drawPos.y += 26 * gui_fov_scale_hud;
+        drawPos.x -= 4 * gui_fov_scale_hud;
+        handwritingFont->drawString( ageString, drawPos, alignLeft );
+        delete [] ageString;
+        delete [] genderString;
+        }
 
-	
+    
     if( minitech::currentHintTrans.size() > 0 ) {
         minitech::drawIconOnHoverTips();
         }
-	
-
-    if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
-        doublePair mousePos = { lastMouseX, lastMouseY };
-        int mouseX = int(round( mousePos.x / (float)CELL_D ));
-        int mouseY = int(round( mousePos.y / (float)CELL_D ));
-        drawTileRect( mouseX, mouseY, "green", false );
-        }
+    
     
     
     if( vogMode ) {
@@ -11053,6 +13266,7 @@ void LivingLifePage::handleOurDeath( char inDisconnect ) {
     // so sound tails are not still playing when we we get reborn
     fadeSoundSprites( 0.1 );
     setSoundLoudness( 0 );
+    clearTownPlannerMap();
     }
 
 
@@ -11075,18 +13289,11 @@ static char isCategory( int inID ) {
 
 
 static char isFood( int inID ) {
-    if( inID <= 0 ) {
-        return false;
-        }
-    
-    ObjectRecord *o = getObject( inID );
-    
-    if( o->foodValue > 0 ) {
-        return true;
-        }
-    else {
-        return false;
-        }
+    if( inID <= 0 ) return false;
+    ObjectRecord *o = getObject( inID, true );
+    if( o == NULL ) return false;
+    if( o->foodValue > 0 || o->bonusValue > 0 ) return true;
+    return false;
     }
 
 
@@ -12181,7 +14388,7 @@ doublePair LivingLifePage::getPlayerPos( LiveObject *inPlayer ) {
 
 
 
-void LivingLifePage::displayGlobalMessage( char *inMessage ) {
+void LivingLifePage::displayGlobalMessage( char *inMessage, char forceRight, char forceSingleLine ) {
     
     char *upper = stringToUpperCase( inMessage );
                 
@@ -12202,7 +14409,13 @@ void LivingLifePage::displayGlobalMessage( char *inMessage ) {
         mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
             mTutorialHideOffset[ mLiveTutorialSheetIndex ];
         }
-    mLiveTutorialSheetIndex ++;
+        
+    if( !forceRight ) {
+        mLiveTutorialSheetIndex ++;
+        }
+    else {
+        mLiveTutorialSheetIndex = 1;
+        }
     
     if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
         mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
@@ -12223,6 +14436,10 @@ void LivingLifePage::displayGlobalMessage( char *inMessage ) {
         (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
     
     mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
+
+    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].y = 0;
+
+    if( forceSingleLine ) mTutorialExtraOffset[ mLiveTutorialSheetIndex ].y = -34;
     
     
     delete [] spaces;
@@ -12273,42 +14490,6 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     
     mCravingExtraOffset[ mLiveCravingSheetIndex ].x = longestLine;
     }
-    
-
-void LivingLifePage::displayMessage() {
-    
-    newbieTips::shouldDisplayMessage = false;
-    if( mGlobalMessageShowing ) return;
-    
-    mGlobalMessageShowing = true;
-    mGlobalMessageStartTime = game_getCurrentTime();
-    
-    if( mLiveTutorialSheetIndex >= 0 ) {
-        mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-        }
-    mLiveTutorialSheetIndex ++;
-    
-    if( mLiveTutorialSheetIndex >= NUM_HINT_SHEETS ) {
-        mLiveTutorialSheetIndex -= NUM_HINT_SHEETS;
-        }
-    mTutorialMessage[ mLiveTutorialSheetIndex ] = stringDuplicate( newbieTips::messageToDisplay );
-    
-    // other tutorial messages don't need to be destroyed
-    mGlobalMessagesToDestroy.push_back( 
-        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-    
-    mTutorialTargetOffset[ mLiveTutorialSheetIndex ] =
-        mTutorialHideOffset[ mLiveTutorialSheetIndex ];
-    
-    mTutorialTargetOffset[ mLiveTutorialSheetIndex ].y -= 100;
-    
-    double longestLine = getLongestLine( 
-        (char*)( mTutorialMessage[ mLiveTutorialSheetIndex ] ) );
-
-    mTutorialExtraOffset[ mLiveTutorialSheetIndex ].x = longestLine;
-    
-}
 
 
         
@@ -12710,6 +14891,20 @@ void LivingLifePage::step() {
     
     
     LiveObject *ourObject = getOurLiveObject();
+
+    // custom persistent emot
+    if( persistentEmoteEnabled &&
+        ourObject != NULL && customPersistentEmotIndex != -1 &&
+        // 2 sec wiggleroom to avoid flickering
+        game_getCurrentTime() - timeLastPersistentEmotSent > emotDuration - 2
+        ) {
+        
+        char *message = autoSprintf( "EMOT 0 0 %d#", customPersistentEmotIndex );
+        sendToServerSocket( message );
+        delete [] message;
+
+        timeLastPersistentEmotSent = game_getCurrentTime();
+        }
 
     if( ourObject != NULL ) {    
         
@@ -13181,7 +15376,14 @@ void LivingLifePage::step() {
         mTutorialNumber,
         mLiveTutorialTriggerNumber
         );
-    if( newbieTips::shouldDisplayMessage ) displayMessage();
+    if( newbieTips::shouldDisplayMessage ) {
+        char *message = stringDuplicate( newbieTips::messageToDisplay );
+        displayGlobalMessage( message );
+        delete [] message;
+        newbieTips::shouldDisplayMessage = false;
+        }
+
+    if (stepCount % 43 == 0) updatePlayersAndFamilies();
 
 
     // pos for tutorial sheets
@@ -13223,9 +15425,11 @@ void LivingLifePage::step() {
                          mult( dir, speed ) );
                 }
             
-            if( equal( mTutorialTargetOffset[i], 
+            if( equal( mTutorialPosOffset[i], 
                        mTutorialHideOffset[i] ) ) {
                 // fully hidden
+
+                mTutorialExtraOffset[i].y = 0;
                 }
             else if( equal( mTutorialPosOffset[i],
                             mTutorialTargetOffset[i] ) ) {
@@ -13509,13 +15713,21 @@ void LivingLifePage::step() {
         sendToServerSocket( (char*)"KA 0 0#" );
         }
     
-	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
-	
-	minitech::livingLifeStep();
+
+    
+    if( moveClick ) checkIfMoveClickIsDone();
+
+
+    if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) movementStep();
+    
+    minitech::livingLifeStep();
     stepCount++;
     if (stepCount > 10000) stepCount = 0;
+    livingLifeStepCount = stepCount;
+
     if (ourObject != NULL && stepCount % 10 == 0) 
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
+
 
     if( showFPS ) {
         timeMeasures[1] += game_getCurrentTime() - updateStartTime;
@@ -13572,7 +15784,7 @@ void LivingLifePage::step() {
                 char **lines = split( message, "\n", &numLines );
                 
                 if( numLines > 1 ) {
-                    displayGlobalMessage( lines[1] );
+                    displayGlobalMessage( lines[1], true );
                     }
                 for( int i=0; i<numLines; i++ ) {
                     delete [] lines[i];
@@ -13724,55 +15936,9 @@ void LivingLifePage::step() {
             char *outMessage;
 
             char *tempEmail;
-            
-            if( strlen( userEmail ) > 0 ) {
-                std::string seededEmail = std::string( userEmail );
 
-				// If user doesn't have a seed or targetFamily in their email field
-				if( seededEmail.find('|') == std::string::npos &&
-                    seededEmail.find(':') == std::string::npos ) {
-                    if( useSpawnSeed ) {
-                        char *seedListFromFile = SettingsManager::getSettingContents( "spawnSeed", "" );
-                        std::string seedList(seedListFromFile);
-                        delete [] seedListFromFile;
-                        std::string seed = "";
-                        if( seedList == "" ) {
-                            seed = "";
-                        } else if( seedList.find('\n') == std::string::npos ) {
-                            seed = seedList;
-                        } else if( seedList.find('\n') != std::string::npos ) {
-                            seed = seedList.substr( 0, seedList.find('\n') );
-                        }
+	        tempEmail = stringDuplicate( getSeededEmail().c_str() );
 
-                        // And if the user has a seed set in settings
-                        if( seed != "" ) {
-                            // Add seed delim and then seed
-                            seededEmail += '|';
-                            seededEmail += seed;
-                            }
-                        }
-                    // Only if a seed is not specified we'd use a targetFamily
-                    else if( seededEmail.find(':') == std::string::npos && useTargetFamily ) {
-                        char *targetFamilyChars = SettingsManager::getSettingContents( "targetFamily", "" );
-                        std::string targetFamily( targetFamilyChars );
-                        delete [] targetFamilyChars;
-                        
-                        if( targetFamily != "" ) {
-                            seededEmail += ':';
-                            seededEmail += targetFamily;
-                            }
-                        }
-					}
-
-                tempEmail = stringDuplicate( seededEmail.c_str() );
-                }
-            else {
-                // a blank email
-                // this will cause LOGIN message to have one less token
-                
-                // stick a place-holder in there instead
-                tempEmail = stringDuplicate( "blank_email" );
-                }
             
 
             if( strlen( tempEmail ) <= 80 ) {    
@@ -13884,6 +16050,9 @@ void LivingLifePage::step() {
                         if( !found ) {
                         
                             addAncientHomeLocation( posX, posY );
+
+                            SavedCoordinates bellCoords = {posX, posY, translate("bellLocation"), 3};
+                            addCoordinates( bellCoords );
                             
                             // play sound in distance
                             ObjectRecord *monObj = getObject( monumentID );
@@ -13926,6 +16095,7 @@ void LivingLifePage::step() {
                     g.creationTimeUnknown = false;
                     g.lastMouseOverYears = -1;
                     g.lastMouseOverTime = g.creationTime;
+                    g.playerID = playerID;
                     
                     char *des = gravePerson->relationName;
                     char *desToDelete = NULL;
@@ -14129,6 +16299,7 @@ void LivingLifePage::step() {
                 GraveInfo g;
                 g.worldPos.x = posX;
                 g.worldPos.y = posY;
+                g.playerID = playerID;
                 
                 char *des = relationName;
                 char *desToDelete = NULL;
@@ -14302,19 +16473,30 @@ void LivingLifePage::step() {
             int numRead = sscanf( message, "VU\n%d %d",
                                   &posX, &posY );
             if( numRead == 2 ) {
-                vogModeActuallyOn = true;
+                if( vogMode ) vogModeActuallyOn = true;
                 
                 vogPos.x = posX;
                 vogPos.y = posY;
 
-                mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
-                                           vogPos.y * CELL_D + 90 );
+                if( vogJumpCameraOnNextVU ) {
+                    vogJumpCameraOnNextVU = false;
 
-                // jump camp instantly
-                lastScreenViewCenter.x = posX * CELL_D;
-                lastScreenViewCenter.y = posY * CELL_D;
-                setViewCenterPosition( lastScreenViewCenter.x,
-                                       lastScreenViewCenter.y );
+                    LiveObject *ourLiveObject = getOurLiveObject();
+                    ourLiveObject->xd = posX;
+                    ourLiveObject->yd = posY;
+                    // changing currentPos will draw the character where 
+                    // vogPos is if character is drawn 
+                    ourLiveObject->currentPos.x = posX;
+                    ourLiveObject->currentPos.y = posY;
+
+                    // jump camp instantly
+                    vogMoveCamera( posX * CELL_D, posY * CELL_D );
+                    }
+
+                if( vogResumingUsualCameraMovementOnNextVU ) {
+                    vogResumingUsualCameraMovementOnNextVU = false;
+                    vogStopUsualCameraMovement = false;
+                    }
 
                 mCurMouseOverCellFade = 1.0;
                 
@@ -14654,6 +16836,11 @@ void LivingLifePage::step() {
                 
                 if( tokens->size() == numCells ) {
                     
+                    if( generateTownPlannerMaps ) {
+                        if( townPlannerMapFile == NULL ) initTownPlannerMap();
+                        saveChunkToTownPlannerMap( tokens, sizeX, sizeY, x, y, mMapOffsetX, mMapOffsetY, mMapD );
+                        }
+                    
                     for( int i=0; i<tokens->size(); i++ ) {
                         int cX = i % sizeX;
                         int cY = i / sizeX;
@@ -14742,7 +16929,7 @@ void LivingLifePage::step() {
                 
                 if( !( mFirstServerMessagesReceived & 1 ) ) {
                     // first map chunk just recieved
-					
+                    
                     minitech::changeScale( 1.25 * gui_fov_scale_hud );
                     minitech::initOnBirth();
                     
@@ -14963,7 +17150,7 @@ void LivingLifePage::step() {
                             // Check for possible contained change as well as container change
                             // in a containment transition
                             containerChangebyContTrans = potentialContainerChangebyContTrans(old, newID);
-							
+                            
                             SimpleVector<int> oldContained;
                             // player triggered
                             // with no changed to container
@@ -15581,7 +17768,7 @@ void LivingLifePage::step() {
                             if( newObj->permanent && newObj->blocksWalking ) {
                                 // clear the locally-stored flip for this
                                 // tile
-								if( speed == 0 ) //allow blocking objects that move to flip e.g. beaver
+                                if( speed == 0 ) //allow blocking objects that move to flip e.g. beaver
                                 mMapTileFlips[mapI] = false;
                                 }    
                             }
@@ -16021,6 +18208,8 @@ void LivingLifePage::step() {
                     numRead += 2;
                     }
                 
+                // this is responsible for death messages
+                onPlayerUpdate( &o, lines[i] );
 
                 // heldYum is 24th value, optional
                 // heldLearned is 25th value, optional
@@ -16184,6 +18373,11 @@ void LivingLifePage::step() {
                                 // MEH
                                 slipIndexToShow = 3;
                                 holdingYumOrMeh = -1;
+
+                                // we are holding a meh food which isn't
+                                // in our record, we must have restarted the game
+                                // record the food again
+                                addToYummyFoodChain( o.holdingID );
                                 }
                             else {
                                 holdingYumOrMeh = 0;
@@ -16541,8 +18735,8 @@ void LivingLifePage::step() {
                             mNextHintObjectID = existing->holdingID;
                             mNextHintIndex = 
                                 mHintBookmarks[ mNextHintObjectID ];
-								
-							if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(mNextHintObjectID);
+                                
+                            if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(mNextHintObjectID);
                             }
 
 
@@ -16699,6 +18893,8 @@ void LivingLifePage::step() {
                                         existing->currentPos.y ) );
                                 otherSoundPlayed = true;
                                 }
+
+                            addToYummyFoodChain( justAteID );
                             }
 
                         
@@ -16735,6 +18931,8 @@ void LivingLifePage::step() {
                                 // back toward peak
                                 mRemapDirection = 1.0;
                                 }
+
+                            addToYummyFoodChain( justAteID );
                             }
                         
                         
@@ -17745,7 +19943,7 @@ void LivingLifePage::step() {
                             mDeathReason = stringDuplicate( 
                                 translate( "reasonSID" ) );
                             }
-                        else if( strcmp( reasonString, "suicide" ) == 0 ) {
+                        else if( strstr( reasonString, "suicide" ) != NULL ) {
                             ObjectRecord *holdingO = NULL;
 
                             if( ourLiveObject->holdingID > 0 ) {
@@ -18057,15 +20255,43 @@ void LivingLifePage::step() {
                 
                 ourID = ourObject->id;
                 if (ourObject) ourGender = getObject(ourObject->displayID)->male ? 'M' : 'F';
-				
+                
 
                 if( ourID != lastPlayerID ) {
                     // different ID than last time, delete old home markers
                     oldHomePosStack.deleteAll();
+
+                    SavedCoordinatesList.deleteAll();
+                    SavedCoordinatesComponentList.deleteAll();
+                    savedOrigin = {0, 0};
+                    nextSavedCoordinatesLetter = 1;
+
+                    // clear custom persistent emot
+                    customPersistentEmotIndex = -1;
+                    timeLastPersistentEmotSent = 0;
+
+                    // clear yummy food chain
+                    yummyFoodChain.deleteAll();
+
+                    // don't clear object search
+                    // allow searches across lives
+                    // objectSearchQueries.deleteAll();
+                    // updateObjectSearchArray();
+
+                    int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
+                    // TODO: If fertility age is ever not hard coded, maybe put it here?
+                    if (automaticInfertilityAsEve > 0) {
+                        printf("automaticInfertilityPendingLineageCheck\n");
+                        automaticInfertilityPendingLineageCheck = true;
+                        }
+
                     }
                 homePosStack.push_back_other( &oldHomePosStack );
 
                 lastPlayerID = ourID;
+
+                SavedCoordinates birthCoords = {0, 0, translate("birthLocation"), 1};
+                addCoordinates( birthCoords );
 
                 // we have no measurement yet
                 ourObject->lastActionSendStartTime = 0;
@@ -18807,10 +21033,14 @@ void LivingLifePage::step() {
                                                                  person,
                                                                  personID,
                                                                  personKey );
+                                            
+                                            SavedCoordinates mapCoords = {
+                                                mapX, mapY, 
+                                                extractMapName(existing->currentSpeech),
+                                                2
+                                                };
+                                            addCoordinates( mapCoords );
                                             }
-
-                                        // trim it off
-                                        starPos[0] ='\0';
 
                                         doublePair dest = { (double)mapX, 
                                                             (double)mapY };
@@ -19119,14 +21349,17 @@ void LivingLifePage::step() {
                                 // exiting VOG or flight landing both cause the server to resend the lineage message
                                 // hence we use our age to differentiate
                                 
-                                if( id == ourID && !vogMode ) {
-                                    int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
-                                    // TODO: If fertility age is ever not hard coded, maybe put it here?
-                                    if (automaticInfertilityAsEve > 0 and existing->lineageEveID == ourID and existing->age < 15.0) {
+                                // actually we can tell if we are in a new life by comparing ourID and lastPlayerID
+                                // the check happened elsewhere for auto-NO BB
+                                if( id == ourID && automaticInfertilityPendingLineageCheck ) {
+                                    if ( existing->lineageEveID == ourID 
+                                        //  && existing->age < 15.0 // no longer needs to use age to differentiate
+                                         ) {
                                         // We are Eve, not yet fertile, and have chosen not to eat the fruit. No BB plz.
                                         Thread::staticSleep( 1000 ); // Server ignores say commands sent in the first second after creation.
                                         sendToServerSocket((char*)"SAY 0 0 NO BB#");
                                         printf("automaticInfertilityAsEve set, making Eve infertile.\n");
+                                        automaticInfertilityPendingLineageCheck = false;
                                         }
                                     }
                                 
@@ -19285,21 +21518,21 @@ void LivingLifePage::step() {
                                 char *nameStart = &( firstSpace[1] );
                                 
                                 existing->name = stringDuplicate( nameStart );
-								
-								LiveObject *ourLiveObject = getOurLiveObject();
-								if ( id == ourLiveObject->id && 
-									//Little hack here to not have the ding
-									//when we are just reconnected
-									//instead of a real name change
-									ourLiveObject->foodCapacity > 0 && 
-									mChimeSound != NULL ) {
-									playSound( 
-										mChimeSound,
-										0.03 * getSoundEffectsLoudness(), 
-										getVectorFromCamera( 
-											ourLiveObject->currentPos.x, 
-											ourLiveObject->currentPos.y ) );
-									}
+                                
+                                LiveObject *ourLiveObject = getOurLiveObject();
+                                if ( id == ourLiveObject->id && 
+                                    //Little hack here to not have the ding
+                                    //when we are just reconnected
+                                    //instead of a real name change
+                                    ourLiveObject->foodCapacity > 0 && 
+                                    mChimeSound != NULL ) {
+                                    playSound( 
+                                        mChimeSound,
+                                        0.03 * getSoundEffectsLoudness(), 
+                                        getVectorFromCamera( 
+                                            ourLiveObject->currentPos.x, 
+                                            ourLiveObject->currentPos.y ) );
+                                    }
                                 }
                             
                             break;
@@ -19471,7 +21704,7 @@ void LivingLifePage::step() {
                 if( oldYumBonus != mYumBonus ) {
                     
                     mOldYumBonusValue = oldYumBonus;
-					
+                    
                     // pull out of old stack, if present
                     for( int i=0; i<mOldYumBonus.size(); i++ ) {
                         if( mOldYumBonus.getElementDirect( i ) == mYumBonus ) {
@@ -19809,7 +22042,7 @@ void LivingLifePage::step() {
             // typing a filter
             // hard cap at 25, regardless of age
             // don't want them typing long filters that overflow the display
-            sayCap = 23;
+            sayCap = 28; // max 28 for /FIND, even less for minitech
             }
         delete [] currentText;
 
@@ -19842,7 +22075,7 @@ void LivingLifePage::step() {
             
         int centerCamera = SettingsManager::getIntSetting( "centerCamera", 0 );
         
-        if( vogMode || centerCamera ) {
+        if( vogMode || centerCamera || vogStopUsualCameraMovement ) {
             // don't adjust camera
             }
         else if( 
@@ -19955,6 +22188,45 @@ void LivingLifePage::step() {
         if( !shouldMoveCamera ) {
             screenTargetPos = lastScreenViewCenter;
             }
+
+        // VOG follow mode
+        if( vogFollowMode ) {
+
+            LiveObject *targetPlayer = getLiveObject( vogFollowPlayerID );
+
+            if( targetPlayer != NULL ) {
+                if( targetPlayer->outOfRange ) {
+                    targetPlayer = NULL;
+                    }
+                else if( targetPlayer->currentPos.x == 1977.0 && targetPlayer->currentPos.y == 1977.0 ) {
+                    // these are the dummy coordinates for far-away players
+                    targetPlayer = NULL;
+                    }
+                }
+
+            if( targetPlayer == NULL ) {
+                vogFollowPlayerID = -1;
+                vogFollowMode = false;
+                }
+            else {
+
+                vogMoveCamera(targetPlayer->currentPos.x * CELL_D, targetPlayer->currentPos.y * CELL_D);
+
+                if( // maxChunkDimension/2 is the border of loaded area
+                    abs(targetPlayer->currentPos.x - vogPos.x) > maxChunkDimension/2 /2 ||
+                    abs(targetPlayer->currentPos.y - vogPos.y) > maxChunkDimension/2 /2
+                    ) {
+
+                    if( game_getCurrentTime() - lastVogMoveTime > 0.5 ) { // don't spam VOGM
+                        
+                        vogMove( lrintf(targetPlayer->currentPos.x), lrintf(targetPlayer->currentPos.y) );
+
+                        lastVogMoveTime = game_getCurrentTime();
+                        }
+                    }
+                }
+
+            }
         
 
         doublePair dir = sub( screenTargetPos, lastScreenViewCenter );
@@ -19984,6 +22256,7 @@ void LivingLifePage::step() {
 
             moveStep.x = lrint( moveStep.x );
                         
+            if( !vogStopUsualCameraMovement )
             if( fabs( moveStep.x ) > 0 ) {
                 lastScreenViewCenter.x += moveStep.x;
                 viewChange = true;
@@ -19998,6 +22271,7 @@ void LivingLifePage::step() {
 
             moveStep.y = lrint( moveStep.y );
                         
+            if( !vogStopUsualCameraMovement )
             if( fabs( moveStep.y ) > 0 ) {
                 lastScreenViewCenter.y += moveStep.y;
                 viewChange = true;
@@ -20015,6 +22289,7 @@ void LivingLifePage::step() {
             moveStep.x = lrint( moveStep.x );
             moveStep.y = lrint( moveStep.y );
                         
+            if( !vogStopUsualCameraMovement )
             if( length( moveStep ) > 0 ) {
                 lastScreenViewCenter = add( lastScreenViewCenter, 
                                             moveStep );
@@ -20023,19 +22298,20 @@ void LivingLifePage::step() {
             }
         
 
-        if( viewChange ) {
+        if( viewChange || vogStopUsualCameraMovement ) {
             //lastScreenViewCenter.x = screenTargetPos.x;
             //lastScreenViewCenter.y = screenTargetPos.y;
             
+            if( !vogStopUsualCameraMovement )
             setViewCenterPosition( lastScreenViewCenter.x, 
                                    lastScreenViewCenter.y );
-								   
-			getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
-			screenToWorld( lastScreenMouseX,
-						   lastScreenMouseY,
-						   &lastMouseX,
-						   &lastMouseY );
-						   
+                                   
+            getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+            screenToWorld( lastScreenMouseX,
+                           lastScreenMouseY,
+                           &lastMouseX,
+                           &lastMouseY );
+                           
             // camera moved, simulate a pointer move to the last known position
             // to check again what the pointer is hitting
             pointerMove( lastMouseX, lastMouseY );
@@ -20490,17 +22766,21 @@ void LivingLifePage::step() {
                                 o->waypointX = lrint( worldMouseX / CELL_D );
                                 o->waypointY = lrint( worldMouseY / CELL_D );
 
+                                mForceGroundClick = true;
                                 pointerDown( fakeClick.x, fakeClick.y );
+                                mForceGroundClick = false;
                                
                                 o->useWaypoint = false;
                                 }
                             else {
+                                mForceGroundClick = true;
                                 pointerDown( worldMouseX, worldMouseY );
+                                mForceGroundClick = false;
                                 }
                             }
                         }
                     }
-                else if( o->id == ourID && o->pathLength >= 2 &&
+                else if( o->id == ourID && o->pathLength >= 2 && allowAutoRun &&
                          nextActionMessageToSend == NULL &&
                          distance( endPos, o->currentPos )
                          < o->currentSpeed ) {
@@ -21222,11 +23502,20 @@ void LivingLifePage::makeActive( char inFresh ) {
     mXKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
-	
+
+    allowAutoRun = false;
+    
     upKeyDown = false;
     leftKeyDown = false;
     downKeyDown = false;
     rightKeyDown = false;
+
+    moveClickX = 0;
+    moveClickY = 0;
+    moveClickAlpha = false;
+    moveClick = false;
+
+    runningYumFinder = false;
     
     screenCenterPlayerOffsetX = 0;
     screenCenterPlayerOffsetY = 0;
@@ -21257,6 +23546,35 @@ void LivingLifePage::makeActive( char inFresh ) {
     mPrevMouseClickCellFades.deleteAll();
 
     
+    topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+    coordinatesSlipComponent.mActive = coordinatesEnabled;
+    familyDisplaySlipComponent.mActive = 
+        familyDisplayEnabled; // && (!coordinatesEnabled);
+    objectSearchSlipComponent.mActive = 
+        objectSearchEnabled; // && (!(coordinatesEnabled || familyDisplayEnabled) || objectSearchQueries.size() > 0);
+
+    leftPanelComponent.mActive = false;
+
+    for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+        ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+        savedCoordsClickable->mActive = false;
+        }
+    for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+        ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+        objectSearchQueryClickable->mActive = false;
+        }
+    for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+        ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+        displayedFamiliesClickable->mActive = false;
+        }
+
+
+    // reload command shortcuts
+    commandShortcuts.deallocateStringElements();
+    readPhrasesFromRawText( commandShortcutsRawText, &commandShortcuts );
+
+    // this may have been changed in settings page, recalculate
+    changeHUDFOV( gui_fov_target_scale_hud );
 
     if( !inFresh ) {
     
@@ -21266,14 +23584,14 @@ void LivingLifePage::makeActive( char inFresh ) {
           changeFOV( 1.0f );
           }
       
-		//reset camera if LivingLifePage is made active again
-		LiveObject *ourLiveObject = getOurLiveObject();
-		if ( ourLiveObject != NULL )
-		
-		lastScreenViewCenter.x = ourLiveObject->currentPos.x * CELL_D;
-		lastScreenViewCenter.y = ourLiveObject->currentPos.y * CELL_D;
-		setViewCenterPosition( lastScreenViewCenter.x,
-							   lastScreenViewCenter.y );
+        //reset camera if LivingLifePage is made active again
+        LiveObject *ourLiveObject = getOurLiveObject();
+        if ( ourLiveObject != NULL )
+        
+        lastScreenViewCenter.x = ourLiveObject->currentPos.x * CELL_D;
+        lastScreenViewCenter.y = ourLiveObject->currentPos.y * CELL_D;
+        setViewCenterPosition( lastScreenViewCenter.x,
+                               lastScreenViewCenter.y );
         return;
         }
 
@@ -21316,6 +23634,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     mPlayerInFlight = false;
     
     vogMode = false;
+    vogModeActuallyOn = false;
     
     showFPS = false;
     showNet = false;
@@ -21387,6 +23706,9 @@ void LivingLifePage::makeActive( char inFresh ) {
         mTutorialTargetOffset[i] = mTutorialHideOffset[i];
         mTutorialPosOffset[i] = mTutorialHideOffset[i];
         mTutorialMessage[i] = "";
+
+        mTutorialExtraOffset[i].x = 0;
+        mTutorialExtraOffset[i].y = 0;
 
         mCravingTargetOffset[i] = mCravingHideOffset[i];
         mCravingPosOffset[i] = mCravingHideOffset[i];
@@ -22102,6 +24424,25 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
         return;
         }
 
+    leftPanelComponent.pointerMove(inX, inY);
+    topLeftSlipComponent.pointerMove(inX, inY);
+    coordinatesSlipComponent.pointerMove(inX, inY);
+    objectSearchSlipComponent.pointerMove(inX, inY);
+    familyDisplaySlipComponent.pointerMove(inX, inY);
+    bottomPanelComponent.pointerMove(inX, inY);
+    for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+        ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+        savedCoordsClickable->pointerMove(inX, inY);
+        }
+    for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+        ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+        objectSearchQueryClickable->pointerMove(inX, inY);
+        }
+    for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+        ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+        displayedFamiliesClickable->pointerMove(inX, inY);
+        }
+
     PointerHitRecord p;
     
     p.hitSlotIndex = -1;
@@ -22175,7 +24516,10 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
     LiveObject *ourLiveObject = getOurLiveObject();
 
     ourLiveObject->currentMouseOverClothingIndex = -1;
+
+    currHoverPlayerID = 0;
     
+    if( !isAnyUIHovered() )
     if( destID == 0 ) {
         if( p.hitSelf ) {
             mCurMouseOverSelf = true;
@@ -22208,12 +24552,21 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             // store negative in place so that we can show their relation
             // string
             mCurMouseOverID = - p.hitOtherPersonID;
-			
+
+            currHoverPlayerID = p.hitOtherPersonID;
+            lastHoverPlayerID = p.hitOtherPersonID;
+            lastHoverPlayerTime = game_getCurrentTime();
+
+            if( !vogFollowMode || vogFollowPlayerID == -1 ) {
+                vogFollowPlayerID = p.hitOtherPersonID;
+                }
+            
             overNothing = false;
             }
         }
     
 
+    if( !isAnyUIHovered() )
     if( destID > 0 ) {
         mCurMouseOverSelf = false;
         
@@ -22310,6 +24663,56 @@ void LivingLifePage::pointerMove( float inX, float inY ) {
             }
         }
     
+    // VOG move, with smooth screen scrolling
+    if( vogModeActuallyOn && vogScrollingMode && !vogFollowMode ) {
+        double lastMouseX_relative = lastMouseX - lastScreenViewCenter.x;
+        double lastMouseY_relative = lastMouseY - lastScreenViewCenter.y;
+
+        double lastMouseX_percentage = abs(lastMouseX_relative) / (visibleViewWidth/2);
+        double lastMouseY_percentage = abs(lastMouseY_relative) / (viewHeight/2);
+
+        int dirX = 0;
+        int dirY = 0;
+        if( lastMouseX_percentage >= 0.97 ) {
+            if( lastMouseX_relative > 0 ) dirX = 1;
+            if( lastMouseX_relative < 0 ) dirX = -1;
+            }
+        if( lastMouseY_percentage >= 0.97 ) {
+            if( lastMouseY_relative > 0 ) dirY = 1;
+            if( lastMouseY_relative < 0 ) dirY = -1;
+            }
+
+        if( dirX != 0 || dirY != 0 ) {
+
+            vogStopUsualCameraMovement = true;
+
+            double distPerStep = 12 * gui_fov_scale;
+
+            vogMoveCamera(
+                lastScreenViewCenter.x + distPerStep * dirX,
+                lastScreenViewCenter.y + distPerStep * dirY
+                );
+            }
+
+        GridPos viewingGridPos = {
+            lrintf( lastScreenViewCenter.x / CELL_D ),
+            lrintf( lastScreenViewCenter.y / CELL_D )
+            };
+
+        if( // maxChunkDimension/2 is the border of loaded area
+            abs(viewingGridPos.x - vogPos.x) > maxChunkDimension/2 /2 ||
+            abs(viewingGridPos.y - vogPos.y) > maxChunkDimension/2 /2
+            ) {
+
+            if( game_getCurrentTime() - lastVogMoveTime > 0.5 ) { // don't spam VOGM
+                
+                vogMove( viewingGridPos.x, viewingGridPos.y );
+
+                lastVogMoveTime = game_getCurrentTime();
+                }
+
+            }
+        }
     
     }
 
@@ -22439,27 +24842,27 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     int mouseButton = getLastMouseButton();
     
-	bool scaling = false;
+    bool scaling = false;
     if( !mForceGroundClick ) {
         if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { scaling = true; }
         }
-	if ( blockMouseScaling ) { scaling = false; }
+    if ( blockMouseScaling ) { scaling = false; }
     
-	//FOV
-	if( scaling ) {
-        if ( isCommandKeyDown() ) {
-            float currentHUDScale = gui_fov_target_scale_hud;
-            float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
-            changeHUDFOV( newScale );
-        } else {
+    //FOV
+    if( scaling ) {
+        // if ( isCommandKeyDown() ) {
+        //     float currentHUDScale = gui_fov_target_scale_hud;
+        //     float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentHUDScale -= 0.25f : currentHUDScale += 0.25f;
+        //     changeHUDFOV( newScale );
+        // } else {
             if ( SettingsManager::getIntSetting( "fovEnabled", 0 ) ) {
                 float currentScale = gui_fov_scale;
                 float newScale = ( mouseButton == MouseButton::WHEELUP ) ? currentScale /= 1.15f : currentScale *= 1.15f;
                 changeFOV( newScale );
             }
-		}
-		return;
-	}
+        // }
+        return;
+    }
     
     if (!mForceGroundClick && 
         !isLastMouseButtonRight() &&
@@ -22486,7 +24889,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             return;
             }
         }
-	
+    
     lastMouseX = inX;
     lastMouseY = inY;
 
@@ -22498,7 +24901,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         // dead
         return;
         }
-	
+    
     if( vogMode ) {
         return;
         }
@@ -22530,12 +24933,118 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 
+    if( !mForceGroundClick || isAltKeyDown() )
+        allowAutoRun = true;
+
     if( playerActionPending ) {
         printf( "Skipping click, action pending\n" );
         
         // block further actions until update received to confirm last
         // action
         return;
+        }
+
+    if( !mForceGroundClick ) {
+        if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
+            if( isLastMouseButtonRight() ) return;
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 0;
+            leftPanelComponent.mActive = true;
+            leftPanelComponent.mHover = true;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                }
+            return;
+            }
+        else if( objectSearchSlipComponent.mActive && objectSearchSlipComponent.pointerDown(inX, inY) ) {
+            if( isLastMouseButtonRight() ) {
+                objectSearchQueries.deleteAll();
+                objectSearchQueriesComponentList.deleteAll();
+                updateObjectSearchArray();
+                return;
+                }
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 1;
+            leftPanelComponent.mActive = true;
+            leftPanelComponent.mHover = true;
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( familyDisplaySlipComponent.mActive && familyDisplaySlipComponent.pointerDown(inX, inY) ) {
+            if( isLastMouseButtonRight() ) return;
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 2;
+            leftPanelComponent.mActive = true;
+            leftPanelComponent.mHover = true;
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
+                }
+            return;
+            }
+        else if( leftPanelComponent.mActive ) {
+
+            if( leftPanelPageNumber == 0 ) {
+                for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                    ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                    if( savedCoordsClickable->pointerDown(inX, inY) ) {
+                        if( !isLastMouseButtonRight() ) {
+                            savedOrigin = SavedCoordinatesList.getElementDirect( i );
+                            }
+                        else {
+                            SavedCoordinatesList.deleteElement( i );
+                            SavedCoordinatesComponentList.deleteElement( i );
+                            }
+                        return;
+                        }
+                    }
+                }
+            else if( leftPanelPageNumber == 1 ) {
+                for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                    ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                    if( objectSearchQueryClickable->pointerDown(inX, inY) ) {
+                        objectSearchQueries.deleteElement( i );
+                        objectSearchQueriesComponentList.deleteElement( i );
+                        updateObjectSearchArray();
+                        return;
+                        }
+                    }
+                }
+
+            if( leftPanelComponent.pointerDown(inX, inY) ) {
+                if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
+                if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
+                if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
+                topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+                leftPanelComponent.mActive = false;
+                for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                    ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                    savedCoordsClickable->mActive = false;
+                    }
+                for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                    ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                    objectSearchQueryClickable->mActive = false;
+                    }
+                for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                    ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                    displayedFamiliesClickable->mActive = false;
+                    }
+                return;
+                }
+            }
         }
     
 
@@ -22582,6 +25091,17 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
     
+
+
+    if( !mForceGroundClick && isCommandKeyDown() && !vogMode ) {
+        int tileX = round(inX/CELL_D);
+        int tileY = round(inY/CELL_D);
+        moveToAndClickTile(tileX, tileY, !isLastMouseButtonRight());
+        return;
+    }
+    if( !mForceGroundClick ) moveClick = false;
+
+
 
     // consider 3x4 area around click and test true object pixel
     // collisions in that area
@@ -22988,20 +25508,20 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // give hint about dest object which will be unchanged 
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
                 }
             else if( tr->newActor > 0 && 
                      ourLiveObject->holdingID != tr->newActor ) {
                 // give hint about how what we're holding will change
                 mNextHintObjectID = tr->newActor;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newActor);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newActor);
                 }
             else if( tr->newTarget > 0 ) {
                 // give hint about changed target after we act on it
                 mNextHintObjectID = tr->newTarget;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newTarget);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newTarget);
                 }
             }
         else {
@@ -23011,7 +25531,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( getTrans( 0, destID ) == NULL ) {
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-				if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
+                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
                 }
             }
         }
@@ -23389,9 +25909,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     
     // for USE actions that specify a slot number
     int useExtraIParam = -1;
-	
-	// whether this move is short and 
-	// an action is gonna be sent shortly
+    
+    // whether this move is short and 
+    // an action is gonna be sent shortly
     bool actionMove = false;
 
     if( !killMode && 
@@ -23423,13 +25943,13 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
         char canExecute = false;
         char sideAccess = false;
-		char noBackAccess = false;
+        char noBackAccess = false;
         char requireExactTileUsage = false;
         
         if( destID > 0 && getObject( destID )->sideAccess ) {
             sideAccess = true;
             }
-			
+            
         if( destID > 0 && getObject( destID )->noBackAccess ) {
             noBackAccess = true;
             }
@@ -23667,9 +26187,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
 
         if( canExecute && ! killMode ) {
-			
+            
             actionMove = true;
-			
+            
             const char *action = "";
             char *extra = stringDuplicate( "" );
             
@@ -24101,14 +26621,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             freeSavedPath();
             }
             
-		if( drunkEmotionIndex != -1 &&
-			ourLiveObject->currentEmot != NULL &&
-			strcmp( ourLiveObject->currentEmot->triggerWord, 
-			getEmotion( drunkEmotionIndex )->triggerWord ) == 0 ) {
-			drunkWalk( (ourLiveObject->pathToDest), ourLiveObject->pathLength, actionMove );
-			ourLiveObject->xd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].x;
-			ourLiveObject->yd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].y;
-			}
+        if( drunkEmotionIndex != -1 &&
+            ourLiveObject->currentEmot != NULL &&
+            strcmp( ourLiveObject->currentEmot->triggerWord, 
+            getEmotion( drunkEmotionIndex )->triggerWord ) == 0 ) {
+            drunkWalk( (ourLiveObject->pathToDest), ourLiveObject->pathLength, actionMove );
+            ourLiveObject->xd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].x;
+            ourLiveObject->yd = ourLiveObject->pathToDest[ ourLiveObject->pathLength - 1 ].y;
+            }
 
         // send move right away
         //Thread::staticSleep( 2000 );
@@ -24266,9 +26786,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-	bool commandKey = isCommandKeyDown();
-	bool shiftKey = isShiftKeyDown();
-
+    bool altKey = isAltKeyDown();
+    bool commandKey = isCommandKeyDown() && !altKey;
+    // bool controlKey = isControlKeyDown();
+    bool shiftKey = isShiftKeyDown();
 
     if( vogMode && vogPickerOn ) {
         //Picker keybinds
@@ -24300,125 +26821,254 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             return;
         }
     } else if( vogMode && !vogPickerOn ) {
-		if( !commandKey && inASCII == 9 ) { // TAB
-			addComponent( &mObjectPicker );
-			mObjectPicker.addActionListener( this );
-			vogPickerOn = true;
-		}
+        if( !commandKey && inASCII == 9 ) { // TAB
+            addComponent( &mObjectPicker );
+            mObjectPicker.addActionListener( this );
+            vogPickerOn = true;
+        }
     }
 
-	if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
-		if (! mSayField.isFocused() && !vogMode) {
-			if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
-				upKeyDown = false;
-				leftKeyDown = false;
-				downKeyDown = false;
-				rightKeyDown = false;
-				lastPosX = 9999;
-				lastPosY = 9999;
-			}
+    if( !commandKey && !shiftKey && inASCII == 9 && mSayField.isFocused() ) {
+        TextField::unfocusAll();
+        return;
+        }
 
-			if (commandKey) {
-				if (isCharKey(inASCII, charKey_TileStandingOn)) {
-					actionBetaRelativeToMe( 0, 0 );
-					return;
-				}
-			} else {
-				if (isCharKey(inASCII, charKey_TileStandingOn)) {
-					actionAlphaRelativeToMe( 0, 0 );
-					return;
-				}
-			}
-			
-			if (!shiftKey && !commandKey) {
-				if (isCharKey(inASCII, charKey_Up)) {
-					upKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Left)) {
-					leftKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Down)) {
-					downKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Right)) {
-					rightKeyDown = true;
-					//stopAutoRoadRun = true;
-					return;
-				}
-			} else if (commandKey) {
-				if (isCharKey(inASCII, charKey_Up)) {
-					actionBetaRelativeToMe( 0, 1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Left)) {
-					actionBetaRelativeToMe( -1, 0 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Down)) {
-					actionBetaRelativeToMe( 0, -1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Right)) {
-					actionBetaRelativeToMe( 1, 0 );
-					return;
-				}
-			} else if (shiftKey) {
-				if (isCharKey(inASCII, charKey_Up)) {
-					actionAlphaRelativeToMe( 0, 1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Left)) {
-					actionAlphaRelativeToMe( -1, 0 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Down)) {
-					actionAlphaRelativeToMe( 0, -1 );
-					return;
-				}
-				if (isCharKey(inASCII, charKey_Right)) {
-					actionAlphaRelativeToMe( 1, 0 );
-					return;
-				}
-			}
+    if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if (! mSayField.isFocused() && !vogMode) {
 
-			if (!shiftKey && isCharKey(inASCII, charKey_Backpack)) {
-				useBackpack();
-				return;
-			}
-			if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Backpack)) {
-				useBackpack(true);
-				return;
-			}
-			if (isCharKey(inASCII, charKey_Eat)) {
-				useOnSelf();
-				return;
-			}
-			if (isCharKey(inASCII, charKey_Baby)) {
-				pickUpBabyInRange();
-				return;
-			}
-			if (!commandKey && !shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
-				takeOffBackpack();
-				return;
-			}
-			if (shiftKey && isCharKey(inASCII, charKey_Pocket)) {
-				usePocket(1);
-				return;
-			}
-			if (!shiftKey && isCharKey(inASCII, charKey_Pocket)) {
-				usePocket(4);
-				return;
-			}
-		}
-	}
+            // This doesn't work at all
+            // when ESC is pressed the control is removed from LivingLifePage
+            
+            // if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
+            //     freeWASDKeyPress();
+            // }
 
-	if (minitech::livingLifeKeyDown(inASCII)) return;
+            if (commandKey) {
+                if (isCharKey(inASCII, charKey_TileStandingOn)) {
+                    actionBetaRelativeToMe( 0, 0 );
+                    return;
+                }
+            } else {
+                if (isCharKey(inASCII, charKey_TileStandingOn)) {
+                    actionAlphaRelativeToMe( 0, 0 );
+                    return;
+                }
+            }
+            
+            if (!shiftKey && !commandKey) {
+                if (isCharKey(inASCII, charKey_Up)) {
+                    upKeyDown = true;
+                    allowAutoRun = isAltKeyDown();
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Left)) {
+                    leftKeyDown = true;
+                    allowAutoRun = isAltKeyDown();
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Down)) {
+                    downKeyDown = true;
+                    allowAutoRun = isAltKeyDown();
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Right)) {
+                    rightKeyDown = true;
+                    allowAutoRun = isAltKeyDown();
+                    return;
+                }
+            } else if (commandKey) {
+                if (isCharKey(inASCII, charKey_Up)) {
+                    actionBetaRelativeToMe( 0, 1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Left)) {
+                    actionBetaRelativeToMe( -1, 0 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Down)) {
+                    actionBetaRelativeToMe( 0, -1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Right)) {
+                    actionBetaRelativeToMe( 1, 0 );
+                    return;
+                }
+            } else if (shiftKey) {
+                if (isCharKey(inASCII, charKey_Up)) {
+                    actionAlphaRelativeToMe( 0, 1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Left)) {
+                    actionAlphaRelativeToMe( -1, 0 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Down)) {
+                    actionAlphaRelativeToMe( 0, -1 );
+                    return;
+                }
+                if (isCharKey(inASCII, charKey_Right)) {
+                    actionAlphaRelativeToMe( 1, 0 );
+                    return;
+                }
+            }
+
+            if (!shiftKey && isCharKey(inASCII, charKey_Backpack)) {
+                useBackpack();
+                return;
+            }
+            if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Backpack)) {
+                useBackpack(true);
+                return;
+            }
+            if (isCharKey(inASCII, charKey_Eat)) {
+                useOnSelf();
+                return;
+            }
+            if (isCharKey(inASCII, charKey_Baby)) {
+                pickUpBabyInRange();
+                return;
+            }
+            if (!commandKey && !shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
+                takeOffBackpack();
+                return;
+            }
+            if (shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+                usePocket(1);
+                return;
+            }
+            if (!shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+                usePocket(4);
+                return;
+            }
+        }
+    }
+
+    // Custom command shortcuts (was FOV emote keys)
+    int commandIndex = -1;
+    if( !vogMode && !shiftKey ) {
+        if ( commandKey || !mSayField.isFocused() ) {
+            int numberPressed = (int)inASCII - 48;
+            if( numberPressed >= 0 && numberPressed <= 9 ) {
+                if( numberPressed == 0 ) numberPressed = 10;
+                commandIndex = numberPressed - 1;
+                }
+            }
+        }
+    if( commandIndex != -1 ) {
+        if( commandIndex < commandShortcuts.size() ) {
+            char *command = commandShortcuts.getElementDirect( commandIndex );
+
+            char *commandWorking = stringDuplicate(command);
+
+            LiveObject *ourLiveObject = getOurLiveObject();
+
+            double age = computeCurrentAgeNoOverride( ourLiveObject );
+
+            int sayCap = getSayLimit( age );
+
+            if( vogMode ) {
+                sayCap = 200;
+                }
+            
+            if( strlen( commandWorking ) > 0 && commandWorking[0] == '/' ) {
+                // this is a filter or command
+                // hard cap at 25, regardless of age
+                // don't want them typing long filters that overflow the display
+                sayCap = 28; // max 28 for /FIND, even less for minitech
+                }
+
+            if( (int)strlen( commandWorking ) > sayCap ) {
+                commandWorking[sayCap] = '\0';
+                }
+
+            mSayField.setText( commandWorking );
+            mSayField.focus();
+            delete [] commandWorking;
+            }
+        return;
+        }
+
+    if (!mSayField.isFocused() && !vogMode &&
+        minitech::livingLifeKeyDown(inASCII)) return;
+
+    if ((coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled) && 
+        !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey ) {
+
+        char coordinatesKeyPressed = coordinatesEnabled && isCharKey(inASCII, coordinatesPanelToggleKey);
+        char objectSearchKeyPressed = objectSearchEnabled && isCharKey(inASCII, objectSearchPanelToggleKey);
+        char familyDisplayKeyPressed = familyDisplayEnabled && isCharKey(inASCII, familyDisplayPanelToggleKey);
+
+        if( leftPanelComponent.mActive &&
+            ( coordinatesKeyPressed || objectSearchKeyPressed || familyDisplayKeyPressed )
+            ) {
+            if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
+            if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
+            if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
+            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+            leftPanelComponent.mActive = false;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = false;
+                }
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = false;
+                }
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = false;
+                }
+            return;
+            }
+        else if( coordinatesKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 0;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                }
+            return;
+            }
+        else if( objectSearchKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 1;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( familyDisplayKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 2;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
+                }
+            return;
+            }
+
+        }
+
+    if (yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey) ) {
+        runningYumFinder = true;
+        // make sure the animation plays as soon as the key is pressed
+        bouncingAnimationStepOffset = -livingLifeStepCount;
+        }
     
     switch( inASCII ) {
         /*
@@ -24448,14 +27098,13 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
                     vogPos = getOurLiveObject()->currentPos;
                     vogPickerOn = false;
-                    mObjectPicker.setPosition( vogPos.x * CELL_D + 510,
-                                               vogPos.y * CELL_D + 90 );
-                    
+
                     // jump camp instantly
-                    lastScreenViewCenter.x = vogPos.x * CELL_D;
-                    lastScreenViewCenter.y = vogPos.y * CELL_D;
-                    setViewCenterPosition( lastScreenViewCenter.x,
-                                           lastScreenViewCenter.y );
+                    vogMoveCamera( vogPos.x * CELL_D, vogPos.y * CELL_D );
+
+                    vogMove( vogPos.x, vogPos.y );
+
+                    vogStopUsualCameraMovement = true;
                     }
                 else {
                     sendToServerSocket( (char*)"VOGX 0 0#" );
@@ -24466,6 +27115,15 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         mObjectPicker.removeActionListener( this );
                         }
                     vogPickerOn = false;
+                    if( vogModeActuallyOn ) {
+                        vogJumpCameraOnNextVU = true;
+                        vogResumingUsualCameraMovementOnNextVU = true;
+                        }
+                    else {
+                        vogStopUsualCameraMovement = false;
+                        }
+                    vogModeActuallyOn = false;
+                    vogFollowMode = false;
                     }
                 }
             break;
@@ -24475,12 +27133,22 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 SettingsManager::getIntSetting( "vogModeOn", 0 ) ) {
                 
                 if( vogMode ) {
+
+                    GridPos viewingGridPos = {
+                        lrintf( lastScreenViewCenter.x / CELL_D ),
+                        lrintf( lastScreenViewCenter.y / CELL_D )
+                        };
+
+                    if( viewingGridPos.x != lrint( vogPos.x ) || 
+                        viewingGridPos.y != lrint( vogPos.y ) ) {
+                        vogMove( viewingGridPos.x, viewingGridPos.y );
+                        }
                     
                     // Send coords different than (0, 0) to teleport
                     // Coords relative to the vog birth pos
                     char *message = autoSprintf( "VOGX %d %d#",
-                                                 lrint( vogPos.x ), 
-                                                 lrint( vogPos.y ) );
+                                                 viewingGridPos.x, 
+                                                 viewingGridPos.y );
                     
                     sendToServerSocket( message );
                     
@@ -24492,6 +27160,15 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         mObjectPicker.removeActionListener( this );
                         }
                     vogPickerOn = false;
+                    if( vogModeActuallyOn ) {
+                        vogJumpCameraOnNextVU = true;
+                        vogResumingUsualCameraMovementOnNextVU = true;
+                        }
+                    else {
+                        vogStopUsualCameraMovement = false;
+                        }
+                    vogModeActuallyOn = false;
+                    vogFollowMode = false;
                     
                     // Grave info is no longer valid as we will teleport
                     for( int i=0; i<mGraveInfo.size(); i++ ) {
@@ -24501,6 +27178,25 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                     
                     graveRequestPos.deleteAll();
                     }
+                }
+            break;
+        case 'g':
+            if( vogModeActuallyOn && !TextField::isAnyFocused() ) {
+                vogFollowMode = !vogFollowMode;
+
+                if( vogFollowMode && vogFollowPlayerID == -1 ) {
+                    doublePair mouseCoords = {
+                        lastMouseX / (float)CELL_D,
+                        lastMouseY / (float)CELL_D
+                        };
+                    LiveObject *closestLiveObject = getClosestLiveObject( mouseCoords );
+                    if( closestLiveObject != NULL ) vogFollowPlayerID = closestLiveObject->id;
+                    }
+                }
+            break;
+        case 'G':
+            if( vogModeActuallyOn && !TextField::isAnyFocused() ) {
+                vogFollowPlayerID = -1;
                 }
             break;
         case 'I':
@@ -24523,6 +27219,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 serverSocketConnected &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGP 0 0#" );
+                vogJumpCameraOnNextVU = true;
+                vogFollowMode = false;
                 }
             break;
         case 'M':
@@ -24530,6 +27228,8 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 serverSocketConnected &&
                 vogMode ) {
                 sendToServerSocket( (char*)"VOGN 0 0#" );
+                vogJumpCameraOnNextVU = true;
+                vogFollowMode = false;
                 }
             break;
         case 'S':
@@ -24637,7 +27337,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case ' ':
-		if( ! mSayField.isFocused() && ! SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if( ! mSayField.isFocused() && ! SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
                 shouldMoveCamera = false;
                 }
             break;
@@ -24646,14 +27346,22 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if( ! mSayField.isFocused() && SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
                 shouldMoveCamera = false;
                 }
+            if( vogMode && !TextField::isAnyFocused() ) {
+                vogScrollingMode = !vogScrollingMode;
+                }
             break;
         case 96: { // grave
-            gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
-            gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
-            SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
-			calcOffsetHUD();
+            // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
+            // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
+            // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
+            // calcOffsetHUD();
             }
             break;
+        // case 'k':
+        case 'K':
+            if( !TextField::isAnyFocused() ) {
+                drawGridToggle = !drawGridToggle;
+                }
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
                 
@@ -24763,6 +27471,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                             if( emotIndex != -1 ) {
                                 char *message = 
                                     autoSprintf( "EMOT 0 0 %d#", emotIndex );
+
+                                // set custom persistent emot if emot command is typed out
+                                if( persistentEmoteEnabled ) {
+                                    customPersistentEmotIndex = emotIndex;
+                                    timeLastPersistentEmotSent = game_getCurrentTime();
+                                    }
                                 
                                 sendToServerSocket( message );
                                 delete [] message;
@@ -24824,6 +27538,137 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                              translate( "disconnectCommand" ) ) ) {
                                 forceDisconnect = true;
                                 }
+                            else if( 
+                                !strcmp( typedText, translate( "markCommand" )) || // either exact match of the command
+                                strstr( typedText, autoSprintf( "%s ", translate( "markCommand" ) ) ) == typedText // or match the command followed by a space
+                                ) {
+
+                                // hence "/MARKER" will not make it here
+
+                                char *errorMessage = NULL;
+                                
+                                if( !strcmp( typedText, translate( "markCommand" )) ) {
+                                    // exact match
+                                    // save current coords
+                                    LiveObject *ourLiveObject = getOurLiveObject();
+                                    char *name = autoSprintf( "%s %d", translate( "customLocation" ), nextSavedCoordinatesLetter );
+                                    SavedCoordinates p = {
+                                        int(ourLiveObject->currentPos.x),
+                                        int(ourLiveObject->currentPos.y), 
+                                        name,
+                                        0
+                                        };
+                                    char added = addCoordinates( p );
+                                    if( added ) {
+                                        nextSavedCoordinatesLetter++;
+                                        }
+                                    else {
+                                        errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
+                                        }
+                                    }
+                                else {
+                                    // got here, we have arguments
+
+                                    int x, y;
+                                    char nameBuffer[10];
+                                    nameBuffer[0] = '\0';
+
+                                    char *format = autoSprintf( "%s %%d %%d %%8s", translate( "markCommand" ) );
+                                    int numRead = sscanf( typedText, format, &x, &y, nameBuffer );
+                                    
+                                    // a rather blunt way to prevent large input
+                                    int numericLimit = 1000000;
+                                    
+                                    if( numRead == 3 ) {
+                                        if( abs(x) < numericLimit && abs(y) < numericLimit ) {
+                                            std::string name(nameBuffer);
+                                            SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name.c_str(), 0};
+                                            char added = addCoordinates( p );
+                                            if( !added ) {
+                                                errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
+                                                }
+                                            }
+                                        else {
+                                            errorMessage = autoSprintf( "%s", translate("coordsTooLargeWarning") );
+                                            }
+                                        }
+                                    else if( numRead == 2 ) {
+                                        if( abs(x) < numericLimit && abs(y) < numericLimit ) {
+                                            char *name = autoSprintf( "%s %d", translate("customLocation"), nextSavedCoordinatesLetter );
+                                            SavedCoordinates p = {x + savedOrigin.x, y + savedOrigin.y, name, 0};
+                                            char added = addCoordinates( p );
+                                            if( added ) {
+                                                nextSavedCoordinatesLetter++;
+                                                }
+                                            else {
+                                                errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
+                                                }
+                                            }
+                                        else {
+                                            errorMessage = autoSprintf( "%s", translate("coordsTooLargeWarning") );
+                                            }
+                                        }
+                                    else {
+                                        // first argument is not numeric
+                                        // "%*[ \t]" makes sure there is at least one space after the command
+                                        char *argumentFormat = stringDuplicate( "%*[ \t]%8s" );
+                                        char *format2 = autoSprintf( "%s%s", translate( "markCommand" ), argumentFormat );
+                                        int numRead2 = sscanf( typedText, format2, nameBuffer );
+                                        if( numRead2 == 1 ) {
+                                            std::string name(nameBuffer);
+                                            LiveObject *ourLiveObject = getOurLiveObject();
+                                            SavedCoordinates p = {
+                                                int(ourLiveObject->currentPos.x),
+                                                int(ourLiveObject->currentPos.y), 
+                                                name.c_str(),
+                                                0
+                                                };
+                                            char added = addCoordinates( p );
+                                            if( !added ) {
+                                                errorMessage = autoSprintf( "%s", translate("tooManyCoordsWarning") );
+                                                }
+                                            }
+                                        delete [] argumentFormat;
+                                        delete [] format2;
+                                        }
+                                    }
+
+                                if( errorMessage != NULL ) {
+                                    displayGlobalMessage( errorMessage, true, true );
+                                    delete [] errorMessage;
+                                    }
+
+                                }
+                            else if( 
+                                !strcmp( typedText, translate( "findCommand" ) ) || // either exact match of the command
+                                strstr( typedText, autoSprintf( "%s ", translate( "findCommand" ) ) ) == typedText // or match the command followed by a space
+                                ) {
+
+                                if( strstr( typedText, autoSprintf( "%s ", translate( "findCommand" ) ) ) == typedText ) {
+                                    if( objectSearchQueries.size() < 12 ) {
+                                        std::string queryString( typedText );
+                                        char* queryStringWithSpace = autoSprintf( "%s ", translate( "findCommand" ) );
+                                        queryString.replace(queryString.find(queryStringWithSpace), std::string(queryStringWithSpace).size(), "");
+                                        if( queryString != "" ) {
+                                            objectSearchQueries.push_back( queryString );
+                                            ClickableComponent clickableLine;
+                                            objectSearchQueriesComponentList.push_back( clickableLine );
+                                            updateObjectSearchArray();
+                                            }
+                                        if( queryStringWithSpace != NULL ) delete [] queryStringWithSpace;
+                                        }
+                                    else {
+                                        char *errorMessage = autoSprintf( "%s", translate("tooManyQueriesWarning") );
+                                        displayGlobalMessage( errorMessage, true, true );
+                                        delete [] errorMessage;
+                                        }
+                                    }
+                                else if( !strcmp( typedText, translate( "findCommand" ) ) ) {
+                                    objectSearchQueries.deleteAll();
+                                    objectSearchQueriesComponentList.deleteAll();
+                                    updateObjectSearchArray();
+                                    }
+                                }
                             else {
                                 // filter hints
                                 char *filterString = 
@@ -24840,17 +27685,17 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 
                                 int filterStringLen = 
                                     strlen( trimmedFilterString );
-							
+                            
                                 if( filterStringLen > 0 ) {
                                     // not blank
                                     mHintFilterString = 
                                         stringDuplicate( trimmedFilterString );
-										
-									minitech::inputHintStrToSearch( mHintFilterString );
+                                        
+                                    minitech::inputHintStrToSearch( mHintFilterString );
                                     }
-								else {
-									minitech::inputHintStrToSearch( "" );;
-								}
+                                else {
+                                    minitech::inputHintStrToSearch( "" );;
+                                }
                             
                                 delete [] trimmedFilterString;
                             
@@ -24866,6 +27711,21 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         
                         if( vogMode ) {
                             sayCommand = "VOGT";
+
+                            // do a VOG move first if the camera 
+                            // is not pointing at vogPos
+                            // otherwise the VOG speech bubble will be
+                            // at the wrong position
+                            
+                            GridPos viewingGridPos = {
+                                lrintf( lastScreenViewCenter.x / CELL_D ),
+                                lrintf( lastScreenViewCenter.y / CELL_D )
+                                };
+
+                            if( viewingGridPos.x != lrint( vogPos.x ) || 
+                                viewingGridPos.y != lrint( vogPos.y ) ) {
+                                vogMove( viewingGridPos.x, viewingGridPos.y );
+                                }
                             }
                         
                         char *message = 
@@ -24947,38 +27807,19 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         // dead
         return;
         }
-		
-    //FOV
-    if( inKeyCode == MG_KEY_F1) {
-        sendToServerSocket( (char*)"EMOT 0 0 0#" );
+
+    // bool commandKey = isCommandKeyDown();
+    // bool controlKey = isControlKeyDown();
+    // bool altKey = isAltKeyDown();
+    // bool shiftKey = isShiftKeyDown();
+        
+    if( inKeyCode == MG_KEY_F12) { // left this here as a way to clear persistent emote
+        sendToServerSocket( (char*)"EMOT 0 0 -1#" );
+        customPersistentEmotIndex = -1;
         return;
         }
-    if( inKeyCode == MG_KEY_F2) {
-        sendToServerSocket( (char*)"EMOT 0 0 1#" );
-        return;
-        }
-    if( inKeyCode == MG_KEY_F3) {
-        sendToServerSocket( (char*)"EMOT 0 0 2#" );
-        return;
-        }
-    if( inKeyCode == MG_KEY_F4) {
-        sendToServerSocket( (char*)"EMOT 0 0 3#" );
-        return;
-        }
-    if( inKeyCode == MG_KEY_F5) {
-        sendToServerSocket( (char*)"EMOT 0 0 4#" );
-        return;
-        }
-    if( inKeyCode == MG_KEY_F6) {
-        sendToServerSocket( (char*)"EMOT 0 0 5#" );
-        return;
-        }
-    if( inKeyCode == MG_KEY_F7) {
-        sendToServerSocket( (char*)"EMOT 0 0 6#" );
-        return;
-        }
-	if( ( inKeyCode == MG_KEY_LEFT || 
-		inKeyCode == MG_KEY_RIGHT ) && ! vogMode ) {
+    if( ( inKeyCode == MG_KEY_LEFT || 
+        inKeyCode == MG_KEY_RIGHT ) && ! vogMode ) {
         if ( isCommandKeyDown() ) {
             float currentHUDScale = gui_fov_target_scale_hud;
             float newScale = ( inKeyCode == MG_KEY_LEFT ) ? currentHUDScale -= 0.10f : currentHUDScale += 0.10f;
@@ -24990,8 +27831,8 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 changeFOV( newScale );
                 }
             }
-		return;
-	    }
+        return;
+        }
 
     if( vogMode && ! TextField::isAnyFocused() ) {
         GridPos posOffset = { 0, 0 };
@@ -25021,16 +27862,16 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
         if( posOffset.x != 0 || posOffset.y != 0 ) {
             
             GridPos newPos;
-            newPos.x = vogPos.x;
-            newPos.y = vogPos.y;
+            newPos.x = lrintf( lastScreenViewCenter.x / CELL_D );
+            newPos.y = lrintf( lastScreenViewCenter.y / CELL_D );
             
             newPos.x += posOffset.x;
             newPos.y += posOffset.y;
             
-            char *message = autoSprintf( "VOGM %d %d#",
-                                         newPos.x, newPos.y );
-            sendToServerSocket( message );
-            delete [] message;
+            vogMove( newPos.x, newPos.y );
+
+            vogJumpCameraOnNextVU = true;
+
             }
         }
     else if( inKeyCode == MG_KEY_UP ||
@@ -25149,42 +27990,48 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
             
 void LivingLifePage::keyUp( unsigned char inASCII ) {
 
-	bool commandKey = isCommandKeyDown();
+    bool commandKey = isCommandKeyDown();
+    bool shiftKey = isShiftKeyDown();
 
-	if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
-		upKeyDown = false;
-	}
-	if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
-		leftKeyDown = false;
-	}
-	if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
-		downKeyDown = false;
-	}
-	if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
-		rightKeyDown = false;
-	}
-	if (commandKey) {
-		if (inASCII+64 == toupper(charKey_Up)) {
-			upKeyDown = false;
-		}
-		if (inASCII+64 == toupper(charKey_Left)) {
-			leftKeyDown = false;
-		}
-		if (inASCII+64 == toupper(charKey_Down)) {
-			downKeyDown = false;
-		}
-		if (inASCII+64 == toupper(charKey_Right)) {
-			rightKeyDown = false;
-		}
-	}
+    if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
+        upKeyDown = false;
+    }
+    if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
+        leftKeyDown = false;
+    }
+    if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
+        downKeyDown = false;
+    }
+    if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
+        rightKeyDown = false;
+    }
+    if (commandKey) {
+        if (inASCII+64 == toupper(charKey_Up)) {
+            upKeyDown = false;
+        }
+        if (inASCII+64 == toupper(charKey_Left)) {
+            leftKeyDown = false;
+        }
+        if (inASCII+64 == toupper(charKey_Down)) {
+            downKeyDown = false;
+        }
+        if (inASCII+64 == toupper(charKey_Right)) {
+            rightKeyDown = false;
+        }
+    }
 
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) {
-		lastPosX = 9999;
-		lastPosY = 9999;
-		magnetMoveDir = -1;
-		magnetWrongMoveDir = -1;
-		magnetMoveCount = 0;
-	}
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) {
+        lastPosX = 9999;
+        lastPosY = 9999;
+        magnetMoveDir = -1;
+        magnetWrongMoveDir = -1;
+        magnetMoveCount = 0;
+    }
+
+    if( runningYumFinder && !mSayField.isFocused() && !vogMode &&
+        !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey)) {
+        runningYumFinder = false;
+        }
 
     switch( inASCII ) {
         case 'e':
@@ -25289,10 +28136,10 @@ void LivingLifePage::pushOldHintArrow( int inIndex ) {
 
 //FIELD OF VIEW
 void LivingLifePage::calcFontScale( float newScale, Font *font ) {
-	float scale = font->getScaleFactor();
-	scale /= gui_fov_scale;
-	scale *= newScale;
-	font->setScaleFactor( scale );
+    float scale = font->getScaleFactor();
+    scale /= gui_fov_scale;
+    scale *= newScale;
+    font->setScaleFactor( scale );
     }
 
 void LivingLifePage::changeFOV( float newScale ) {
@@ -25325,15 +28172,21 @@ void LivingLifePage::changeFOV( float newScale ) {
             }
         }
 
+    // using calcFontScale cannot set the scale to a fraction of newScale
+    // using setScaleFactor for tinyHandwritingFont
+
     calcFontScale( newScale, handwritingFont );
     calcFontScale( newScale, pencilFont );
     calcFontScale( newScale, pencilErasedFont );
-    calcFontScale( newScale, titleFont );
-    
-    calcFontScale( newScale, mainFont );
-    
+    // calcFontScale( newScale * 0.6, tinyHandwritingFont );
+
     gui_fov_scale = newScale;
     gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
+
+    // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    // pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    // pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
 
     minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
@@ -25346,25 +28199,34 @@ void LivingLifePage::changeFOV( float newScale ) {
     }
 
 void LivingLifePage::changeHUDFOV( float newScale ) {
-	if( newScale < 1 ) {
-		newScale = 1.0f;
+    if( newScale < 1.0f ) {
+        newScale = 1.0f;
         } 
-    else if ( newScale > 1.75f ) {
-		newScale = 1.75f;
+    else if ( newScale > 2.0f ) {
+        newScale = 2.0f;
         }
 
-	gui_fov_target_scale_hud = newScale;
+    gui_fov_target_scale_hud = newScale;
     SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
     gui_fov_scale_hud = gui_fov_scale / gui_fov_target_scale_hud;
     
-	minitech::changeScale( 1.25 * gui_fov_scale_hud );
+    minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
-	calcOffsetHUD();
+    calcOffsetHUD();
 
-	handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
-	pencilFont->copySpacing( handwritingFont );
-	pencilErasedFont->copySpacing( handwritingFont );
-    titleFont->copySpacing( handwritingFont );
+    // should do copySpacing to be precise, but it takes a little too much time to load
+    // so doing setScaleFactor here
+    // if you scroll to zoom in and out, you can see the words wiggling by one pixel
+
+    handwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
+    // pencilFont->copySpacing( handwritingFont );
+    // pencilErasedFont->copySpacing( handwritingFont );
+    // tinyHandwritingFont->copySpacing( handwritingFont );
+
+    // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
     }
 
 void LivingLifePage::calcOffsetHUD() {
@@ -25376,288 +28238,396 @@ void LivingLifePage::calcOffsetHUD() {
 
 //KEYBOARD ACTIONS
 void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
 
-	int objId = getObjId( x, y );
-	bool use = false;
+    int objId = getObjId( x, y );
+    bool use = false;
 
-	if (objId > 0) use = true;
-	else use = false;
+    if (objId > 0) use = true;
+    else use = false;
 
-	if( ourLiveObject->holdingID > 0 ) {
-		ObjectRecord *held = getObject( ourLiveObject->holdingID );
+    if( ourLiveObject->holdingID > 0 ) {
+        ObjectRecord *held = getObject( ourLiveObject->holdingID );
 
-		if( held->foodValue == 0 ) {
-			TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
-			if( r != NULL && r->newTarget != 0 ) { // a use-on-ground transition exists!
-                use = true;	// override the drop action
-			}
-		}
-	}
+        if( held->foodValue == 0 ) {
+            TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
+            if( r != NULL && r->newTarget != 0 ) { // a use-on-ground transition exists!
+                use = true;    // override the drop action
+            }
+        }
+    }
 
-	bool remove = false;
-	if (objIdReverseAction(objId)) remove = true;
-	
-	if ( ourLiveObject->holdingID < 0 ) {
-		remove = false;
-		use = false;
-	}
+    bool remove = false;
+    if (objIdReverseAction(objId)) remove = true;
+    
+    if ( ourLiveObject->holdingID < 0 ) {
+        remove = false;
+        use = false;
+    }
 
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
-	else if (use) sprintf( msg, "USE %d %d#", x, y);
-	else sprintf( msg, "DROP %d %d -1#", x, y);
-	setNextActionMessage( msg, x, y );
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
+    else if (use) sprintf( msg, "USE %d %d#", x, y);
+    else sprintf( msg, "DROP %d %d -1#", x, y);
+    setNextActionMessage( msg, x, y );
 }
 
 void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
 
-	bool remove = false;
-	if (ourLiveObject->holdingID <= 0) {
-		remove = true;
-	}
-	bool use = false;
-	int objId = getObjId( x, y );
-	if (objId > 0) {
-		ObjectRecord* obj = getObject(objId);
-		if (obj->numSlots == 0 && obj->blocksWalking) {
-			TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
-			if ( r != NULL && r->newTarget != 0 ) {
-				use = true;
-			}
-		}
-	}
+    bool remove = false;
+    if (ourLiveObject->holdingID <= 0) {
+        remove = true;
+    }
+    bool use = false;
+    int objId = getObjId( x, y );
+    if (objId > 0) {
+        ObjectRecord* obj = getObject(objId);
+        if (obj->numSlots == 0 && obj->blocksWalking) {
+            TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
+            if ( r != NULL && r->newTarget != 0 ) {
+                use = true;
+            }
+        }
+    }
 
-	if ( objIdReverseAction( objId ) ) use = true;
+    if ( objIdReverseAction( objId ) ) use = true;
 
-	if ( ourLiveObject->holdingID < 0 ) { // holding babay
-		remove = false;
-		use = false;
-	}
+    if ( ourLiveObject->holdingID < 0 ) { // holding babay
+        remove = false;
+        use = false;
+    }
 
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	if (use) sprintf( msg, "USE %d %d#", x, y);
-	else if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
-	else sprintf( msg, "DROP %d %d -1#", x, y);
-	setNextActionMessage( msg, x, y );
-	if (!remove) nextActionDropping = true;
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    if (use) sprintf( msg, "USE %d %d#", x, y);
+    else if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
+    else sprintf( msg, "DROP %d %d -1#", x, y);
+    setNextActionMessage( msg, x, y );
+    if (!remove) nextActionDropping = true;
 }
 
 void LivingLifePage::useTileRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	sprintf( msg, "USE %d %d#", x, y);
-	setNextActionMessage( msg, x, y );
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    sprintf( msg, "USE %d %d#", x, y);
+    setNextActionMessage( msg, x, y );
 }
 
 void LivingLifePage::dropTileRelativeToMe( int x, int y ) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	x += ourLiveObject->xd;
-	y += ourLiveObject->yd;
-	x = sendX(x);
-	y = sendY(y);
-	char msg[32];
-	sprintf( msg, "DROP %d %d -1#", x, y);
-	setNextActionMessage( msg, x, y );
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    x += ourLiveObject->xd;
+    y += ourLiveObject->yd;
+    x = sendX(x);
+    y = sendY(y);
+    char msg[32];
+    sprintf( msg, "DROP %d %d -1#", x, y);
+    setNextActionMessage( msg, x, y );
 }
 
 //KEYBOARD MOVEMENT
+void LivingLifePage::clickMove( float x, float y ) {
+    float tMouseX = lastMouseX;
+    float tMouseY = lastMouseY;
+    mForceGroundClick = true;
+    pointerDown( x, y );
+    pointerUp( x, y );
+    mForceGroundClick = false;
+    lastMouseX = tMouseX;
+    lastMouseY = tMouseY;
+    }
+
+void LivingLifePage::moveToAndClickTile(int tileX, int tileY, bool alpha) {
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if (!ourLiveObject) return;
+    int tileRX = tileX - ourLiveObject->xd;
+    int tileRY = tileY - ourLiveObject->yd;
+    if (tileRX <= 1 && tileRX >= -1) {
+        if (tileRY <= 1 && tileRY >= -1) {
+            if (tileRY == 0 || tileRX == 0) {
+                if (alpha) {
+                    actionAlphaRelativeToMe(tileRX, tileRY);
+                } else {
+                    actionBetaRelativeToMe(tileRX, tileRY);
+                }
+            return;
+            }
+        }
+    }
+    moveClickX = tileX;
+    moveClickY = tileY;
+    moveClickAlpha = alpha;
+    moveClick = true;
+    float clickX = tileX*CELL_D;
+    float clickY = tileY*CELL_D;
+    clickMove(clickX, clickY);
+    return;
+    }
+
+void LivingLifePage::checkIfMoveClickIsDone() {
+    LiveObject *ourLiveObject = getOurLiveObject();
+    if (ourLiveObject && !ourLiveObject->inMotion) {
+        moveClick = false;
+        int tileRX = moveClickX - ourLiveObject->xd;
+        int tileRY = moveClickY - ourLiveObject->yd;
+        if (moveClickAlpha) actionAlphaRelativeToMe(tileRX, tileRY);
+        else actionBetaRelativeToMe(tileRX, tileRY);
+        }
+    }
+
 void LivingLifePage::movementStep() {
-	LiveObject *ourLiveObject = getOurLiveObject();
+    LiveObject *ourLiveObject = getOurLiveObject();
     if( ourLiveObject == NULL ) return;
-	
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
+    
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return;
 
-	int x = round(ourLiveObject->currentPos.x);
-	int y = round(ourLiveObject->currentPos.y);
+    int x = round(ourLiveObject->currentPos.x);
+    int y = round(ourLiveObject->currentPos.y);
 
-	if (x == lastPosX && y == lastPosY && ourLiveObject->inMotion) return;
+    if (x == lastPosX && y == lastPosY && ourLiveObject->inMotion) return;
 
-	int objId = getObjId(x, y);
-	if (objId > 0 && getObject(objId)->blocksWalking && ourLiveObject->inMotion) return;
+    int objId = getObjId(x, y);
+    if (objId > 0 && getObject(objId)->blocksWalking && ourLiveObject->inMotion) return;
 
-	int sX = x;
-	int sY = y;
+    int sX = x;
+    int sY = y;
 
-	int dir = getMoveDirection();
-	if (dir <= 0) return;
+    int dir = getMoveDirection();
+    if (dir <= 0) return;
 
-	if (!findNextMove(x, y, dir)) return; // sets x and y
+    if (!findNextMove(x, y, dir)) return; // sets x and y
 
-	lastPosX = sX;
-	lastPosY = sY;
+    lastPosX = sX;
+    lastPosY = sY;
 
-	if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
-		waitForDoorToOpen = false;
-	} else if (waitForDoorToOpen) {
-		if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
-			return;
-		waitForDoorToOpen = false;
-	} else if (tileHasClosedDoor( x, y )) {
-		char msg[32];
-		sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
-		setNextActionMessage( msg, x, y );
-		waitForDoorToOpen = true;
-		lastDoorToOpenX = (int)x;
-		lastDoorToOpenY = (int)y;
-		return;
-	}
+    bool nextStepIsDiagonal = 
+        abs( (int)round(ourLiveObject->currentPos.x) - x ) + 
+        abs( (int)round(ourLiveObject->currentPos.y) - y ) > 1;
 
-	x *= CELL_D;
-	y *= CELL_D;
+    if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
+        waitForDoorToOpen = false;
+    } else if (waitForDoorToOpen) {
+        if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
+            return;
+        waitForDoorToOpen = false;
+    } else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
+        char msg[32];
+        sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
+        setNextActionMessage( msg, x, y );
+        waitForDoorToOpen = true;
+        lastDoorToOpenX = (int)x;
+        lastDoorToOpenY = (int)y;
+        return;
+    }
 
-	blockMouseScaling = true;
+    x *= CELL_D;
+    y *= CELL_D;
 
-	float tMouseX = lastMouseX;
-	float tMouseY = lastMouseY;
-	mForceGroundClick = true;
-	pointerDown( x, y );
-	pointerUp( x, y );
-	mForceGroundClick = false;
-	lastMouseX = tMouseX;
-	lastMouseY = tMouseY;
-	
-	magnetMoveCount++;
-	
-	blockMouseScaling = false;
+    moveClick = false;
+
+    blockMouseScaling = true;
+
+    clickMove(x, y);
+    
+    magnetMoveCount++;
+    
+    blockMouseScaling = false;
 }
 
 bool LivingLifePage::findNextMove(int &x, int &y, int dir) {
-	if (dir <= 0) return false;
-	
-	if (magnetMoveDir > 0) {
-		if (magnetWrongMoveDir != dir || magnetMoveCount > 2) {
-			magnetWrongMoveDir = -1;
-			magnetMoveDir = -1;
-		} else {
-			if (setMoveDirIfSafe(x, y, magnetMoveDir)) {
-				magnetWrongMoveDir = -1;
-				magnetMoveDir = -1;
-				return true;
-			}
-		}
-	}
+    if (dir <= 0) return false;
+    
+    if (magnetMoveDir > 0) {
+        if (magnetWrongMoveDir != dir || magnetMoveCount > 2) {
+            magnetWrongMoveDir = -1;
+            magnetMoveDir = -1;
+        } else {
+            if (setMoveDirIfSafe(x, y, magnetMoveDir)) {
+                magnetWrongMoveDir = -1;
+                magnetMoveDir = -1;
+                return true;
+            }
+        }
+    }
 
-	if (setMoveDirIfSafe(x, y, dir)) return true;
+    if (setMoveDirIfSafe(x, y, dir)) return true;
 
-	int nextMoveDir = getNextMoveDir(dir, 1);
-	if (dirIsSafeToWalk(x, y, nextMoveDir)) {
-		setMoveDirection(x, y, nextMoveDir);
-		if (dir % 2 == 0) {
-			magnetWrongMoveDir = dir;
-			magnetMoveDir = getNextMoveDir(dir, -1);
-			magnetMoveCount = 0;
-		}
-		return true;
-	}
-	nextMoveDir = getNextMoveDir(dir, -1);
-	if (dirIsSafeToWalk(x, y, nextMoveDir)) {
-		setMoveDirection(x, y, nextMoveDir);
-		if (dir % 2 == 0) {
-			magnetWrongMoveDir = dir;
-			magnetMoveDir = getNextMoveDir(dir, 1);
-			magnetMoveCount = 0;
-		}
-		return true;
-	}
+    int nextMoveDir = getNextMoveDir(dir, 1);
+    if (dirIsSafeToWalk(x, y, nextMoveDir)) {
+        setMoveDirection(x, y, nextMoveDir);
+        if (dir % 2 == 0) {
+            magnetWrongMoveDir = dir;
+            magnetMoveDir = getNextMoveDir(dir, -1);
+            magnetMoveCount = 0;
+        }
+        return true;
+    }
+    nextMoveDir = getNextMoveDir(dir, -1);
+    if (dirIsSafeToWalk(x, y, nextMoveDir)) {
+        setMoveDirection(x, y, nextMoveDir);
+        if (dir % 2 == 0) {
+            magnetWrongMoveDir = dir;
+            magnetMoveDir = getNextMoveDir(dir, 1);
+            magnetMoveCount = 0;
+        }
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 int LivingLifePage::getNextMoveDir(int direction, int add) {
-	direction += add;
-	while (direction < 1) direction += 8;
-	while (direction > 8) direction -= 8;
-	return direction;
+    direction += add;
+    while (direction < 1) direction += 8;
+    while (direction > 8) direction -= 8;
+    return direction;
 }
 
 int LivingLifePage::getMoveDirection() {
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 0;
-	if (upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 1;
-	if (upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 2;
-	if (upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 3;
-	if (!upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 4;
-	if (!upKeyDown && !leftKeyDown && downKeyDown && rightKeyDown) return 5;
-	if (!upKeyDown && !leftKeyDown && downKeyDown && !rightKeyDown) return 6;
-	if (!upKeyDown && leftKeyDown && downKeyDown && !rightKeyDown) return 7;
-	if (!upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 8;
-	return 0;
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 0;
+    if (upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 1;
+    if (upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) return 2;
+    if (upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 3;
+    if (!upKeyDown && !leftKeyDown && !downKeyDown && rightKeyDown) return 4;
+    if (!upKeyDown && !leftKeyDown && downKeyDown && rightKeyDown) return 5;
+    if (!upKeyDown && !leftKeyDown && downKeyDown && !rightKeyDown) return 6;
+    if (!upKeyDown && leftKeyDown && downKeyDown && !rightKeyDown) return 7;
+    if (!upKeyDown && leftKeyDown && !downKeyDown && !rightKeyDown) return 8;
+    return 0;
 }
 
 bool LivingLifePage::setMoveDirIfSafe(int &x, int &y, int dir) {
-	if (!dirIsSafeToWalk(x, y, dir)) return false;
-	setMoveDirection(x, y, dir);
-	return true;
+    if (!dirIsSafeToWalk(x, y, dir)) return false;
+    setMoveDirection(x, y, dir);
+    return true;
 }
+
+//    move direction
+//    ---------------
+//    1    2    3
+//    8    0    4
+//    7    6    5
+//    ---------------
 
 void LivingLifePage::setMoveDirection(int &x, int &y, int direction) {
-	switch (direction) {
-		case 1: x--; y++; break;
-		case 2: y++; break;
-		case 3: x++; y++; break;
-		case 4: x++; break;
-		case 5: x++; y--; break;
-		case 6: y--; break;
-		case 7: x--; y--; break;
-		case 8: x--; break;
-	}
+    switch (direction) {
+        case 1: x--; y++; break;
+        case 2: y++; break;
+        case 3: x++; y++; break;
+        case 4: x++; break;
+        case 5: x++; y--; break;
+        case 6: y--; break;
+        case 7: x--; y--; break;
+        case 8: x--; break;
+    }
 }
 
+bool LivingLifePage::tileHasNoDangerousAnimals(int x, int y) {
+    if( !dangerousTileEnabled ) return true;
+    int objId = getObjId( x, y);
+    ObjectRecord *obj = getObject( objId, true );
+    if( obj == NULL ) return true;
+    char dangerous = isObjectDangerous(obj);
+    if( dangerous ) {
+        LiveObject *ourLiveObject = getOurLiveObject();
+        if( ourLiveObject != NULL && ourLiveObject->holdingID > 0 ) {
+            dangerous = isTileDangerousWithHeldObject( ourLiveObject->holdingID, objId );
+        }
+        return !dangerous;
+    }
+    return true;
+}
+
+// doors or gates with +autoDefaultTrans tag is non-blocking
+// and not included here
+// this is ok because pathing through those will open them automatically
+char isObjectClosedDoor( ObjectRecord *o ) {
+    if( o == NULL ) return false;
+    if( o->permanent && o->blocksWalking ) {
+        TransRecord *openTrans = getTrans( 0, o->id );
+        if( openTrans != NULL && openTrans->newActor == 0 ) {
+            ObjectRecord *openedObj = getObject( openTrans->newTarget, true );
+            if( openedObj != NULL && !openedObj->blocksWalking ) {
+                TransRecord *closeTrans = getTrans( 0, openedObj->id );
+                if( closeTrans != NULL && closeTrans->newActor == 0 ) {
+                    ObjectRecord *closedObj = getObject( closeTrans->newTarget, true );
+                    if( closedObj != NULL && closedObj->id == o->id ) {
+                        return true;
+                        }
+                    }
+                }
+            }
+        }
+    return false;
+    }
+
 bool LivingLifePage::tileHasClosedDoor(int x, int y) {
-	int closedDoorIDs [10] = { 116, 2759, 876, 1930, 2757, 877, 115, 1851, 2984, 2962 }; 
-	
-	int objId = getObjId( x, y);
-	if (objId > 0) {
-		for (int i = 0; i < 10; i++) {
-			if (objId == closedDoorIDs[i]) return true;
-		}
-	}
-	return false;
+    int objId = getObjId( x, y);
+    ObjectRecord *obj = getObject( objId, true );
+    return isObjectClosedDoor(obj);
+}
+
+bool LivingLifePage::tileIsSafeToWalk(int x, int y) {
+    int objId = getObjId( x, y);
+    if (objId > 0) {
+        LiveObject *ourLiveObject = getOurLiveObject();
+
+        if (!tileHasNoDangerousAnimals(x, y)) return false;
+
+        ObjectRecord* obj = getObject(objId);
+        if (obj && obj->blocksWalking) {
+            if (ourLiveObject->xd == x || ourLiveObject->yd == y)
+                if (tileHasClosedDoor( x, y )) return true;
+            return false;
+        }
+    }
+    return true;
 }
 
 bool LivingLifePage::dirIsSafeToWalk(int x, int y, int dir) {
-	LiveObject *ourLiveObject = getOurLiveObject();
-	
-	int tX, tY;
+    // LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int tX, tY;
 
-	tX = x; tY = y; setMoveDirection(tX, tY, dir);
-	
-	int objId = getObjId( tX, tY);
-	if (objId > 0) {
+    tX = x; tY = y; setMoveDirection(tX, tY, dir);
+    if (!tileIsSafeToWalk(tX, tY)) return false;
+    
+    // int objId = getObjId( tX, tY);
+    // if (objId > 0) {
 
-		ObjectRecord* obj = getObject(objId);
-		if (obj && obj->blocksWalking) {
-			if (ourLiveObject->xd == x || ourLiveObject->yd == y)
-				if (!tileHasClosedDoor( x, y )) return false;
-		}
-	}
+    //     ObjectRecord* obj = getObject(objId);
+    //     if (obj && obj->blocksWalking) {
+    //         if (ourLiveObject->xd == x || ourLiveObject->yd == y)
+    //             if (!tileHasClosedDoor( x, y )) return false;
+    //     }
+    // }
 
-	if (dir % 2 == 0) return true; // is not a corner dir
+    if (dir % 2 == 0) return true; // is not a corner dir
 
-	int nextDir = getNextMoveDir(dir, 1);
-	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    int nextDir = getNextMoveDir(dir, 1);
+    tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    if (!tileHasNoDangerousAnimals(tX, tY)) return false;
 
-	nextDir = getNextMoveDir(dir, -1);
-	tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    nextDir = getNextMoveDir(dir, -1);
+    tX = x; tY = y; setMoveDirection(tX, tY, nextDir);
+    if (!tileHasNoDangerousAnimals(tX, tY)) return false;
 
-	return true;
+    return true;
 }
 
 

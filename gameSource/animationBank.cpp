@@ -75,6 +75,8 @@ static char mouthFrameOutputStarted = false;
 bool isTrippingEffectOn;
 bool trippingEffectDisabled;
 
+extern double drawObjectScale;
+
 
 static char shouldFileBeCached( char *inFileName ) {
     if( strstr( inFileName, ".txt" ) != NULL ) {
@@ -1284,7 +1286,7 @@ ObjectAnimPack drawObjectAnimPacked(
     }
 
         
-
+extern float getLivingLifeBouncingYOffset( int oid );
 
 void drawObjectAnim( ObjectAnimPack inPack ) {
     HoldingPos p;
@@ -1410,6 +1412,8 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                            SimpleVector<int> *inClothingContained,
                            double *outSlotRots,
                            doublePair *outSlotOffsets ) {
+    
+    inPos.y += getLivingLifeBouncingYOffset( inObjectID );
     
     if( inType == ground2 ) {
         inType = ground;
@@ -1747,6 +1751,8 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                            double *outSlotRots,
                            doublePair *outSlotOffsets ) {
 
+    // inPos.y += getLivingLifeBouncingYOffset( inObjectID );
+    
     HoldingPos returnHoldingPos = { false, {0, 0}, 0 };
 
 
@@ -2363,6 +2369,7 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
             }
             
 
+        spritePos = mult( spritePos, drawObjectScale );
         
         doublePair pos = add( spritePos, inPos );
 
@@ -2402,11 +2409,11 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                     }
                 }
             }
-			
+            
         if( i == eyesIndex && drawWithEmots.size() > 0 ) {
             for( int e=0; e<drawWithEmots.size(); e++ ) {
                 if( drawWithEmots.getElementDirect(e)->eyeEmot != 0 && 
-				strstr( getObject( drawWithEmots.getElementDirect(e)->eyeEmot )->description, "Eyes" ) ) {
+                strstr( getObject( drawWithEmots.getElementDirect(e)->eyeEmot )->description, "Eyes" ) ) {
                     skipSprite = true;
                     break;
                     }
@@ -2792,11 +2799,11 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
                 }
             
             int spriteID = obj->sprites[i];
-			
-			if( !multiplicative && !workingSpriteFade[i] == 0 ) {
-				if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
-				}
-			
+            
+            if( !multiplicative && !workingSpriteFade[i] == 0 ) {
+                if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
+                }
+            
             if( drawMouthShapes && spriteID == mouthAnchorID &&
                 mouthShapeFrame < numMouthShapeFrames ) {
                 drawSprite( mouthShapeFrameList[ mouthShapeFrame ], 
@@ -2821,7 +2828,7 @@ HoldingPos drawObjectAnim( int inObjectID, int inDrawBehindSlots,
             else {
                 SpriteHandle sh = getSprite( spriteID );
                 if( sh != NULL ) {
-                    drawSprite( sh, pos, 1.0, rot, 
+                    drawSprite( sh, pos, drawObjectScale, rot, 
                                 logicalXOR( inFlipH, obj->spriteHFlip[i] ) );
                     }
                 }
@@ -3284,6 +3291,8 @@ void drawObjectAnim( int inObjectID, AnimType inType, double inFrameTime,
                      int inNumContained, int *inContainedIDs,
                      SimpleVector<int> *inSubContained ) {
     
+    inPos.y += getLivingLifeBouncingYOffset( inObjectID );
+    
     if( inType == ground2 ) {
         inType = ground;
         }
@@ -3361,6 +3370,8 @@ void drawObjectAnim( int inObjectID, AnimationRecord *inAnim,
                      SimpleVector<int> *inClothingContained,
                      int inNumContained, int *inContainedIDs,
                      SimpleVector<int> *inSubContained ) {
+    
+    // inPos.y += getLivingLifeBouncingYOffset( inObjectID );
     
     ClothingSet emptyClothing = getEmptyClothingSet();
 

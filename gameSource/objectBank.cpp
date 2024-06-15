@@ -180,51 +180,51 @@ static JenkinsRandomSource randSource;
 
 
 void setTrippingColor( double x, double y ) {
-	
-	// Nothing fancy, just wanna map the screen x, y into [0, 1]
-	// So hue change is continuous across the screen
-	double factor = (int)(abs(x + 2 * y) / 3 / 128) % 10;
-	factor /= 10;
-	
-	double curTime = Time::getCurrentTime();
-	
-	// Time between each color change
-	int period = 2; 
-	
-	int t1 = (int)curTime;
-	int t_progress = (int)t1 % period;
-	if( t_progress != 0 ) t1 -= t_progress;
-	int t2 = t1 + period;
-	
-	randSource.reseed( t1 );
-	double r1 = randSource.getRandomBoundedDouble( 0, 1 );
-	double g1 = randSource.getRandomBoundedDouble( 0, 1 );
-	double b1 = randSource.getRandomBoundedDouble( 0, 1 );
-	r1 = (1 + factor) * (1 + r1);
-	g1 = (1 + factor) * (1 + g1);
-	b1 = (1 + factor) * (1 + b1);
-	r1 = r1 - (int)r1;
-	g1 = g1 - (int)g1;
-	b1 = b1 - (int)b1;
-	
-	randSource.reseed( t2 );
-	double r2 = randSource.getRandomBoundedDouble( 0, 1 );
-	double g2 = randSource.getRandomBoundedDouble( 0, 1 );
-	double b2 = randSource.getRandomBoundedDouble( 0, 1 );
-	r2 = (1 + factor) * (1 + r2);
-	g2 = (1 + factor) * (1 + g2);
-	b2 = (1 + factor) * (1 + b2);
-	r2 = r2 - (int)r2;
-	g2 = g2 - (int)g2;
-	b2 = b2 - (int)b2;
+    
+    // Nothing fancy, just wanna map the screen x, y into [0, 1]
+    // So hue change is continuous across the screen
+    double factor = (int)(abs(x + 2 * y) / 3 / 128) % 10;
+    factor /= 10;
+    
+    double curTime = Time::getCurrentTime();
+    
+    // Time between each color change
+    int period = 2; 
+    
+    int t1 = (int)curTime;
+    int t_progress = (int)t1 % period;
+    if( t_progress != 0 ) t1 -= t_progress;
+    int t2 = t1 + period;
+    
+    randSource.reseed( t1 );
+    double r1 = randSource.getRandomBoundedDouble( 0, 1 );
+    double g1 = randSource.getRandomBoundedDouble( 0, 1 );
+    double b1 = randSource.getRandomBoundedDouble( 0, 1 );
+    r1 = (1 + factor) * (1 + r1);
+    g1 = (1 + factor) * (1 + g1);
+    b1 = (1 + factor) * (1 + b1);
+    r1 = r1 - (int)r1;
+    g1 = g1 - (int)g1;
+    b1 = b1 - (int)b1;
+    
+    randSource.reseed( t2 );
+    double r2 = randSource.getRandomBoundedDouble( 0, 1 );
+    double g2 = randSource.getRandomBoundedDouble( 0, 1 );
+    double b2 = randSource.getRandomBoundedDouble( 0, 1 );
+    r2 = (1 + factor) * (1 + r2);
+    g2 = (1 + factor) * (1 + g2);
+    b2 = (1 + factor) * (1 + b2);
+    r2 = r2 - (int)r2;
+    g2 = g2 - (int)g2;
+    b2 = b2 - (int)b2;
 
-	// Colors fade from one period to the next
-	double r = (r2 - r1) * (curTime - t1) / period + r1;
-	double g = (g2 - g1) * (curTime - t1) / period + g1;
-	double b = (b2 - b1) * (curTime - t1) / period + b1;
-	setDrawColor( r, g, b, 1 );
-	
-	}
+    // Colors fade from one period to the next
+    double r = (r2 - r1) * (curTime - t1) / period + r1;
+    double g = (g2 - g1) * (curTime - t1) / period + g1;
+    double b = (b2 - b1) * (curTime - t1) / period + b1;
+    setDrawColor( r, g, b, 1 );
+    
+    }
 
 
 static ClothingSet emptyClothing = { NULL, NULL, NULL, NULL, NULL, NULL };
@@ -249,11 +249,18 @@ int getMaxObjectID() {
     }
 
 
+float globalAlpha = 1.0;
+
+void setObjectDrawAlpha( float alpha ) {
+    globalAlpha = alpha;
+    }
+
+
 void setDrawColor( FloatRGB inColor ) {
     setDrawColor( inColor.r, 
                   inColor.g, 
                   inColor.b,
-                  1 );
+                  globalAlpha );
     }
 
 
@@ -445,11 +452,11 @@ static void setupObjectWritingStatus( ObjectRecord *inR ) {
             // inR->mayHaveMetadata = true;
             }
         }
-	
-	//2HOL mechanics to read written objects
-	inR->clickToRead = false;
-	inR->passToRead = false;
-		
+    
+    //2HOL mechanics to read written objects
+    inR->clickToRead = false;
+    inR->passToRead = false;
+        
     if( strstr( inR->description, "+" ) != NULL ) {
         if( strstr( inR->description, "+clickToRead" ) != NULL ) {
             inR->clickToRead = true;
@@ -1129,7 +1136,7 @@ float initObjectBankStep() {
                             
                 r->foodValue = 0;
                 r->bonusValue = 0;
-				
+                
                 sscanf( lines[next], "foodValue=%d,%d", 
                         &( r->foodValue ), &( r->bonusValue ) );
                 
@@ -3894,6 +3901,14 @@ void setDrawnObjectContained( char inContained ) {
     }
 
 
+double drawObjectScale = 1.0;
+
+void setDrawnObjectScale( double inScale ) {
+    drawObjectScale = inScale;
+    }
+
+
+extern float getLivingLifeBouncingYOffset( int oid );
 
 HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        doublePair inPos,
@@ -3901,8 +3916,11 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        int inHideClosestArm,
                        char inHideAllLimbs,
                        char inHeldNotInPlaceYet,
-                       ClothingSet inClothing,
-                       double inScale ) {
+                       ClothingSet inClothing ) {
+    
+    if( drawingContained ) { 
+        inPos.y += getLivingLifeBouncingYOffset( inObject->id );
+        }
     
     if( inObject->noFlip ) {
         inFlipH = false;
@@ -4050,7 +4068,7 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
             }
 
 
-        spritePos = mult( spritePos, inScale );
+        spritePos = mult( spritePos, drawObjectScale );
         
         doublePair pos = add( spritePos, inPos );
 
@@ -4221,14 +4239,14 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
             if( additive ) {
                 toggleAdditiveBlend( true );
                 }
-				
-			if( !multiplicative ) {
-				if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
-				}
+                
+            if( !multiplicative ) {
+                if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
+                }
 
             SpriteHandle sh = getSprite( inObject->sprites[i] );
             if( sh != NULL ) {
-                drawSprite( sh, pos, inScale,
+                drawSprite( sh, pos, drawObjectScale,
                             rot, 
                             logicalXOR( inFlipH, inObject->spriteHFlip[i] ) );
                 }
@@ -4394,7 +4412,7 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
                         inSubContained[i].getElementDirect( s ) );
                     
                     doublePair subCenterOffset =
-                        getObjectCenterOffset( subContained );
+                        computeContainedCenterOffset( contained, subContained );
                     
                     double subRot = rot;
                     
@@ -5384,7 +5402,7 @@ double getClosestObjectPart( ObjectRecord *inObject,
                 ObjectRecord *contained = 
                     getObject( inContained->getElementDirect( i ) );
             
-                doublePair centOffset = getObjectCenterOffset( contained );
+                doublePair centOffset = computeContainedCenterOffset(inObject, contained);
                 
                 if( inObject->slotVert[i] ) {
                     double rotOffset = 
@@ -5861,10 +5879,10 @@ doublePair getObjectCenterOffset( ObjectRecord *inObject ) {
             continue;
             }
             
-		if( inObject->spriteIgnoredWhenCalculatingCenterOffset[i] ) {
-			// special flag to skip sprite when calculating position to draw object
-			continue;
-		}
+        if( inObject->spriteIgnoredWhenCalculatingCenterOffset[i] ) {
+            // special flag to skip sprite when calculating position to draw object
+            continue;
+        }
         
 
         int w = sprite->visibleW;
@@ -5925,7 +5943,7 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
 
 
     // find center of lowessprite
-	
+    
     // 2HOL drawing tweak: instead of finding sprite with lowest center
     // we look for sprite with lowest bottom 
     // this way we make sure that no sprite of an object is drawn 
@@ -5952,16 +5970,16 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
             // don't consider parts visible only when not contained
             continue;
             }
-			
-		if( inObject->spriteIgnoredWhenCalculatingCenterOffset[i] ) {
-			// special flag to skip sprite when calculating position to draw object
-			continue;
-		}
-		
+            
+        if( inObject->spriteIgnoredWhenCalculatingCenterOffset[i] ) {
+            // special flag to skip sprite when calculating position to draw object
+            continue;
+        }
+        
         doublePair dimensions = { (double)sprite->visibleW, (double)sprite->visibleH };
-		
+        
         doublePair centerOffset = { (double)sprite->centerXOffset,
-									(double)sprite->centerYOffset };
+                                    (double)sprite->centerYOffset };
                                     
         doublePair centerAnchorOffset = { (double)sprite->centerAnchorXOffset,
                                           (double)sprite->centerAnchorYOffset };
@@ -5997,8 +6015,8 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
         centerAnchorOffset = rotate( centerAnchorOffset, 2 * M_PI * rot );
         
         double y = inObject->spritePos[i].y
-                   + centerOffset.y
                    + centerAnchorOffset.y
+                   - centerOffset.y
                    // there is no way to calculate the visible dimensions after rotation
                    // just use the pre-rotation height here for simplicity
                    - dimensions.y / 2;
@@ -6019,12 +6037,12 @@ doublePair getObjectBottomCenterOffset( ObjectRecord *inObject ) {
         }
 
     doublePair wideCenter = getObjectCenterOffset( inObject );
-	
+    
     // Adjust y so that the lowest point of an object sits
     // on the bottom edge of a slot
     // but keep x of the center of widest sprite
     // (in case object has "feet" that are not centered)
-	
+    
     wideCenter.y = lowestYPos + 14.0; // slot has height of 28.0
 
 

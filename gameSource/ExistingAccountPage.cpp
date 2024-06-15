@@ -42,6 +42,7 @@ extern Font *mainFont;
 extern char gamePlayingBack;
 
 extern char useSpawnSeed;
+extern char *spawnSeed;
 extern char useTargetFamily;
 extern char *userEmail;
 extern char *accountKey;
@@ -317,6 +318,7 @@ ExistingAccountPage::ExistingAccountPage()
     
 
     mSpawnSeed.useClearButton( true );
+    mSpawnSeed.setFireOnLoseFocus( true );
 
     
     // this section have all buttons with the same width
@@ -421,9 +423,11 @@ ExistingAccountPage::ExistingAccountPage()
     char *seed = 
         SettingsManager::getSettingContents( "spawnSeed", "" );
 
-    mSpawnSeed.setList( seed );
+    mSpawnSeed.setListByRawText( seed );
         
     delete [] seed;
+
+    spawnSeed = mSpawnSeed.getText();
     
     
     FILE *f = fopen( "wordList.txt", "r" );
@@ -734,14 +738,6 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         updatefieldsAndLockButtons();
         
         }
-
-
-    char *seed = 
-        SettingsManager::getSettingContents( "spawnSeed", "" );
-
-    mSpawnSeed.setList( seed );
-        
-    delete [] seed;
     
     specifySpawn = SettingsManager::getIntSetting( "specifySpawn", 0 );
     if( specifySpawn == 1 ) {
@@ -910,6 +906,9 @@ static bool insideTextField( float inX, float inY, TextField *targetField ) {
 
 
 void ExistingAccountPage::pointerUp( float inX, float inY ) {
+
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
     
     if( mEmailField.isVisible() && insideTextField( inX, inY, &mEmailField ) ) {
         if( emailFieldLockedMode == 0 ) {
@@ -965,8 +964,8 @@ void ExistingAccountPage::pointerUp( float inX, float inY ) {
             }
         keyUIElementsClicked = false;
         }
-    if( mSpawnSeed.isVisible() && !insideTextField( inX, inY, &mSpawnSeed ) ) {
-        if( !seedUIElementsClicked ) {
+    if( mSpawnSeed.isVisible() && !mSpawnSeed.isMouseOver() ) {
+        if( !seedUIElementsClicked ) { // NOT unlock button clicked
             seedFieldLockedMode = 0;
             mSpawnSeed.unfocus();
             updatefieldsAndLockButtons();
@@ -979,13 +978,6 @@ void ExistingAccountPage::pointerUp( float inX, float inY ) {
 
 void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
     
-    if( inTarget != &mSpawnSeed ) {
-        //save seed setting on any action performed
-        //except seed field itself cause we're still editing it
-        char *seedList = mSpawnSeed.getAndUpdateList();
-        SettingsManager::setSetting( "spawnSeed", seedList );
-        delete [] seedList;
-        }
     if( inTarget != &mTargetFamily ) {
         char *text = mTargetFamily.getText();
         char *targetFamily = trimWhitespace( text );
@@ -1041,7 +1033,6 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
             mTargetFamily.setVisible( true );
             }
         
-        seedUIElementsClicked = true;
         }
     else if( inTarget == &mRandomButton ) {
 
@@ -1184,7 +1175,10 @@ void ExistingAccountPage::actionPerformed( GUIComponent *inTarget ) {
         twinUIElementsClicked = true;
         }
     else if( inTarget == &mSpawnSeed ) {
-        seedUIElementsClicked = true;
+        char *seedList = mSpawnSeed.getAndUpdateRawText();
+        SettingsManager::setSetting( "spawnSeed", seedList );
+        if( spawnSeed != NULL ) delete [] spawnSeed;
+        spawnSeed = mSpawnSeed.getText();
         }
     else if( inTarget == &mGenesButton ) {
         setSignal( "genes" );
@@ -1393,20 +1387,22 @@ void ExistingAccountPage::keyDown( unsigned char inASCII ) {
 
     if( inASCII == 10 || inASCII == 13 ) {
         // enter key
-        
-        nextPage();
+
+        if( mSpawnSeed.isFocused() ) {
+            // seed dropdown list takes enter key as input
+            // don't handle here
+            }
+        else {
+            nextPage();
+            }
         }
+
     }
 
 
 
 void ExistingAccountPage::specialKeyDown( int inKeyCode ) {
-    if( inKeyCode == MG_KEY_DOWN ||
-        inKeyCode == MG_KEY_UP ) {
-        
-        nextPage();
-        return;
-        }
+    return;
     }
 
 

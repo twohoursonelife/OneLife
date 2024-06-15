@@ -66,6 +66,8 @@ minitech::mouseListener* minitech::prevListener = NULL;
 minitech::mouseListener* minitech::nextListener = NULL;
 vector<pair<minitech::mouseListener*,int>> minitech::iconListenerIds;
 
+bool minitech::isMinitechHovered = false;
+
 // pos for newbieTips use
 doublePair minitech::makeUseTogglePos;
 doublePair minitech::maxButtonPos;
@@ -93,6 +95,7 @@ static int numBiomes = 9;
 
 static SpriteHandle mCellFillSprite;
 static SpriteHandle mCellBorderSprite;
+static SpriteHandle mTempArrowSprite;
 
 SpriteHandle sheet;
 SpriteHandle bigSheet;
@@ -105,7 +108,8 @@ void minitech::setLivingLifePage(
     SimpleVector<int> *inmMapContainedStacks,
     SimpleVector<SimpleVector<int>> *inmMapSubContainedStacks,
     SpriteHandle inmCellFillSprite,
-    SpriteHandle inmCellBorderSprite
+    SpriteHandle inmCellBorderSprite,
+    SpriteHandle inmTempArrowSprite
     ) {
     
     maxObjects = getMaxObjectID() + 1;
@@ -116,7 +120,7 @@ void minitech::setLivingLifePage(
     mMapContainedStacks = inmMapContainedStacks;
     mMapSubContainedStacks = inmMapSubContainedStacks;
     
-    minitechEnabled = SettingsManager::getIntSetting( "useMinitech", 1 );
+    minitechEnabled = SettingsManager::getIntSetting( "minitechEnabled", 1 );
     char *minimizeKeyFromSetting = SettingsManager::getStringSetting("minitechMinimizeKey", "v");
     minimizeKey = minimizeKeyFromSetting[0];
     delete [] minimizeKeyFromSetting;
@@ -125,6 +129,7 @@ void minitech::setLivingLifePage(
     
     mCellFillSprite = inmCellFillSprite;
     mCellBorderSprite = inmCellBorderSprite;
+    mTempArrowSprite = inmTempArrowSprite;
     
 }
 
@@ -606,6 +611,8 @@ void minitech::drawPoint(doublePair posCen, string color) {
     drawRect( posCen, pointSize, pointSize );   
 }
 
+extern char setLivingLifeBouncingYOffsetToggle( char b );
+
 void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, string strDescSecondLine) {
     if (objId <= 0) {
         string firstPart;
@@ -633,13 +640,29 @@ void minitech::drawObj(doublePair posCen, int objId, string strDescFirstLine, st
     if( maxD > maxSize ) zoom = maxSize / maxD;
     zoom = zoom * guiScale;
     doublePair posAfterOffset = sub (posCen, mult( getObjectCenterOffset( obj ), zoom ));
-    setDrawnObjectContained( true );
     
     setDrawColor( 1, 1, 1, 1 ); 
-    
-    drawObject( obj, 2, posAfterOffset, 0, false, false, 20, 0, false, false,
-                getEmptyClothingSet(), zoom );
-    setDrawnObjectContained( false );
+    setDrawnObjectScale( zoom );
+    setLivingLifeBouncingYOffsetToggle( false );
+
+    char used;
+    drawObjectAnim( objId, 2, 
+                    ground, 0.0,
+                    0,
+                    ground, 
+                    0.0,
+                    0.0,
+                    &used,
+                    ground,
+                    ground,
+                    posAfterOffset, 0,
+                    false,
+                    false, -1,
+                    false, false, false,
+                    getEmptyClothingSet(), NULL );
+
+    setLivingLifeBouncingYOffsetToggle( true );
+    setDrawnObjectScale( 1.0 );
 }
 
 void minitech::drawStr(
@@ -717,12 +740,14 @@ void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
     doublePair startPos = { (double)x, (double)y };
     startPos.x *= CELL_D;
     startPos.y *= CELL_D;
-    float maxAlpha = 0.5;
+    float maxAlpha = 0.75;
+    float minAlpha = 0.0;
     float alpha;
     if (flashing) {
-        alpha = (stepCount % 40) / 40.0;
+        alpha = (stepCount % 80) / 80.0;
         if (alpha > 0.5) alpha = 1 - alpha;
-        alpha *= maxAlpha;
+        alpha *= 2;
+        alpha = alpha * (maxAlpha - minAlpha) + minAlpha;
     } else {
         alpha = maxAlpha;
     }
@@ -732,7 +757,7 @@ void minitech::drawTileRect( int x, int y, string color, bool flashing ) {
     // drawRect( startPos, CELL_D/2, CELL_D/2 );
     drawSprite( mCellFillSprite, startPos );
     
-    setDrawColor( 0, 0, 0, 0.75 * 0.5 );
+    setDrawColor( 0, 0, 0, alpha );
     drawSprite( mCellBorderSprite, startPos );
 }
 
@@ -746,6 +771,16 @@ void minitech::drawBox(doublePair posCen, float height, float width, float lineW
     drawRect( posCenBottomSide, width/2 - lineWidth, lineWidth/2 );
     drawRect( posCenRightSide, lineWidth/2, height/2 );
     drawRect( posCenLeftSide, lineWidth/2, height/2 );
+}
+
+void minitech::drawHintObjectTile() {
+    if (minitech::highlightObjId > 0) {
+        GridPos currentPos = {currentX, currentY};
+        GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId, !currentHintTranRequiresFullUses);
+        if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
+            drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
+        }
+    }
 }
 
 
@@ -1078,6 +1113,9 @@ void minitech::updateDrawTwoTech() {
     posTL.y = posTL.y - viewHeight/2;
     
     iconListenerIds.clear();
+
+    mouseListener* minitechListener;
+    isMinitechHovered = false;
     
     if (minitechMinimized) {
         
@@ -1087,6 +1125,15 @@ void minitech::updateDrawTwoTech() {
         posTL.x = posTL.x - recWidth;
         doublePair posCenter = {posTL.x + recWidth / 2, posTL.y - recHeight / 2};
         doublePair posTR = {posTL.x + recWidth, posTL.y};
+        doublePair posBR = {posTL.x + recWidth, posTL.y - recHeight};
+
+        minitechListener = getMouseListenerByArea(
+            &twotechMouseListeners, 
+            sub(posTL, screenPos), 
+            sub(posBR, screenPos));
+        if (minitechListener->mouseHover) {
+            isMinitechHovered = true;
+        }
         
         // sheet background
         doublePair extraOffset = {17*guiScale, -45*guiScale}; // we only use a corner of the hintSheet1
@@ -1150,16 +1197,6 @@ void minitech::updateDrawTwoTech() {
         drawStr("NO RECIPES FOUND :)", posCenter, "tinyHandwritten", false);
         
     } else {
-        
-        // if there are no results, don't even bother to draw highlighted tile
-        // so this is put here
-        if (highlightObjId > 0) {
-            GridPos currentPos = {currentX, currentY};
-            GridPos closestHintObjPos = getClosestTile(currentPos, highlightObjId, !currentHintTranRequiresFullUses);
-            if ( !(closestHintObjPos.x == 9999 && closestHintObjPos.y == 9999) ) {
-                drawTileRect(closestHintObjPos.x, closestHintObjPos.y, "blue", true);
-            }
-        }
         
         int maxPage = int( ceil( float(transSize) / float(defaultNumOfLines) ) );
         if (currentTwoTechPage < 0) currentTwoTechPage = maxPage - 1;
@@ -1594,9 +1631,13 @@ void minitech::updateDrawTwoTech() {
         doublePair pos = posLineLCen;
         pos.x += iconSize/2;
         if (showPreviousPageButton) {
-            drawStr("<", pos, "main", false);
-            doublePair prevPageButtonTLPos = {pos.x - iconSize/2, pos.y + iconSize/2};
-            doublePair prevPageButtonBRPos = {pos.x + iconSize/2, pos.y - iconSize/2};
+            // drawStr("<", pos, "handwritten", false);
+            setDrawColor( 1, 1, 1, 1 );
+            toggleMultiplicativeBlend( true );
+            drawSprite(mTempArrowSprite, pos, guiScale / 1.25, 0.25 );
+            toggleMultiplicativeBlend( false );
+            doublePair prevPageButtonTLPos = {pos.x - iconSize/3, pos.y + iconSize/3};
+            doublePair prevPageButtonBRPos = {pos.x + iconSize/3, pos.y - iconSize/3};
             
             prevListener = getMouseListenerByArea(
                 &twotechMouseListeners, 
@@ -1604,7 +1645,7 @@ void minitech::updateDrawTwoTech() {
                 sub(prevPageButtonBRPos, screenPos));
             if (prevListener->mouseHover) {
                 setDrawColor( 0, 0, 0, 0.1 );
-                drawRect(pos, iconSize/2, iconSize/2);
+                drawRect(pos, iconSize/3, iconSize/3);
             }
         } else {
             prevListener = NULL;
@@ -1612,9 +1653,13 @@ void minitech::updateDrawTwoTech() {
         
         pos.x += iconSize*6;
         if (showNextPageButton) {
-            drawStr(">", pos, "main", false);
-            doublePair nextPageButtonTLPos = {pos.x - iconSize/2, pos.y + iconSize/2};
-            doublePair nextPageButtonBRPos = {pos.x + iconSize/2, pos.y - iconSize/2};
+            // drawStr(">", pos, "handwritten", false);
+            setDrawColor( 1, 1, 1, 1 );
+            toggleMultiplicativeBlend( true );
+            drawSprite(mTempArrowSprite, pos, guiScale / 1.25, 0.75 );
+            toggleMultiplicativeBlend( false );
+            doublePair nextPageButtonTLPos = {pos.x - iconSize/3, pos.y + iconSize/3};
+            doublePair nextPageButtonBRPos = {pos.x + iconSize/3, pos.y - iconSize/3};
             
             nextListener = getMouseListenerByArea(
                 &twotechMouseListeners, 
@@ -1622,7 +1667,7 @@ void minitech::updateDrawTwoTech() {
                 sub(nextPageButtonBRPos, screenPos));
             if (nextListener->mouseHover) {
                 setDrawColor( 0, 0, 0, 0.1 );
-                drawRect(pos, iconSize/2, iconSize/2);
+                drawRect(pos, iconSize/3, iconSize/3);
             }
         } else {
             nextListener = NULL;
@@ -1631,7 +1676,7 @@ void minitech::updateDrawTwoTech() {
         if (showPreviousPageButton || showNextPageButton) {
             pos.x -= iconSize*3;
             string pageInd = to_string(currentTwoTechPage + 1) + "/" + to_string(maxPage);
-            drawStr(pageInd, pos, "tinyMain", false);
+            drawStr(pageInd, pos, "tinyHandwritten", false);
         }
         
 
@@ -1719,6 +1764,10 @@ void minitech::updateDrawTwoTech() {
             string objName = livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId);
             searchStr = "HOLDING: " + objName;
         }
+        int searchStrMaxLen = 37;
+        if( (int)searchStr.length() > searchStrMaxLen ) {
+            searchStr = searchStr.substr(0, searchStrMaxLen) + "...";
+        }
         
         doublePair barCen = {headerTL.x + barWidth / 2, headerTL.y - barHeight / 2 - paddingY/2};
         drawStr(searchStr, barCen, "tinyHandwritten", false);
@@ -1743,6 +1792,24 @@ void minitech::updateDrawTwoTech() {
     if (minListener->mouseClick) {
         minitechMinimized = true;
         minListener->mouseClick = false;
+
+        // We have just minimized minitech
+        // Done drawing and adding listeners
+        for (auto p: twotechMouseListeners) {
+            delete(p);
+        }
+        twotechMouseListeners.clear();
+        twotechMouseListeners.shrink_to_fit();
+        return;
+    }
+
+    doublePair posBR = {posTL.x + recWidth, posTL.y - recHeight};
+    minitechListener = getMouseListenerByArea(
+        &twotechMouseListeners, 
+        sub(headerTL, screenPos), 
+        sub(posBR, screenPos));
+    if (minitechListener->mouseHover) {
+        isMinitechHovered = true;
     }
     
 }
@@ -1791,7 +1858,7 @@ void minitech::inputHintStrToSearch(string hintStr) {
         
         ObjectRecord **hitsSimpleVector = NULL;
 
-        if( strstr( hintCStr, " " ) == NULL ) {
+        if( strstr( hintCStr, " " ) == NULL && strstr( hintCStr, "." ) == NULL ) {
             hitsSimpleVector = searchObjects( hintCStr, 0, 2000, &numHits, &numRemain );
         } else {
             // multi-term search
@@ -1799,10 +1866,20 @@ void minitech::inputHintStrToSearch(string hintStr) {
             int numTerms;
             char **terms = split( hintCStr, " ", &numTerms );
 
+            char *exactQuery = NULL;
+            int queryLen = strlen( hintCStr );
+            if( queryLen > 0 && hintCStr[queryLen-1] == '.' ) {
+                exactQuery = stringDuplicate( hintCStr );
+                exactQuery[queryLen-1] = '\0';
+                }
+
             SimpleVector<char*> validTerms;
             
             // any term that starts with - is a term to avoid
             SimpleVector<char*> avoidTerms;
+
+            // any term that ends with . is a term to exact-match
+            SimpleVector<char*> exactTerms;
             
             for( int i=0; i<numTerms; i++ ) {
                 int termLen = strlen( terms[i] );
@@ -1817,6 +1894,12 @@ void minitech::inputHintStrToSearch(string hintStr) {
                         // ignore single - characters
                         // user is probably in the middle of typing an avoid-term
                     } else {
+
+                        if( termLen > 1 && terms[i][termLen-1] == '.' ) {
+                            terms[i][termLen-1] = '\0';
+                            exactTerms.push_back( terms[i] );
+                            }
+
                         validTerms.push_back( terms[i] );
                     }
                 }
@@ -1847,16 +1930,47 @@ void minitech::inputHintStrToSearch(string hintStr) {
                             mainResults[i]->description;
                     
                         char *mainNameLower = stringToLowerCase( mainResultName );
+
+                        // int numTermsInName;
+                        // char **termsInName = split( mainNameLower, " ", &numTermsInName );
                         
                         
                         char matchFailed = false;
+
+                        if( exactQuery != NULL &&
+                            strcmp( exactQuery, mainNameLower ) != 0
+                            ) {
+                            matchFailed = true;
+                            }
+
+                        // for( int j=0; j<exactTerms.size(); j++ ) {
+                        //     char *term = exactTerms.getElementDirect( j );
+
+                        //     char exactMatched = false;
+                        //     for( int k=0; k<numTermsInName; k++ ) {
+                        //         int termLen = strlen( termsInName[k] );
+                        //         if( termLen > 0 ) {
+                        //             if( strcmp( term, termsInName[k] ) == 0 ) {
+                        //                 exactMatched = true;
+                        //                 break;
+                        //                 }
+                        //             }
+                        //         }
+                        //     if( !exactMatched ) {
+                        //         matchFailed = true;
+                        //         break;
+                        //         }
+
+                        //     }
                         
-                        for( int j=1; j<validTerms.size(); j++ ) {
-                            char *term = validTerms.getElementDirect( j );
-                            
-                            if( strstr( mainNameLower, term ) == NULL ) {
-                                matchFailed = true;
-                                break;
+                        if( ! matchFailed ) {
+                            for( int j=1; j<validTerms.size(); j++ ) {
+                                char *term = validTerms.getElementDirect( j );
+                                
+                                if( strstr( mainNameLower, term ) == NULL ) {
+                                    matchFailed = true;
+                                    break;
+                                }
                             }
                         }
 
@@ -1901,7 +2015,8 @@ void minitech::inputHintStrToSearch(string hintStr) {
                 delete [] terms[i];
             }
             delete [] terms;
-        
+
+            if( exactQuery != NULL ) delete [] exactQuery;
         }
         
         delete [] hintCStr;
@@ -2128,9 +2243,7 @@ void minitech::livingLifeStep() {
 
 }
 
-bool minitech::livingLifeKeyDown(unsigned char inASCII) {   
-    
-    if (livingLifePage->minitechSayFieldIsFocused()) return false;
+bool minitech::livingLifeKeyDown(unsigned char inASCII) {
     
     bool commandKey = isCommandKeyDown();
     bool shiftKey = isShiftKeyDown();
@@ -2146,7 +2259,19 @@ bool minitech::livingLifeKeyDown(unsigned char inASCII) {
     }
     
     if (!shiftKey && !commandKey && toupper(inASCII) == toupper(minimizeKey)) { //V
+        // Minitech minimized
         minitechMinimized = !minitechMinimized;
+
+        // Clear current hinting object
+        highlightObjId = 0;
+
+        // Clear the listeners to avoid any lingering
+        for (auto p: twotechMouseListeners) {
+            delete(p);
+        }
+        twotechMouseListeners.clear();
+        twotechMouseListeners.shrink_to_fit();
+
     }
     
     if (!shiftKey && commandKey && inASCII + 64 == toupper(minimizeKey)) { //Ctrl + V

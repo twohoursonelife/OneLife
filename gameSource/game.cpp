@@ -127,6 +127,7 @@ int serverPort = 0;
 
 char useTargetFamily;
 char useSpawnSeed;
+char *spawnSeed = NULL;
 
 char *userEmail = NULL;
 char *accountKey = NULL;
@@ -135,6 +136,8 @@ int userTwinCount = 0;
 char userReconnect = false;
 
 char showingInGameSettings = false;
+
+char showPipsOfFoodHeld = false;
 
 
 // these are needed by ServerActionPage, but we don't use them
@@ -228,8 +231,8 @@ void loadFovSettings() {
         gui_fov_target_scale_hud = 1.0f;
         SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
         }
-    else if( gui_fov_target_scale_hud > 1.75f ) {
-        gui_fov_target_scale_hud = 1.75f;
+    else if( gui_fov_target_scale_hud > 2.0f ) {
+        gui_fov_target_scale_hud = 2.0f;
         SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
         }
 
@@ -374,20 +377,24 @@ const char *getDemoCodeServerURL() {
 char gamePlayingBack = false;
 
 
-Font *mainFont;
-Font *oldMainFont;
-Font *mainFontFixed;
+Font *mainFont; // new 2HOL main font
+Font *oldMainFont; // old OHOL main font, kept to be used for Extended Message etc
+
 // closer spacing
 Font *mainFontReview;
 Font *numbersFontFixed;
+
+// these respond to UI size change in livingLifePage
 Font *handwritingFont;
-Font *tinyHandwritingFont;
 Font *pencilFont;
 Font *pencilErasedFont;
+Font *tinyHandwritingFont;
+
+Font *tinyHandwritingFontFixedSize; // non-LivingLifePage cursorTips, doesn't respond to UI size change
 
 Font *smallFont;
 
-Font *titleFont;
+
 
 SpriteHandle sheetSprites[9] = {nullptr};
 
@@ -498,9 +505,6 @@ void initDrawString( int inWidth, int inHeight ) {
     toggleMipMapMinFilter( true );
     toggleTransparentCropping( true );
     
-    mainFont = new Font( getNewFontTGAFileName(), 3, 4, false, 16 );
-    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
-    mainFont->setMinimumPositionPrecision( 1 );
     oldMainFont = new Font( getFontTGAFileName(), 6, 6, false, 16 );
     oldMainFont->setMinimumPositionPrecision( 1 );
     
@@ -510,7 +514,6 @@ void initDrawString( int inWidth, int inHeight ) {
     else {
         mainFont = new Font( "font_32_64.tga", 3, 6, false, 12 );
         }
-    // mainFont = new Font( getFontTGAFileName(), 6, 16, false, 16 );
     mainFont->setMinimumPositionPrecision( 1 );
 
     setViewCenterPosition( lastScreenViewCenter.x, lastScreenViewCenter.y );
@@ -611,24 +614,21 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     mainFontReview = new Font( getFontTGAFileName(), 4, 8, false, 16 );
     mainFontReview->setMinimumPositionPrecision( 1 );
 
-    mainFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16 );
     numbersFontFixed = new Font( getFontTGAFileName(), 6, 16, true, 16, 16 );
-    
-    mainFontFixed->setMinimumPositionPrecision( 1 );
     numbersFontFixed->setMinimumPositionPrecision( 1 );
     
-    smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 * gui_fov_scale_hud );
-
-    titleFont = 
-        new Font( "font_handwriting_32_32.tga", 3, 6, false, 20 * gui_fov_scale_hud );
+    smallFont = new Font( getFontTGAFileName(), 3, 8, false, 8 );
 
     handwritingFont = 
         new Font( "font_handwriting_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
 
     handwritingFont->setMinimumPositionPrecision( 1 );
     
-    tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+    tinyHandwritingFont = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 * gui_fov_scale_hud );
     tinyHandwritingFont->setMinimumPositionPrecision( 1 );
+
+    tinyHandwritingFontFixedSize = new Font( "font_handwriting_32_32.tga", 3, 6, false, 16/2 );
+    tinyHandwritingFontFixedSize->setMinimumPositionPrecision( 1 );
 
     pencilFont = 
         new Font( "font_pencil_32_32.tga", 3, 6, false, 16 * gui_fov_scale_hud );
@@ -799,13 +799,14 @@ void freeFrameDrawer() {
     freeSprite( instructionsSprite );
     
     delete mainFontReview;
-    delete mainFontFixed;
     delete numbersFontFixed;
     
     delete handwritingFont;
-    delete tinyHandwritingFont;
     delete pencilFont;
     delete pencilErasedFont;
+    delete tinyHandwritingFont;
+
+    delete tinyHandwritingFontFixedSize;
     
     delete smallFont;
     
@@ -909,10 +910,17 @@ bool hoveringResumeButton = false;
 bool hoveringSettingsButton = false;
 bool hoveringQuitButton = false;
 
+bool hoveringNextPageButton = false;
+bool hoveringPrevPageButton = false;
+
+int currentHelpPage = 0;
+int totalNumOfHelpPages = 0;
+
 
 static void drawPauseScreen() {
     
-    if( currentGamePage == existingAccountPage && isPaused() ) {
+    if( isPaused() &&
+        ( currentGamePage == existingAccountPage || currentGamePage == settingsPage )  ) {
         pauseGame();
         return;
         }
@@ -946,6 +954,11 @@ static void drawPauseScreen() {
                                messagePos, alignCenter );
         }
 
+    if( currentGamePage == livingLifePage ) {
+        // Pressing ESC unstuck WASD keys
+        // WASD keys are stuck if you tab out when pressing them
+        livingLifePage->freeWASDKeyPress();
+        }
 
     // Drawing the Pause screen
     if( currentGamePage == livingLifePage ) {
@@ -1021,6 +1034,9 @@ static void drawPauseScreen() {
         setDrawColor( 1.0f, 1.0f, 1.0f, 0.1*pauseScreenFade );
         drawRect( lastScreenViewCenter, 1280*4*gui_fov_scale, 720*4*gui_fov_scale );
         
+        int totalNumOfHelpSheets = -1;
+        int numOfSheetsPerPage = -1;
+
         
         File languagesDir( NULL, "languages" );
         if ( languagesDir.exists() && languagesDir.isDirectory() ) {
@@ -1031,11 +1047,15 @@ static void drawPauseScreen() {
                 int numLines;
                 char **lines = split( helpFileContents, "\n", &numLines );
                 char *subString;
+                int picturePosX;
+                int picturePosY;
 
                 for( int i=0; i<numLines; i++ ) {
                     bool isTitle = false;
                     bool isSub = false;
                     bool isComment = false;
+                    bool isPicture = false;
+                    int pictureOnPageNumber = -1;
                     // bool isSheet = false;
                     if ( (lines[i][0] == '\0') || (lines[i][0] == '\r') ) {
                         //continue;
@@ -1076,7 +1096,15 @@ static void drawPauseScreen() {
                         }
                     else if ( strstr( lines[i], "@LINEHEIGHT" ) != NULL ) {
                         sscanf( lines[i], "@LINEHEIGHT=%d", &( temp ) );
-                        lineHeight = gui_fov_scale * temp;
+                        lineHeight = gui_fov_scale_hud * temp;
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@NUMOFSHEETS" ) != NULL ) {
+                        sscanf( lines[i], "@NUMOFSHEETS=%d", &( totalNumOfHelpSheets ) );
+                        continue;
+                        }
+                    else if ( strstr( lines[i], "@SHEETSPERPAGE" ) != NULL ) {
+                        sscanf( lines[i], "@SHEETSPERPAGE=%d", &( numOfSheetsPerPage ) );
                         continue;
                         }
                     else if ( strstr( lines[i], "warning$" ) != NULL ) {
@@ -1107,9 +1135,31 @@ static void drawPauseScreen() {
                         writePos.y -= lineHeight * lineScale;
                         continue;
                         }
+                    else if ( strstr( lines[i], "pic$" ) != NULL ) {
+                        int hNumLines;
+                        char **holder;
+                        holder = split( lines[i], "$", &hNumLines);
+                        sscanf( holder[1], "%d", &( picturePosX ) );
+                        sscanf( holder[2], "%d", &( picturePosY ) );
+                        isPicture = true;
+                        pictureOnPageNumber = (int)ceil((double)columnNumber / (double)numOfSheetsPerPage) - 1;
+                        }
+
+                    if( totalNumOfHelpSheets == -1 || numOfSheetsPerPage == -1 ) continue;
+                    
+                    totalNumOfHelpPages = (int)ceil((double)totalNumOfHelpSheets / (double)numOfSheetsPerPage);
+
+                    if( currentHelpPage < 0 ) currentHelpPage = 0;
+                    if( currentHelpPage >= totalNumOfHelpPages ) currentHelpPage = totalNumOfHelpPages - 1;
+
+                    if( columnNumber-1 < (currentHelpPage) * numOfSheetsPerPage || 
+                        columnNumber-1 >= (currentHelpPage + 1) * numOfSheetsPerPage )
+                        continue;
+
+                    int columnNumberInPage = columnNumber - (currentHelpPage) * numOfSheetsPerPage;
                         
-                    if ( columnNumber > 1 ) {
-                        int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumber - 1 );
+                    if ( columnNumberInPage > 1 ) {
+                        int current_columnX = columnStartX + ( abs( columnWidth ) + columnOffset ) * ( columnNumberInPage - 1 );
                         writePos.x = lastScreenViewCenter.x + current_columnX;
                         }
                         
@@ -1118,9 +1168,9 @@ static void drawPauseScreen() {
                         }
                     else if ( isTitle ) {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
-                        // int titleSize = titleFont->measureString( lines[i] );
-                        // titleFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
-                        titleFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
+                        // int handwritingFont = handwritingFont->measureString( lines[i] );
+                        // handwritingFont->drawString( lines[i], { writePos.x + (columnWidth - titleSize)/2, writePos.y - lineHeight }, alignLeft ); // Centered
+                        handwritingFont->drawString( lines[i], { writePos.x + 40 * gui_fov_scale, writePos.y - lineHeight }, alignLeft ); // Left-align
                         writePos.y -= lineHeight * 0.75f*3;
                         }
                     else if ( isSub ) {
@@ -1130,6 +1180,15 @@ static void drawPauseScreen() {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
                         pencilFont->drawString( subString, { writePos.x + subSize + 60 * gui_fov_scale, writePos.y - lineHeight * 0.75f }, alignLeft );
                         writePos.y -= lineHeight;
+                        }
+                    else if ( isPicture ) {
+                        if( currentHelpPage != pictureOnPageNumber ) continue;
+                        doublePair picturePos = {
+                            lastScreenViewCenter.x + picturePosX * gui_fov_scale, 
+                            lastScreenViewCenter.y + picturePosY * gui_fov_scale
+                            };
+                        setDrawColor( 0.0f, 0.0f, 0.0f, 0.75*pauseScreenFade );
+                        drawSprite( instructionsSprite, picturePos, gui_fov_scale_hud );
                         }
                     else {
                         setDrawColor( 0.1f, 0.1f, 0.1f, 1*pauseScreenFade );
@@ -1150,6 +1209,9 @@ static void drawPauseScreen() {
         doublePair resumeButtonPos = { 460*gui_fov_scale, -112*gui_fov_scale };
         doublePair settingsButtonPos = { 460*gui_fov_scale, -192*gui_fov_scale };
         doublePair quitButtonPos = { 460*gui_fov_scale, -272*gui_fov_scale };
+
+        doublePair nextPageButtonPos = { 300*gui_fov_scale, -272*gui_fov_scale };
+        doublePair prevPageButtonPos = { 200*gui_fov_scale, -272*gui_fov_scale };
         
 
         if( 1 ) { // Resume button
@@ -1164,7 +1226,7 @@ static void drawPauseScreen() {
                 
             setDrawColor( 0, 0, 0, 1*pauseScreenFade );
             
-            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
                 abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
                 hoveringResumeButton = true;
                 setDrawColor( 1, 1, 1, 1*pauseScreenFade );
@@ -1187,7 +1249,7 @@ static void drawPauseScreen() {
                 
             setDrawColor( 0, 0, 0, 1*pauseScreenFade );
             
-            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
                 abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
                 hoveringSettingsButton = true;
                 setDrawColor( 1, 1, 1, 1*pauseScreenFade );
@@ -1210,13 +1272,63 @@ static void drawPauseScreen() {
                 
             setDrawColor( 0, 0, 0, 1*pauseScreenFade );
             
-            if( abs(lastCursorPos.x - buttonPos.x) < subSize &&
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
                 abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
                 hoveringQuitButton = true;
                 setDrawColor( 1, 1, 1, 1*pauseScreenFade );
                 }
             else {
                 hoveringQuitButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+
+        hoveringNextPageButton = false;
+        hoveringPrevPageButton = false;
+
+        if( currentHelpPage < totalNumOfHelpPages - 1 ) { // Next Page button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + nextPageButtonPos.x, 
+                lastScreenViewCenter.y + nextPageButtonPos.y
+                };
+                
+            char *buttonText = (char*)"[NEXT]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringNextPageButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringNextPageButton = false;
+                }
+                
+            handwritingFont->drawString( buttonText, buttonPos, alignCenter );
+            }
+        if( currentHelpPage > 0 ) { // Prev Page button
+            doublePair buttonPos = {
+                lastScreenViewCenter.x + prevPageButtonPos.x, 
+                lastScreenViewCenter.y + prevPageButtonPos.y
+                };
+                
+            char *buttonText = (char*)"[PREV]";
+            
+            int subSize = handwritingFont->measureString( buttonText );
+                
+            setDrawColor( 0, 0, 0, 1*pauseScreenFade );
+            
+            if( abs(lastCursorPos.x - buttonPos.x) < subSize/2 &&
+                abs(lastCursorPos.y - buttonPos.y) < 40/2*gui_fov_scale ) {
+                hoveringPrevPageButton = true;
+                setDrawColor( 1, 1, 1, 1*pauseScreenFade );
+                }
+            else {
+                hoveringPrevPageButton = false;
                 }
                 
             handwritingFont->drawString( buttonText, buttonPos, alignCenter );
@@ -2705,6 +2817,12 @@ void pointerUp( float inX, float inY ) {
             pauseScreenFade = 0;
             showSettings();
             }
+        if( currentHelpPage < totalNumOfHelpPages - 1 && hoveringNextPageButton ) {
+            currentHelpPage += 1;
+            }
+        if( currentHelpPage > 0 && hoveringPrevPageButton ) {
+            currentHelpPage -= 1;
+            }
         }
     
     if( isPaused() ) {
@@ -2721,7 +2839,16 @@ void pointerUp( float inX, float inY ) {
 
 
 
-void keyDown( unsigned char inASCII ) {if(inASCII==27) return;
+void keyDown( unsigned char inASCII ) {
+    
+    if( inASCII == 27 ) { // ESCAPE KEY
+        TextField::unfocusAll();
+        if ( currentGamePage == settingsPage ) {
+            settingsPage->pressBackButton();
+            return;
+            }
+        return;
+        }
 
     // taking screen shot is ALWAYS possible
     if( inASCII == '=' ) {    

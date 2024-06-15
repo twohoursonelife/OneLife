@@ -20,8 +20,6 @@ extern double frameRateFactor;
 int DropdownList::sDeleteFirstDelaySteps = 30 / frameRateFactor;
 int DropdownList::sDeleteNextDelaySteps = 2 / frameRateFactor;
 
-extern Font *oldMainFont;
-
 
 
 DropdownList::DropdownList( Font *inDisplayFont, 
@@ -29,7 +27,8 @@ DropdownList::DropdownList( Font *inDisplayFont,
                       char inForceCaps,
                       const char *inLabelText,
                       const char *inAllowedChars,
-                      const char *inForbiddenChars )
+                      const char *inForbiddenChars,
+                      int inListLenDisplayed )
         : PageComponent( inX, inY ),
           mActive( true ),
           mContentsHidden( false ),
@@ -45,13 +44,15 @@ DropdownList::DropdownList( Font *inDisplayFont,
           mAllowedChars( NULL ), mForbiddenChars( NULL ),
           
           mHover( false ),
-		  
-		  mRawText( new char[1] ),
-		  hoverIndex( -1 ),
-		  nearRightEdge( 0 ),
-		  mUseClearButton( false ),
-		  onClearButton( false ),
-		  
+          
+          mRawText( new char[1] ),
+          listLenDisplayed( inListLenDisplayed ), 
+          startIndex( 0 ),
+          hoverIndex( -1 ),
+          nearRightEdge( 0 ),
+          mUseClearButton( false ),
+          onClearButton( false ),
+          
           mFocused( false ), mText( new char[1] ),
           mTextLen( 0 ),
           mCursorPosition( 0 ),
@@ -168,98 +169,145 @@ void DropdownList::setContentsHidden( char inHidden ) {
 
 
 
-void DropdownList::setList( const char *inText ) {
-    delete [] mRawText;
+char *DropdownList::processRawText( const char *inRawText ) {
 
     // obeys same rules as typing (skip blocked characters)
     SimpleVector<char> filteredText;
     
-    int length = strlen( inText );
+    int length = strlen( inRawText );
     for( int i=0; i<length; i++ ) {
-        unsigned char processedChar = processCharacter( inText[i] );
+        unsigned char processedChar = processCharacter( inRawText[i] );
+
+        // newline is allowed, that's our delimiter of items in the list
+        if( inRawText[i] == '\n' ) processedChar = inRawText[i];
         
         if( processedChar != 0 ) {
             filteredText.push_back( processedChar );
             }
         }
     
-	char *rawStringWithEmptyLines = filteredText.getElementString();
-	int numLines;
-	char **lines = split( rawStringWithEmptyLines, "\n", &numLines );
-	delete [] rawStringWithEmptyLines;
-	
-	mRawText = strdup("");
-	
-	for( int i=0; i<numLines; i++ ) {
-		
-		if( i == 0 ) setText( lines[i] );
-		
-		if( strcmp( lines[i], "" ) != 0 ) {
-			mRawText = concatonate( mRawText, lines[i] );
-			mRawText = concatonate( mRawText, "\n" );
-			}
-		
-		delete [] lines[i];
-		}
-	delete [] lines;
-	
-	mRawText = trimWhitespace( mRawText );
-	lines = split( mRawText, "\n", &numLines );
-	listLen = numLines;
-	
-	for( int i=0; i<numLines; i++ ) {
-		delete [] lines[i];
-		}
-	delete [] lines;
-	
+    char *rawStringWithEmptyLines = filteredText.getElementString();
+    int numLines;
+    char **lines = split( rawStringWithEmptyLines, "\n", &numLines );
+    delete [] rawStringWithEmptyLines;
+    
+    char *processedRawText = stringDuplicate("");
+    
+    for( int i=0; i<numLines; i++ ) {
+        
+        if( i == 0 ) setText( lines[i] );
+        
+        if( strcmp( lines[i], "" ) != 0 ) {
+            if( strcmp( processedRawText, "" ) != 0 )
+                processedRawText = concatonate( processedRawText, "\n" );
+            processedRawText = concatonate( processedRawText, lines[i] );
+            }
+        
+        delete [] lines[i];
+        }
+    delete [] lines;
+
+    return processedRawText;
+    
     }
 
 
 
-char *DropdownList::getAndUpdateList() {
-	
-	char *newList = strdup("");
-    listLen = 0;
-	
-	if( strcmp( mRawText, "" ) != 0 ) {
-		int numLines;
-		char **lines = split( mRawText, "\n", &numLines );
+
+void DropdownList::setListByRawText( const char *inText ) {
+    
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = processRawText( inText );
+
+    if( strcmp( mRawText, "" ) != 0 ) {
+        int numLines;
+        char **lines = split( mRawText, "\n", &numLines );
+
         listLen = numLines;
-		
-		for( int i=0; i<numLines; i++ ) {
-			if( strcmp( mText, lines[i] ) != 0 ) {
-				newList = concatonate( newList, "\n" );
-				newList = concatonate( newList, lines[i] );
-				}
-            else {
-                listLen -= 1;
-                }
-			delete [] lines[i];
-			}
-		delete [] lines;
-		
-		newList = trimWhitespace( newList );
-		if( strcmp( newList, "" ) != 0 ) newList = concatonate( "\n", newList );
-		}
-	
-    if( strcmp( mRawText, "" ) != 0 ) listLen += 1;
-	newList = concatonate( mText, newList );
-	
-	delete [] mRawText;
-	mRawText = stringDuplicate( trimWhitespace( newList ) );
-	
-	return stringDuplicate( newList );
+        setText( lines[0] );
+
+        for( int i=0; i<numLines; i++ ) {
+            delete [] lines[i];
+            }
+        delete [] lines;
+        }
+    else {
+        listLen = 0;
+        setText( "" );
+        }
+
     }
-	
-	
+
+
+
+
+char *DropdownList::updateRawText( char *inRawText, char *inText ) {
+
+    char *newRawText = stringDuplicate( "" );
+
+    if( strcmp( inRawText, "" ) != 0 ) {
+        // see whether text is already in rawText, and remove if so
+        int numLines;
+        char **lines = split( inRawText, "\n", &numLines );
+        
+        for( int i=0; i<numLines; i++ ) {
+            if( strcmp( inText, lines[i] ) != 0 ) {
+                if( strcmp( newRawText, "" ) != 0 )
+                    newRawText = concatonate( newRawText, "\n" );
+                newRawText = concatonate( newRawText, lines[i] );
+                }
+            delete [] lines[i];
+            }
+        delete [] lines;
+        }
+
+    if( strcmp( newRawText, "" ) != 0 && strcmp( inText, "" ) != 0 ) {
+        newRawText = concatonate( "\n", newRawText );
+        newRawText = concatonate( inText, newRawText );
+        }
+    else if( strcmp( inText, "" ) != 0 ) {
+        if( newRawText != NULL ) delete [] newRawText;
+        newRawText = stringDuplicate( inText );
+        }
+
+    return newRawText;
+    }
+
+
+
+char *DropdownList::getAndUpdateRawText() {
+
+    char *newRawText = updateRawText( mRawText, mText );
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = newRawText;
+
+    if( strcmp( mRawText, "" ) != 0 ) {
+        int numLines;
+        char **lines = split( mRawText, "\n", &numLines );
+        
+        listLen = numLines;
+
+        for( int i=0; i<numLines; i++ ) {
+            delete [] lines[i];
+            }
+        delete [] lines;
+        }
+    else {
+        listLen = 0;
+        }
+    
+    return mRawText;
+    }
+    
+    
 void DropdownList::setText( const char *inText ) {
     delete [] mText;
     
     mSelectionStart = -1;
     mSelectionEnd = -1;
     
-	mText = stringDuplicate( inText );
-	
+    mText = stringDuplicate( inText );
+    
     mTextLen = strlen( mText );
     
     mCursorPosition = strlen( mText );
@@ -270,48 +318,54 @@ void DropdownList::setText( const char *inText ) {
 
     clearArrowRepeat();
     }
-	
+    
 char *DropdownList::getText() {
-	return stringDuplicate( mText );
-	}
-	
-void DropdownList::selectOption( int index ) {	
-	if( index < 0 || index >= listLen ) return;
-	
-	int numLines;
-	char **lines = split( mRawText, "\n", &numLines );
-	setText( lines[index] );
-	
-	for( int i=0; i<numLines; i++ ) {
-		delete [] lines[i];
-		}
-	delete [] lines;
-	}
-	
+    return stringDuplicate( mText );
+    }
+    
+void DropdownList::selectOption( int index ) {    
+    if( index < 0 || index >= listLen ) return;
+    
+    int numLines;
+    char **lines = split( mRawText, "\n", &numLines );
+    setText( lines[index] );
+
+    char *newRawText = updateRawText( mRawText, mText );
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = newRawText;
+    
+    for( int i=0; i<numLines; i++ ) {
+        delete [] lines[i];
+        }
+    delete [] lines;
+    }
+    
 void DropdownList::deleteOption( int index ) {
-	if( index < 0 || index >= listLen ) return;
-	
-	int numLines;
-	char **lines = split( mRawText, "\n", &numLines );
-	
-	delete [] mRawText;
-	mRawText = strdup("");
-	
-	for( int i=0; i<numLines; i++ ) {
-		
-		if( i != index ) {
-			mRawText = concatonate( mRawText, lines[i] );
-			if( i < numLines - 1 ) mRawText = concatonate( mRawText, "\n" );
-			}
-		
-		delete [] lines[i];
-		}
-	delete [] lines;
-	
-	mRawText = trimWhitespace( mRawText );
-	listLen = listLen - 1;
-	
-	}
+    if( index < 0 || index >= listLen ) return;
+    
+    int numLines;
+    char **lines = split( mRawText, "\n", &numLines );
+    
+    char *newRawText = stringDuplicate("");
+    
+    for( int i=0; i<numLines; i++ ) {
+        
+        if( i != index ) {
+            if( strcmp( newRawText, "" ) != 0 )
+                    newRawText = concatonate( newRawText, "\n" );
+            newRawText = concatonate( newRawText, lines[i] );
+            }
+        
+        delete [] lines[i];
+        }
+    delete [] lines;
+
+    if( mRawText != NULL ) delete [] mRawText;
+    mRawText = newRawText;
+    
+    listLen = listLen - 1;
+    
+    }
 
 
 
@@ -617,87 +671,107 @@ void DropdownList::draw() {
         mFont->drawString( mDrawnText, textPos2, alignLeft );
         mDrawnTextX = textPos2.x;
         }
-		
-		
-	if ( mFocused ) {
-		
-		if( mUseClearButton && strcmp( mText, "" ) != 0 ) {
-			float pixWidth = mCharWidth / 8;
-			float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
-			float buttonRightOffset = buttonWidth / 2 + pixWidth * 2;
-			doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, 0 };
-			if ( onClearButton ) {
-				setDrawColor( 0, 0, 0, 0.5 );
-				drawRect( 
-					lineDeleteButtonPos.x - buttonRightOffset / 2 - mBorderWide / 2, 
-					lineDeleteButtonPos.y - buttonRightOffset / 2 - mBorderWide / 2, 
-					lineDeleteButtonPos.x + buttonRightOffset / 2 + mBorderWide / 2, 
-					lineDeleteButtonPos.y + buttonRightOffset / 2 + mBorderWide / 2 );
-			}
-			setDrawColor( 1, 1, 1, 1 );
-			oldMainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
-		}
-		
-		if( strcmp( mRawText, "" ) != 0 ) {
-			int numLines;
-			char **lines = split( mRawText, "\n", &numLines );
-			
-			for( int i=0; i<numLines; i++ ) {
-				
-				doublePair linePos = { centerPos.x, centerPos.y - (i + 1) * mHigh };
-				float backgroundAlpha = 0.3;
-				if( hoverIndex == i ) backgroundAlpha = 0.7;
-				setDrawColor( 0, 0, 0, 1 );
-				drawRect( - mWide / 2, linePos.y - mHigh / 2, 
-					mWide / 2, linePos.y + mHigh / 2 );
-				setDrawColor( 1, 1, 1, backgroundAlpha );
-				drawRect( - mWide / 2, linePos.y - mHigh / 2, 
-					mWide / 2, linePos.y + mHigh / 2 );
-				doublePair lineTextPos = { textPos.x, textPos.y - (i + 1) * mHigh };
-					
-				setDrawColor( 0, 0, 0, 0.5 );
-				float buttonRightOffset = oldMainFont->measureString( "x" );
-				doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, lineTextPos.y };
-				if( hoverIndex == i && nearRightEdge ) {
-					drawRect( 
-						lineDeleteButtonPos.x - buttonRightOffset / 2 - mBorderWide / 2, 
-						lineDeleteButtonPos.y - buttonRightOffset / 2 - mBorderWide / 2, 
-						lineDeleteButtonPos.x + buttonRightOffset / 2 + mBorderWide / 2, 
-						lineDeleteButtonPos.y + buttonRightOffset / 2 + mBorderWide / 2 );
-					}
-				
-				setDrawColor( 1, 1, 1, 1 );
-				char *lineText = stringDuplicate( lines[i] );
-				
-				if( mFont->measureString( lineText ) 
-					+ mFont->measureString( "...   " ) 
-					> mWide - 2 * mBorderWide ) {
+        
+        
+    if ( mFocused ) {
 
-					while( mFont->measureString( lineText ) + mFont->measureString( "...   " ) > 
-						   mWide - 2 * mBorderWide ) {
-						
-						lineText[ strlen( lineText ) - 1 ] = '\0';
-						
-						}
-						
-					lineText = concatonate( lineText, "...   " );
-					
-					}
-				
-				mFont->drawString( lineText, lineTextPos, alignLeft );
-				
-				setDrawColor( 1, 1, 1, 1 );
-				oldMainFont->drawString( "x", lineDeleteButtonPos, alignCenter );
-				
-				
-				
-				delete [] lines[i];
-				}
-			delete [] lines;
-			
-			}
-		}
-	
+        float pixWidth = mCharWidth / 8;
+        float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
+        float buttonRightOffset = buttonWidth / 2 + mBorderWide;
+        
+        if( mUseClearButton && strcmp( mText, "" ) != 0 ) {
+            doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, 0 };
+            if ( onClearButton ) {
+                setDrawColor( 0, 0, 0, 0.5 );
+                drawRect( 
+                    lineDeleteButtonPos.x - buttonWidth / 2, 
+                    lineDeleteButtonPos.y - buttonWidth / 2, 
+                    lineDeleteButtonPos.x + buttonWidth / 2, 
+                    lineDeleteButtonPos.y + buttonWidth / 2 );
+            }
+            setDrawColor( 1, 1, 1, 1 );
+            mFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+        }
+        
+        if( strcmp( mRawText, "" ) != 0 ) {
+
+            int numLines = 0;
+            char **lines = split( mRawText, "\n", &numLines );
+            
+            for( int i=0; i<numLines; i++ ) {
+
+                if( i < startIndex || i >= startIndex + listLenDisplayed ) {
+                    delete [] lines[i];
+                    continue;
+                    }
+
+                int relativeIndex = i - startIndex;
+                
+                doublePair linePos = { centerPos.x, centerPos.y - (relativeIndex + 1) * mHigh };
+                float backgroundAlpha = 0.3;
+                if( hoverIndex == i ) backgroundAlpha = 0.7;
+                setDrawColor( 0, 0, 0, 1 );
+                drawRect( - mWide / 2, linePos.y - mHigh / 2, 
+                    mWide / 2, linePos.y + mHigh / 2 );
+                setDrawColor( 1, 1, 1, backgroundAlpha );
+                drawRect( - mWide / 2, linePos.y - mHigh / 2, 
+                    mWide / 2, linePos.y + mHigh / 2 );
+                doublePair lineTextPos = { textPos.x, textPos.y - (relativeIndex + 1) * mHigh };
+                    
+                setDrawColor( 0, 0, 0, 0.5 );
+                doublePair lineDeleteButtonPos = { mWide / 2 - buttonRightOffset, lineTextPos.y };
+                if( hoverIndex == i && nearRightEdge ) {
+                    drawRect( 
+                        lineDeleteButtonPos.x - buttonWidth / 2, 
+                        lineDeleteButtonPos.y - buttonWidth / 2, 
+                        lineDeleteButtonPos.x + buttonWidth / 2, 
+                        lineDeleteButtonPos.y + buttonWidth / 2 );
+                    }
+                
+                setDrawColor( 1, 1, 1, 1 );
+                char *lineText = stringDuplicate( lines[i] );
+                
+                if( mFont->measureString( lineText ) 
+                    + mFont->measureString( "...   " ) 
+                    > mWide - 2 * mBorderWide ) {
+
+                    while( mFont->measureString( lineText ) + mFont->measureString( "...   " ) > 
+                           mWide - 2 * mBorderWide ) {
+                        
+                        lineText[ strlen( lineText ) - 1 ] = '\0';
+                        
+                        }
+                        
+                    lineText = concatonate( lineText, "...   " );
+                    
+                    }
+                
+                mFont->drawString( lineText, lineTextPos, alignLeft );
+                
+                setDrawColor( 1, 1, 1, 1 );
+                mFont->drawString( "x", lineDeleteButtonPos, alignCenter );
+                
+                
+                
+                delete [] lines[i];
+                }
+            delete [] lines;
+            
+            if( startIndex > 0 ) {
+                doublePair morePrevHintPos = { centerPos.x, centerPos.y - 0.5 * mHigh };
+                setDrawColor( 1, 1, 1, 1 );
+                mFont->drawString( "...", morePrevHintPos, alignCenter );
+                }
+
+            if( startIndex + listLenDisplayed < numLines ) {
+                doublePair moreAfterHintPos = { centerPos.x, centerPos.y - (listLenDisplayed + 0.25) * mHigh };
+                setDrawColor( 1, 1, 1, 1 );
+                mFont->drawString( "...", moreAfterHintPos, alignCenter );
+                }
+
+            }
+        }
+    
 
     double shadeWidth = 4 * mCharWidth;
     
@@ -786,69 +860,97 @@ void DropdownList::draw() {
     delete [] textBeforeCursorBase;
     delete [] textAfterCursorBase;
     }
-	
-	
+    
+    
 int DropdownList::insideIndex( float inX, float inY ) {
-	if( !mFocused ) return -1;
-	if( fabs( inX ) >= mWide / 2 ) return -1;
-	int index = - ( inY - mHigh / 2 ) / mHigh;
-	if( index <= 0 ) return -1;
-	index = index - 1;
-	if( index >= listLen ) return -1;
-	return index;
+    if( !mFocused ) return -1;
+    if( fabs( inX ) >= mWide / 2 ) return -1;
+    int index = - ( inY - mHigh / 2 ) / mHigh;
+    index = index - 1;
+    if( index >= listLenDisplayed ) return -1;
+    index = index + startIndex;
+    if( index < 0 ) return -1;
+    if( index >= listLen ) return -1;
+    return index;
     }
-	
+    
 char DropdownList::isInsideTextBox( float inX, float inY ) {
     return fabs( inX ) < mWide / 2 &&
         fabs( inY ) < mHigh / 2;
     }
-	
+    
 char DropdownList::isNearRightEdge( float inX, float inY ) {
-	float pixWidth = mCharWidth / 8;
-	float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
-	float buttonRightOffset = buttonWidth / 2 + pixWidth * 2;
+    float pixWidth = mCharWidth / 8;
+    float buttonWidth = mFont->measureString( "x" ) + pixWidth * 2;
+    float buttonRightOffset = buttonWidth / 2 + mBorderWide;
     return inX > 0 && 
-		fabs( inX - ( mWide / 2 - buttonRightOffset ) ) < buttonWidth / 2;
+        fabs( inX - ( mWide / 2 - buttonRightOffset ) ) < buttonWidth / 2;
     }
 
 
 
 void DropdownList::pointerMove( float inX, float inY ) {
-	hoverIndex = insideIndex( inX, inY );
-	nearRightEdge = isNearRightEdge( inX, inY );
-	onClearButton = isInsideTextBox( inX, inY ) && nearRightEdge;
-	mHover = hoverIndex != -1 || isInsideTextBox( inX, inY );
+    hoverIndex = insideIndex( inX, inY );
+    nearRightEdge = isNearRightEdge( inX, inY );
+    onClearButton = isInsideTextBox( inX, inY ) && nearRightEdge;
+    mHover = hoverIndex != -1 || isInsideTextBox( inX, inY );
     }
 
 
 void DropdownList::pointerDown( float inX, float inY ) {
     
-	int mouseButton = getLastMouseButton();
-	if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
+    int mouseButton = getLastMouseButton();
+
+    if ( mouseButton == MouseButton::WHEELDOWN ) {
+        startIndex++;
+        if( startIndex > listLen - listLenDisplayed ) {
+            startIndex = listLen - listLenDisplayed;
+            }
+        if( startIndex < 0 ) {
+            startIndex = 0;
+            }
+        return;
+        }
+    else if ( mouseButton == MouseButton::WHEELUP ) { 
+        startIndex--;
+        if( startIndex < 0 ) {
+            startIndex = 0;
+            }
+        return;
+        }
+
     
-	hoverIndex = insideIndex( inX, inY );
-	//if( !isInsideTextBox( inX, inY ) && !nearRightEdge ) unfocus();
-	if( !isInsideTextBox( inX, inY ) && !(nearRightEdge && hoverIndex != -1) ) unfocus();
-	if( onClearButton && mFocused ) setText( "" );
-	if( hoverIndex == -1 ) return;
-	if( !nearRightEdge ) {
-		selectOption( hoverIndex );
-	} else {
-		deleteOption( hoverIndex );
-		}
-    fireActionPerformed( this );
+    
+    hoverIndex = insideIndex( inX, inY );
+    if( !mHover ) {
+        unfocus();
+        }
+    if( onClearButton && mFocused ) setText( "" );
+    if( hoverIndex == -1 ) return;
+    if( isInsideTextBox( inX, inY ) ) return;
+    if( !nearRightEdge ) {
+        selectOption( hoverIndex );
+        fireActionPerformed( this );
+    } else {
+        deleteOption( hoverIndex );
+        if( startIndex > listLen - listLenDisplayed ) {
+            startIndex = listLen - listLenDisplayed;
+            }
+        if( startIndex < 0 ) {
+            startIndex = 0;
+            }
+        }
     }
 
 
 void DropdownList::pointerUp( float inX, float inY ) {
-    if( !isInsideTextBox( inX, inY ) && !nearRightEdge ) unfocus();
+        
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
     
     if( mIgnoreMouse || mIgnoreEvents ) {
         return;
         }
-        
-	int mouseButton = getLastMouseButton();
-	if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) { return; }
     
     if( inX > - mWide / 2 &&
         inX < + mWide / 2 &&
@@ -1135,12 +1237,12 @@ void DropdownList::keyDown( unsigned char inASCII ) {
                     }
                 }
             }
-			
+            
         if( mUsePasteShortcut && inASCII + 64 == toupper('c') )  {
-			char *text = getText();
-			setClipboardText( text );
-			delete [] text;
-			}
+            char *text = getText();
+            setClipboardText( text );
+            delete [] text;
+            }
 
         // but ONLY if it's an alphabetical key (A-Z,a-z)
         // Some international keyboards use ALT to type certain symbols
@@ -1182,6 +1284,18 @@ void DropdownList::keyDown( unsigned char inASCII ) {
             }
         else {
             // newline not allowed in this field
+
+            if( hoverIndex >= 0 ) {
+                selectOption( hoverIndex );
+                
+                // usually we want the text field to be unfocused here
+                // but it may conflict with how the page handles Enter key
+                // unfocus the text field in the page instead
+                
+                // unfocus();
+                
+                }
+
             fireActionPerformed( this );
             }
         }
@@ -1416,6 +1530,29 @@ void DropdownList::specialKeyDown( int inKeyCode ) {
     mCursorFlashSteps = 0;
     
     switch( inKeyCode ) {
+        case MG_KEY_DOWN:
+            hoverIndex++;
+            if( hoverIndex >= listLen ) hoverIndex--;
+            if( hoverIndex - startIndex >= listLenDisplayed ) {
+                startIndex++;
+                }
+            if( startIndex > listLen - listLenDisplayed ) {
+                startIndex = listLen - listLenDisplayed;
+                }
+            if( startIndex < 0 ) {
+                startIndex = 0;
+                }
+            break;
+        case MG_KEY_UP:
+            hoverIndex--;
+            if( hoverIndex < 0 ) hoverIndex++;
+            if( hoverIndex - startIndex < 0 ) {
+                startIndex--;
+                }
+            if( startIndex < 0 ) {
+                startIndex = 0;
+                }
+            break;
         case MG_KEY_LEFT:
             if( ! mIgnoreArrowKeys ) {    
                 leftHit();
@@ -1457,7 +1594,7 @@ void DropdownList::focus() {
         // unfocus last focused
         sFocusedDropdownList->unfocus();
         }
-		
+        
     TextField::unfocusAll();
 
     mFocused = true;
@@ -1470,6 +1607,8 @@ void DropdownList::focus() {
 
 void DropdownList::unfocus() {
     mFocused = false;
+
+    startIndex = 0;
  
     // hold-down broken if not focused
     mHoldDeleteSteps = -1;
@@ -1595,8 +1734,8 @@ void DropdownList::setShiftArrowsCanSelect( char inCanSelect ) {
 void DropdownList::usePasteShortcut( char inShortcutOn ) {
     mUsePasteShortcut = inShortcutOn;
     }
-	
-	
+    
+    
 void DropdownList::useClearButton( char inClearButtonOn ) {
     mUseClearButton = inClearButtonOn;
     }

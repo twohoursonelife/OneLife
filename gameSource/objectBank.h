@@ -13,6 +13,8 @@
 #include "SoundUsage.h"
 
 
+void setObjectDrawAlpha( float alpha );
+
 void setDrawColor( FloatRGB inColor );
 
 //defined in animationBank
@@ -425,10 +427,10 @@ typedef struct ObjectRecord {
         int horizontalVersionID;
         int verticalVersionID;
         int cornerVersionID;
-		
-		
-		char isTapOutTrigger;
-		
+        
+        
+        char isTapOutTrigger;
+        
         char autoDefaultTrans;
 
         char noBackAccess;
@@ -438,10 +440,10 @@ typedef struct ObjectRecord {
         char passwordAssigner;
         char passwordProtectable;
         
-		//2HOL mechanics to read written objects
-		char clickToRead;
-		char passToRead;
-		
+        //2HOL mechanics to read written objects
+        char clickToRead;
+        char passToRead;
+        
         SimpleVector<int> IndX;
         SimpleVector<int> IndY;
         SimpleVector<char*> IndPass;
@@ -662,6 +664,14 @@ void setDrawnObjectContained( char inContained );
 
 
 
+// the scale of the next object drawn
+// for example, object icons in minitech and vog picker should not
+// scale with zoom
+// remember to set the scale back to 1.0 afterwards
+void setDrawnObjectScale( double inScale );
+
+
+
 
 // inAge -1 for no age modifier
 //
@@ -678,8 +688,7 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        int inHideClosestArm,
                        char inHideAllLimbs,
                        char inHeldNotInPlaceYet,
-                       ClothingSet inClothing,
-                       double inScale = 1.0 );
+                       ClothingSet inClothing );
 
 
 HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos,

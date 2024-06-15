@@ -27,18 +27,21 @@ class SettingsPage : public GamePage, public ActionListener {
 
         virtual void step();
 
+        void pressBackButton();
+
         virtual void actionPerformed( GUIComponent *inTarget );
 
         
         virtual void makeActive( char inFresh );
         virtual void makeNotActive();
-		virtual void updatePage();
+        virtual void updatePage();
         virtual void checkRestartRequired();
 
     protected:
         
         int mOldFullscreenSetting;
         int mOldBorderlessSetting;
+        int mOldGenerateTownPlannerMapsSetting;
         int mTrippingEffectDisabledSetting;
         int mEnableNudeSetting;
         int mEnableFOVSetting;
@@ -78,9 +81,10 @@ class SettingsPage : public GamePage, public ActionListener {
         TextButton mEditAccountButton;
 
         // Gameplay
-		CheckboxButton mEnableFOVBox;
-		CheckboxButton mEnableCenterCameraBox;
-		CheckboxButton mEnableNudeBox;
+        CheckboxButton mEnableFOVBox;
+        CheckboxButton mEnableCenterCameraBox;
+        CheckboxButton mEnableNudeBox;
+        ValueSlider mUISizeSlider;
         
         CheckboxButton mUseCustomServerBox;
         TextField mCustomServerAddressField;
@@ -89,7 +93,7 @@ class SettingsPage : public GamePage, public ActionListener {
         TextButton mPasteButton;
         
         // Control
-		CheckboxButton mEnableKActionsBox;
+        CheckboxButton mEnableKActionsBox;
         RadioButtonSet *mCursorModeSet;
         ValueSlider mCursorScaleSlider;
 
@@ -114,7 +118,17 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mDiscordHideFirstNameInDetails;
 #endif // USE_DISCORD
 
+        // Advanced
+        DropdownList mCommandShortcuts;
         CheckboxButton mEnableAdvancedShowUseOnObjectHoverKeybind;
+        CheckboxButton mEnableCoordinatesBox;
+        CheckboxButton mEnablePersistentEmoteBox;
+        CheckboxButton mEnableYumFinderBox;
+        CheckboxButton mEnableObjectSearchBox;
+        CheckboxButton mEnableFamilyDisplayBox;
+        CheckboxButton mEnableDangerousTileBox;
+        CheckboxButton mGenerateTownPlannerMapsBox;
+        CheckboxButton mEnableShowingHeldFoodPips;
         
         
         void checkRestartButtonVisibility();

@@ -1444,12 +1444,12 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
     
     int pickedBiome = getMapBiomeIndex( inX, inY, &secondPlace,
                                                 &secondPlaceGap );
-												
-	if(biomes[pickedBiome] == 7 || biomes[pickedBiome] == 9){
-		density = 1;
-		
-	}
-	setXYRandomSeed( 9877 );
+                                                
+    if(biomes[pickedBiome] == 7 || biomes[pickedBiome] == 9){
+        density = 1;
+        
+    }
+    setXYRandomSeed( 9877 );
     if( getXYRandom( inX, inY ) < density ) {
  
  
@@ -1487,7 +1487,7 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
         // if gap is 1.0, it should never happen
  
         // larger values make second place less likely
-		//double secondPlaceReduction = 10.0;
+        //double secondPlaceReduction = 10.0;
 
         //printf( "Second place gap = %f, random(%d,%d)=%f\n", secondPlaceGap,
         //        inX, inY, getXYRandom( 2087 + inX, 793 + inY ) );
@@ -1515,7 +1515,7 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
        
  
         for( int i=0; i<numObjects; i++ ) {
-		
+        
             setXYRandomSeed( 793 * i + 123 );
        
             double randVal = getXYFractal(  inX,
@@ -1527,7 +1527,7 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
                 maxValue = randVal;
                 specialObjectIndex = i;
             }
-			
+            
         }
  
  
@@ -1536,7 +1536,7 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
                 specialObjectIndex );
        
         float newSpecialChance = oldSpecialChance * 10;
-		
+        
         *( naturalMapChances[pickedBiome].getElement( specialObjectIndex ) )
             = newSpecialChance;
 
@@ -1559,8 +1559,8 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
         float weightSum = 0;        
        
         while( weightSum < randValue && i < numObjects ) {
-			
-            weightSum += naturalMapChances[pickedBiome].getElementDirect( i );			
+            
+            weightSum += naturalMapChances[pickedBiome].getElementDirect( i );            
             i++;
             }
         i--;
@@ -1572,35 +1572,35 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
  
         totalChanceWeight[pickedBiome] = oldTotalChanceWeight;
 
-			if( i >= 0 ) {
-				int returnID = naturalMapIDs[pickedBiome].getElementDirect( i );
-			   
-				if( pickedBiome == secondPlace ) {
-					// object peeking through from second place biome
-	 
-					// make sure it's not a moving object (animal)
-					// those are locked to their target biome only
-					TransRecord *t = getPTrans( -1, returnID );
-					if( t != NULL && t->move != 0 ) {
-						// put empty tile there instead
-						returnID = 0;
-						}
-					}
-	 
-				mapCacheInsert( inX, inY, returnID );
-				return returnID;
-				}
-			else {
-				mapCacheInsert( inX, inY, 0 );
-				return 0;
-			}
+            if( i >= 0 ) {
+                int returnID = naturalMapIDs[pickedBiome].getElementDirect( i );
+               
+                if( pickedBiome == secondPlace ) {
+                    // object peeking through from second place biome
+     
+                    // make sure it's not a moving object (animal)
+                    // those are locked to their target biome only
+                    TransRecord *t = getPTrans( -1, returnID );
+                    if( t != NULL && t->move != 0 ) {
+                        // put empty tile there instead
+                        returnID = 0;
+                        }
+                    }
+     
+                mapCacheInsert( inX, inY, returnID );
+                return returnID;
+                }
+            else {
+                mapCacheInsert( inX, inY, 0 );
+                return 0;
+            }
             
-	} else {
-		if( biomes[pickedBiome] != 7 && biomes[pickedBiome] != 9 ){
-			mapCacheInsert( inX, inY, 0 );
-			return 0;
-			}
-		}
+    } else {
+        if( biomes[pickedBiome] != 7 && biomes[pickedBiome] != 9 ){
+            mapCacheInsert( inX, inY, 0 );
+            return 0;
+            }
+        }
     
     }
  
@@ -5786,8 +5786,8 @@ int checkDecayObject( int inX, int inY, int inID ) {
                             // no further decay
                             leftMapETA = 0;
                             }
-						//for movement from posA to posB, we want posA to be potentially always live tracked as well
-						//leftDecayT is passed to check if it should be always live tracked
+                        //for movement from posA to posB, we want posA to be potentially always live tracked as well
+                        //leftDecayT is passed to check if it should be always live tracked
                         setEtaDecay( inX, inY, leftMapETA, leftDecayT );
                         }
                     else {
@@ -5861,7 +5861,6 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                                etaTime,
                                                moveTime };
                     
-                   
                     liveMovementEtaTimes.insert( newX, newY, 0, 0, etaTime );
                     
                     liveMovements.insert( moveRec, etaTime );
@@ -9749,4 +9748,44 @@ void stepMapLongTermCulling( int inNumCurrentPlayers ) {
                 }
             }
         }
+    }
+
+
+int getDeadlyMovingMapObject( int inPosX, int inPosY,
+                              int *outMovingDestX, int *outMovingDestY ) {
+    
+    double curTime = Time::getCurrentTime();
+    
+    int numMoving = liveMovements.size();
+    
+    for( int i=0; i<numMoving; i++ ) {
+        MovementRecord *m = liveMovements.getElement( i );
+        
+        if( ! m->deadly ) {
+            continue;
+            }
+        double progress = 
+            ( m->totalTime - ( m->etaTime - curTime )  )
+            / m->totalTime;
+        
+        if( progress < 0 ||
+            progress > 1 ) {
+            continue;
+            }
+        int curPosX = lrint( ( m->x - m->sourceX ) * progress + m->sourceX );
+        int curPosY = lrint( ( m->y - m->sourceY ) * progress + m->sourceY );
+        
+        if( curPosX != inPosX ||
+            curPosY != inPosY ) {
+            continue;
+            }
+        
+        // hit position
+        *outMovingDestX = m->x;
+        *outMovingDestY = m->y;
+        return m->id;
+        }
+    
+
+    return 0;
     }

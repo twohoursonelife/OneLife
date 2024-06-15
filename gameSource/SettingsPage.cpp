@@ -29,9 +29,21 @@ extern int targetFramesPerSecond;
 
 extern bool showingInGameSettings;
 
+extern float gui_fov_target_scale_hud;
+
 // defined in LivingLifePage.cpp
 extern bool ShowUseOnObjectHoverSettingToggle;
 extern bool isShowUseOnObjectHoverKeybindEnabled;
+
+extern char coordinatesEnabled;
+extern char persistentEmoteEnabled;
+extern char yumFinderEnabled;
+extern char objectSearchEnabled;
+extern char familyDisplayEnabled;
+extern char dangerousTileEnabled;
+extern char showPipsOfFoodHeld;
+
+extern char *commandShortcutsRawText;
 
 #ifdef USE_DISCORD
 // extern from DiscordController.h
@@ -60,9 +72,12 @@ SettingsPage::SettingsPage()
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
 
           // Gameplay
-		  mEnableFOVBox( 561, 128, 4 ),
-		  mEnableCenterCameraBox( 561, 52, 4 ),
+          mEnableFOVBox( 561, 128, 4 ),
+          mEnableCenterCameraBox( 561, 52, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
+          mUISizeSlider( mainFont, -335, 148, 4, 200, 30,
+                                       0.5, 1.0, 
+                                       "" ),
           
           mUseCustomServerBox( -168, -148, 4 ),
           mCustomServerAddressField( mainFont, 306, -150, 14, false, 
@@ -77,7 +92,7 @@ SettingsPage::SettingsPage()
           mPasteButton( mainFont, 518, -216, translate( "paste" ) ),
           
           // Control
-		  mEnableKActionsBox( 561, 90, 4 ),
+          mEnableKActionsBox( 561, 90, 4 ),
           mCursorScaleSlider( mainFont, 297, 155, 4, 200, 30,
                                        1.0, 10.0, 
                                        translate( "scale" ) ),
@@ -96,10 +111,10 @@ SettingsPage::SettingsPage()
           // Sound
           mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
                                 0.0, 1.0, 
-                                translate( "musicLoudness" ) ),
+                                translate( "musicLoudness" ), true ),
           mSoundEffectsLoudnessSlider( mainFont, 0, -48, 4, 200, 30,
                                        0.0, 1.0, 
-                                       translate( "soundLoudness" ) )
+                                       translate( "soundLoudness" ), true )
 #ifdef USE_DISCORD
         , mEnableDiscordRichPresence(0, 168, 4),
           mEnableDiscordRichPresenceStatus(0, 128, 4), 
@@ -107,7 +122,19 @@ SettingsPage::SettingsPage()
           mEnableDiscordRichPresenceDetails(0, 48, 4),
           mDiscordHideFirstNameInDetails(0, 8, 4) 
 #endif // USE_DISCORD
-        , mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4) {
+        , mCommandShortcuts( mainFont, -360, -176, 10, true, 
+                                     "",
+                                     "ABCDEFGHIJKLMNOPQRSTUVWXYZ.-,'?!/ 0123456789",
+                                     NULL, 4 ),
+        mEnableAdvancedShowUseOnObjectHoverKeybind(0, 168, 4),
+        mEnableCoordinatesBox(0, 128, 4),
+        mEnablePersistentEmoteBox(0, 88, 4),
+        mEnableYumFinderBox(0, 48, 4),
+        mEnableObjectSearchBox(0, 8, 4),
+        mEnableFamilyDisplayBox(0, -32, 4),
+        mEnableDangerousTileBox(0, -72, 4),
+        mGenerateTownPlannerMapsBox( 561, 52, 4 ),
+        mEnableShowingHeldFoodPips( 561, 52, 4 ) {
                             
 
     
@@ -116,8 +143,29 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent( &mEnableShowingHeldFoodPips );
+    mEnableShowingHeldFoodPips.addActionListener( this );
+    addComponent( &mGenerateTownPlannerMapsBox );
+    mGenerateTownPlannerMapsBox.addActionListener( this );
+    addComponent(&mEnableDangerousTileBox);
+    mEnableDangerousTileBox.addActionListener(this);
+    addComponent(&mEnableFamilyDisplayBox);
+    mEnableFamilyDisplayBox.addActionListener(this);
+    addComponent(&mEnableObjectSearchBox);
+    mEnableObjectSearchBox.addActionListener(this);
+    addComponent(&mEnableYumFinderBox);
+    mEnableYumFinderBox.addActionListener(this);
+    addComponent(&mEnablePersistentEmoteBox);
+    mEnablePersistentEmoteBox.addActionListener(this);
+    addComponent(&mEnableCoordinatesBox);
+    mEnableCoordinatesBox.addActionListener(this);
     addComponent(&mEnableAdvancedShowUseOnObjectHoverKeybind);
     mEnableAdvancedShowUseOnObjectHoverKeybind.addActionListener(this);
+    addComponent(&mCommandShortcuts);
+    mCommandShortcuts.addActionListener(this);
+    mCommandShortcuts.setWidth( 360 );
+    mCommandShortcuts.useClearButton( true );
+    mCommandShortcuts.setFireOnLoseFocus( true );
     
 #ifdef USE_DISCORD
     // Discord
@@ -173,11 +221,11 @@ SettingsPage::SettingsPage()
     mCursorModeSet = 
         new RadioButtonSet( mainFont, 561, 275,
                             3, choiceList,
-                            false, 4 );
+                            false, 4, true );
     addComponent( mCursorModeSet );
     mCursorModeSet->addActionListener( this );
     
-	addComponent( &mEnableKActionsBox );
+    addComponent( &mEnableKActionsBox );
     mEnableKActionsBox.addActionListener( this );
     
     // Gameplay
@@ -196,11 +244,13 @@ SettingsPage::SettingsPage()
     addComponent( &mUseCustomServerBox );
     mUseCustomServerBox.addActionListener( this );
     
+    addComponent( &mUISizeSlider );
+    mUISizeSlider.addActionListener( this );
     addComponent( &mEnableNudeBox );
     mEnableNudeBox.addActionListener( this );
-	addComponent( &mEnableCenterCameraBox );
+    addComponent( &mEnableCenterCameraBox );
     mEnableCenterCameraBox.addActionListener( this );
-	addComponent( &mEnableFOVBox );
+    addComponent( &mEnableFOVBox );
     mEnableFOVBox.addActionListener( this );
     
     // Left pane
@@ -293,8 +343,17 @@ SettingsPage::SettingsPage()
     mDiscordHideFirstNameInDetails.setCursorTip("HIDE FIRST NAME IN THE STATUS");
 #endif // USE_DISCORD
 
+    mCommandShortcuts.setCursorTip( "SAVED COMMANDS OR SPEECH, TO BE ACCESSED WITH NUM KEYS OR ALT + NUM KEYS." );
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
       "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
+    mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING. PRESS G TO TOGGLE PANEL." );
+    mEnablePersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
+    mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
+    mEnableObjectSearchBox.setCursorTip( "ENABLE OBJECT FINDER. PRESS J TO TOGGLE PANEL." );
+    mEnableFamilyDisplayBox.setCursorTip( "ENABLE DISPLAY OF LIST OF FAMILIES. PRESS P TO TOGGLE PANEL." );
+    mEnableDangerousTileBox.setCursorTip( "HIGHLIGHT DANGEROUS TILES AND BLOCK PATHING INTO THEM ON KEYBOARD." );
+    mGenerateTownPlannerMapsBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
+    mEnableShowingHeldFoodPips.setCursorTip( "SHOW FOOD PIPS OF THE FOOD YOU'RE HOLDING" );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -325,21 +384,22 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "nudeEnabled", 1 );
 
     mEnableNudeBox.setToggled( mEnableNudeSetting );
-	
-	mEnableFOVSetting =
+
+
+    mEnableFOVSetting =
         SettingsManager::getIntSetting( "fovEnabled", 0 );
-	
-	mEnableFOVBox.setToggled( mEnableFOVSetting );
     
-	mEnableKActionsSetting =
+    mEnableFOVBox.setToggled( mEnableFOVSetting );
+    
+    mEnableKActionsSetting =
         SettingsManager::getIntSetting( "keyboardActions", 0 );
-	
-	mEnableKActionsBox.setToggled( mEnableKActionsSetting );
+    
+    mEnableKActionsBox.setToggled( mEnableKActionsSetting );
         
-	mEnableCenterCameraSetting =
+    mEnableCenterCameraSetting =
         SettingsManager::getIntSetting( "centerCamera", 0 );
-	
-	mEnableCenterCameraBox.setToggled( mEnableCenterCameraSetting );
+    
+    mEnableCenterCameraBox.setToggled( mEnableCenterCameraSetting );
 
 #ifdef USE_DISCORD
     mDiscordRichPresenceSetting =
@@ -368,11 +428,59 @@ SettingsPage::SettingsPage()
     mDiscordHideFirstNameInDetails.setToggled(mDiscordHideFirstNameInDetailsSetting);
 #endif // USE_DISCORD
 
+    commandShortcutsRawText = 
+        SettingsManager::getSettingContents( "commandShortcuts", "" );
+
+    mCommandShortcuts.setListByRawText( commandShortcutsRawText );
+
+    // the UI is used to view and edit a list
+    // the textbox is merely a way to input text
+    // keep it empty when the UI is not focused
+    mCommandShortcuts.setText( "" );
+    
     mAdvancedShowUseOnObjectHoverKeybindSetting = 
         SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setToggled(
         mAdvancedShowUseOnObjectHoverKeybindSetting);
+
+    coordinatesEnabled = 
+        SettingsManager::getIntSetting("coordinatesEnabled", 0);
+
+    mEnableCoordinatesBox.setToggled(
+        coordinatesEnabled);
+
+    persistentEmoteEnabled = 
+        SettingsManager::getIntSetting("persistentEmoteEnabled", 0);
+
+    mEnablePersistentEmoteBox.setToggled(
+        persistentEmoteEnabled);
+
+    yumFinderEnabled = SettingsManager::getIntSetting("yumFinderEnabled", 0);
+
+    mEnableYumFinderBox.setToggled( yumFinderEnabled );
+
+    objectSearchEnabled = SettingsManager::getIntSetting("objectSearchEnabled", 0);
+
+    mEnableObjectSearchBox.setToggled( objectSearchEnabled );
+
+    familyDisplayEnabled = SettingsManager::getIntSetting("familyDisplayEnabled", 0);
+
+    mEnableFamilyDisplayBox.setToggled( familyDisplayEnabled );
+
+    dangerousTileEnabled = SettingsManager::getIntSetting("dangerousTileEnabled", 0);
+
+    mEnableDangerousTileBox.setToggled( dangerousTileEnabled );
+
+    mOldGenerateTownPlannerMapsSetting = SettingsManager::getIntSetting( "generateTownPlannerMaps", 0 );
+
+    mGenerateTownPlannerMapsBox.setToggled( mOldGenerateTownPlannerMapsSetting );
+
+    showPipsOfFoodHeld = SettingsManager::getIntSetting( "showPipsOfFoodHeldEnabled", 0 );
+
+    mEnableShowingHeldFoodPips.setToggled( showPipsOfFoodHeld );
+    
+    
 
     mPage = 0;
     
@@ -419,9 +527,8 @@ void SettingsPage::checkRestartButtonVisibility() {
     }
 
 
-
-
 void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
+
     if( inTarget == &mBackButton ) {
         
         int useCustomServer = 0;
@@ -509,7 +616,7 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         
         trippingEffectDisabled = newSetting;
         }
-	else if( inTarget == &mEnableNudeBox ) {
+    else if( inTarget == &mEnableNudeBox ) {
         int newSetting = mEnableNudeBox.getToggled();
         
         SettingsManager::setSetting( "nudeEnabled", newSetting );
@@ -520,21 +627,27 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         //mRestartButton.setVisible( mEnableNudeSetting != newSetting );
         NudeToggle = newSetting;
         }
-	else if( inTarget == &mUseCustomServerBox ) {
+    else if( inTarget == &mUISizeSlider ) {
+            
+        gui_fov_target_scale_hud = 1 / mUISizeSlider.getValue();
+        SettingsManager::setSetting( "fovScaleHUD", gui_fov_target_scale_hud );
+
+        }
+    else if( inTarget == &mUseCustomServerBox ) {
         mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         }
-	else if( inTarget == &mEnableFOVBox ) {
+    else if( inTarget == &mEnableFOVBox ) {
         int newSetting = mEnableFOVBox.getToggled();
         
         SettingsManager::setSetting( "fovEnabled", newSetting );
         }
-	else if( inTarget == &mEnableKActionsBox ) {
+    else if( inTarget == &mEnableKActionsBox ) {
         int newSetting = mEnableKActionsBox.getToggled();
         
         SettingsManager::setSetting( "keyboardActions", newSetting );
         }
-	else if( inTarget == &mEnableCenterCameraBox ) {
+    else if( inTarget == &mEnableCenterCameraBox ) {
         int newSetting = mEnableCenterCameraBox.getToggled();
         
         SettingsManager::setSetting( "centerCamera", newSetting );
@@ -782,7 +895,17 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
 
     else if ( inTarget == &mAdvancedButton ) {
         mPage = 5;
-    }
+        }
+    else if( inTarget == &mCommandShortcuts ) {
+        commandShortcutsRawText = mCommandShortcuts.getAndUpdateRawText();
+        SettingsManager::setSetting( "commandShortcuts", commandShortcutsRawText );
+        if( !mCommandShortcuts.isFocused() ) {
+            // the UI is used to view and edit a list
+            // the textbox is merely a way to input text
+            // keep it empty when the UI is not focused
+            mCommandShortcuts.setText( "" );
+            }
+        }
     else if ( inTarget == &mEnableAdvancedShowUseOnObjectHoverKeybind ) {
         int newSetting = mEnableAdvancedShowUseOnObjectHoverKeybind.getToggled();
         mAdvancedShowUseOnObjectHoverKeybindSetting = newSetting;
@@ -790,13 +913,73 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
                                     newSetting);
         ShowUseOnObjectHoverSettingToggle = (bool)newSetting;
         if( ShowUseOnObjectHoverSettingToggle ) isShowUseOnObjectHoverKeybindEnabled = true;
-    }
+        }
+    else if ( inTarget == &mEnableCoordinatesBox ) {
+        int newSetting = mEnableCoordinatesBox.getToggled();
+        coordinatesEnabled = false;
+        if( newSetting ) coordinatesEnabled = true;
+        SettingsManager::setSetting("coordinatesEnabled",
+                                    newSetting);
+        }
+    else if ( inTarget == &mEnablePersistentEmoteBox ) {
+        int newSetting = mEnablePersistentEmoteBox.getToggled();
+        persistentEmoteEnabled = false;
+        if( newSetting ) persistentEmoteEnabled = true;
+        SettingsManager::setSetting("persistentEmoteEnabled",
+                                    newSetting);
+        }
+    else if ( inTarget == &mEnableYumFinderBox ) {
+        int newSetting = mEnableYumFinderBox.getToggled();
+        yumFinderEnabled = false;
+        if( newSetting ) yumFinderEnabled = true;
+        SettingsManager::setSetting("yumFinderEnabled",
+                                    newSetting);
+        }
+    else if ( inTarget == &mEnableObjectSearchBox ) {
+        int newSetting = mEnableObjectSearchBox.getToggled();
+        objectSearchEnabled = false;
+        if( newSetting ) objectSearchEnabled = true;
+        SettingsManager::setSetting("objectSearchEnabled",
+                                    newSetting);
+        }
+    else if ( inTarget == &mEnableFamilyDisplayBox ) {
+        int newSetting = mEnableFamilyDisplayBox.getToggled();
+        familyDisplayEnabled = false;
+        if( newSetting ) familyDisplayEnabled = true;
+        SettingsManager::setSetting("familyDisplayEnabled",
+                                    newSetting);
+        }
+    else if ( inTarget == &mEnableDangerousTileBox ) {
+        int newSetting = mEnableDangerousTileBox.getToggled();
+        dangerousTileEnabled = false;
+        if( newSetting ) dangerousTileEnabled = true;
+        SettingsManager::setSetting("dangerousTileEnabled",
+                                    newSetting);
+        }
+    else if( inTarget == &mGenerateTownPlannerMapsBox ) {
+        int newSetting = mGenerateTownPlannerMapsBox.getToggled();
+        
+        SettingsManager::setSetting( "generateTownPlannerMaps", newSetting );
+        }
+    else if( inTarget == &mEnableShowingHeldFoodPips ) {
+        int newSetting = mEnableShowingHeldFoodPips.getToggled();
+        showPipsOfFoodHeld = false;
+        if( newSetting ) showPipsOfFoodHeld = true;
+        SettingsManager::setSetting( "showPipsOfFoodHeldEnabled", newSetting );
+        }
 
     checkRestartRequired();
     updatePage();
     }
 
 
+void drawTextWithShadow( const char *text, doublePair pos, TextAlignment alignment ) {
+    doublePair shadowOffset = {-2, 2};
+    setDrawColor( 0, 0, 0, 1 );
+    mainFont->drawString( text, add(pos, shadowOffset), alignment );
+    setDrawColor( 1, 1, 1, 1 );
+    mainFont->drawString( text, pos, alignment );
+    }
 
 
 void SettingsPage::draw( doublePair inViewCenter, 
@@ -807,17 +990,17 @@ void SettingsPage::draw( doublePair inViewCenter,
         
         doublePair pos = mVsyncBox.getPosition();
         
-        pos.x -= 24;
+        pos.x -= 30;
         pos.y -= 2;
         
-        mainFont->drawString( translate( "vsyncOn" ), pos, alignRight );
+        drawTextWithShadow( translate( "vsyncOn" ), pos, alignRight );
         
         pos = mFullscreenBox.getPosition();
         
         pos.x -= 30;
         pos.y -= 2;
         
-        mainFont->drawString( translate( "fullscreen" ), pos, alignRight );
+        drawTextWithShadow( translate( "fullscreen" ), pos, alignRight );
 
 
         if( mBorderlessBox.isVisible() ) {
@@ -826,7 +1009,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x -= 30;
             pos.y -= 2;
             
-            mainFont->drawString( translate( "borderless" ), pos, alignRight );
+            drawTextWithShadow( translate( "borderless" ), pos, alignRight );
             }
 
 
@@ -836,7 +1019,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x -= 30;
             pos.y -= 2;
             
-            mainFont->drawString( "DISABLE FLASH EFFECT", pos, alignRight );
+            drawTextWithShadow( "DISABLE FLASH EFFECT", pos, alignRight );
             }
         
 
@@ -848,19 +1031,19 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y += 52;
 
 
-    if( ! mTargetFrameRateField.isVisible() ) {
-        char *fpsString = autoSprintf( "%d", targetFramesPerSecond );
-        
-        mainFont->drawString( fpsString, pos, alignLeft );
-        delete [] fpsString;
-        }
-    
+        if( ! mTargetFrameRateField.isVisible() ) {
+            char *fpsString = autoSprintf( "%d", targetFramesPerSecond );
+            
+            drawTextWithShadow( fpsString, pos, alignLeft );
+            delete [] fpsString;
+            }
 
-    pos.y += 52;
+
+        pos.y += 52;
 
         char *currentFPSString = autoSprintf( "%.2f", getRecentFrameRate() );
         
-        mainFont->drawString( currentFPSString, pos, alignLeft );
+        drawTextWithShadow( currentFPSString, pos, alignLeft );
         delete [] currentFPSString;
         
 
@@ -870,9 +1053,9 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.y += 52;
         
         pos.y += 52;
-        mainFont->drawString( translate( "targetFPS" ), pos, alignRight );
+        drawTextWithShadow( translate( "targetFPS" ), pos, alignRight );
         pos.y += 52;
-        mainFont->drawString( translate( "currentFPS" ), pos, alignRight );
+        drawTextWithShadow( translate( "currentFPS" ), pos, alignRight );
         }
 
 
@@ -882,7 +1065,16 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "ENABLE NUDITY", pos, alignRight );
+        drawTextWithShadow( "ENABLE NUDITY", pos, alignRight );
+        }
+    if( mUISizeSlider.isVisible() ) {
+        doublePair pos = mEnableNudeBox.getPosition();
+        
+        pos.x -= 30;
+        pos.y = mUISizeSlider.getPosition().y;
+        pos.y -= 2;
+
+        drawTextWithShadow( "UI SIZE", pos, alignRight );
         }
         
     if( mUseCustomServerBox.isVisible() ) {
@@ -891,42 +1083,42 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( translate( "useCustomServer" ), pos, alignRight );
+        drawTextWithShadow( translate( "useCustomServer" ), pos, alignRight );
         
         if( mUseCustomServerBox.getToggled() ) {
             pos.y += 2;
             pos.y -= 52 + 52/4;
-            mainFont->drawString( translate( "address" ), pos, alignRight );
+            drawTextWithShadow( translate( "address" ), pos, alignRight );
             pos.y -= 52 + 52/4;
-            mainFont->drawString( translate( "port" ), pos, alignRight );
+            drawTextWithShadow( translate( "port" ), pos, alignRight );
             }
         }
-	
+    
     if( mEnableFOVBox.isVisible() ) {
         doublePair pos = mEnableFOVBox.getPosition();
         
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "ENABLE ZOOM", pos, alignRight );
+        drawTextWithShadow( "ENABLE ZOOM", pos, alignRight );
         }
-	
+    
     if( mEnableKActionsBox.isVisible() ) {
         doublePair pos = mEnableKActionsBox.getPosition();
         
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "KEYBOARD ACTIONS", pos, alignRight );
+        drawTextWithShadow( "KEYBOARD ACTIONS", pos, alignRight );
         }
-	
+    
     if( mEnableCenterCameraBox.isVisible() ) {
         doublePair pos = mEnableCenterCameraBox.getPosition();
         
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "CENTER CAMERA", pos, alignRight );
+        drawTextWithShadow( "CENTER CAMERA", pos, alignRight );
         }
 
 
@@ -939,7 +1131,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x = xPos;
         pos.y += 37;
         
-        mainFont->drawString( translate( "cursor"), pos, alignRight );
+        drawTextWithShadow( translate( "cursor"), pos, alignRight );
         
         if( mCursorScaleSlider.isVisible() ) {
             
@@ -948,7 +1140,7 @@ void SettingsPage::draw( doublePair inViewCenter,
             pos.x = xPos;
             pos.y -= 2;
             
-            mainFont->drawString( translate( "scale"), pos, alignRight );
+            drawTextWithShadow( translate( "scale"), pos, alignRight );
             }
         }
 #ifdef USE_DISCORD
@@ -958,7 +1150,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "RICH PRESENCE ", pos, alignRight );
+        drawTextWithShadow( "RICH PRESENCE ", pos, alignRight );
         }
     if( mEnableDiscordRichPresenceStatus.isVisible() ) {
         doublePair pos = mEnableDiscordRichPresenceStatus.getPosition();
@@ -966,7 +1158,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "RICH PRESENCE STATUS", pos, alignRight );
+        drawTextWithShadow( "RICH PRESENCE STATUS", pos, alignRight );
         }
     if( mEnableDiscordShowAgeInStatus.isVisible() ) {
         doublePair pos = mEnableDiscordShowAgeInStatus.getPosition();
@@ -974,7 +1166,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "SHOW AGE", pos, alignRight );
+        drawTextWithShadow( "SHOW AGE", pos, alignRight );
         }
     if( mEnableDiscordRichPresenceDetails.isVisible() ) {
         doublePair pos = mEnableDiscordRichPresenceDetails.getPosition();
@@ -982,7 +1174,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "RICH PRESENCE DETAILS", pos, alignRight );
+        drawTextWithShadow( "RICH PRESENCE DETAILS", pos, alignRight );
         }
     if( mDiscordHideFirstNameInDetails.isVisible() ) {
         doublePair pos = mDiscordHideFirstNameInDetails.getPosition();
@@ -990,7 +1182,7 @@ void SettingsPage::draw( doublePair inViewCenter,
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString( "HIDE FIRST NAME", pos, alignRight );
+        drawTextWithShadow( "HIDE FIRST NAME", pos, alignRight );
         }    
     // prevent someone from making spamming requests to update their status, discord may block our key, due to spamming requests!
     // allow for at least 2 seconds to pass until the user is allowed to change the discord setting again.
@@ -1001,14 +1193,78 @@ void SettingsPage::draw( doublePair inViewCenter,
     mDiscordHideFirstNameInDetails.setActive(time(0) - last_discord_setting_change > 2);
 #endif // USE_DISCORD
 
+    if (mCommandShortcuts.isVisible()) {
+        doublePair pos = mCommandShortcuts.getPosition();
+        pos.x = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition().x - 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("COMMAND SHORTCUTS", pos, alignRight);
+        }
     if (mEnableAdvancedShowUseOnObjectHoverKeybind.isVisible()) {
         doublePair pos = mEnableAdvancedShowUseOnObjectHoverKeybind.getPosition();
         pos.x -= 30;
         pos.y -= 2;
 
-        mainFont->drawString("SHOW USE ON HOVER", pos, alignRight);
+        drawTextWithShadow("SHOW USE ON HOVER", pos, alignRight);
+        }
+    if (mEnableCoordinatesBox.isVisible()) {
+        doublePair pos = mEnableCoordinatesBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("SHOW COORDINATES", pos, alignRight);
+        }
+    if (mEnablePersistentEmoteBox.isVisible()) {
+        doublePair pos = mEnablePersistentEmoteBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("USE PERMANENT EMOTE", pos, alignRight);
+        }
+    if (mEnableYumFinderBox.isVisible()) {
+        doublePair pos = mEnableYumFinderBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("ENABLE YUM FINDER", pos, alignRight);
+        }
+    if (mEnableObjectSearchBox.isVisible()) {
+        doublePair pos = mEnableObjectSearchBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("ENABLE OBJECT FINDER", pos, alignRight);
+        }
+    if (mEnableFamilyDisplayBox.isVisible()) {
+        doublePair pos = mEnableFamilyDisplayBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("ENABLE FAMILY DISPLAY", pos, alignRight);
+        }
+    if (mEnableDangerousTileBox.isVisible()) {
+        doublePair pos = mEnableDangerousTileBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("ENABLE DANGER HIGHLIGHT", pos, alignRight);
+        }
+    if( mGenerateTownPlannerMapsBox.isVisible() ) {
+        doublePair pos = mGenerateTownPlannerMapsBox.getPosition();
+        
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow( "SAVE MAP FILES", pos, alignRight );
+        }
+    if (mEnableShowingHeldFoodPips.isVisible()) {
+        doublePair pos = mEnableShowingHeldFoodPips.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("SHOW HELD FOOD PIPS", pos, alignRight);
+        }
     }
-}
 
 
 
@@ -1017,9 +1273,26 @@ void SettingsPage::step() {
         markSoundUsageLive( mTestSound );
         }
     stepMusicPlayer();
+
+    int blockClicks = false;
+    if( mCommandShortcuts.isFocused() ) blockClicks = true;
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setIgnoreEvents( blockClicks );
+    mEnableCoordinatesBox.setIgnoreEvents( blockClicks );
+    mEnablePersistentEmoteBox.setIgnoreEvents( blockClicks );
+    mEnableYumFinderBox.setIgnoreEvents( blockClicks );
+    // mEnableObjectSearchBox.setIgnoreEvents( blockClicks );
+    // mEnableFamilyDisplayBox.setIgnoreEvents( blockClicks );
+    // mEnableDangerousTileBox.setIgnoreEvents( blockClicks );
+    // mGenerateTownPlannerMapsBox.setIgnoreEvents( blockClicks );
+    
     }
 
 
+
+
+void SettingsPage::pressBackButton() {
+    actionPerformed( &mBackButton );
+    }
 
 
 
@@ -1059,6 +1332,8 @@ void SettingsPage::makeActive( char inFresh ) {
         mSoundEffectsLoudnessSlider.setValue( getSoundEffectsLoudness() );
         setMusicLoudness( 0 );
         mMusicStartTime = 0;
+
+        mUISizeSlider.setValue( 1 / gui_fov_target_scale_hud );
         
         int tryCount = 0;
         
@@ -1101,9 +1376,10 @@ void SettingsPage::updatePage() {
 
     double lineSpacing = 52;
     
-    mEnableFOVBox.setPosition( 0, lineSpacing * 3 );
-    mEnableCenterCameraBox.setPosition( 0, lineSpacing * 2 );
-    mEnableNudeBox.setPosition( 0, lineSpacing );
+    mEnableFOVBox.setPosition( 0, lineSpacing * 4 );
+    mEnableCenterCameraBox.setPosition( 0, lineSpacing * 3 );
+    mEnableNudeBox.setPosition( 0, lineSpacing * 2 );
+    mUISizeSlider.setPosition( 28, lineSpacing * 1 );
     mUseCustomServerBox.setPosition( 0, -lineSpacing );
     mCustomServerAddressField.setPosition( 180 - 16, -lineSpacing * 2 - lineSpacing/4 );
     mCustomServerPortField.setPosition( 180 - 16, -lineSpacing * 3  - lineSpacing/2 );
@@ -1130,7 +1406,7 @@ void SettingsPage::updatePage() {
     mFullscreenBox.setPosition( 0, -lineSpacing );
     mBorderlessBox.setPosition( 0, -lineSpacing * 2 );
     mTrippingEffectDisabledBox.setPosition( 0, -lineSpacing * 3 );
-    mRedetectButton.setPosition( 160, lineSpacing * 2 );
+    mRedetectButton.setPosition( 161, lineSpacing * 2 );
     mRedetectButton.setPadding( 8, 4 );
 
 #ifdef USE_DISCORD
@@ -1141,11 +1417,21 @@ void SettingsPage::updatePage() {
     mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
-    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, 3 * lineSpacing);
+    mCommandShortcuts.setPosition(180 - 16, lineSpacing * 4);
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
+    mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
+    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
+    mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
+    mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
+    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
+    mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
+    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -4);
+    mEnableShowingHeldFoodPips.setPosition(0, lineSpacing * -5);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
     mEnableNudeBox.setVisible( mPage == 0 );
+    mUISizeSlider.setVisible( mPage == 0 );
     mUseCustomServerBox.setVisible( mPage == 0 );
     mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
     mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
@@ -1183,7 +1469,16 @@ void SettingsPage::updatePage() {
                                         && mEnableDiscordRichPresenceStatus.getToggled());
 #endif // USE_DISCORD
 
+    mCommandShortcuts.setVisible(mPage == 5);
     mEnableAdvancedShowUseOnObjectHoverKeybind.setVisible(mPage == 5);
+    mEnableCoordinatesBox.setVisible(mPage == 5);
+    mEnablePersistentEmoteBox.setVisible(mPage == 5);
+    mEnableYumFinderBox.setVisible(mPage == 5);
+    mEnableObjectSearchBox.setVisible(mPage == 5);
+    mEnableFamilyDisplayBox.setVisible(mPage == 5);
+    mEnableDangerousTileBox.setVisible(mPage == 5);
+    mGenerateTownPlannerMapsBox.setVisible(mPage == 5);
+    mEnableShowingHeldFoodPips.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );
@@ -1202,7 +1497,8 @@ void SettingsPage::checkRestartRequired() {
     if( mOldFullscreenSetting != mFullscreenBox.getToggled() ||
         mOldBorderlessSetting != mBorderlessBox.getToggled() ||
         getCountingOnVsync() != mVsyncBox.getToggled() ||
-        ( mTargetFrameRateField.isVisible() && mTargetFrameRateField.getInt() != targetFramesPerSecond )
+        ( mTargetFrameRateField.isVisible() && mTargetFrameRateField.getInt() != targetFramesPerSecond ) ||
+        mOldGenerateTownPlannerMapsSetting != mGenerateTownPlannerMapsBox.getToggled()
         ) {
         setStatusDirect( "RESTART REQUIRED##FOR NEW SETTINGS TO TAKE EFFECT", true );
         // Do not show RESTART button when setting page is accessed mid-game

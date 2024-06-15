@@ -51,9 +51,9 @@ void newbieTips::init(
     int inPathFindingD
     ) {
     livingLifePage = inLivingLifePage;
-	players = inGameObjects;
-	mMapD = inmMapD;
-	pathFindingD = inPathFindingD;
+    players = inGameObjects;
+    mMapD = inmMapD;
+    pathFindingD = inPathFindingD;
     
     newbieTipsEnabled = SettingsManager::getIntSetting( "newbieTipsEnabled", 0 );
     
@@ -171,12 +171,12 @@ void newbieTips::livingLifeStep(
             }
         } else if( mLiveTutorialTriggerNumber == 10 || mLiveTutorialTriggerNumber == 1010 ) { // Yum slip
             if( yumSlipShowing ) {
-				LiveObject *ourLiveObject = livingLifePage->getOurLiveObject();
-				if( ourLiveObject == NULL ) return;
-				doublePair pos = yumBubblePos;
-				pos.y += 16;
-				startTipsArrow( conversionFromMinitechPos(pos), false );
-			}
+                LiveObject *ourLiveObject = livingLifePage->getOurLiveObject();
+                if( ourLiveObject == NULL ) return;
+                doublePair pos = yumBubblePos;
+                pos.y += 16;
+                startTipsArrow( conversionFromMinitechPos(pos), false );
+            }
         } else if( mLiveTutorialTriggerNumber == 11 ) { // Tule reeds
             if( getObjId(118, 1) == 121 ) { //Tule Reeds
                 startTipsArrow( {118, 1}, true );
@@ -376,76 +376,76 @@ void newbieTips::livingLifeStep(
 
 
 doublePair newbieTips::getClosestFood() {
-	
-	LiveObject *ourLiveObject = livingLifePage->getOurLiveObject();
-	doublePair currentPos = ourLiveObject->currentPos;
     
-	int *mMap = livingLifePage->mMap;
-	int mMapOffsetX = livingLifePage->mMapOffsetX;
-	int mMapOffsetY = livingLifePage->mMapOffsetY;
-	int pathOffsetX = pathFindingD/2 - currentPos.x;
-	int pathOffsetY = pathFindingD/2 - currentPos.y;
-	
-	float bestDist = 9999.0;
-	doublePair foundPos = {9999, 9999};
+    LiveObject *ourLiveObject = livingLifePage->getOurLiveObject();
+    doublePair currentPos = ourLiveObject->currentPos;
     
-	for( int y=0; y<pathFindingD; y++ ) {
-		int mapY = ( y - pathOffsetY ) + mMapD / 2 - mMapOffsetY;
-		
-		for( int x=0; x<pathFindingD; x++ ) {
-			int mapX = ( x - pathOffsetX ) + mMapD / 2 - mMapOffsetX;
-			
-			if( mapY >= 0 && mapY < mMapD &&
-				mapX >= 0 && mapX < mMapD ) { 
-				
-				int posX = mapX + mMapOffsetX - mMapD / 2;
-				int posY = mapY + mMapOffsetY - mMapD / 2;
-				
-				float dist = sqrt(pow(posY - currentPos.y, 2) + pow(posX - currentPos.x, 2));
-				if (dist >= bestDist) continue;
-
-				int mapI = mapY * mMapD + mapX;
-				int id = mMap[mapI];
+    int *mMap = livingLifePage->mMap;
+    int mMapOffsetX = livingLifePage->mMapOffsetX;
+    int mMapOffsetY = livingLifePage->mMapOffsetY;
+    int pathOffsetX = pathFindingD/2 - currentPos.x;
+    int pathOffsetY = pathFindingD/2 - currentPos.y;
+    
+    float bestDist = 9999.0;
+    doublePair foundPos = {9999, 9999};
+    
+    for( int y=0; y<pathFindingD; y++ ) {
+        int mapY = ( y - pathOffsetY ) + mMapD / 2 - mMapOffsetY;
+        
+        for( int x=0; x<pathFindingD; x++ ) {
+            int mapX = ( x - pathOffsetX ) + mMapD / 2 - mMapOffsetX;
+            
+            if( mapY >= 0 && mapY < mMapD &&
+                mapX >= 0 && mapX < mMapD ) { 
                 
-				if ( isEasyFood( id ) ) {
-					foundPos = {(double)posX, (double)posY};
-					bestDist = dist;
-					continue;
-				}
-				
-				
-			}
-		}
-	}
-	
-	return foundPos;
+                int posX = mapX + mMapOffsetX - mMapD / 2;
+                int posY = mapY + mMapOffsetY - mMapD / 2;
+                
+                float dist = sqrt(pow(posY - currentPos.y, 2) + pow(posX - currentPos.x, 2));
+                if (dist >= bestDist) continue;
+
+                int mapI = mapY * mMapD + mapX;
+                int id = mMap[mapI];
+                
+                if ( isEasyFood( id ) ) {
+                    foundPos = {(double)posX, (double)posY};
+                    bestDist = dist;
+                    continue;
+                }
+                
+                
+            }
+        }
+    }
+    
+    return foundPos;
 }
 
 int newbieTips::getObjId( int tileX, int tileY ) {
     int *mMap = livingLifePage->mMap;
-	int mMapOffsetX = livingLifePage->mMapOffsetX;
-	int mMapOffsetY = livingLifePage->mMapOffsetY;
-	int mapX = tileX - mMapOffsetX + mMapD / 2;
-	int mapY = tileY - mMapOffsetY + mMapD / 2;
-	int i = mapY * mMapD + mapX;
-	if (i < 0 || i >= mMapD*mMapD) return -1;
-	return mMap[i];
+    int mMapOffsetX = livingLifePage->mMapOffsetX;
+    int mMapOffsetY = livingLifePage->mMapOffsetY;
+    int mapX = tileX - mMapOffsetX + mMapD / 2;
+    int mapY = tileY - mMapOffsetY + mMapD / 2;
+    int i = mapY * mMapD + mapX;
+    if (i < 0 || i >= mMapD*mMapD) return -1;
+    return mMap[i];
 }
 
 
 bool newbieTips::isEasyFood( int id ) {
-	if (id <= 0 || id >= getMaxObjectID() + 1) return false;
-	ObjectRecord* o = getObject(id, true);
-	if( o == NULL ) return false;
-	if( o->foodValue > 0 || o->bonusValue > 0 ) return true;
-	TransRecord* pick_trans = getTrans( 0, id );
-	if (pick_trans == NULL) return false;
-	int food_id = pick_trans->newActor;
-	if (food_id == 837) return false; //We dont eat mushroom...
-	ObjectRecord* food = getObject(food_id, true);
-	if (food == NULL) return false;
-	if (food->foodValue > 0 || food->bonusValue > 0) return true;
-	return false;
+    if (id <= 0 || id >= getMaxObjectID() + 1) return false;
+    ObjectRecord* o = getObject(id, true);
+    if( o == NULL ) return false;
+    if( o->foodValue > 0 || o->bonusValue > 0 ) return true;
+    TransRecord* pick_trans = getTrans( 0, id );
+    if (pick_trans == NULL) return false;
+    int food_id = pick_trans->newActor;
+    if (food_id == 837) return false; //We dont eat mushroom...
+    ObjectRecord* food = getObject(food_id, true);
+    if (food == NULL) return false;
+    if (food->foodValue > 0 || food->bonusValue > 0) return true;
+    return false;
 }
 
 LiveObject *newbieTips::getMother() {

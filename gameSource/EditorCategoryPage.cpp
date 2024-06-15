@@ -412,9 +412,13 @@ void EditorCategoryPage::draw( doublePair inViewCenter,
         
         pos = sub( pos, mult( getObjectCenterOffset( r ), zoom ) );
 
+        setDrawnObjectScale( zoom );
+        
         drawObject( r, 2, pos, 0, false, false, 20, 0, false,
                     false,
-                    getEmptyClothingSet(), zoom );
+                    getEmptyClothingSet() );
+
+        setDrawnObjectScale( 1.0 );
 
         setDrawColor( 1, 1, 1, 1 );
 
