@@ -514,9 +514,11 @@ static char *formatCoordinate( int num, char allowThousands = false ) {
 static char *extractMapName( char *input ) {
     int maxNameLen = 8;
     char *returnString = NULL;
-    char *working = stringDuplicate( input );
-    if ( working[0] == ':' && strlen( working ) > 1 ) {
-        working += 1;
+    char *working = NULL;
+    if ( input[0] == ':' && strlen( input ) > 1 ) {
+        input += 1;
+        working = stringDuplicate( input );
+        input -= 1;
         }
     if( strstr(working, " ") != NULL ) {
         int wordCount;
@@ -541,7 +543,7 @@ static char *extractMapName( char *input ) {
     if( returnString == NULL ) {
         returnString = autoSprintf( "%s %d", translate("mapLocation"), nextSavedCoordinatesLetter );
         }
-    delete [] working;
+    if( working != NULL ) delete [] working;
     return returnString;
     }
 
