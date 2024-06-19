@@ -853,7 +853,6 @@ static char stripFertilitySuffix( char *name ) {
             foundSuffix[-1] = '\0';
             }
         else {
-            delete [] name;
             foundSuffix[0] = '\0';
             }
         return true;
@@ -861,7 +860,6 @@ static char stripFertilitySuffix( char *name ) {
     foundSuffix = strstr( name, fertilitySuffix );
     if( foundSuffix != NULL ) {
         // if fertility tag is in the name, they must be unnamed
-        delete [] name;
         foundSuffix[0] = '\0';
         return false;
         }
@@ -1111,6 +1109,7 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* rawLine ) {
         name = stringDuplicate( o->name );
         stripFertilitySuffix( name );
         if( name[0] == '\0' ) {
+            delete [] name;
             name = NULL;
             }
         }
@@ -11410,6 +11409,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 name = stringDuplicate(o->name);
                 infertilityTagPresent = stripFertilitySuffix( name );
                 if( name[0] == '\0' ) {
+                    delete [] name;
                     name = NULL;
                     }
                 }
