@@ -3175,8 +3175,9 @@ std::string getSeededEmail() {
     if( strlen( userEmail ) > 0 ) {
         std::string seededEmail = std::string( userEmail );
 
-        // If user doesn't have a seed in their email field
-        if( seededEmail.find('|') == std::string::npos ) {
+        // If user doesn't have a seed or targetFamily in their email field
+        if( seededEmail.find('|') == std::string::npos &&
+            seededEmail.find(':') == std::string::npos ) {
             if( useSpawnSeed && spawnSeed != NULL ) {
                 std::string seed( spawnSeed );
 
@@ -3185,6 +3186,17 @@ std::string getSeededEmail() {
                     // Add seed delim and then seed
                     seededEmail += '|';
                     seededEmail += seed;
+                    }
+                }
+            // Only if a seed is not specified we'd use a targetFamily
+            else if( seededEmail.find(':') == std::string::npos && useTargetFamily ) {
+                char *targetFamilyChars = SettingsManager::getSettingContents( "targetFamily", "" );
+                std::string targetFamily( targetFamilyChars );
+                delete [] targetFamilyChars;
+                
+                if( targetFamily != "" ) {
+                    seededEmail += ':';
+                    seededEmail += targetFamily;
                     }
                 }
             }
@@ -3202,7 +3214,7 @@ std::string getSeededEmail() {
     delete [] tempEmail;
     return seededEmail;
 
-}
+    }
 
 static std::string url_encode(const std::string &value) {
     std::ostringstream escaped;
