@@ -27678,9 +27678,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                         }
                                     }
                                 else if( !strcmp( typedText, translate( "findCommand" ) ) ) {
-                                    objectSearchQueries.deleteAll();
-                                    objectSearchQueriesComponentList.deleteAll();
-                                    updateObjectSearchArray();
+                                    int lastIndex = objectSearchQueries.size() - 1;
+                                    if( lastIndex >= 0 ) {
+                                        objectSearchQueries.deleteElement( lastIndex );
+                                        objectSearchQueriesComponentList.deleteElement( lastIndex );
+                                        updateObjectSearchArray();
+                                        }
                                     }
                                 }
                             else {
