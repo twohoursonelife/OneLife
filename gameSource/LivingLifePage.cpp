@@ -193,15 +193,6 @@ unsigned char charKey_Baby = 'c';
 
 static bool waitForDoorToOpen;
 
-void LivingLifePage::freeWASDKeyPress() {
-    upKeyDown = false;
-    downKeyDown = false;
-    leftKeyDown = false;
-    rightKeyDown = false;
-    lastPosX = 9999;
-    lastPosY = 9999;
-    }
-
 //FOV
 extern int gui_hud_mode;
 extern float gui_fov_scale;
@@ -1223,6 +1214,63 @@ void LivingLifePage::drawGrid() {
         }
     }
 
+// Say buffer
+
+static SimpleVector<char*> sayBuffer;
+static double timeLastSay = 0;
+static bool clearSayBuffer = false;
+static float sayDelay = 2.1;
+
+void LivingLifePage::sayStep() {
+	if (sayBuffer.size() < 1) return;
+
+	if (clearSayBuffer) {
+        sayBuffer.deallocateStringElements();
+		clearSayBuffer = false;
+		return;
+	    }
+
+	double curTime = game_getCurrentTime();
+	if (curTime-timeLastSay < sayDelay) return;
+	timeLastSay = curTime;
+
+	say( sayBuffer.getElementDirect( 0 ) );
+	
+	char *p = sayBuffer.getElementDirect(0);
+	sayBuffer.deleteElement( 0 );
+	delete[] p;
+    }
+
+void LivingLifePage::bufferedSay( const char *text ) {
+	char *msg = new char[strlen(text)+1];
+	strcpy(msg, text);
+	sayBuffer.push_back(msg);
+    }
+
+void LivingLifePage::say( const char* text ) {
+	char *message = autoSprintf( "SAY 0 0 %s#", text );
+	sendToServerSocket( message );
+	delete[] message;
+    }
+
+void LivingLifePage::drawingPauseScreen() {
+    // Pressing ESC unstuck WASD keys
+    // WASD keys are stuck if you tab out when pressing them
+    upKeyDown = false;
+    downKeyDown = false;
+    leftKeyDown = false;
+    rightKeyDown = false;
+    lastPosX = 9999;
+    lastPosY = 9999;
+
+    // clear say buffer when ESC is pressed
+    // clearSayBuffer = true;
+
+    // actually don't clear say buffer here
+    // since Hetuw does this part in keyDown
+    // which doesn't work at all
+    // (also why we have this function here instead of doing it in keyDown)
+    }
 
 static SimpleVector<char*> passwordProtectingPhrases;
 
@@ -15739,6 +15787,9 @@ void LivingLifePage::step() {
     if (stepCount > 10000) stepCount = 0;
     livingLifeStepCount = stepCount;
 
+    if (ourObject != NULL)
+        sayStep();
+
     if (ourObject != NULL && stepCount % 10 == 0) 
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
 
@@ -20291,6 +20342,10 @@ void LivingLifePage::step() {
                     // allow searches across lives
                     // objectSearchQueries.deleteAll();
                     // updateObjectSearchArray();
+
+                    // clear say buffer
+                    timeLastSay = 0;
+                    sayBuffer.deallocateStringElements();
 
                     int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
                     // TODO: If fertility age is ever not hard coded, maybe put it here?
@@ -27723,35 +27778,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         }
                     else {
                         // send text to server
-
-                        const char *sayCommand = "SAY";
-                        
-                        if( vogMode ) {
-                            sayCommand = "VOGT";
-
-                            // do a VOG move first if the camera 
-                            // is not pointing at vogPos
-                            // otherwise the VOG speech bubble will be
-                            // at the wrong position
-                            
-                            GridPos viewingGridPos = {
-                                lrintf( lastScreenViewCenter.x / CELL_D ),
-                                lrintf( lastScreenViewCenter.y / CELL_D )
-                                };
-
-                            if( viewingGridPos.x != lrint( vogPos.x ) || 
-                                viewingGridPos.y != lrint( vogPos.y ) ) {
-                                vogMove( viewingGridPos.x, viewingGridPos.y );
-                                }
-                            }
-                        
-                        char *message = 
-                            autoSprintf( "%s 0 0 %s#",
-                                         sayCommand, typedText );
-                        sendToServerSocket( message );
-                        delete [] message;
                         
                         if( !vogMode ) {
+
+                            bufferedSay( typedText );
                             
                             bool matched = false;
                             std::string typedTextStr = typedText;
@@ -27781,6 +27811,32 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 ofs << std::endl;
                                 ofs.close();
                                 }
+                            }
+                        else {
+
+                            const char *sayCommand = "VOGT";
+
+                            // do a VOG move first if the camera 
+                            // is not pointing at vogPos
+                            // otherwise the VOG speech bubble will be
+                            // at the wrong position
+                            
+                            GridPos viewingGridPos = {
+                                lrintf( lastScreenViewCenter.x / CELL_D ),
+                                lrintf( lastScreenViewCenter.y / CELL_D )
+                                };
+
+                            if( viewingGridPos.x != lrint( vogPos.x ) || 
+                                viewingGridPos.y != lrint( vogPos.y ) ) {
+                                vogMove( viewingGridPos.x, viewingGridPos.y );
+                                }
+                            
+                            char *message = 
+                                autoSprintf( "%s 0 0 %s#",
+                                            sayCommand, typedText );
+                            sendToServerSocket( message );
+                            delete [] message;
+
                             }
                         
                         }

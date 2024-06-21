@@ -502,8 +502,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         void vogMove( int x, int y );
 
         void vogMoveCamera( float newScreenViewCenterX, float newScreenViewCenterY );
-        
-        void freeWASDKeyPress();
 
         bool isHoveringPicker( float x, float y );
         char isAnyUIHovered();
@@ -516,6 +514,12 @@ class LivingLifePage : public GamePage, public ActionListener {
         char isTileDangerousWithHeldObject( int heldID, int groundID );
 
         void drawGrid();
+
+        void sayStep();
+        void bufferedSay( const char *text );
+        void say( const char* text );
+        
+        void drawingPauseScreen();
 
         LiveObject *getClosestLiveObject( doublePair fromPos );
 
