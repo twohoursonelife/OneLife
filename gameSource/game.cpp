@@ -955,9 +955,12 @@ static void drawPauseScreen() {
         }
 
     if( currentGamePage == livingLifePage ) {
-        // Pressing ESC unstuck WASD keys
-        // WASD keys are stuck if you tab out when pressing them
-        livingLifePage->freeWASDKeyPress();
+        // When pause screen is drawn
+        // the control is taken away from livingLifePage
+        // Whatever that needs to happen
+        // when the game pauses while we're in a life
+        // is put in this function instead of keyDown
+        livingLifePage->drawingPauseScreen();
         }
 
     // Drawing the Pause screen

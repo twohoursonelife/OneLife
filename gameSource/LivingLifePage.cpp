@@ -193,15 +193,6 @@ unsigned char charKey_Baby = 'c';
 
 static bool waitForDoorToOpen;
 
-void LivingLifePage::freeWASDKeyPress() {
-    upKeyDown = false;
-    downKeyDown = false;
-    leftKeyDown = false;
-    rightKeyDown = false;
-    lastPosX = 9999;
-    lastPosY = 9999;
-    }
-
 //FOV
 extern int gui_hud_mode;
 extern float gui_fov_scale;
@@ -514,9 +505,11 @@ static char *formatCoordinate( int num, char allowThousands = false ) {
 static char *extractMapName( char *input ) {
     int maxNameLen = 8;
     char *returnString = NULL;
-    char *working = stringDuplicate( input );
-    if ( working[0] == ':' && strlen( working ) > 1 ) {
-        working += 1;
+    char *working = NULL;
+    if ( input[0] == ':' && strlen( input ) > 1 ) {
+        input += 1;
+        working = stringDuplicate( input );
+        input -= 1;
         }
     if( strstr(working, " ") != NULL ) {
         int wordCount;
@@ -541,7 +534,7 @@ static char *extractMapName( char *input ) {
     if( returnString == NULL ) {
         returnString = autoSprintf( "%s %d", translate("mapLocation"), nextSavedCoordinatesLetter );
         }
-    delete [] working;
+    if( working != NULL ) delete [] working;
     return returnString;
     }
 
@@ -851,7 +844,6 @@ static char stripFertilitySuffix( char *name ) {
             foundSuffix[-1] = '\0';
             }
         else {
-            delete [] name;
             foundSuffix[0] = '\0';
             }
         return true;
@@ -859,7 +851,6 @@ static char stripFertilitySuffix( char *name ) {
     foundSuffix = strstr( name, fertilitySuffix );
     if( foundSuffix != NULL ) {
         // if fertility tag is in the name, they must be unnamed
-        delete [] name;
         foundSuffix[0] = '\0';
         return false;
         }
@@ -1109,6 +1100,7 @@ void LivingLifePage::onPlayerUpdate( LiveObject* inO, const char* rawLine ) {
         name = stringDuplicate( o->name );
         stripFertilitySuffix( name );
         if( name[0] == '\0' ) {
+            delete [] name;
             name = NULL;
             }
         }
@@ -1222,6 +1214,63 @@ void LivingLifePage::drawGrid() {
         }
     }
 
+// Say buffer
+
+static SimpleVector<char*> sayBuffer;
+static double timeLastSay = 0;
+static bool clearSayBuffer = false;
+static float sayDelay = 2.1;
+
+void LivingLifePage::sayStep() {
+	if (sayBuffer.size() < 1) return;
+
+	if (clearSayBuffer) {
+        sayBuffer.deallocateStringElements();
+		clearSayBuffer = false;
+		return;
+	    }
+
+	double curTime = game_getCurrentTime();
+	if (curTime-timeLastSay < sayDelay) return;
+	timeLastSay = curTime;
+
+	say( sayBuffer.getElementDirect( 0 ) );
+	
+	char *p = sayBuffer.getElementDirect(0);
+	sayBuffer.deleteElement( 0 );
+	delete[] p;
+    }
+
+void LivingLifePage::bufferedSay( const char *text ) {
+	char *msg = new char[strlen(text)+1];
+	strcpy(msg, text);
+	sayBuffer.push_back(msg);
+    }
+
+void LivingLifePage::say( const char* text ) {
+	char *message = autoSprintf( "SAY 0 0 %s#", text );
+	sendToServerSocket( message );
+	delete[] message;
+    }
+
+void LivingLifePage::drawingPauseScreen() {
+    // Pressing ESC unstuck WASD keys
+    // WASD keys are stuck if you tab out when pressing them
+    upKeyDown = false;
+    downKeyDown = false;
+    leftKeyDown = false;
+    rightKeyDown = false;
+    lastPosX = 9999;
+    lastPosY = 9999;
+
+    // clear say buffer when ESC is pressed
+    // clearSayBuffer = true;
+
+    // actually don't clear say buffer here
+    // since Hetuw does this part in keyDown
+    // which doesn't work at all
+    // (also why we have this function here instead of doing it in keyDown)
+    }
 
 static SimpleVector<char*> passwordProtectingPhrases;
 
@@ -3175,8 +3224,9 @@ std::string getSeededEmail() {
     if( strlen( userEmail ) > 0 ) {
         std::string seededEmail = std::string( userEmail );
 
-        // If user doesn't have a seed in their email field
-        if( seededEmail.find('|') == std::string::npos ) {
+        // If user doesn't have a seed or targetFamily in their email field
+        if( seededEmail.find('|') == std::string::npos &&
+            seededEmail.find(':') == std::string::npos ) {
             if( useSpawnSeed && spawnSeed != NULL ) {
                 std::string seed( spawnSeed );
 
@@ -3185,6 +3235,17 @@ std::string getSeededEmail() {
                     // Add seed delim and then seed
                     seededEmail += '|';
                     seededEmail += seed;
+                    }
+                }
+            // Only if a seed is not specified we'd use a targetFamily
+            else if( seededEmail.find(':') == std::string::npos && useTargetFamily ) {
+                char *targetFamilyChars = SettingsManager::getSettingContents( "targetFamily", "" );
+                std::string targetFamily( targetFamilyChars );
+                delete [] targetFamilyChars;
+                
+                if( targetFamily != "" ) {
+                    seededEmail += ':';
+                    seededEmail += targetFamily;
                     }
                 }
             }
@@ -3202,7 +3263,7 @@ std::string getSeededEmail() {
     delete [] tempEmail;
     return seededEmail;
 
-}
+    }
 
 static std::string url_encode(const std::string &value) {
     std::ostringstream escaped;
@@ -11396,6 +11457,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 name = stringDuplicate(o->name);
                 infertilityTagPresent = stripFertilitySuffix( name );
                 if( name[0] == '\0' ) {
+                    delete [] name;
                     name = NULL;
                     }
                 }
@@ -15724,6 +15786,9 @@ void LivingLifePage::step() {
     stepCount++;
     if (stepCount > 10000) stepCount = 0;
     livingLifeStepCount = stepCount;
+
+    if (ourObject != NULL)
+        sayStep();
 
     if (ourObject != NULL && stepCount % 10 == 0) 
         ourAge = computeServerAge( computeCurrentAge( ourObject ) );
@@ -20277,6 +20342,10 @@ void LivingLifePage::step() {
                     // allow searches across lives
                     // objectSearchQueries.deleteAll();
                     // updateObjectSearchArray();
+
+                    // clear say buffer
+                    timeLastSay = 0;
+                    sayBuffer.deallocateStringElements();
 
                     int automaticInfertilityAsEve = SettingsManager::getIntSetting( "automaticInfertilityAsEve", -1 );
                     // TODO: If fertility age is ever not hard coded, maybe put it here?
@@ -27664,9 +27733,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                         }
                                     }
                                 else if( !strcmp( typedText, translate( "findCommand" ) ) ) {
-                                    objectSearchQueries.deleteAll();
-                                    objectSearchQueriesComponentList.deleteAll();
-                                    updateObjectSearchArray();
+                                    int lastIndex = objectSearchQueries.size() - 1;
+                                    if( lastIndex >= 0 ) {
+                                        objectSearchQueries.deleteElement( lastIndex );
+                                        objectSearchQueriesComponentList.deleteElement( lastIndex );
+                                        updateObjectSearchArray();
+                                        }
                                     }
                                 }
                             else {
@@ -27706,35 +27778,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                         }
                     else {
                         // send text to server
-
-                        const char *sayCommand = "SAY";
-                        
-                        if( vogMode ) {
-                            sayCommand = "VOGT";
-
-                            // do a VOG move first if the camera 
-                            // is not pointing at vogPos
-                            // otherwise the VOG speech bubble will be
-                            // at the wrong position
-                            
-                            GridPos viewingGridPos = {
-                                lrintf( lastScreenViewCenter.x / CELL_D ),
-                                lrintf( lastScreenViewCenter.y / CELL_D )
-                                };
-
-                            if( viewingGridPos.x != lrint( vogPos.x ) || 
-                                viewingGridPos.y != lrint( vogPos.y ) ) {
-                                vogMove( viewingGridPos.x, viewingGridPos.y );
-                                }
-                            }
-                        
-                        char *message = 
-                            autoSprintf( "%s 0 0 %s#",
-                                         sayCommand, typedText );
-                        sendToServerSocket( message );
-                        delete [] message;
                         
                         if( !vogMode ) {
+
+                            bufferedSay( typedText );
                             
                             bool matched = false;
                             std::string typedTextStr = typedText;
@@ -27764,6 +27811,32 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                                 ofs << std::endl;
                                 ofs.close();
                                 }
+                            }
+                        else {
+
+                            const char *sayCommand = "VOGT";
+
+                            // do a VOG move first if the camera 
+                            // is not pointing at vogPos
+                            // otherwise the VOG speech bubble will be
+                            // at the wrong position
+                            
+                            GridPos viewingGridPos = {
+                                lrintf( lastScreenViewCenter.x / CELL_D ),
+                                lrintf( lastScreenViewCenter.y / CELL_D )
+                                };
+
+                            if( viewingGridPos.x != lrint( vogPos.x ) || 
+                                viewingGridPos.y != lrint( vogPos.y ) ) {
+                                vogMove( viewingGridPos.x, viewingGridPos.y );
+                                }
+                            
+                            char *message = 
+                                autoSprintf( "%s 0 0 %s#",
+                                            sayCommand, typedText );
+                            sendToServerSocket( message );
+                            delete [] message;
+
                             }
                         
                         }
