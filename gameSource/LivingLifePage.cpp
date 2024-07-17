@@ -27015,7 +27015,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
     // Custom command shortcuts (was FOV emote keys)
     int commandIndex = -1;
     if( !vogMode && !shiftKey ) {
-        if ( commandKey || !mSayField.isFocused() ) {
+        if ( isAltKeyDown() || !mSayField.isFocused() ) {
             int numberPressed = (int)inASCII - 48;
             if( numberPressed >= 0 && numberPressed <= 9 ) {
                 if( numberPressed == 0 ) numberPressed = 10;
