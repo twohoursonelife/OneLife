@@ -96,8 +96,7 @@ static int holdingYumOrMeh = 0;
 
 static char shouldMoveCamera = true;
 
-bool ShowUseOnObjectHoverSettingToggle = false;
-bool isShowUseOnObjectHoverKeybindEnabled = false;
+bool showUseOnHoverEnabled = false;
 
 
 extern double visibleViewWidth;
@@ -11882,17 +11881,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 // player label will be drawn instead of cursor-tips
                 currHoverPlayerID == 0
                 ) {
-                const bool isShowUseOnObjectHoverActive =
-                    ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
-                if( isShowUseOnObjectHoverActive ) {
+                if( showUseOnHoverEnabled ) {
                     const int playerSelfID = -99;
                     std::string objComment = "";
                     if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
-                    objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
+                        objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
                         }
                     else if( mCurMouseOverID > 0 ) {
-                    objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
+                        objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
                         }
 
                     std::string displayedComment = objComment;
@@ -27308,19 +27305,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 savingSpeechMask = false;
                 savingSpeech = true;
                 }
-            break;
-        case 'B': {
-            const bool isSettingEnabled =
-                SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
-            if( isSettingEnabled && ! mSayField.isFocused() && ! vogMode ) {
-                ShowUseOnObjectHoverSettingToggle = isSettingEnabled;
-
-                if( isSettingEnabled ) {
-                    isShowUseOnObjectHoverKeybindEnabled = ! isShowUseOnObjectHoverKeybindEnabled;
-                    }
-                else { isShowUseOnObjectHoverKeybindEnabled = false; }
-                }
-            }
             break;
         case 'x':
         case 'X':

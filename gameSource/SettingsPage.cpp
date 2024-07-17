@@ -32,8 +32,7 @@ extern bool showingInGameSettings;
 extern float gui_fov_target_scale_hud;
 
 // defined in LivingLifePage.cpp
-extern bool ShowUseOnObjectHoverSettingToggle;
-extern bool isShowUseOnObjectHoverKeybindEnabled;
+extern bool showUseOnHoverEnabled;
 
 extern char coordinatesEnabled;
 extern char persistentEmoteEnabled;
@@ -345,7 +344,7 @@ SettingsPage::SettingsPage()
 
     mCommandShortcuts.setCursorTip( "SAVED COMMANDS OR SPEECH, TO BE ACCESSED WITH NUM KEYS OR ALT + NUM KEYS." );
     mEnableAdvancedShowUseOnObjectHoverKeybind.setCursorTip(
-      "SHOW OBJECT REMAINING USE ON CURSOR HOVER. SHIFT+B TO ENABLE/DISABLE IN-GAME");
+      "SHOW OBJECT REMAINING USE ON CURSOR HOVER.");
     mEnableCoordinatesBox.setCursorTip( "ENABLE COORDINATES DISPLAY AND SAVING. PRESS G TO TOGGLE PANEL." );
     mEnablePersistentEmoteBox.setCursorTip( "ENABLE PERMANENT EMOTE" );
     mEnableYumFinderBox.setCursorTip( "ENABLE YUM FINDER. PRESS Y TO SHOW YUM" );
@@ -438,11 +437,11 @@ SettingsPage::SettingsPage()
     // keep it empty when the UI is not focused
     mCommandShortcuts.setText( "" );
     
-    mAdvancedShowUseOnObjectHoverKeybindSetting = 
+    showUseOnHoverEnabled = 
         SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
 
     mEnableAdvancedShowUseOnObjectHoverKeybind.setToggled(
-        mAdvancedShowUseOnObjectHoverKeybindSetting);
+        showUseOnHoverEnabled);
 
     coordinatesEnabled = 
         SettingsManager::getIntSetting("coordinatesEnabled", 0);
@@ -908,11 +907,9 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         }
     else if ( inTarget == &mEnableAdvancedShowUseOnObjectHoverKeybind ) {
         int newSetting = mEnableAdvancedShowUseOnObjectHoverKeybind.getToggled();
-        mAdvancedShowUseOnObjectHoverKeybindSetting = newSetting;
         SettingsManager::setSetting("showUseOnObjectHoverKeybind",
                                     newSetting);
-        ShowUseOnObjectHoverSettingToggle = (bool)newSetting;
-        if( ShowUseOnObjectHoverSettingToggle ) isShowUseOnObjectHoverKeybindEnabled = true;
+        showUseOnHoverEnabled = (bool)newSetting;
         }
     else if ( inTarget == &mEnableCoordinatesBox ) {
         int newSetting = mEnableCoordinatesBox.getToggled();
