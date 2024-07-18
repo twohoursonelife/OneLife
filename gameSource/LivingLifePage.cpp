@@ -28635,6 +28635,7 @@ char isObjectClosedDoor( ObjectRecord *o ) {
 
 bool LivingLifePage::tileHasClosedDoor(int x, int y) {
     int objId = getObjId( x, y);
+    if( objId < 0 ) return false;
     ObjectRecord *obj = getObject( objId, true );
     return isObjectClosedDoor(obj);
 }
