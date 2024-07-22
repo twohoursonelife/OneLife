@@ -5139,8 +5139,8 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         return;
         }
         
-    float scale = 1.0;
-    if(tinyStyle) scale = 0.75;
+    float scale = 1.2;
+    if(tinyStyle) scale = 0.9;
 
     double lineSpacing = 0.0;
     if( !tinyStyle ) {
@@ -11902,7 +11902,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         }
                     if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawCursorTips( display, {4, -20} );
+                        drawCursorTips( display, {4, -24} );
                         delete [] display;
                         }
                     }
@@ -11967,12 +11967,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
             additionalLine = autoSprintf( "FOLLOWING PID: %d", vogFollowPlayerID );
             }
 
-        drawCursorTips( firstLine, {0, -20 * 2} );
+        drawCursorTips( firstLine, {0, -24 * 2} );
         if( additionalLine != NULL ) {
-            drawCursorTips( additionalLine, {0, -20 * 3} );
+            drawCursorTips( additionalLine, {0, -24 * 3} );
             }
         if( debugLine != NULL ) {
-            drawCursorTips( debugLine, {0, -20 * 4} );
+            drawCursorTips( debugLine, {0, -24 * 4} );
             }
 
         if( firstLine != NULL ) delete [] firstLine;
@@ -28243,7 +28243,7 @@ void LivingLifePage::changeFOV( float newScale ) {
     // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
     // pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
     // pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
-    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.75 * gui_fov_scale_hud );
 
     minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
@@ -28283,7 +28283,7 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
     // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
     pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
     pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
-    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.75 * gui_fov_scale_hud );
     }
 
 void LivingLifePage::calcOffsetHUD() {
