@@ -453,14 +453,14 @@ static SimpleVector<ClickableComponent> SavedCoordinatesComponentList;
 static SavedCoordinates savedOrigin;
 static int nextSavedCoordinatesLetter = 1;
 
-static char *formatCoordinate( int num, char allowThousands = false ) {
+static char *formatCoordinate( double num, char extraPrecision = false ) {
     char sign = 1;
     if( num < 0 ) {
         sign = -1;
         num = -num;
         }
     char *numString = NULL;
-    char exception = num > 1000 && num < 10000 && allowThousands;
+    char exception = num > 1000 && num < 100000 && extraPrecision;
     if( num > 1000 && !exception ) {
         double thousands = num / 1000;
             
@@ -491,7 +491,7 @@ static char *formatCoordinate( int num, char allowThousands = false ) {
             }
         }
     else {
-        numString = autoSprintf( "%d", num );
+        numString = autoSprintf( "%.0f", num );
         }
     
     if( sign == -1 ) {
