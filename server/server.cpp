@@ -20303,10 +20303,8 @@ int main() {
                     }
                 
                 if( curTime >= nextPlayer->trippingEffectETA ) {
-                    if( clearFrozenEmote( nextPlayer, trippingEmotionIndex ) ) {
-                        //Only change state when tripping emote is successfully cleared
-                        nextPlayer->tripping = false;
-                        }
+                    nextPlayer->tripping = false;
+                    clearFrozenEmote( nextPlayer, trippingEmotionIndex );
                     }
                 else if( !nextPlayer->emotFrozen &&
                     curTime < nextPlayer->trippingEffectETA ) {
@@ -20322,10 +20320,8 @@ int main() {
             
             if( nextPlayer->drunkennessEffect ) {
                 if( Time::getCurrentTime() >= nextPlayer->drunkennessEffectETA ) {
-                    if( clearFrozenEmote( nextPlayer, drunkEmotionIndex ) ) {
-                        //Only change state when drunk emote is successfully cleared
-                        nextPlayer->drunkennessEffect = false;
-                        }
+                    nextPlayer->drunkennessEffect = false;
+                    clearFrozenEmote( nextPlayer, drunkEmotionIndex );
                     }
                 else if( !nextPlayer->emotFrozen &&
                     Time::getCurrentTime() < nextPlayer->drunkennessEffectETA ) {
