@@ -8166,11 +8166,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         doublePair sheetPos = mult( add( pos, lastCornerPos ),
                                                     0.5 );
 
-                        if( !isTrippingEffectOn || trippingEffectDisabled ) {// All tiles are drawn to change color independently
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
+                            !mXKeyDown // Show complete biome in X-ray mode
+                            ) {
                             drawSprite( s->wholeSheet, sheetPos );
                             }
                         
-                        if( !isTrippingEffectOn || trippingEffectDisabled ) {
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown ) {
                         // mark all cells under sheet as drawn
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
@@ -8230,6 +8232,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
                     
                     if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
+                        !mXKeyDown && // Show complete biome in X-ray mode
                         leftB == b &&
                         aboveB == b &&
                         diagB == b ) {
@@ -8272,7 +8275,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                         if( !( floorAt && floorR && floorB && floorBR &&
                                floorL && floorA && floorAL && floorAR &&
-                               floorBL ) ) {
+                               floorBL ) || mXKeyDown ) {
                             drawSprite( s->tiles[setY][setX], pos );
                             }
                         }
