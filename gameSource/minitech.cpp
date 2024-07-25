@@ -873,6 +873,26 @@ vector<TransRecord*> minitech::getProdTrans(int objId) {
         int idB = trans->target;
         int idC = trans->newActor;
         int idD = trans->newTarget;
+
+        //parse probabilitySet transitions (e.g. the only transitin making Pond with Dead Goose has a probSet as newActor)
+        int cOrD = -1;
+        if ( isProbabilitySet(idC) ) cOrD = 0;
+        if ( isProbabilitySet(idD) ) cOrD = 1;
+        if (cOrD != -1) {
+            CategoryRecord* c;
+            if (cOrD == 0) c = getCategory( idC );
+            if (cOrD == 1) c = getCategory( idD );
+            SimpleVector<int> idSet = c->objectIDSet;
+            for (int i=0; i<idSet.size(); i++) {
+                TransRecord* staticTrans = new TransRecord;
+                *staticTrans = *trans;
+                int newId = idSet.getElementDirect(i);
+                if (cOrD == 0) staticTrans->newActor = newId;
+                if (cOrD == 1) staticTrans->newTarget = newId;
+                results.push_back(staticTrans);
+            }
+            continue;
+        }
         
         //Skip the use of the object which returns the object itself (e.g. sharp stone on branches)
         if ( idA == objId || idB == objId ) continue;
