@@ -17102,10 +17102,11 @@ int main() {
                                                     contTrans->newTarget );
                                                 }
                                             }
-                                        if( newTarget != NULL &&
+                                        if( (newTarget != NULL &&
                                             containmentPermitted(
                                                 targetObj->id,
-                                                newTarget->id ) ) {
+                                                newTarget->id )) || 
+                                            contTrans->newTarget == 0 ) {
                                                 
                                             int oldHeld = 
                                                 nextPlayer->holdingID;
