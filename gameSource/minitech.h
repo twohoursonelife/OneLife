@@ -128,9 +128,21 @@ public:
     static void updateDrawTwoTech();
     static std::vector<std::pair<mouseListener*,int>> iconListenerIds;
     static bool isMinitechHovered;
+    
+    typedef struct pageRecord {
+        int hintObjectId;
+        int useOrMakeOption;
+        int pageNumber;
+    } pageRecord;
+    
+    static SimpleVector<pageRecord> pageRecords;
+    static bool hintObjChangeByUndoOrRedo;
+    static int currentHintObjIndex;
+    static void newHintObj(int objId, int useOrMakeOption, int pageNumber);
+    static void prevHintObj();
+    static void nextHintObj();
     static void drawIconOnHoverTips();
     static void inputHintStrToSearch(std::string hintStr);
-    static void changeCurrentHintObjId(int objID);
 
     // pos for newbieTips use
     static doublePair makeUseTogglePos;
