@@ -1511,10 +1511,6 @@ void minitech::updateDrawTwoTech() {
                 if (compareObjUse(trans->actor, trans->newActor) == -1) currentHintObjId = getDummyParent(trans->actor);
                 if (compareObjUse(trans->actor, trans->newActor) == 1) currentHintObjId = getDummyLastUse(trans->actor);
             }
-            
-            
-            // pos for newbieTips use
-            if( trans->actor == 33 && trans->target == 32 ) sharpyRecipePos = pos;
 
             
             pos.x += iconSize;
@@ -1669,6 +1665,11 @@ void minitech::updateDrawTwoTech() {
                 if (compareObjUse(trans->newActor, trans->actor) == -1) currentHintObjId = getDummyParent(trans->newActor);
                 if (compareObjUse(trans->newActor, trans->actor) == 1) currentHintObjId = getDummyLastUse(trans->newActor);
             }
+
+
+            // pos for newbieTips use
+            if( trans->actor == 33 && trans->target == 32 ) sharpyRecipePos = pos;
+
             
             pos.x += iconSize;
             if (trans->actor == -1 && trans->autoDecaySeconds != 0 && trans->newActor == 0) {
