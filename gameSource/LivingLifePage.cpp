@@ -13124,6 +13124,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     
     
+    if( newbieTips::drawTipsArrow && newbieTips::screenOrTile == 0 ) {
+        setDrawColor( 1, 1, 1, 1 );
+        drawSprite( mHintArrowSprite, hintArrowPos, newbieTips::arrowScale() );
+        }
+
+
     if( vogMode ) {
         // draw again, so we can see picker
         PageComponent::base_draw( inViewCenter, inViewSize );
