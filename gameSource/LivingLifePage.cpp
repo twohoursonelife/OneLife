@@ -96,8 +96,7 @@ static int holdingYumOrMeh = 0;
 
 static char shouldMoveCamera = true;
 
-bool ShowUseOnObjectHoverSettingToggle = false;
-bool isShowUseOnObjectHoverKeybindEnabled = false;
+bool showUseOnHoverEnabled = false;
 
 
 extern double visibleViewWidth;
@@ -454,14 +453,14 @@ static SimpleVector<ClickableComponent> SavedCoordinatesComponentList;
 static SavedCoordinates savedOrigin;
 static int nextSavedCoordinatesLetter = 1;
 
-static char *formatCoordinate( int num, char allowThousands = false ) {
+static char *formatCoordinate( double num, char extraPrecision = false ) {
     char sign = 1;
     if( num < 0 ) {
         sign = -1;
         num = -num;
         }
     char *numString = NULL;
-    char exception = num > 1000 && num < 10000 && allowThousands;
+    char exception = num > 1000 && num < 100000 && extraPrecision;
     if( num > 1000 && !exception ) {
         double thousands = num / 1000;
             
@@ -492,7 +491,7 @@ static char *formatCoordinate( int num, char allowThousands = false ) {
             }
         }
     else {
-        numString = autoSprintf( "%d", num );
+        numString = autoSprintf( "%.0f", num );
         }
     
     if( sign == -1 ) {
@@ -5140,8 +5139,8 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
         return;
         }
         
-    float scale = 1.0;
-    if(tinyStyle) scale = 0.75;
+    float scale = 1.2;
+    if(tinyStyle) scale = 0.9;
 
     double lineSpacing = 0.0;
     if( !tinyStyle ) {
@@ -8167,11 +8166,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         doublePair sheetPos = mult( add( pos, lastCornerPos ),
                                                     0.5 );
 
-                        if( !isTrippingEffectOn || trippingEffectDisabled ) {// All tiles are drawn to change color independently
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
+                            !mXKeyDown // Show complete biome in X-ray mode
+                            ) {
                             drawSprite( s->wholeSheet, sheetPos );
                             }
                         
-                        if( !isTrippingEffectOn || trippingEffectDisabled ) {
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown ) {
                         // mark all cells under sheet as drawn
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
@@ -8231,6 +8232,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
                     
                     if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
+                        !mXKeyDown && // Show complete biome in X-ray mode
                         leftB == b &&
                         aboveB == b &&
                         diagB == b ) {
@@ -8273,7 +8275,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                         if( !( floorAt && floorR && floorB && floorBR &&
                                floorL && floorA && floorAL && floorAR &&
-                               floorBL ) ) {
+                               floorBL ) || mXKeyDown ) {
                             drawSprite( s->tiles[setY][setX], pos );
                             }
                         }
@@ -11882,17 +11884,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 // player label will be drawn instead of cursor-tips
                 currHoverPlayerID == 0
                 ) {
-                const bool isShowUseOnObjectHoverActive =
-                    ShowUseOnObjectHoverSettingToggle && isShowUseOnObjectHoverKeybindEnabled;
 
-                if( isShowUseOnObjectHoverActive ) {
+                if( showUseOnHoverEnabled ) {
                     const int playerSelfID = -99;
                     std::string objComment = "";
                     if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
-                    objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
+                        objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
                         }
                     else if( mCurMouseOverID > 0 ) {
-                    objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
+                        objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
                         }
 
                     std::string displayedComment = objComment;
@@ -11905,7 +11905,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         }
                     if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawCursorTips( display, {4, -20} );
+                        drawCursorTips( display, {4, -24} );
                         delete [] display;
                         }
                     }
@@ -11970,12 +11970,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
             additionalLine = autoSprintf( "FOLLOWING PID: %d", vogFollowPlayerID );
             }
 
-        drawCursorTips( firstLine, {0, -20 * 2} );
+        drawCursorTips( firstLine, {0, -24 * 2} );
         if( additionalLine != NULL ) {
-            drawCursorTips( additionalLine, {0, -20 * 3} );
+            drawCursorTips( additionalLine, {0, -24 * 3} );
             }
         if( debugLine != NULL ) {
-            drawCursorTips( debugLine, {0, -20 * 4} );
+            drawCursorTips( debugLine, {0, -24 * 4} );
             }
 
         if( firstLine != NULL ) delete [] firstLine;
@@ -13124,6 +13124,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     
     
+    if( newbieTips::drawTipsArrow && newbieTips::screenOrTile == 0 ) {
+        setDrawColor( 1, 1, 1, 1 );
+        drawSprite( mHintArrowSprite, hintArrowPos, newbieTips::arrowScale() );
+        }
+
+
     if( vogMode ) {
         // draw again, so we can see picker
         PageComponent::base_draw( inViewCenter, inViewSize );
@@ -18801,7 +18807,7 @@ void LivingLifePage::step() {
                             mNextHintIndex = 
                                 mHintBookmarks[ mNextHintObjectID ];
                                 
-                            if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(mNextHintObjectID);
+                            if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = mNextHintObjectID;
                             }
 
 
@@ -25577,20 +25583,20 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // give hint about dest object which will be unchanged 
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
+                if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = destID;
                 }
             else if( tr->newActor > 0 && 
                      ourLiveObject->holdingID != tr->newActor ) {
                 // give hint about how what we're holding will change
                 mNextHintObjectID = tr->newActor;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newActor);
+                if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = tr->newActor;
                 }
             else if( tr->newTarget > 0 ) {
                 // give hint about changed target after we act on it
                 mNextHintObjectID = tr->newTarget;
                 mNextHintIndex = mHintBookmarks[ tr->newTarget ];
-                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(tr->newTarget);
+                if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = tr->newTarget;
                 }
             }
         else {
@@ -25600,7 +25606,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
             if( getTrans( 0, destID ) == NULL ) {
                 mNextHintObjectID = destID;
                 mNextHintIndex = mHintBookmarks[ destID ];
-                if (minitech::changeHintObjOnTouch) minitech::changeCurrentHintObjId(destID);
+                if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = destID;
                 }
             }
         }
@@ -27015,7 +27021,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
     // Custom command shortcuts (was FOV emote keys)
     int commandIndex = -1;
     if( !vogMode && !shiftKey ) {
-        if ( commandKey || !mSayField.isFocused() ) {
+        if ( isAltKeyDown() || !mSayField.isFocused() ) {
             int numberPressed = (int)inASCII - 48;
             if( numberPressed >= 0 && numberPressed <= 9 ) {
                 if( numberPressed == 0 ) numberPressed = 10;
@@ -27308,19 +27314,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 savingSpeechMask = false;
                 savingSpeech = true;
                 }
-            break;
-        case 'B': {
-            const bool isSettingEnabled =
-                SettingsManager::getIntSetting("showUseOnObjectHoverKeybind", 0);
-            if( isSettingEnabled && ! mSayField.isFocused() && ! vogMode ) {
-                ShowUseOnObjectHoverSettingToggle = isSettingEnabled;
-
-                if( isSettingEnabled ) {
-                    isShowUseOnObjectHoverKeybindEnabled = ! isShowUseOnObjectHoverKeybindEnabled;
-                    }
-                else { isShowUseOnObjectHoverKeybindEnabled = false; }
-                }
-            }
             break;
         case 'x':
         case 'X':
@@ -28259,7 +28252,7 @@ void LivingLifePage::changeFOV( float newScale ) {
     // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
     // pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
     // pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
-    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.75 * gui_fov_scale_hud );
 
     minitech::changeScale( 1.25 * gui_fov_scale_hud );
 
@@ -28299,7 +28292,7 @@ void LivingLifePage::changeHUDFOV( float newScale ) {
     // handwritingFont->setScaleFactor( 16 * gui_fov_scale_hud );
     pencilFont->setScaleFactor( 16 * gui_fov_scale_hud );
     pencilErasedFont->setScaleFactor( 16 * gui_fov_scale_hud );
-    tinyHandwritingFont->setScaleFactor( 16 * 0.6 * gui_fov_scale_hud );
+    tinyHandwritingFont->setScaleFactor( 16 * 0.75 * gui_fov_scale_hud );
     }
 
 void LivingLifePage::calcOffsetHUD() {
@@ -28651,6 +28644,7 @@ char isObjectClosedDoor( ObjectRecord *o ) {
 
 bool LivingLifePage::tileHasClosedDoor(int x, int y) {
     int objId = getObjId( x, y);
+    if( objId < 0 ) return false;
     ObjectRecord *obj = getObject( objId, true );
     return isObjectClosedDoor(obj);
 }

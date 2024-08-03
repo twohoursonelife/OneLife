@@ -68,6 +68,72 @@ vector<pair<minitech::mouseListener*,int>> minitech::iconListenerIds;
 
 bool minitech::isMinitechHovered = false;
 
+// last/next page feature
+
+SimpleVector<minitech::pageRecord> minitech::pageRecords;
+bool minitech::hintObjChangeByUndoOrRedo = false;
+int maxHintObjQueueSize = 7;
+int minitech::currentHintObjIndex = 0;
+
+void minitech::newHintObj(int objId, int useOrMakeOption, int pageNumber) {
+
+    if( objId == 0 ) return;
+
+    if( currentHintObjIndex != pageRecords.size() ) {
+        for( int i=pageRecords.size() - 1; i>=currentHintObjIndex; i-- ) {
+            pageRecords.deleteElement( i );
+        }
+    }
+
+    pageRecord r;
+    r.hintObjectId = objId;
+    r.useOrMakeOption = useOrMakeOption;
+    r.pageNumber = pageNumber;
+    pageRecords.push_back( r );
+    currentHintObjIndex += 1;
+
+    if( pageRecords.size() > maxHintObjQueueSize ) {
+        pageRecords.deleteElement( 0 );
+        currentHintObjIndex -= 1;
+    }
+
+}
+
+void minitech::prevHintObj() {
+
+    if( currentHintObjIndex <= 0 ) return;
+
+    hintObjChangeByUndoOrRedo = true;
+
+    if( currentHintObjIndex == pageRecords.size() ) {
+        newHintObj(currentHintObjId, useOrMake, currentTwoTechPage);
+        currentHintObjIndex -= 1;
+    }
+
+    currentHintObjIndex -= 1;
+
+    pageRecord r = pageRecords.getElementDirect( currentHintObjIndex );
+    currentHintObjId = r.hintObjectId;
+    useOrMake = r.useOrMakeOption;
+    currentTwoTechPage = r.pageNumber;
+
+}
+
+void minitech::nextHintObj() {
+
+    if( currentHintObjIndex >= pageRecords.size() - 1 ) return;
+
+    hintObjChangeByUndoOrRedo = true;
+
+    currentHintObjIndex += 1;
+
+    pageRecord r = pageRecords.getElementDirect( currentHintObjIndex );
+    currentHintObjId = r.hintObjectId;
+    useOrMake = r.useOrMakeOption;
+    currentTwoTechPage = r.pageNumber;
+
+}
+
 // pos for newbieTips use
 doublePair minitech::makeUseTogglePos;
 doublePair minitech::maxButtonPos;
@@ -99,6 +165,7 @@ static SpriteHandle mTempArrowSprite;
 
 SpriteHandle sheet;
 SpriteHandle bigSheet;
+SpriteHandle crossHair;
 
 void minitech::setLivingLifePage(
     LivingLifePage *inLivingLifePage, 
@@ -144,6 +211,16 @@ void minitech::initOnBirth() {
     currentHintTrans.clear();
     currentHintTrans.shrink_to_fit();
     changeHintObjOnTouch = true;
+
+    currentHintObjId = 0;
+    lastHintObjId = 0;
+    useOrMake = 0;
+    lastUseOrMake = 0;
+
+    lastHintStr = "";
+    lastHintSearchNoResults = false;
+
+    currentTwoTechPage = 0;
     
     if (prevListener != NULL) delete(prevListener);
     if (nextListener != NULL) delete(nextListener);
@@ -166,6 +243,10 @@ void minitech::initOnBirth() {
     //load background sprites
     sheet = loadSprite( "hintSheet1.tga", false );
     bigSheet = loadSprite( "bigHintSheet.tga", false );
+    crossHair = loadSprite( "centerMark.tga" );
+
+    pageRecords.deleteAll();
+    currentHintObjIndex = 0;
 
 }
 
@@ -180,6 +261,7 @@ void minitech::changeScale( float newScale ) {
 void minitech::clearStep(){
     freeSprite(sheet);
     freeSprite(bigSheet);
+    freeSprite(crossHair);
 }
 
 bool minitech::posWithinArea(doublePair pos, doublePair areaTL, doublePair areaBR) {
@@ -873,6 +955,26 @@ vector<TransRecord*> minitech::getProdTrans(int objId) {
         int idB = trans->target;
         int idC = trans->newActor;
         int idD = trans->newTarget;
+
+        //parse probabilitySet transitions (e.g. the only transitin making Pond with Dead Goose has a probSet as newActor)
+        int cOrD = -1;
+        if ( isProbabilitySet(idC) ) cOrD = 0;
+        if ( isProbabilitySet(idD) ) cOrD = 1;
+        if (cOrD != -1) {
+            CategoryRecord* c;
+            if (cOrD == 0) c = getCategory( idC );
+            if (cOrD == 1) c = getCategory( idD );
+            SimpleVector<int> idSet = c->objectIDSet;
+            for (int i=0; i<idSet.size(); i++) {
+                TransRecord* staticTrans = new TransRecord;
+                *staticTrans = *trans;
+                int newId = idSet.getElementDirect(i);
+                if (cOrD == 0) staticTrans->newActor = newId;
+                if (cOrD == 1) staticTrans->newTarget = newId;
+                results.push_back(staticTrans);
+            }
+            continue;
+        }
         
         //Skip the use of the object which returns the object itself (e.g. sharp stone on branches)
         if ( idA == objId || idB == objId ) continue;
@@ -1409,10 +1511,6 @@ void minitech::updateDrawTwoTech() {
                 if (compareObjUse(trans->actor, trans->newActor) == -1) currentHintObjId = getDummyParent(trans->actor);
                 if (compareObjUse(trans->actor, trans->newActor) == 1) currentHintObjId = getDummyLastUse(trans->actor);
             }
-            
-            
-            // pos for newbieTips use
-            if( trans->actor == 33 && trans->target == 32 ) sharpyRecipePos = pos;
 
             
             pos.x += iconSize;
@@ -1567,6 +1665,11 @@ void minitech::updateDrawTwoTech() {
                 if (compareObjUse(trans->newActor, trans->actor) == -1) currentHintObjId = getDummyParent(trans->newActor);
                 if (compareObjUse(trans->newActor, trans->actor) == 1) currentHintObjId = getDummyLastUse(trans->newActor);
             }
+
+
+            // pos for newbieTips use
+            if( trans->actor == 33 && trans->target == 32 ) sharpyRecipePos = pos;
+
             
             pos.x += iconSize;
             if (trans->actor == -1 && trans->autoDecaySeconds != 0 && trans->newActor == 0) {
@@ -1749,6 +1852,14 @@ void minitech::updateDrawTwoTech() {
         drawStr(objName, captionPos, "tinyHandwritten", true, true);
         drawUseCaption(currentHintObjId, captionPos, tinyLineHeight);
     }
+
+    if( !changeHintObjOnTouch ) {
+        doublePair iconTR = {iconCen.x + iconSize/2, iconCen.y + iconSize/2};
+        doublePair crossHairCen = {iconTR.x - iconSize/8, iconTR.y - iconSize/8};
+        setDrawColor( 1, 1, 1, 1.0 );
+        drawSprite( crossHair, crossHairCen, guiScale * 0.5 );
+        setDrawColor( 0, 0, 0, 0.1 );
+    }
     
     bool showBar = lastHintStr != "" || (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId);
     topBarPos = {9999, 9999};
@@ -1758,13 +1869,13 @@ void minitech::updateDrawTwoTech() {
             if (lastHintSearchNoResults) {
                 searchStr = "SEARCHING: " + lastHintStr + " (NO RESULTS)";
             } else {
-                searchStr = "SEARCHING: " + lastHintStr + " (SAY '/' TO CLEAR)";
+                searchStr = "SEARCHING: " + lastHintStr + " (CLEAR BY '/')";
             }
         } else if (ourLiveObject->holdingID != 0 && ourLiveObject->holdingID == currentHintObjId) {
             string objName = livingLifePage->minitechGetDisplayObjectDescription(currentHintObjId);
             searchStr = "HOLDING: " + objName;
         }
-        int searchStrMaxLen = 37;
+        int searchStrMaxLen = 33;
         if( (int)searchStr.length() > searchStrMaxLen ) {
             searchStr = searchStr.substr(0, searchStrMaxLen) + "...";
         }
@@ -1801,6 +1912,41 @@ void minitech::updateDrawTwoTech() {
         twotechMouseListeners.clear();
         twotechMouseListeners.shrink_to_fit();
         return;
+    }
+
+    if( currentHintObjIndex > 0 ) {
+        doublePair prevObjLT = {headerTL.x + paddingX/2, headerTL.y - paddingY/2};
+        doublePair prevObjCen = {prevObjLT.x + tinyLineHeight/2, prevObjLT.y - tinyLineHeight/2};
+        doublePair prevObjBR = {prevObjLT.x + iconSize/2, prevObjLT.y - iconSize/2};
+        drawStr("[<]", prevObjCen, "tinyHandwritten", false);
+        mouseListener* prevObjListener = getMouseListenerByArea(
+            &twotechMouseListeners, 
+            sub(prevObjLT, screenPos), 
+            sub(prevObjBR, screenPos));
+        if (prevObjListener->mouseHover) {
+            setDrawColor( 0, 0, 0, 0.1 );
+            drawRect(prevObjCen, iconSize/4, iconSize/4);
+        }
+        if (prevObjListener->mouseClick) {
+            prevHintObj();
+        }
+    }
+    if( currentHintObjIndex < pageRecords.size() - 1 ) {
+        doublePair nextObjLT = {headerTL.x + paddingX/2 + iconSize/2, headerTL.y - paddingY/2};
+        doublePair nextObjCen = {nextObjLT.x + tinyLineHeight/2, nextObjLT.y - tinyLineHeight/2};
+        doublePair nextObjBR = {nextObjLT.x + iconSize/2, nextObjLT.y - iconSize/2};
+        drawStr("[>]", nextObjCen, "tinyHandwritten", false);
+        mouseListener* nextObjListener = getMouseListenerByArea(
+            &twotechMouseListeners, 
+            sub(nextObjLT, screenPos), 
+            sub(nextObjBR, screenPos));
+        if (nextObjListener->mouseHover) {
+            setDrawColor( 0, 0, 0, 0.1 );
+            drawRect(nextObjCen, iconSize/4, iconSize/4);
+        }
+        if (nextObjListener->mouseClick) {
+            nextHintObj();
+        }
     }
 
     doublePair posBR = {posTL.x + recWidth, posTL.y - recHeight};
@@ -2144,11 +2290,6 @@ void minitech::inputHintStrToSearch(string hintStr) {
     }
 }
 
-void minitech::changeCurrentHintObjId(int objID) {
-    lastHintStr = "";
-    currentHintObjId = objID;
-}
-
 
 void minitech::livingLifeDraw(float mX, float mY) {
     
@@ -2188,9 +2329,23 @@ void minitech::livingLifeDraw(float mX, float mY) {
     // if ( lastHintObjId == 0 && currentHintObjId != 0 ) minitechMinimized = false;
     
     if ( (lastHintObjId != currentHintObjId || lastUseOrMake != useOrMake) && !minitechMinimized ) {
+
+        if( lastHintSearchNoResults ) lastHintStr = "";
+
+        if( !hintObjChangeByUndoOrRedo ) {
+
+            if( lastHintObjId != currentHintObjId ) {
+                newHintObj(lastHintObjId, lastUseOrMake, currentTwoTechPage);
+            }
+
+            currentTwoTechPage = 0;
+
+        } else {
+            hintObjChangeByUndoOrRedo = false;
+        }
+
         lastHintObjId = currentHintObjId;
         lastUseOrMake = useOrMake;
-        currentTwoTechPage = 0;
         
         for (auto p: twotechMouseListeners) {
             delete(p);
@@ -2248,7 +2403,14 @@ bool minitech::livingLifeKeyDown(unsigned char inASCII) {
     bool commandKey = isCommandKeyDown();
     bool shiftKey = isShiftKeyDown();
 
-
+    if( commandKey && !shiftKey && inASCII == 24 ) { // ctrl + X
+        nextHintObj();
+        return true;
+    }
+    if( commandKey && !shiftKey && inASCII == 26 ) { // ctrl + Z
+        prevHintObj();
+        return true;
+    }
     
     if (!commandKey && !shiftKey && inASCII == 9) {
         currentTwoTechPage += 1;

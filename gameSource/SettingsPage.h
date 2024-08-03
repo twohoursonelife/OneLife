@@ -55,7 +55,6 @@ class SettingsPage : public GamePage, public ActionListener {
         int mDiscordHideFirstNameInDetailsSetting;
 #endif // USE_DISCORD
         int mPage;
-        int mAdvancedShowUseOnObjectHoverKeybindSetting;
         
         SoundUsage mTestSound;
 
