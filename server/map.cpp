@@ -3833,32 +3833,34 @@ char initMap() {
    
     metaDBOpen = true;
  
-    DB_Iterator metaIterator;
-   
-    DB_Iterator_init( &metaDB, &metaIterator );
- 
-    unsigned char metaKey[4];
-   
-    unsigned char metaValue[MAP_METADATA_LENGTH];
- 
-    int maxMetaID = 0;
-    int numMetaRecords = 0;
-   
-    while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
-        numMetaRecords++;
-       
-        int metaID = valueToInt( metaKey );
- 
-        if( metaID > maxMetaID ) {
-            maxMetaID = metaID;
+    if( false ) { // old way to determine nextMetadataID
+        DB_Iterator metaIterator;
+    
+        DB_Iterator_init( &metaDB, &metaIterator );
+    
+        unsigned char metaKey[4];
+    
+        unsigned char metaValue[MAP_METADATA_LENGTH];
+    
+        int maxMetaID = 0;
+        int numMetaRecords = 0;
+    
+        while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
+            numMetaRecords++;
+        
+            int metaID = valueToInt( metaKey );
+    
+            if( metaID > maxMetaID ) {
+                maxMetaID = metaID;
+                }
             }
+    
+        AppLog::infoF(
+            "MetadataDB:  Found %d records with max MetadataID of %d",
+            numMetaRecords, maxMetaID );
+    
+        setLastMetadataID( maxMetaID );
         }
-   
-    AppLog::infoF(
-        "MetadataDB:  Found %d records with max MetadataID of %d",
-        numMetaRecords, maxMetaID );
-   
-    setLastMetadataID( maxMetaID );
     
     
  
@@ -6192,89 +6194,32 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                 
                     // Check for containment transitions - checkDecayContained
                     
-                    int inOrout = -1;
-                    
                     TransRecord *contTrans = NULL;
-                    
-                    // in-transitions
-                    if( i == 0 ) {
-                        contTrans = getPTrans( newID, containerID, false, false, 1 );
-                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 1 );
-                    } else if( i == numSlots - 1 ) {
-                        contTrans = getPTrans( newID, containerID, false, false, 2 );
-                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 2 );
-                    }
-                    
-                    if( contTrans == NULL ) {
-                        contTrans = getPTrans( newID, containerID, false, false, 3 );
-                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 3 );
-                    }
-                    
-                    if( contTrans == NULL ) {
-                        contTrans = getPTrans( newID, containerID, false, false, 4 );
-                        if( contTrans == NULL ) contTrans = getPTrans( 0, containerID, false, false, 4 );
-                    }
-                    
-                    if( contTrans != NULL ) {
-                        
-                        // Check that the new container can contain all the objects
-                        
-                        int slotNumber = numContained - 1;
-                        
-                        if( i == slotNumber ) slotNumber--;
-                        
-                        int contID = getContained( 
-                            inX, inY,
-                            slotNumber );
-                            
-                        if( contID < 0 ) contID *= -1;
 
-                    
-                        while( slotNumber >= 0 &&
-                               containmentPermitted( contTrans->newTarget, contID ) )  {
-                    
-                            slotNumber--;
-                            
-                            if( i == slotNumber ) slotNumber--;
-                            
-                            if( slotNumber < 0 ) break;
-                            
-                            contID = getContained( 
-                                inX, inY,
-                                slotNumber );
-                        
-                            if( contID < 0 ) {
-                                contID *= -1;
-                            }
-                        }
-                            
-                        if( slotNumber >= 0 ) {
-                            contTrans = NULL;
-                        }
-                        
-                    }
-                    
-                    if( contTrans != NULL ) inOrout = 0;
-                    
-                    // out-transitions
-                    if( contTrans == NULL ) {
-                        if( i == 0 ) {
-                            contTrans = getPTrans( containerID, oldID, false, false, 2 );
-                            if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 2 );
-                        } else if( i == numSlots - 1 ) {
-                            contTrans = getPTrans( containerID, oldID, false, false, 1 );
-                            if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 1 );
-                        }
+                    int newContainer = containerID;
+
+                    // Check for out-transitions first, then in-transitions
+                    // Think of the decay transition of the contained object as
+                    // taking out the old object (which may change the container)
+                    // and then putting the new object in the potentially new container
+
+                    // Check for containment transitions - checkDecayContained - out-transitions
+                    if( i == 0 ) {
+                        contTrans = getPTrans( newContainer, oldID, false, false, 2 );
+                        if( contTrans == NULL ) contTrans = getPTrans( newContainer, -1, false, false, 2 );
+                    } else if( i == numSlots - 1 ) {
+                        contTrans = getPTrans( newContainer, oldID, false, false, 1 );
+                        if( contTrans == NULL ) contTrans = getPTrans( newContainer, -1, false, false, 1 );
                     }
                     
                     if( contTrans == NULL ) {
-                        contTrans = getPTrans( containerID, oldID, false, false, 3 );
-                        if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 3 );
+                        contTrans = getPTrans( newContainer, oldID, false, false, 3 );
+                        if( contTrans == NULL ) contTrans = getPTrans( newContainer, -1, false, false, 3 );
                     }
                     
                     if( contTrans == NULL ) {
-                        contTrans = getPTrans( containerID, oldID, false, false, 4 );
-                        if( contTrans == NULL ) contTrans = getPTrans( containerID, -1, false, false, 4 );
+                        contTrans = getPTrans( newContainer, oldID, false, false, 4 );
+                        if( contTrans == NULL ) contTrans = getPTrans( newContainer, -1, false, false, 4 );
                     }
                     
                     
@@ -6316,30 +6261,106 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                         }
                         
                     }
-                    
-                    
-                    if( contTrans != NULL && inOrout == -1 ) inOrout = 1;
-                    
+
                     if( contTrans != NULL ) {
                         
-                        // Execute containment transitions - checkDecayContained
-                        
-                        int newContainer = 0;
+                        // Execute containment transitions - checkDecayContained - out-transitions
+
                         // Don't change the newID here to simplify things...
                         // So the containment transition only applies to the container
                         // Otherwise what about the next step
                         // to check for transition between newID and the container?
-                        if( inOrout == 0 ) {
-                            newContainer = contTrans->newTarget;
-                            // newID = contTrans->newActor;
-                        } else if( inOrout == 1 ) {
-                            newContainer = contTrans->newActor;
-                            // newID = contTrans->newTarget;
+
+                        newContainer = contTrans->newActor;
+                        // newID = contTrans->newTarget;
+
+                        // Check for 1-second decay of the newContainer
+                        TransRecord *instantDecay = getPTrans( -1, newContainer );
+                        if( instantDecay != NULL ) newContainer = instantDecay->newTarget;
+                        
+                        if( newContainer != containerID ) {
+                            ObjectRecord *newC = getObject( newContainer );
+                            if( newC != NULL ) numSlots = newC->numSlots;
+                        }
+
+                    }
+
+                    contTrans = NULL;
+                    
+                    // Check for containment transitions - checkDecayContained - in-transitions
+                    if( i == 0 ) {
+                        contTrans = getPTrans( newID, newContainer, false, false, 1 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, newContainer, false, false, 1 );
+                    } else if( i == numSlots - 1 ) {
+                        contTrans = getPTrans( newID, newContainer, false, false, 2 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, newContainer, false, false, 2 );
+                    }
+                    
+                    if( contTrans == NULL ) {
+                        contTrans = getPTrans( newID, newContainer, false, false, 3 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, newContainer, false, false, 3 );
+                    }
+                    
+                    if( contTrans == NULL ) {
+                        contTrans = getPTrans( newID, newContainer, false, false, 4 );
+                        if( contTrans == NULL ) contTrans = getPTrans( 0, newContainer, false, false, 4 );
+                    }
+                    
+                    if( contTrans != NULL ) {
+                        
+                        // Check that the new container can contain all the objects
+                        
+                        int slotNumber = numContained - 1;
+                        
+                        if( i == slotNumber ) slotNumber--;
+                        
+                        int contID = getContained( 
+                            inX, inY,
+                            slotNumber );
+                            
+                        if( contID < 0 ) contID *= -1;
+
+                    
+                        while( slotNumber >= 0 &&
+                               containmentPermitted( contTrans->newTarget, contID ) )  {
+                    
+                            slotNumber--;
+                            
+                            if( i == slotNumber ) slotNumber--;
+                            
+                            if( slotNumber < 0 ) break;
+                            
+                            contID = getContained( 
+                                inX, inY,
+                                slotNumber );
+                        
+                            if( contID < 0 ) {
+                                contID *= -1;
+                            }
+                        }
+                            
+                        if( slotNumber >= 0 ) {
+                            contTrans = NULL;
                         }
                         
-                        if( newContainer != containerID ) setMapObject( inX, inY, newContainer );
+                    }
+                    
+                    if( contTrans != NULL ) {
+                        
+                        // Execute containment transitions - checkDecayContained - in-transitions
+                        
+                        // Don't change the newID here to simplify things...
+                        // So the containment transition only applies to the container
+                        // Otherwise what about the next step
+                        // to check for transition between newID and the container?
+
+                        newContainer = contTrans->newTarget;
+                        // newID = contTrans->newActor;
                             
                     }
+
+                    if( newContainer != containerID ) setMapObject( inX, inY, newContainer );
+
                 }
 
                     

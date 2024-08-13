@@ -2,6 +2,8 @@
 #include "objectBank.h"
 #include "categoryBank.h"
 
+#include "minorGems/util/SettingsManager.h"
+
 // bottom 17 bits of map database item are object ID
 // enought for 131071 object
 static int objectIDMask = 0x0001FFFF;
@@ -46,14 +48,17 @@ void setLastMetadataID( int inMetadataID ) {
 
 
 int getNewMetadataID() {
-    int val = nextMetadataID;
+    nextMetadataID = SettingsManager::getIntSetting( "nextMetadataID", 0 );
     nextMetadataID++;
     
     if( nextMetadataID > maxMetadataID ) {
         // wrap around, reuse old IDs
         nextMetadataID = 1;
         }
-    return val;
+
+    SettingsManager::setSetting( "nextMetadataID", nextMetadataID );
+
+    return nextMetadataID;
     }
 
 
