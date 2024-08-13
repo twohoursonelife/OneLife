@@ -3833,40 +3833,34 @@ char initMap() {
    
     metaDBOpen = true;
  
-    DB_Iterator metaIterator;
-   
-    DB_Iterator_init( &metaDB, &metaIterator );
- 
-    unsigned char metaKey[4];
-   
-    unsigned char metaValue[MAP_METADATA_LENGTH];
- 
-    int maxMetaID = 0;
-    int numMetaRecords = 0;
-   
-    while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
-        numMetaRecords++;
-       
-        int metaID = valueToInt( metaKey );
- 
-        if( metaID > maxMetaID ) {
-            maxMetaID = metaID;
+    if( false ) { // old way to determine nextMetadataID
+        DB_Iterator metaIterator;
+    
+        DB_Iterator_init( &metaDB, &metaIterator );
+    
+        unsigned char metaKey[4];
+    
+        unsigned char metaValue[MAP_METADATA_LENGTH];
+    
+        int maxMetaID = 0;
+        int numMetaRecords = 0;
+    
+        while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
+            numMetaRecords++;
+        
+            int metaID = valueToInt( metaKey );
+    
+            if( metaID > maxMetaID ) {
+                maxMetaID = metaID;
+                }
             }
+    
+        AppLog::infoF(
+            "MetadataDB:  Found %d records with max MetadataID of %d",
+            numMetaRecords, maxMetaID );
+    
+        setLastMetadataID( maxMetaID );
         }
-   
-    AppLog::infoF(
-        "MetadataDB:  Found %d records with max MetadataID of %d",
-        numMetaRecords, maxMetaID );
-
-    int nextMetaIDOverride = SettingsManager::getIntSetting( "nextMetaIDOverride", -1 );
-
-    if( nextMetaIDOverride > -1 ) {
-        // setLastMetadataID will increment the id, thus minus 1 here
-        maxMetaID = nextMetaIDOverride - 1;
-        AppLog::infoF( "nextMetaIDOverride is set to %d", nextMetaIDOverride );
-        }
-   
-    setLastMetadataID( maxMetaID );
     
     
  
