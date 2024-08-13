@@ -3857,6 +3857,14 @@ char initMap() {
     AppLog::infoF(
         "MetadataDB:  Found %d records with max MetadataID of %d",
         numMetaRecords, maxMetaID );
+
+    int nextMetaIDOverride = SettingsManager::getIntSetting( "nextMetaIDOverride", -1 );
+
+    if( nextMetaIDOverride > -1 ) {
+        // setLastMetadataID will increment the id, thus minus 1 here
+        maxMetaID = nextMetaIDOverride - 1;
+        AppLog::infoF( "nextMetaIDOverride is set to %d", nextMetaIDOverride );
+        }
    
     setLastMetadataID( maxMetaID );
     
