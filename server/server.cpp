@@ -15172,13 +15172,17 @@ int main() {
                             SettingsManager::getSetting( 
                                 "vogAllowAccounts" );
                         
+                        char *lowerEmail = stringToLowerCase(nextPlayer->email);
+
                         allow = false;
                         
                         for( int i=0; i<list->size(); i++ ) {
-                            if( strcmp( nextPlayer->email,
-                                        list->getElementDirect( i ) ) == 0 ) {
-                                
+                            char *lowerAllowed = stringToLowerCase(list->getElementDirect( i ));
+                            if( strcmp( lowerEmail,
+                                        lowerAllowed ) == 0 ) {
+
                                 allow = true;
+                                delete [] lowerAllowed;
                                 break;
                                 }
                             else if( strcmp(
@@ -15186,12 +15190,15 @@ int main() {
                                          list->getElementDirect( i ) ) == 0 ) {
                                 // wildcard present in settings file
                                 allow = true;
+                                delete [] lowerAllowed;
                                 break;
                                 }
+                            delete [] lowerAllowed;
                             }
                         
                         list->deallocateStringElements();
                         delete list;
+                        delete [] lowerEmail;
                         }
                     
 
