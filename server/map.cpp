@@ -162,7 +162,7 @@ timeSec_t slowTime() {
  
 // can replace with frozenTime to freeze time
 // or slowTime to slow it down
-#define MAP_TIMESEC Time::timeSec()
+#define MAP_TIMESEC Time::getCurrentTime()
 //#define MAP_TIMESEC frozenTime()
 //#define MAP_TIMESEC fastTime()
 //#define MAP_TIMESEC slowTime()
@@ -2125,7 +2125,7 @@ static void dbPutCached( int inX, int inY, int inSlot, int inSubCont,
  
  
 // returns 1 on miss
-static int dbTimeGetCached( int inX, int inY, int inSlot, int inSubCont ) {
+static double dbTimeGetCached( int inX, int inY, int inSlot, int inSubCont ) {
     DBTimeCacheRecord r =
         dbTimeCache[ computeDBCacheHash( inX, inY, inSlot, inSubCont ) ];
  
@@ -5204,7 +5204,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
    
     if( mapETA != 0 ) {
        
-        if( (int)mapETA <= MAP_TIMESEC ) {
+        if( mapETA <= MAP_TIMESEC ) {
            
             // object in map has decayed (eta expired)
  
@@ -5773,15 +5773,11 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
                             // add some random variation to avoid lock-step
                             // especially after a server restart
-                            int tweakedSeconds =
-                                randSource.getRandomBoundedInt(
-                                    lrint(
-                                        leftDecayT->autoDecaySeconds * 0.9 ),
+                            double tweakedSeconds =
+                                randSource.getRandomBoundedDouble(
+                                    leftDecayT->autoDecaySeconds * 0.9,
                                     leftDecayT->autoDecaySeconds );
                            
-                            if( tweakedSeconds < 1 ) {
-                                tweakedSeconds = 1;
-                                }
                             leftMapETA = MAP_TIMESEC + tweakedSeconds;
                             }
                         else {
@@ -5999,14 +5995,11 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
                 // add some random variation to avoid lock-step
                 // especially after a server restart
-                int tweakedSeconds =
-                    randSource.getRandomBoundedInt(
-                        lrint( newDecayT->autoDecaySeconds * 0.9 ),
+                double tweakedSeconds =
+                    randSource.getRandomBoundedDouble(
+                        newDecayT->autoDecaySeconds * 0.9,
                         newDecayT->autoDecaySeconds );
                
-                if( tweakedSeconds < 1 ) {
-                    tweakedSeconds = 1;
-                    }
                 mapETA = MAP_TIMESEC + tweakedSeconds;
                 }
             else {
@@ -6054,12 +6047,9 @@ int checkDecayObject( int inX, int inY, int inID ) {
        
         // randomize it so that every same object on map
         // doesn't cycle at same time
-        int decayTime =
-            randSource.getRandomBoundedInt( t->autoDecaySeconds / 2 ,
-                                            t->autoDecaySeconds );
-        if( decayTime < 1 ) {
-            decayTime = 1;
-            }
+        double decayTime =
+            randSource.getRandomBoundedDouble( t->autoDecaySeconds / 2 ,
+                                               t->autoDecaySeconds );
        
         mapETA = MAP_TIMESEC + decayTime;
            
@@ -6151,7 +6141,7 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
    
         if( mapETA != 0 ) {
        
-            if( (int)mapETA <= MAP_TIMESEC ) {
+            if( mapETA <= MAP_TIMESEC ) {
            
                 // object in container slot has decayed (eta expired)
                
@@ -6170,14 +6160,11 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                        
                         // add some random variation to avoid lock-step
                         // especially after a server restart
-                        int tweakedSeconds =
-                            randSource.getRandomBoundedInt(
-                                lrint( newDecayT->autoDecaySeconds * 0.9 ),
+                        double tweakedSeconds =
+                            randSource.getRandomBoundedDouble(
+                                newDecayT->autoDecaySeconds * 0.9,
                                 newDecayT->autoDecaySeconds );
  
-                        if( tweakedSeconds < 1 ) {
-                            tweakedSeconds = 1;
-                            }
                        
                         mapETA =
                             MAP_TIMESEC +
@@ -7260,14 +7247,11 @@ static void runTapoutOperation( int inX, int inY,
      
                     // add some random variation to avoid lock-step
                     // especially after a server restart
-                    int tweakedSeconds =
-                        randSource.getRandomBoundedInt(
-                            lrint( newDecayT->autoDecaySeconds * 0.9 ),
+                    double tweakedSeconds =
+                        randSource.getRandomBoundedDouble(
+                            newDecayT->autoDecaySeconds * 0.9,
                             newDecayT->autoDecaySeconds );
                    
-                    if( tweakedSeconds < 1 ) {
-                        tweakedSeconds = 1;
-                        }
                     mapETA = MAP_TIMESEC + tweakedSeconds;
                     }
                 else {
@@ -8308,7 +8292,7 @@ timeSec_t getFloorEtaDecay( int inX, int inY ) {
  
  
  
-int getNextDecayDelta() {
+double getNextDecayDelta() {
     if( liveDecayQueue.size() == 0 ) {
         return -1;
         }

@@ -154,7 +154,7 @@ float initTransBankStep() {
                             
                 int newActor = 0;
                 int newTarget = 0;
-                int autoDecaySeconds = 0;
+                double autoDecaySeconds = 0;
                 int epochAutoDecay = 0;
                 float actorMinUseFraction = 0.0f;
                 float targetMinUseFraction = 0.0f;
@@ -167,7 +167,7 @@ float initTransBankStep() {
                 int move = 0;
                 int desiredMoveDist = 1;
                 
-                sscanf( contents, "%d %d %d %f %f %d %d %d %d %d %d", 
+                sscanf( contents, "%d %d %lf %f %f %d %d %d %d %d %d", 
                         &newActor, &newTarget, &autoDecaySeconds,
                         &actorMinUseFraction, &targetMinUseFraction,
                         &reverseUseActorFlag,
@@ -2760,7 +2760,7 @@ void addTrans( int inActor, int inTarget,
                char inReverseUseTarget,
                char inNoUseActor,
                char inNoUseTarget,
-               int inAutoDecaySeconds,
+               double inAutoDecaySeconds,
                float inActorMinUseFraction,
                float inTargetMinUseFraction,
                int inMove,
@@ -3019,7 +3019,7 @@ void addTrans( int inActor, int inTarget,
             // don't save change chance to file
             // it's only for auto-generated transitions
 
-            char *fileContents = autoSprintf( "%d %d %d %f %f %d %d "
+            char *fileContents = autoSprintf( "%d %d %.2f %f %f %d %d "
                                               "%d %d %d %d", 
                                               inNewActor, inNewTarget,
                                               inAutoDecaySeconds,
