@@ -7168,7 +7168,9 @@ static void runTapoutOperation( int inX, int inY,
                 continue;
                 }
             
-            totalGridCells++;
+            int id = getMapObjectRaw( x, y );
+            TransRecord *t = getPTrans( inTriggerID, id, false, true );
+            if( t != NULL && id == t->target ) totalGridCells++;
             }
         }
     
@@ -7185,8 +7187,6 @@ static void runTapoutOperation( int inX, int inY,
                 // skip center
                 continue;
                 }
-            
-            currentGridCellIndex++;
 
             int id = getMapObjectRaw( x, y );
                     
@@ -7196,16 +7196,6 @@ static void runTapoutOperation( int inX, int inY,
             TransRecord *t = NULL;
             
             int newTarget = -1;
-            
-            
-            if( inR->tapoutCountLimit != -1 ) {
-                // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
-                double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
-                
-                double p = randSource.getRandomBoundedDouble( 0, 1 );
-                
-                if( p >= P ) continue;
-                }
 
             if( true ) {
                 // last use target signifies what happens in 
@@ -7216,6 +7206,17 @@ static void runTapoutOperation( int inX, int inY,
 
                 if( t != NULL ) {
                     newTarget = t->newTarget;
+
+                    currentGridCellIndex++;
+                    }
+                
+                if( inR->tapoutCountLimit != -1 ) {
+                    // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
+                    double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
+                    
+                    double p = randSource.getRandomBoundedDouble( 0, 1 );
+                    
+                    if( p >= P ) continue;
                     }
                 
                 if( newTarget > 0 ) {
