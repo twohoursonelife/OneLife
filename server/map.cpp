@@ -7060,67 +7060,6 @@ static int findGridPos( SimpleVector<GridPos> *inList, GridPos inP ) {
 
 
 
-static int applyTapoutGradientRotate( int inX, int inY,
-                                      int inTargetX, int inTargetY,
-                                      int inEastwardGradientID ) {
-    // apply result to itself to flip it 
-    // and point gradient in other direction
-                
-    // eastward + eastward = westward, etc
-
-    // order:  e, w, s, n, ne, se, sw, nw
-    
-    int numRepeat = 0;
-    
-    int curObjectID = inEastwardGradientID;                        
-
-    if( inX > inTargetX && inY == inTargetY ) {
-        numRepeat = 0;
-        }
-    else if( inX < inTargetX && inY == inTargetY ) {
-        numRepeat = 1;
-        }
-    else if( inX == inTargetX && inY < inTargetY ) {
-        numRepeat = 2;
-        }
-    else if( inX == inTargetX && inY > inTargetY ) {
-        numRepeat = 3;
-        }
-    else if( inX > inTargetX && inY > inTargetY ) {
-        numRepeat = 4;
-        }
-    else if( inX > inTargetX && inY < inTargetY ) {
-        numRepeat = 5;
-        }
-    else if( inX < inTargetX && inY < inTargetY ) {
-        numRepeat = 6;
-        }
-    else if( inX < inTargetX && inY > inTargetY ) {
-        numRepeat = 7;
-        }
-
-
-    
-    for( int i=0; i<numRepeat; i++ ) {
-        if( curObjectID == 0 ) {
-            break;
-            }
-        TransRecord *flipTrans = getPTrans( curObjectID, curObjectID );
-        
-        if( flipTrans != NULL ) {
-            curObjectID = flipTrans->newTarget;
-            }
-        }
-
-    if( curObjectID == 0 ) {
-        return -1;
-        }
-
-    return curObjectID;
-    }
-
-
-
 
 static void runTapoutOperation( int inX, int inY, 
                                 TapoutRecord *inR,
@@ -7169,8 +7108,11 @@ static void runTapoutOperation( int inX, int inY,
                 }
             
             int id = getMapObjectRaw( x, y );
-            TransRecord *t = getPTrans( inTriggerID, id, false, true );
+            int id_floor = getMapFloor( x, y );
+            TransRecord *t = getPTrans( inTriggerID, id );
             if( t != NULL && id == t->target ) totalGridCells++;
+            TransRecord *t_floor = getPTrans( inTriggerID, id_floor );
+            if( t_floor != NULL && id_floor == t_floor->target ) totalGridCells++;
             }
         }
     
@@ -7188,83 +7130,81 @@ static void runTapoutOperation( int inX, int inY,
                 continue;
                 }
 
-            int id = getMapObjectRaw( x, y );
-                    
-            // change triggered by tapout represented by 
-            // tapoutTrigger object getting used as actor
-            // on tapoutTarget
-            TransRecord *t = NULL;
-            
-            int newTarget = -1;
+            for( int p=0; p<2; p++ ) {
 
-            if( true ) {
-                // last use target signifies what happens in 
-                // same row or column as inX, inY
-                
-                // get eastward
-                t = getPTrans( inTriggerID, id, false, true );
+                // tapout object in first pass
+                // tapout floor in second pass
+
+                int id;
+                if( p == 0 ) {
+                    id = getMapObjectRaw( x, y );
+                    }
+                else if( p == 1 ) {
+                    id = getMapFloor( x, y );
+                    }
+                        
+                // change triggered by tapout represented by 
+                // tapoutTrigger object getting used as actor
+                // on tapoutTarget
+                TransRecord *t = getPTrans( inTriggerID, id );
 
                 if( t != NULL ) {
-                    newTarget = t->newTarget;
 
                     currentGridCellIndex++;
-                    }
-                
-                if( inR->tapoutCountLimit != -1 ) {
-                    // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
-                    double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
                     
-                    double p = randSource.getRandomBoundedDouble( 0, 1 );
+                    if( inR->tapoutCountLimit != -1 ) {
+                        // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
+                        double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
+                        
+                        double p = randSource.getRandomBoundedDouble( 0, 1 );
+                        
+                        if( p >= P ) continue;
+                        }
+
+                    tapoutCount++;
                     
-                    if( p >= P ) continue;
-                    }
-                
-                if( newTarget > 0 ) {
-                    newTarget = applyTapoutGradientRotate( inX, inY,
-                                                           x, y,
-                                                           newTarget );
-                    }
-                }
+                    if( p == 0 ) {
+                        setMapObjectRaw( x, y, t->newTarget );
+                        }
+                    else if( p == 1 ) {
+                        setMapFloor( x, y, t->newTarget );
+                        }
+                    
+                    TransRecord *newDecayT = getMetaTrans( -1, t->newTarget );
+                    
+                    timeSec_t mapETA = 0;
+        
+                    if( newDecayT != NULL ) {
+        
+                        // add some random variation to avoid lock-step
+                        // especially after a server restart
+                        double tweakedSeconds =
+                            randSource.getRandomBoundedDouble(
+                                newDecayT->autoDecaySeconds * 0.9,
+                                newDecayT->autoDecaySeconds );
+                    
+                        mapETA = MAP_TIMESEC + tweakedSeconds;
+                        }
+                    else {
+                        // no further decay
+                        mapETA = 0;
+                        }          
+        
+                    if( p == 0 ) {
+                        setEtaDecay( x, y, mapETA, newDecayT );
+                        }
+                    else if( p == 1 ) {
+                        setFloorEtaDecay( x, y, mapETA, newDecayT );
+                        }
+                    
+                    setEtaDecay( x, y, mapETA, newDecayT );
 
-            if( newTarget == -1 ) {
-                // not same row or post or last-use-target trans undefined
-                t = getPTrans( inTriggerID, id );
-                
-                if( t != NULL ) {
-                    newTarget = t->newTarget;
                     }
-                }
 
-            if( newTarget != -1 ) {
-                tapoutCount++;
-                
-                setMapObjectRaw( x, y, newTarget );
-                
-                TransRecord *newDecayT = getMetaTrans( -1, newTarget );
-                
-                timeSec_t mapETA = 0;
-     
-                if( newDecayT != NULL ) {
-     
-                    // add some random variation to avoid lock-step
-                    // especially after a server restart
-                    double tweakedSeconds =
-                        randSource.getRandomBoundedDouble(
-                            newDecayT->autoDecaySeconds * 0.9,
-                            newDecayT->autoDecaySeconds );
-                   
-                    mapETA = MAP_TIMESEC + tweakedSeconds;
+                if( inR->tapoutCountLimit != -1 && tapoutCount >= inR->tapoutCountLimit ) {
+                    return;
                     }
-                else {
-                    // no further decay
-                    mapETA = 0;
-                    }          
-     
-                setEtaDecay( x, y, mapETA, newDecayT );
-                }
-                
-            if( inR->tapoutCountLimit != -1 && tapoutCount >= inR->tapoutCountLimit ) {
-                return;
+
                 }
                 
             }
@@ -8276,12 +8216,44 @@ void setMapFloor( int inX, int inY, int inID ) {
         }
  
     setFloorEtaDecay( inX, inY, newEta );
+
+    ObjectRecord *o = getObject( inID );
+
+    if( o->isTapOutTrigger ) {
+        if( currentResponsiblePlayer != -1 ) {
+            int pID = currentResponsiblePlayer;
+            if( pID < 0 ) {
+                pID = -pID;
+                }
+            }
+        
+        // don't make current player responsible for all these changes
+        int restoreResponsiblePlayer = currentResponsiblePlayer;
+        currentResponsiblePlayer = -1;        
+        
+        TapoutRecord *r = getTapoutRecord( inID );
+        
+        if( r != NULL ) {
+
+            runTapoutOperation( inX, inY, 
+                                r,
+                                inID );
+            
+            }
+        
+        currentResponsiblePlayer = restoreResponsiblePlayer;
+        }
+
     }
  
  
  
-void setFloorEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds ) {
+void setFloorEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds,
+                       TransRecord *inApplicableTrans ) {
     dbFloorTimePut( inX, inY, inAbsoluteTimeInSeconds );
+    if( inAbsoluteTimeInSeconds != 0 ) {
+        trackETA( inX, inY, 0, inAbsoluteTimeInSeconds, 0, inApplicableTrans );
+        }
     }
  
  
@@ -8427,6 +8399,10 @@ void stepMap( SimpleVector<MapChangeRecord> *inMapChanges,
             // this call will append changes to our global lists, which
             // we process below
             checkDecayObject( r.x, r.y, oldID );
+
+
+            // check floor decay as well
+            getMapFloor( r.x, r.y );
             }
         else {
             if( ! getSlotItemsNoDecay( r.x, r.y, r.subCont ) ) {

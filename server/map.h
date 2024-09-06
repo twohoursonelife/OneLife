@@ -175,7 +175,8 @@ int getMapFloor( int inX, int inY );
 
 void setMapFloor( int inX, int inY, int inID );
 
-void setFloorEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds );
+void setFloorEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds,
+                       TransRecord *inApplicableTrans = NULL );
 
 timeSec_t getFloorEtaDecay( int inX, int inY );
 
