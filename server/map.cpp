@@ -7065,7 +7065,9 @@ static void runTapoutOperation( int inX, int inY,
                                 TapoutRecord *inR,
                                 int inTriggerID ) {
     
-    if( inR->gridSpacingX == -1 && inR->gridSpacingY == -1 ) {
+    if( inR->tapoutMode == 1 ) {
+
+        // tapout a specific tile
         
         int x = inX + inR->specificX;
         int y = inY + inR->specificY;
@@ -7081,12 +7083,12 @@ static void runTapoutOperation( int inX, int inY,
         
         }
     
-    // not a tapout on a specific tile
+    // not tapping out a specific tile
     
-    int inRadiusX = inR->limitX;
-    int inRadiusY = inR->limitY;
-    int inSpacingX = inR->gridSpacingX;
-    int inSpacingY = inR->gridSpacingY;
+    int inRadiusN = inR->radiusN;
+    int inRadiusE = inR->radiusE;
+    int inRadiusS = inR->radiusS;
+    int inRadiusW = inR->radiusW;
     
     int tapoutCount = 0;
     
@@ -7094,16 +7096,22 @@ static void runTapoutOperation( int inX, int inY,
     int currentGridCellIndex = -1;
     
     // counting total cells in the grid
-    for( int y =  inY - inRadiusY; 
-         y <= inY + inRadiusY; 
-         y += inSpacingY ) {
+    for( int y =  inY - inRadiusS; 
+         y <= inY + inRadiusN; 
+         y ++ ) {
     
-        for( int x =  inX - inRadiusX; 
-             x <= inX + inRadiusX; 
-             x += inSpacingX ) {
+        for( int x =  inX - inRadiusW; 
+             x <= inX + inRadiusE; 
+             x ++ ) {
             
             if( inX == x && inY == y ) {
                 // skip center
+                continue;
+                }
+
+            if( inR->tapoutMode == 2 && inX != x && inY != y ) {
+                // Directional tapout
+                // skip tiles not on the same x and y as trigger
                 continue;
                 }
             
@@ -7117,16 +7125,22 @@ static void runTapoutOperation( int inX, int inY,
         }
     
     
-    for( int y =  inY - inRadiusY; 
-         y <= inY + inRadiusY; 
-         y += inSpacingY ) {
+    for( int y =  inY - inRadiusS; 
+         y <= inY + inRadiusN; 
+         y ++ ) {
     
-        for( int x =  inX - inRadiusX; 
-             x <= inX + inRadiusX; 
-             x += inSpacingX ) {
+        for( int x =  inX - inRadiusW; 
+             x <= inX + inRadiusE; 
+             x ++ ) {
             
             if( inX == x && inY == y ) {
                 // skip center
+                continue;
+                }
+
+            if( inR->tapoutMode == 2 && inX != x && inY != y ) {
+                // Directional tapout
+                // skip tiles not on the same x and y as trigger
                 continue;
                 }
 

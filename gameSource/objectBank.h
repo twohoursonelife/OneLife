@@ -28,13 +28,14 @@ extern bool trippingEffectDisabled;
 // tracks when creation of an object taps out nearby objects on a grid
 typedef struct TapoutRecord {
         int triggerID;
-        int gridSpacingX, gridSpacingY;
-        // how far to reach in +/- x and y when tapping out
-        int limitX, limitY;
-        // 2HOL - can set the max number of objects to be tapped out by one operation
-        int tapoutCountLimit;
-        // 2HOL - can specify coordinates to tap out
-        int specificX, specificY;
+        // tapout mode
+        // 0: Area tapout. x radius, y radius, limit(optional).
+        // 1: Coordinates. x, y.
+        // 2: Directional tapout. N radius, E radius, S radius, W radius, limit(optional).
+        int tapoutMode;
+        int radiusN, radiusE, radiusS, radiusW; // how far to reach in +/- x and y when tapping out
+        int tapoutCountLimit; // max number of objects to be tapped out by one operation
+        int specificX, specificY; // specify coordinates to tap out
     } TapoutRecord;
 
 
