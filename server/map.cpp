@@ -6263,7 +6263,7 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
 
                         // Check for 1-second decay of the newContainer
                         TransRecord *instantDecay = getPTrans( -1, newContainer );
-                        if( instantDecay != NULL ) newContainer = instantDecay->newTarget;
+                        if( instantDecay != NULL && instantDecay->autoDecaySeconds == 1 ) newContainer = instantDecay->newTarget;
                         
                         if( newContainer != containerID ) {
                             ObjectRecord *newC = getObject( newContainer );
