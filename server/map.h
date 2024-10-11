@@ -175,7 +175,8 @@ int getMapFloor( int inX, int inY );
 
 void setMapFloor( int inX, int inY, int inID );
 
-void setFloorEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds );
+void setFloorEtaDecay( int inX, int inY, timeSec_t inAbsoluteTimeInSeconds,
+                       TransRecord *inApplicableTrans = NULL );
 
 timeSec_t getFloorEtaDecay( int inX, int inY );
 
@@ -206,7 +207,7 @@ char *getMapChangeLineString( MapChangeRecord *inRecord,
 // returns number of seconds from now until when next decay is supposed
 // to happen
 // returns -1 if no decay pending
-int getNextDecayDelta();
+double getNextDecayDelta();
 
 
 // marks region as looked at, so that live decay tracking continues

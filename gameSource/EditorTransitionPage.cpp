@@ -82,7 +82,7 @@ EditorTransitionPage::EditorTransitionPage()
         : mAutoDecayTimeField( smallFont, 
                                0,  -170, 6,
                                false,
-                               "AutoDecay Seconds", "-0123456789", NULL ),
+                               "AutoDecay Seconds", "-0123456789.", NULL ),
           mContTransModesButtons( smallFont, -330, -170,
                             NUM_CONTTRANS_MODES, contTransModeNames, true, 2 ),
           mLastUseActorCheckbox( -330, 75, 2 ),
@@ -417,7 +417,7 @@ void EditorTransitionPage::checkIfSaveVisible() {
 
         if( mCurrentTransition.autoDecaySeconds != 0 ) {
             char *decayString =
-                autoSprintf( "%d", mCurrentTransition.autoDecaySeconds );
+                autoSprintf( "%.2f", mCurrentTransition.autoDecaySeconds );
             
             mAutoDecayTimeField.setText( decayString );
             
@@ -643,11 +643,11 @@ void EditorTransitionPage::actionPerformed( GUIComponent *inTarget ) {
     
     if( inTarget == &mSaveTransitionButton ) {
         
-        int decayTime = 0;
+        double decayTime = 0;
         char *decayText = mAutoDecayTimeField.getText();
         
         if( strcmp( decayText, "" ) != 0 ) {    
-            sscanf( decayText, "%d", &decayTime );
+            sscanf( decayText, "%lf", &decayTime );
             }            
         delete [] decayText;
 
@@ -729,11 +729,11 @@ void EditorTransitionPage::actionPerformed( GUIComponent *inTarget ) {
         }
     else if( inTarget == &mDelConfirmButton ) {
 
-        int decayTime = 0;
+        double decayTime = 0;
         char *decayText = mAutoDecayTimeField.getText();
         
         if( strcmp( decayText, "" ) != 0 ) {    
-            sscanf( decayText, "%d", &decayTime );
+            sscanf( decayText, "%lf", &decayTime );
             }            
         delete [] decayText;
 
@@ -1361,9 +1361,9 @@ void EditorTransitionPage::draw( doublePair inViewCenter,
     
 
     if( mAutoDecayTimeField.isVisible() && 
-        mAutoDecayTimeField.getInt() < 0 ) {
+        mAutoDecayTimeField.getFloat() < 0 ) {
         
-        int numEpocs = - mAutoDecayTimeField.getInt();
+        int numEpocs = - ceil( mAutoDecayTimeField.getFloat() );
         
         doublePair pos = mAutoDecayTimeField.getPosition();
         pos.x += 38;

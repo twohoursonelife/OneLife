@@ -1503,7 +1503,7 @@ void clearPlayerHeldContained( LiveObject *inPlayer ) {
 
 void transferHeldContainedToMap( LiveObject *inPlayer, int inX, int inY ) {
     if( inPlayer->numContained != 0 ) {
-        timeSec_t curTime = Time::timeSec();
+        timeSec_t curTime = Time::getCurrentTime();
         float stretch = 
             getObject( inPlayer->holdingID )->slotTimeStretch;
         
@@ -4697,7 +4697,7 @@ static void setFreshEtaDecayForHeld( LiveObject *inPlayer ) {
                     
     if( newDecayT != NULL ) {
         inPlayer->holdingEtaDecay = 
-            Time::timeSec() + newDecayT->autoDecaySeconds;
+            Time::getCurrentTime() + newDecayT->autoDecaySeconds;
         }
     else {
         // no further decay
@@ -9103,7 +9103,7 @@ static void changeContained( int inX, int inY, int inSlotNumber,
     timeSec_t *containedETA = 
         getContainedEtaDecay( inX, inY, &numContained );
     
-    timeSec_t curTimeSec = Time::timeSec();
+    timeSec_t curTimeSec = Time::getCurrentTime();
     
     if( contained != NULL && containedETA != NULL &&
         numContained > inSlotNumber ) {
@@ -9439,7 +9439,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
             
 
         if( inPlayer->numContained > 0 ) {
-            timeSec_t curTime = Time::timeSec();
+            timeSec_t curTime = Time::getCurrentTime();
             
             for( int c=0; c<inPlayer->numContained; c++ ) {
                 
@@ -9876,7 +9876,7 @@ static char addHeldToClothingContainer( LiveObject *inPlayer,
                 holdingEtaDecay != 0 ) {
                                                 
                 timeSec_t curTime = 
-                    Time::timeSec();
+                    Time::getCurrentTime();
                                             
                 timeSec_t offset = 
                     inPlayer->
@@ -10061,7 +10061,7 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
             clothingContainedEtaDecays[inC].
             getElementDirect( slotToRemove );
                                     
-        timeSec_t curTime = Time::timeSec();
+        timeSec_t curTime = Time::getCurrentTime();
 
         if( inPlayer->holdingEtaDecay != 0 ) {
                                         
@@ -12133,7 +12133,7 @@ void executeKillAction( int inKillerIndex,
                             if( newDecayT != NULL ) {
                                 hitPlayer->
                                     embeddedWeaponEtaDecay = 
-                                    Time::timeSec() + 
+                                    Time::getCurrentTime() + 
                                     newDecayT->
                                     autoDecaySeconds;
                                 }
@@ -13555,7 +13555,7 @@ int main() {
             }
         
         if( pollTimeout > 0 ) {
-            int shortestDecay = getNextDecayDelta();
+            double shortestDecay = getNextDecayDelta();
             
             if( shortestDecay != -1 ) {
                 
@@ -14657,7 +14657,7 @@ int main() {
 
 
         
-        timeSec_t curLookTime = Time::timeSec();
+        timeSec_t curLookTime = Time::getCurrentTime();
         
         for( int i=0; i<numLive; i++ ) {
             LiveObject *nextPlayer = players.getElement( i );
@@ -18218,7 +18218,7 @@ int main() {
                                                 TransRecord *newDecayT = getMetaTrans( -1, contTrans->newTarget );
                                                 
                                                 if( newDecayT != NULL ) {
-                                                    timeSec_t mapETA = Time::timeSec() + newDecayT->autoDecaySeconds;
+                                                    timeSec_t mapETA = Time::getCurrentTime() + newDecayT->autoDecaySeconds;
                                                     setSlotEtaDecay( m.x, m.y, m.i, mapETA, 0 );
                                                     }
                                                 
@@ -20922,7 +20922,7 @@ int main() {
                             }
                         
                         // room for what clothing contained
-                        timeSec_t curTime = Time::timeSec();
+                        timeSec_t curTime = Time::getCurrentTime();
                         
                         for( int c=0; c < NUM_CLOTHING_PIECES && roomLeft > 0; 
                              c++ ) {
@@ -21090,7 +21090,7 @@ int main() {
                                 
                                     if( newDecayT != NULL ) {
                                         newDecay = 
-                                            Time::timeSec() +
+                                            Time::getCurrentTime() +
                                             newDecayT->autoDecaySeconds /
                                             stretch;
                                         }
@@ -21155,7 +21155,7 @@ int main() {
                                 
                                         if( newSubDecayT != NULL ) {
                                             newSubDecay = 
-                                                Time::timeSec() +
+                                                Time::getCurrentTime() +
                                                 newSubDecayT->autoDecaySeconds /
                                                 subStretch;
                                             }
@@ -21246,7 +21246,7 @@ int main() {
                                 
                                 if( newDecayT != NULL ) {
                                     nextPlayer->clothingEtaDecay[c] = 
-                                        Time::timeSec() + 
+                                        Time::getCurrentTime() + 
                                         newDecayT->autoDecaySeconds;
                                     }
                                 else {
@@ -21271,7 +21271,7 @@ int main() {
                                 // truncate
                                 
                                 // drop extras onto map
-                                timeSec_t curTime = Time::timeSec();
+                                timeSec_t curTime = Time::getCurrentTime();
                                 float stretch = cObj->slotTimeStretch;
                                 
                                 GridPos dropPos = 
@@ -21345,7 +21345,7 @@ int main() {
                                 }
                             
                             if( oldStretch != newStretch ) {
-                                timeSec_t curTime = Time::timeSec();
+                                timeSec_t curTime = Time::getCurrentTime();
                                 
                                 for( int cc=0;
                                      cc < nextPlayer->
@@ -21424,7 +21424,7 @@ int main() {
                                         
                                         if( newDecayT != NULL ) {
                                             newDecay = 
-                                                Time::timeSec() +
+                                                Time::getCurrentTime() +
                                                 newDecayT->
                                                 autoDecaySeconds /
                                                 cObj->slotTimeStretch;

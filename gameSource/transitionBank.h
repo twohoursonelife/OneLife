@@ -19,7 +19,7 @@ typedef struct TransRecord {
         // if actor is -1 and autoDecaySeconds is non-zero
         // then target decays to newTarget automatically in autoDecaySeconds
         // if -1, decays according to server epoch time setting
-        int autoDecaySeconds;
+        double autoDecaySeconds;
         
         // flag that this decay time is epoch time
         // 0 of not epoch, or N for the number of epochs
@@ -208,7 +208,7 @@ void addTrans( int inActor, int inTarget,
                char inReverseUseTarget,
                char inNoUseActor,
                char inNoUseTarget,
-               int inAutoDecaySeconds,
+               double inAutoDecaySeconds,
                float inActorMinUseFraction,
                float inTargetMinUseFraction,
                int inMove,

@@ -643,42 +643,52 @@ static void setupTapout( ObjectRecord *inR ) {
     char *triggerPos = strstr( inR->description, "+tapoutTrigger" );
                 
     if( triggerPos != NULL ) {
-        int xGrid = -1;
-        int yGrid = -1;
-        int xLimit = -1;
-        int yLimit = -1;
-        int tapoutCountLimit = -1;
+        int value1 = -1;
+        int value2 = -1;
+        int value3 = -1;
+        int value4 = -1;
+        int value5 = -1;
+        int value6 = -1;
         
         int numRead = sscanf( triggerPos, 
-                              "+tapoutTrigger,%d,%d,%d,%d,%d",
-                              &xGrid, &yGrid,
-                              &xLimit, &yLimit,
-                              &tapoutCountLimit );
-        if( numRead == 2 || numRead == 4 || numRead == 5 ) {
+                              "+tapoutTrigger,%d,%d,%d,%d,%d,%d",
+                              &value1, &value2,
+                              &value3, &value4,
+                              &value5, &value6 );
+        if( numRead >= 2 && numRead <= 6 ) {
             // valid tapout trigger
             TapoutRecord r;
             
             r.triggerID = inR->id;
             
-            r.gridSpacingX = -1;
-            r.gridSpacingY = -1;
-            r.limitX = -1;
-            r.limitY = -1;
+            r.tapoutMode = value1;
             r.tapoutCountLimit = -1;
             r.specificX = 9999;
-            r.specificY = 9999;            
+            r.specificY = 9999;
+            r.radiusN = -1;
+            r.radiusE = -1;
+            r.radiusS = -1;
+            r.radiusW = -1;
             
-            if( numRead == 2 ) {
-                r.specificX = xGrid;
-                r.specificY = yGrid;
+            if( r.tapoutMode == 1 ) {
+                r.specificX = value2;
+                r.specificY = value3;
                 }
-            else if( numRead == 4 || numRead == 5 ) {
-                r.gridSpacingX = xGrid;
-                r.gridSpacingY = yGrid;
-                r.limitX = xLimit;
-                r.limitY = yLimit;
-                if( numRead == 5 ) 
-                    r.tapoutCountLimit = tapoutCountLimit;
+            else if( r.tapoutMode == 0 ) {
+                r.radiusN = value3;
+                r.radiusE = value2;
+                r.radiusS = value3;
+                r.radiusW = value2;
+                if( numRead == 4 )
+                    r.tapoutCountLimit = value4;
+                }                
+            else if( r.tapoutMode == 2 ) {
+                r.radiusN = value2;
+                r.radiusE = value3;
+                r.radiusS = value4;
+                r.radiusW = value5;
+                if( numRead == 6 )
+                    r.tapoutCountLimit = value6;
                 }
             
             tapoutRecords.push_back( r );
