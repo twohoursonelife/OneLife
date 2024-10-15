@@ -25451,7 +25451,10 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         // if holding something, and this is a set-down action
         // show click reaction
         if( modClick &&
-            ourLiveObject->holdingID != 0 ) {
+            (ourLiveObject->holdingID != 0 ||
+            // or if we're shift right clicking on a floor with empty hand
+            (isShiftKeyDown() && floorDestID > 0) )
+            ) {
         
             int mapI = mapY * mMapD + mapX;
             
@@ -26005,7 +26008,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                // up
                ( ourLiveObject->holdingID != 0 || 
                  ( destObjInClickedTile > 0 && 
-                   ! destObjInClickedTilePermanent ) ) )
+                   ! destObjInClickedTilePermanent ) ||
+               // or if we're shift right clicking on a floor with empty hand
+                 ( isShiftKeyDown() && floorDestID > 0 ) ) )
              || killMode
              || tryingToPickUpBaby
              || useOnBabyLater
@@ -26317,7 +26322,23 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 // check for other special case
                 // a use-on-ground transition or use-on-floor transition
 
-                if( ourLiveObject->holdingID > 0 ) {
+                if( isShiftKeyDown() && floorDestID > 0 &&
+                    destObjInClickedTile == 0 &&
+                    ourLiveObject->holdingID == 0
+                    ) {
+                    // check if bare-hand transition on floor exists
+                    TransRecord *r = 
+                        getTrans( 0, floorDestID );
+                            
+                    if( r != NULL ) {
+                        // a bare-hand transition exists!
+                            
+                        // override the drop action
+                        action = "USE";
+                            
+                        }
+                    }
+                else if( ourLiveObject->holdingID > 0 ) {
                         
                     ObjectRecord *held = 
                         getObject( ourLiveObject->holdingID );
