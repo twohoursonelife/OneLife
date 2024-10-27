@@ -213,6 +213,7 @@ unsigned char objectSearchPanelToggleKey = 'j';
 char familyDisplayEnabled = false;
 unsigned char familyDisplayPanelToggleKey = 'p';
 char dangerousTileEnabled = false;
+char alwaysShowPlayerLabelEnabled = false;
 
 static JenkinsRandomSource randSource( 340403 );
 static JenkinsRandomSource remapRandSource( 340403 );
@@ -5125,7 +5126,8 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
                                                 int inForceMinChalkBlots,
                                                 FloatColor *inForceBlotColor,
                                                 FloatColor *inForceTextColor,
-                                                bool tinyStyle ) {
+                                                bool tinyStyle,
+                                                bool allowOffscreen ) {
     
     char *stringUpper = stringToUpperCase( inString );
 
@@ -5152,12 +5154,12 @@ void LivingLifePage::drawChalkBackgroundString( doublePair inPos,
     
     double firstLineY =  inPos.y + ( lines->size() - 1 ) * lineSpacing;
     
-    if( firstLineY > lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale ) {
+    if( !allowOffscreen && firstLineY > lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale ) {
         // off top of screen
         firstLineY = lastScreenViewCenter.y + recalcOffsetY( 330 ) * gui_fov_scale;
         }
 
-    if( inPos.y < lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale ) {
+    if( !allowOffscreen && inPos.y < lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale ) {
         // off bottom of screen
         double lastLineY = lastScreenViewCenter.y - recalcOffsetY( 280 ) * gui_fov_scale;
         
@@ -11872,6 +11874,62 @@ void LivingLifePage::draw( doublePair inViewCenter,
         lastHoverPlayerID = 0;
         }
 
+    if( alwaysShowPlayerLabelEnabled ) {
+        int showLabelRange = 50;
+
+        for( int i=0; i<gameObjects.size(); i++ ) {
+            LiveObject *o = gameObjects.getElement( i );
+            if ( o == ourLiveObject ) continue;
+            if ( o->heldByAdultID != -1 ) continue;
+            if ( o->id == lastHoverPlayerID ) continue;
+            if ( o->outOfRange ) continue;
+            int distX = o->xd - ourLiveObject->xd;
+            if ( distX > showLabelRange || distX < -showLabelRange) continue;
+            int distY = o->yd - ourLiveObject->yd;
+            if ( distY > showLabelRange || distY < -showLabelRange) continue;
+
+            char *name = NULL;
+            char infertilityTagPresent = false;
+            if( o->name != NULL ) {
+                name = stringDuplicate(o->name);
+                infertilityTagPresent = stripFertilitySuffix( name );
+                if( name[0] == '\0' ) {
+                    delete [] name;
+                    name = NULL;
+                    }
+                }
+
+            char *label;
+            if( name != NULL ) {
+                label = autoSprintf("%s", name);
+                }
+            else if( o->relationName != NULL ) {
+                label = autoSprintf("%s", o->relationName);
+                }
+            else {
+                label = autoSprintf("UNNAMED STRANGER");
+                }
+
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+            
+            doublePair labelPos = mult( o->currentPos, CELL_D );
+
+            double labelWidth = tinyHandwritingFont->measureString( label );
+            labelPos.x -= labelWidth / 2;
+            labelPos.y -= 16;
+
+            drawChalkBackgroundString( 
+                labelPos,
+                label, 1.0, 100000.0, o, -1, &bgColor, &txtColor, true, true );
+
+            if( name != NULL ) delete [] name;
+            delete [] label;
+
+            }
+
+        }
+    
     if( lastHoverPlayerID != 0 ) {
 
         LiveObject *o = getLiveObject( lastHoverPlayerID );
@@ -11882,7 +11940,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             float fade = 1.0;
             if( delta > playerLabelSec ) 
                 fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
-
+            if( alwaysShowPlayerLabelEnabled ) fade = 1.0;
             
             char *name = NULL;
             char infertilityTagPresent = false;
@@ -27309,6 +27367,14 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                     mObjectPicker.removeActionListener( this );    
                     }
                 vogPickerOn = ! vogPickerOn;
+                }
+            break;
+        case 'n':
+            if( ! mSayField.isFocused() && !vogMode &&
+                !commandKey && !shiftKey ) {
+                alwaysShowPlayerLabelEnabled = !alwaysShowPlayerLabelEnabled;
+                SettingsManager::setSetting("alwaysShowPlayerLabelEnabled",
+                                            alwaysShowPlayerLabelEnabled);
                 }
             break;
         case 'N':
