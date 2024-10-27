@@ -589,6 +589,8 @@ int addObject( const char *inDescription,
                int inRace,
                char inDeathMarker,
                char inHomeMarker,
+               char inTapoutTrigger,
+               char *inTapoutTriggerParameters,
                char inFloor,
                char inPartialFloor,
                char inFloorHugging,
@@ -870,6 +872,8 @@ int getMouthIndex( ObjectRecord *inObject, double inAge );
 
 
 char *getBiomesString( ObjectRecord *inObject );
+
+char *getTapoutTriggerString( ObjectRecord *inObject );
 
 
 void getAllBiomes( SimpleVector<int> *inVectorToFill );
