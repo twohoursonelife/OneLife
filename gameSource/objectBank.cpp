@@ -1070,6 +1070,72 @@ float initObjectBankStep() {
                     
                     next++;
                     }
+                
+
+                r->isTapOutTrigger = false;
+                
+                if( strstr( lines[next], "tapoutTrigger=" ) != NULL ) {
+                    // tapoutTrigger flag present
+                    
+                    int tapoutTriggerRead = 0;
+                    int value1 = -1;
+                    int value2 = -1;
+                    int value3 = -1;
+                    int value4 = -1;
+                    int value5 = -1;
+                    int value6 = -1;
+
+                    int numRead = sscanf( lines[next], 
+                                        "tapoutTrigger=%d#%d,%d,%d,%d,%d,%d", 
+                                        &( tapoutTriggerRead ),
+                                        &value1, &value2,
+                                        &value3, &value4,
+                                        &value5, &value6 );
+
+                    if( tapoutTriggerRead == 1 &&
+                        numRead >= 3 && numRead <= 7 ) {
+                        // valid tapout trigger
+                        TapoutRecord tr;
+                        
+                        tr.triggerID = r->id;
+                        
+                        tr.tapoutMode = value1;
+                        tr.tapoutCountLimit = -1;
+                        tr.specificX = 9999;
+                        tr.specificY = 9999;
+                        tr.radiusN = -1;
+                        tr.radiusE = -1;
+                        tr.radiusS = -1;
+                        tr.radiusW = -1;
+                        
+                        if( tr.tapoutMode == 1 ) {
+                            tr.specificX = value2;
+                            tr.specificY = value3;
+                            }
+                        else if( tr.tapoutMode == 0 ) {
+                            tr.radiusN = value3;
+                            tr.radiusE = value2;
+                            tr.radiusS = value3;
+                            tr.radiusW = value2;
+                            if( numRead == 4 )
+                                tr.tapoutCountLimit = value4;
+                            }                
+                        else if( tr.tapoutMode == 2 ) {
+                            tr.radiusN = value2;
+                            tr.radiusE = value3;
+                            tr.radiusS = value4;
+                            tr.radiusW = value5;
+                            if( numRead == 6 )
+                                tr.tapoutCountLimit = value6;
+                            }
+                        
+                        tapoutRecords.push_back( tr );
+                        
+                        r->isTapOutTrigger = tapoutTriggerRead;
+                        }
+                    
+                    next++;
+                    }
 
 
 
@@ -2153,7 +2219,7 @@ void initObjectBankFinish() {
     for( int i=0; i<mapSize; i++ ) {
         if( idMap[i] != NULL ) {
             ObjectRecord *o = idMap[i];
-            setupTapout( o );
+            if( !o->isTapOutTrigger ) setupTapout( o );
             }
         }
     
