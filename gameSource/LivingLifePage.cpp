@@ -11434,80 +11434,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
-    // Player labels
-    int playerLabelSec = 3;
-    int playerLabelFadeSec = 1;
-    if( game_getCurrentTime() - lastHoverPlayerTime > playerLabelSec + playerLabelFadeSec ) {
-        lastHoverPlayerID = 0;
-        }
-
-    if( lastHoverPlayerID != 0 ) {
-
-        LiveObject *o = getLiveObject( lastHoverPlayerID );
-
-        if( o != NULL && o->heldByAdultID == -1 ) {
-
-            float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
-            float fade = 1.0;
-            if( delta > playerLabelSec ) 
-                fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
-
-            
-            char *name = NULL;
-            char infertilityTagPresent = false;
-            if( o->name != NULL ) {
-                name = stringDuplicate(o->name);
-                infertilityTagPresent = stripFertilitySuffix( name );
-                if( name[0] == '\0' ) {
-                    delete [] name;
-                    name = NULL;
-                    }
-                }
-            char *infertilityString = NULL;
-            if( infertilityTagPresent ) {
-                infertilityString = stringDuplicate( " (INFERTILE)" );
-                }
-            else {
-                infertilityString = stringDuplicate( "" );
-                }
-
-            double age = computeServerAge( computeCurrentAge( o ) );
-            
-            char *label;
-            if( name != NULL && o->relationName != NULL ) {
-                label = autoSprintf("%s %.1f, %s%s", name, age, o->relationName, infertilityString);
-                }
-            else if( name == NULL && o->relationName != NULL ) {
-                label = autoSprintf("%s %.1f%s", o->relationName, age, infertilityString);
-                }
-            else if( name != NULL && o->relationName == NULL ) {
-                label = autoSprintf("%s %.1f%s", name, age, infertilityString);
-                }
-            else {
-                label = autoSprintf("UNNAMED STRANGER %.1f%s", age, infertilityString);
-                }
-
-            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-            FloatColor txtColor = { 1, 1, 1, 1 };
-
-            doublePair labelPos = mult( o->currentPos, CELL_D );
-
-            double labelWidth = tinyHandwritingFont->measureString( label );
-            labelPos.x -= labelWidth / 2;
-            labelPos.y -= 16;
-
-            drawChalkBackgroundString( 
-                labelPos,
-                label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
-            
-            if( name != NULL ) delete [] name;
-            delete [] label;
-
-            }
-
-        }
-
-
     // cursor-tips
     if( !isAnyUIHovered() )
     if( ourLiveObject != NULL ) {
@@ -11937,6 +11863,81 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
         }
+
+
+    // Player labels
+    int playerLabelSec = 3;
+    int playerLabelFadeSec = 1;
+    if( game_getCurrentTime() - lastHoverPlayerTime > playerLabelSec + playerLabelFadeSec ) {
+        lastHoverPlayerID = 0;
+        }
+
+    if( lastHoverPlayerID != 0 ) {
+
+        LiveObject *o = getLiveObject( lastHoverPlayerID );
+
+        if( o != NULL && o->heldByAdultID == -1 ) {
+
+            float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
+            float fade = 1.0;
+            if( delta > playerLabelSec ) 
+                fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
+
+            
+            char *name = NULL;
+            char infertilityTagPresent = false;
+            if( o->name != NULL ) {
+                name = stringDuplicate(o->name);
+                infertilityTagPresent = stripFertilitySuffix( name );
+                if( name[0] == '\0' ) {
+                    delete [] name;
+                    name = NULL;
+                    }
+                }
+            char *infertilityString = NULL;
+            if( infertilityTagPresent ) {
+                infertilityString = stringDuplicate( " (INFERTILE)" );
+                }
+            else {
+                infertilityString = stringDuplicate( "" );
+                }
+
+            double age = computeServerAge( computeCurrentAge( o ) );
+            
+            char *label;
+            if( name != NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f, %s%s", name, age, o->relationName, infertilityString);
+                }
+            else if( name == NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f%s", o->relationName, age, infertilityString);
+                }
+            else if( name != NULL && o->relationName == NULL ) {
+                label = autoSprintf("%s %.1f%s", name, age, infertilityString);
+                }
+            else {
+                label = autoSprintf("UNNAMED STRANGER %.1f%s", age, infertilityString);
+                }
+
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+
+            doublePair labelPos = mult( o->currentPos, CELL_D );
+
+            double labelWidth = tinyHandwritingFont->measureString( label );
+            labelPos.x -= labelWidth / 2;
+            labelPos.y -= 16;
+
+            drawChalkBackgroundString( 
+                labelPos,
+                label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
+            
+            if( name != NULL ) delete [] name;
+            delete [] label;
+
+            }
+
+        }
+
 
     // debug info on cursor
     if( debugMode ) {
