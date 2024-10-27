@@ -9704,7 +9704,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                 
                 // Execute containment transitions - removeFromContainerToHold - container
                 
-                if( contTrans != NULL ) {
+                if( contTrans != NULL && target != contTrans->newActor ) {
                     setMapObject( inContX, inContY, contTrans->newActor );
                 }
 
