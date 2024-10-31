@@ -7095,132 +7095,239 @@ static void runTapoutOperation( int inX, int inY,
     int totalGridCells = 0;
     int currentGridCellIndex = -1;
     
-    // counting total cells in the grid
-    for( int y =  inY - inRadiusS; 
-         y <= inY + inRadiusN; 
-         y ++ ) {
-    
-        for( int x =  inX - inRadiusW; 
-             x <= inX + inRadiusE; 
-             x ++ ) {
-            
-            if( inX == x && inY == y ) {
-                // skip center
-                continue;
-                }
+    if( inR->tapoutMode == 0 && inR->tapoutCountLimit != -1 ) {
 
-            if( inR->tapoutMode == 2 && inX != x && inY != y ) {
-                // Directional tapout
-                // skip tiles not on the same x and y as trigger
-                continue;
+        // area tapout and there is a limit
+        // we will need to pick targets at random
+
+        // counting total cells in the grid
+
+        for( int y =  inY - inRadiusS; 
+            y <= inY + inRadiusN; 
+            y ++ ) {
+        
+            for( int x =  inX - inRadiusW; 
+                x <= inX + inRadiusE; 
+                x ++ ) {
+                
+                if( inX == x && inY == y ) {
+                    // skip center
+                    continue;
+                    }
+                
+                int id = getMapObjectRaw( x, y );
+                int id_floor = getMapFloor( x, y );
+                TransRecord *t = getPTrans( inTriggerID, id );
+                if( t != NULL && id == t->target ) totalGridCells++;
+                TransRecord *t_floor = getPTrans( inTriggerID, id_floor );
+                if( t_floor != NULL && id_floor == t_floor->target ) totalGridCells++;
                 }
-            
-            int id = getMapObjectRaw( x, y );
-            int id_floor = getMapFloor( x, y );
-            TransRecord *t = getPTrans( inTriggerID, id );
-            if( t != NULL && id == t->target ) totalGridCells++;
-            TransRecord *t_floor = getPTrans( inTriggerID, id_floor );
-            if( t_floor != NULL && id_floor == t_floor->target ) totalGridCells++;
             }
         }
     
+    if( inR->tapoutMode == 0 ) {
+
+        // main loop for area tapout
     
-    for( int y =  inY - inRadiusS; 
-         y <= inY + inRadiusN; 
-         y ++ ) {
-    
-        for( int x =  inX - inRadiusW; 
-             x <= inX + inRadiusE; 
-             x ++ ) {
-            
-            if( inX == x && inY == y ) {
-                // skip center
-                continue;
-                }
-
-            if( inR->tapoutMode == 2 && inX != x && inY != y ) {
-                // Directional tapout
-                // skip tiles not on the same x and y as trigger
-                continue;
-                }
-
-            for( int p=0; p<2; p++ ) {
-
-                // tapout object in first pass
-                // tapout floor in second pass
-
-                int id;
-                if( p == 0 ) {
-                    id = getMapObjectRaw( x, y );
-                    }
-                else if( p == 1 ) {
-                    id = getMapFloor( x, y );
-                    }
-                        
-                // change triggered by tapout represented by 
-                // tapoutTrigger object getting used as actor
-                // on tapoutTarget
-                TransRecord *t = getPTrans( inTriggerID, id );
-
-                if( t != NULL ) {
-
-                    currentGridCellIndex++;
-                    
-                    if( inR->tapoutCountLimit != -1 ) {
-                        // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
-                        double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
-                        
-                        double p = randSource.getRandomBoundedDouble( 0, 1 );
-                        
-                        if( p >= P ) continue;
-                        }
-
-                    tapoutCount++;
-                    
-                    if( p == 0 ) {
-                        setMapObjectRaw( x, y, t->newTarget );
-                        }
-                    else if( p == 1 ) {
-                        setMapFloor( x, y, t->newTarget );
-                        }
-                    
-                    TransRecord *newDecayT = getMetaTrans( -1, t->newTarget );
-                    
-                    timeSec_t mapETA = 0;
+        for( int y =  inY - inRadiusS; 
+            y <= inY + inRadiusN; 
+            y ++ ) {
         
-                    if( newDecayT != NULL ) {
-        
-                        // add some random variation to avoid lock-step
-                        // especially after a server restart
-                        double tweakedSeconds =
-                            randSource.getRandomBoundedDouble(
-                                newDecayT->autoDecaySeconds * 0.9,
-                                newDecayT->autoDecaySeconds );
-                    
-                        mapETA = MAP_TIMESEC + tweakedSeconds;
-                        }
-                    else {
-                        // no further decay
-                        mapETA = 0;
-                        }          
-        
-                    if( p == 0 ) {
-                        setEtaDecay( x, y, mapETA, newDecayT );
-                        }
-                    else if( p == 1 ) {
-                        setFloorEtaDecay( x, y, mapETA, newDecayT );
-                        }
-                    
-                    setEtaDecay( x, y, mapETA, newDecayT );
-
-                    }
-
-                if( inR->tapoutCountLimit != -1 && tapoutCount >= inR->tapoutCountLimit ) {
-                    return;
-                    }
-
-                }
+            for( int x =  inX - inRadiusW; 
+                x <= inX + inRadiusE; 
+                x ++ ) {
                 
+                if( inX == x && inY == y ) {
+                    // skip center
+                    continue;
+                    }
+
+                for( int p=0; p<2; p++ ) {
+
+                    // tapout object in first pass
+                    // tapout floor in second pass
+
+                    int id;
+                    if( p == 0 ) {
+                        id = getMapObjectRaw( x, y );
+                        }
+                    else if( p == 1 ) {
+                        id = getMapFloor( x, y );
+                        }
+                            
+                    // change triggered by tapout represented by 
+                    // tapoutTrigger object getting used as actor
+                    // on tapoutTarget
+                    TransRecord *t = getPTrans( inTriggerID, id );
+
+                    if( t != NULL ) {
+
+                        currentGridCellIndex++;
+                        
+                        if( inR->tapoutCountLimit != -1 ) {
+                            // this turns the loop into a totalGridCells draws inR->tapoutCountLimit
+                            double P = (double)(inR->tapoutCountLimit - tapoutCount) / (totalGridCells - currentGridCellIndex);
+                            
+                            double p = randSource.getRandomBoundedDouble( 0, 1 );
+                            
+                            if( p >= P ) continue;
+                            }
+
+                        tapoutCount++;
+                        
+                        if( p == 0 ) {
+                            setMapObjectRaw( x, y, t->newTarget );
+                            }
+                        else if( p == 1 ) {
+                            setMapFloor( x, y, t->newTarget );
+                            }
+                        
+                        TransRecord *newDecayT = getMetaTrans( -1, t->newTarget );
+                        
+                        timeSec_t mapETA = 0;
+            
+                        if( newDecayT != NULL ) {
+            
+                            // add some random variation to avoid lock-step
+                            // especially after a server restart
+                            double tweakedSeconds =
+                                randSource.getRandomBoundedDouble(
+                                    newDecayT->autoDecaySeconds * 0.9,
+                                    newDecayT->autoDecaySeconds );
+                        
+                            mapETA = MAP_TIMESEC + tweakedSeconds;
+                            }
+                        else {
+                            // no further decay
+                            mapETA = 0;
+                            }          
+            
+                        if( p == 0 ) {
+                            setEtaDecay( x, y, mapETA, newDecayT );
+                            }
+                        else if( p == 1 ) {
+                            setFloorEtaDecay( x, y, mapETA, newDecayT );
+                            }
+                        
+                        setEtaDecay( x, y, mapETA, newDecayT );
+
+                        }
+
+                    if( inR->tapoutCountLimit != -1 && tapoutCount >= inR->tapoutCountLimit ) {
+                        return;
+                        }
+
+                    }
+                    
+                }
+            }
+        }
+    else if( inR->tapoutMode == 2 ) {
+
+        // directional tapout
+
+        // we tapout from inward to out; and N, E, S, W, in that order
+        // if there is a limit, tapout the closest ones (instead of random like area tapout)
+
+        int i = 1; // skip center
+        int maxRadius = 0;
+        if( maxRadius < inR->radiusN ) maxRadius = inR->radiusN;
+        if( maxRadius < inR->radiusE ) maxRadius = inR->radiusE;
+        if( maxRadius < inR->radiusS ) maxRadius = inR->radiusS;
+        if( maxRadius < inR->radiusW ) maxRadius = inR->radiusW;
+
+        while( i <= maxRadius ) {
+
+            for( int d = 0; d < 4; d++ ) {
+
+                int x, y;
+                if( d == 0 ) {
+                    if( i > inR->radiusN ) continue;
+                    x = inX+0; y = inY+i;
+                    }
+                else if( d == 1 ) {
+                    if( i > inR->radiusE ) continue;
+                    x = inX+i; y = inY+0;
+                    }
+                else if( d == 2 ) {
+                    if( i > inR->radiusS ) continue;
+                    x = inX+0; y = inY-i;
+                    }
+                else if( d == 3 ) {
+                    if( i > inR->radiusW ) continue;
+                    x = inX-i; y = inY+0;
+                    }
+
+                for( int p=0; p<2; p++ ) {
+
+                    // tapout object in first pass
+                    // tapout floor in second pass
+
+                    int id;
+                    if( p == 0 ) {
+                        id = getMapObjectRaw( x, y );
+                        }
+                    else if( p == 1 ) {
+                        id = getMapFloor( x, y );
+                        }
+                            
+                    // change triggered by tapout represented by 
+                    // tapoutTrigger object getting used as actor
+                    // on tapoutTarget
+                    TransRecord *t = getPTrans( inTriggerID, id );
+
+                    if( t != NULL ) {
+
+                        tapoutCount++;
+                        
+                        if( p == 0 ) {
+                            setMapObjectRaw( x, y, t->newTarget );
+                            }
+                        else if( p == 1 ) {
+                            setMapFloor( x, y, t->newTarget );
+                            }
+                        
+                        TransRecord *newDecayT = getMetaTrans( -1, t->newTarget );
+                        
+                        timeSec_t mapETA = 0;
+            
+                        if( newDecayT != NULL ) {
+            
+                            // add some random variation to avoid lock-step
+                            // especially after a server restart
+                            double tweakedSeconds =
+                                randSource.getRandomBoundedDouble(
+                                    newDecayT->autoDecaySeconds * 0.9,
+                                    newDecayT->autoDecaySeconds );
+                        
+                            mapETA = MAP_TIMESEC + tweakedSeconds;
+                            }
+                        else {
+                            // no further decay
+                            mapETA = 0;
+                            }          
+            
+                        if( p == 0 ) {
+                            setEtaDecay( x, y, mapETA, newDecayT );
+                            }
+                        else if( p == 1 ) {
+                            setFloorEtaDecay( x, y, mapETA, newDecayT );
+                            }
+                        
+                        setEtaDecay( x, y, mapETA, newDecayT );
+
+                        }
+
+                    if( inR->tapoutCountLimit != -1 && tapoutCount >= inR->tapoutCountLimit ) {
+                        return;
+                        }
+
+                    }
+
+                }
+
+            i++;
+
             }
         }
     
