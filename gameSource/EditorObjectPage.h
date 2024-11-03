@@ -163,6 +163,8 @@ class EditorObjectPage : public GamePage, public ActionListener {
         CheckboxButton mMaleCheckbox;
         CheckboxButton mDeathMarkerCheckbox;
         CheckboxButton mHomeMarkerCheckbox;
+        CheckboxButton mTapoutTriggerCheckbox;
+        TextField mTapoutTriggerField;
         CheckboxButton mFloorCheckbox;
         CheckboxButton mPartialFloorCheckbox;
 

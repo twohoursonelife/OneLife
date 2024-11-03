@@ -128,6 +128,7 @@ class SettingsPage : public GamePage, public ActionListener {
         CheckboxButton mEnableDangerousTileBox;
         CheckboxButton mGenerateTownPlannerMapsBox;
         CheckboxButton mEnableShowingHeldFoodPips;
+        CheckboxButton mEnableAlwaysShowPlayerLabelsBox;
         
         
         void checkRestartButtonVisibility();

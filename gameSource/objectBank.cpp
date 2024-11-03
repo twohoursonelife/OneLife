@@ -1070,6 +1070,72 @@ float initObjectBankStep() {
                     
                     next++;
                     }
+                
+
+                r->isTapOutTrigger = false;
+                
+                if( strstr( lines[next], "tapoutTrigger=" ) != NULL ) {
+                    // tapoutTrigger flag present
+                    
+                    int tapoutTriggerRead = 0;
+                    int value1 = -1;
+                    int value2 = -1;
+                    int value3 = -1;
+                    int value4 = -1;
+                    int value5 = -1;
+                    int value6 = -1;
+
+                    int numRead = sscanf( lines[next], 
+                                        "tapoutTrigger=%d#%d,%d,%d,%d,%d,%d", 
+                                        &( tapoutTriggerRead ),
+                                        &value1, &value2,
+                                        &value3, &value4,
+                                        &value5, &value6 );
+
+                    if( tapoutTriggerRead == 1 &&
+                        numRead >= 3 && numRead <= 7 ) {
+                        // valid tapout trigger
+                        TapoutRecord tr;
+                        
+                        tr.triggerID = r->id;
+                        
+                        tr.tapoutMode = value1;
+                        tr.tapoutCountLimit = -1;
+                        tr.specificX = 9999;
+                        tr.specificY = 9999;
+                        tr.radiusN = -1;
+                        tr.radiusE = -1;
+                        tr.radiusS = -1;
+                        tr.radiusW = -1;
+                        
+                        if( tr.tapoutMode == 1 ) {
+                            tr.specificX = value2;
+                            tr.specificY = value3;
+                            }
+                        else if( tr.tapoutMode == 0 ) {
+                            tr.radiusN = value3;
+                            tr.radiusE = value2;
+                            tr.radiusS = value3;
+                            tr.radiusW = value2;
+                            if( numRead == 5 )
+                                tr.tapoutCountLimit = value4;
+                            }                
+                        else if( tr.tapoutMode == 2 ) {
+                            tr.radiusN = value2;
+                            tr.radiusE = value3;
+                            tr.radiusS = value4;
+                            tr.radiusW = value5;
+                            if( numRead == 7 )
+                                tr.tapoutCountLimit = value6;
+                            }
+                        
+                        tapoutRecords.push_back( tr );
+                        
+                        r->isTapOutTrigger = tapoutTriggerRead;
+                        }
+                    
+                    next++;
+                    }
 
 
 
@@ -2153,7 +2219,7 @@ void initObjectBankFinish() {
     for( int i=0; i<mapSize; i++ ) {
         if( idMap[i] != NULL ) {
             ObjectRecord *o = idMap[i];
-            setupTapout( o );
+            if( !o->isTapOutTrigger ) setupTapout( o );
             }
         }
     
@@ -2655,6 +2721,8 @@ int reAddObject( ObjectRecord *inObject,
     
     char *biomeString = getBiomesString( inObject );
 
+    char *tapoutTriggerParameters = getTapoutTriggerString( inObject );
+
     int id = addObject( desc,
                         inObject->containable,
                         inObject->containSize,
@@ -2683,6 +2751,8 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->race,
                         inObject->deathMarker,
                         inObject->homeMarker,
+                        inObject->isTapOutTrigger,
+                        tapoutTriggerParameters,
                         inObject->floor,
                         inObject->noCover,
                         inObject->floorHugging,
@@ -2740,6 +2810,7 @@ int reAddObject( ObjectRecord *inObject,
                         inObject->cachedHeight );
 
     delete [] biomeString;
+    delete [] tapoutTriggerParameters;
 
     return id;
     }
@@ -3013,6 +3084,8 @@ int addObject( const char *inDescription,
                int inRace,
                char inDeathMarker,
                char inHomeMarker,
+               char inTapoutTrigger,
+               char *inTapoutTriggerParameters,
                char inFloor,
                char inPartialFloor,
                char inFloorHugging,
@@ -3243,6 +3316,7 @@ int addObject( const char *inDescription,
         lines.push_back( autoSprintf( "male=%d", (int)inMale ) );
         lines.push_back( autoSprintf( "deathMarker=%d", (int)inDeathMarker ) );
         lines.push_back( autoSprintf( "homeMarker=%d", (int)inHomeMarker ) );
+        if( inTapoutTrigger ) lines.push_back( autoSprintf( "tapoutTrigger=1#%s", inTapoutTriggerParameters ) );
         
         lines.push_back( autoSprintf( "floor=%d", (int)inFloor ) );
         if( inPartialFloor ) lines.push_back( autoSprintf( "partialFloor=%d", (int)inPartialFloor ) );
@@ -3598,6 +3672,7 @@ int addObject( const char *inDescription,
     
     
     r->homeMarker = inHomeMarker;
+    r->isTapOutTrigger = inTapoutTrigger;
     r->floor = inFloor;
     r->noCover = inPartialFloor;
     r->floorHugging = inFloorHugging;
@@ -5805,6 +5880,37 @@ char *getBiomesString( ObjectRecord *inObject ) {
         }
 
     return stringBuffer.getElementString();
+    }
+
+char *getTapoutTriggerString( ObjectRecord *inObject ) {
+
+    char *working = NULL;
+
+    TapoutRecord *tr = getTapoutRecord( inObject->id );
+
+    if( tr == NULL ) return NULL;
+
+    if( tr->tapoutMode == 1 ) {
+        working = autoSprintf( "%d,%d,%d", tr->tapoutMode, tr->specificX, tr->specificY );
+        }
+    else if( tr->tapoutMode == 0 ) {
+        if( tr->tapoutCountLimit == -1 ) {
+            working = autoSprintf( "%d,%d,%d", tr->tapoutMode, tr->radiusE, tr->radiusN );
+            }
+        else {
+            working = autoSprintf( "%d,%d,%d,%d", tr->tapoutMode, tr->radiusE, tr->radiusN, tr->tapoutCountLimit );
+            }
+        }                
+    else if( tr->tapoutMode == 2 ) {
+        if( tr->tapoutCountLimit == -1 ) {
+            working = autoSprintf( "%d,%d,%d,%d,%d", tr->tapoutMode, tr->radiusN, tr->radiusE, tr->radiusS, tr->radiusW );
+            }
+        else {
+            working = autoSprintf( "%d,%d,%d,%d,%d,%d", tr->tapoutMode, tr->radiusN, tr->radiusE, tr->radiusS, tr->radiusW, tr->tapoutCountLimit );
+            }
+        }
+
+    return working;
     }
                        
 

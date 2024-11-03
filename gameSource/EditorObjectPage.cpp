@@ -168,8 +168,11 @@ EditorObjectPage::EditorObjectPage()
           mPersonNoSpawnCheckbox( 290, -150, 2 ),
           // these are in same spot because they're never shown at same time
           mMaleCheckbox( 290, -190, 2 ),
-          mDeathMarkerCheckbox( 290, -190, 2 ),
-          mHomeMarkerCheckbox( 100, -120, 2 ),
+          mDeathMarkerCheckbox( 635, -270, 2 ),
+          mHomeMarkerCheckbox( 635, -290, 2 ),
+          mTapoutTriggerCheckbox( 635, -310, 2 ),
+          mTapoutTriggerField( smallFont, 602, -334, 8, false, "",
+                       "0123456789,", NULL ),
           mFloorCheckbox( 635, -210, 2 ),
           mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
@@ -662,6 +665,14 @@ EditorObjectPage::EditorObjectPage()
     mHomeMarkerCheckbox.setVisible( true );
     mHomeMarkerCheckbox.addActionListener( this );
 
+    addComponent( &mTapoutTriggerCheckbox );
+    mTapoutTriggerCheckbox.setVisible( true );
+    mTapoutTriggerCheckbox.addActionListener( this );
+    addComponent( &mTapoutTriggerField );
+    mTapoutTriggerField.setVisible( false );
+    mTapoutTriggerField.addActionListener( this );
+    mTapoutTriggerField.setText( "" );
+
 
     addComponent( &mFloorCheckbox );
     mFloorCheckbox.setVisible( true );
@@ -988,6 +999,9 @@ void EditorObjectPage::updateAgingPanel() {
 
         mDeathMarkerCheckbox.setVisible( true );
         mHomeMarkerCheckbox.setVisible( true );
+        mTapoutTriggerCheckbox.setVisible( true );
+        if( mTapoutTriggerCheckbox.getToggled() )
+            mTapoutTriggerField.setVisible( true );
         
         if( ! mContainSizeField.isVisible() ) {
             mFloorCheckbox.setVisible( true );
@@ -1028,6 +1042,10 @@ void EditorObjectPage::updateAgingPanel() {
         
         mHomeMarkerCheckbox.setToggled( false );
         mHomeMarkerCheckbox.setVisible( false );
+
+        mTapoutTriggerCheckbox.setToggled( false );
+        mTapoutTriggerCheckbox.setVisible( false );
+        mTapoutTriggerField.setVisible( false );
 
         mFloorCheckbox.setToggled( false );
         mFloorCheckbox.setVisible( false );
@@ -1540,6 +1558,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         int maxPickupAge = 9999999;
         sscanf( pickupAgeText, "%d,%d", &( minPickupAge ), &( maxPickupAge ) );
 
+        char *tapoutTriggerParameters = mTapoutTriggerField.getText();
+
         int newID =
         addObject( text,
                    mCheckboxes[0]->getToggled(),
@@ -1569,6 +1589,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    race,
                    mDeathMarkerCheckbox.getToggled(),
                    mHomeMarkerCheckbox.getToggled(),
+                   mTapoutTriggerCheckbox.getToggled(),
+                   tapoutTriggerParameters,
                    mFloorCheckbox.getToggled(),
                    mPartialFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
@@ -1631,6 +1653,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         
         delete [] text;
         delete [] biomes;
+        delete [] tapoutTriggerParameters;
         
         
         mSpritePicker.unselectObject();
@@ -1714,6 +1737,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         int maxPickupAge = 9999999;
         sscanf( pickupAgeText, "%d,%d", &( minPickupAge ), &( maxPickupAge ) );
 
+        char *tapoutTriggerParameters = mTapoutTriggerField.getText();
+
 
         addObject( text,
                    mCheckboxes[0]->getToggled(),
@@ -1743,6 +1768,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
                    race,
                    mDeathMarkerCheckbox.getToggled(),
                    mHomeMarkerCheckbox.getToggled(),
+                   mTapoutTriggerCheckbox.getToggled(),
+                   tapoutTriggerParameters,
                    mFloorCheckbox.getToggled(),
                    mPartialFloorCheckbox.getToggled(),
                    mFloorHuggingCheckbox.getToggled(),
@@ -1801,6 +1828,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         
         delete [] text;
         delete [] biomes;
+        delete [] tapoutTriggerParameters;
         
         mSpritePicker.unselectObject();
         
@@ -1871,6 +1899,8 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         mSlotsGroundCheckbox.setVisible( false );
         mSlotsLockedCheckbox.setVisible( false );
         mSlotsNoSwapCheckbox.setVisible( false );
+
+        mTapoutTriggerField.setText( "" );
         
         mFloorCheckbox.setToggled( false );
         mFloorCheckbox.setVisible( true );
@@ -2492,6 +2522,14 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
         else {
             mPartialFloorCheckbox.setVisible( false );
             mPartialFloorCheckbox.setToggled( false );
+            }
+        }
+    else if( inTarget == &mTapoutTriggerCheckbox ) {
+        if( mTapoutTriggerCheckbox.getToggled() ) {
+            mTapoutTriggerField.setVisible( true );
+            }
+        else {
+            mTapoutTriggerField.setVisible( false );
             }
         }
     else if( inTarget == &mHeldInHandCheckbox ) {
@@ -3425,6 +3463,17 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mMaleCheckbox.setToggled( pickedRecord->male );
             mDeathMarkerCheckbox.setToggled( pickedRecord->deathMarker );
             mHomeMarkerCheckbox.setToggled( pickedRecord->homeMarker );
+            mTapoutTriggerCheckbox.setToggled( pickedRecord->isTapOutTrigger );
+            if( mTapoutTriggerCheckbox.getToggled() ) {
+                mTapoutTriggerField.setVisible( true );
+                char *tapoutTriggerParametersText = getTapoutTriggerString( pickedRecord );
+                mTapoutTriggerField.setText( tapoutTriggerParametersText );
+                delete [] tapoutTriggerParametersText;
+                }
+            else {
+                mTapoutTriggerField.setVisible( false );
+                mTapoutTriggerField.setText( "" );
+                }
             mFloorCheckbox.setToggled( pickedRecord->floor );
             mPartialFloorCheckbox.setToggled( pickedRecord->noCover );
             
@@ -4795,14 +4844,20 @@ void EditorObjectPage::draw( doublePair inViewCenter,
 
     if( mDeathMarkerCheckbox.isVisible() ) {
         pos = mDeathMarkerCheckbox.getPosition();
-        pos.y += checkboxSep + 5;
-        smallFont->drawString( "Death", pos, alignCenter );
+        pos.x -= checkboxSep;
+        smallFont->drawString( "Death", pos, alignRight );
         }
 
     if( mHomeMarkerCheckbox.isVisible() ) {
         pos = mHomeMarkerCheckbox.getPosition();
         pos.x -= checkboxSep;
         smallFont->drawString( "Home", pos, alignRight );
+        }
+
+    if( mTapoutTriggerCheckbox.isVisible() ) {
+        pos = mTapoutTriggerCheckbox.getPosition();
+        pos.x -= checkboxSep;
+        smallFont->drawString( "TapoutTrigger", pos, alignRight );
         }
 
     if( mFloorCheckbox.isVisible() ) {

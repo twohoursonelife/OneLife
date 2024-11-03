@@ -1485,14 +1485,19 @@ void minitech::updateDrawTwoTech() {
             }
             if (trans->actor == -1 && trans->autoDecaySeconds != 0) {
                 if ( trans->autoDecaySeconds < 0 ) {
-                    drawObj(pos, trans->actor, "WAIT", to_string(- trans->autoDecaySeconds) + " HR");
+                    drawObj(pos, trans->actor, "WAIT", autoSprintf("%.0f HR", -trans->autoDecaySeconds));
                 } else {
-                    int decayTime = trans->autoDecaySeconds;
+                    float decayTime = trans->autoDecaySeconds;
                     if (decayTime >= 60) {
-                        decayTime = int(round(decayTime / 60.0));
-                        drawObj(pos, trans->actor, "WAIT", to_string(decayTime) + " MIN");
+                        if (int(decayTime) % 60 != 0) {
+                            drawObj(pos, trans->actor, "WAIT", autoSprintf("%.1f MIN", decayTime / 60.0));
+                        } else {
+                            drawObj(pos, trans->actor, "WAIT", autoSprintf("%.0f MIN", decayTime / 60.0));
+                        }
+                    } else if (decayTime >= 1) {
+                        drawObj(pos, trans->actor, "WAIT", autoSprintf("%.0f SEC", decayTime));
                     } else {
-                        drawObj(pos, trans->actor, "WAIT", to_string(decayTime) + " SEC");
+                        drawObj(pos, trans->actor, "WAIT", autoSprintf("%.1f SEC", decayTime));
                     }
                 }
             } else if (trans->actor == 0 && trans->contTransFlag != 0) {                

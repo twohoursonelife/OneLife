@@ -41,6 +41,7 @@ extern char objectSearchEnabled;
 extern char familyDisplayEnabled;
 extern char dangerousTileEnabled;
 extern char showPipsOfFoodHeld;
+extern char alwaysShowPlayerLabelEnabled;
 
 extern char *commandShortcutsRawText;
 
@@ -133,7 +134,8 @@ SettingsPage::SettingsPage()
         mEnableFamilyDisplayBox(0, -32, 4),
         mEnableDangerousTileBox(0, -72, 4),
         mGenerateTownPlannerMapsBox( 561, 52, 4 ),
-        mEnableShowingHeldFoodPips( 561, 52, 4 ) {
+        mEnableShowingHeldFoodPips( 561, 52, 4 ),
+        mEnableAlwaysShowPlayerLabelsBox( 561, 52, 4 ) {
                             
 
     
@@ -142,6 +144,8 @@ SettingsPage::SettingsPage()
     addComponent( &mBackground );
     
     // Advanced
+    addComponent( &mEnableAlwaysShowPlayerLabelsBox );
+    mEnableAlwaysShowPlayerLabelsBox.addActionListener( this );
     addComponent( &mEnableShowingHeldFoodPips );
     mEnableShowingHeldFoodPips.addActionListener( this );
     addComponent( &mGenerateTownPlannerMapsBox );
@@ -353,6 +357,7 @@ SettingsPage::SettingsPage()
     mEnableDangerousTileBox.setCursorTip( "HIGHLIGHT DANGEROUS TILES AND BLOCK PATHING INTO THEM ON KEYBOARD." );
     mGenerateTownPlannerMapsBox.setCursorTip( "SAVE MAP FILES TO BE USED IN TOWN PLANNER" );
     mEnableShowingHeldFoodPips.setCursorTip( "SHOW FOOD PIPS OF THE FOOD YOU'RE HOLDING" );
+    mEnableAlwaysShowPlayerLabelsBox.setCursorTip( "ALWAYS SHOW PLAYER NAME LABELS" );
     
     mOldFullscreenSetting = 
         SettingsManager::getIntSetting( "fullscreen", 1 );
@@ -478,6 +483,10 @@ SettingsPage::SettingsPage()
     showPipsOfFoodHeld = SettingsManager::getIntSetting( "showPipsOfFoodHeldEnabled", 0 );
 
     mEnableShowingHeldFoodPips.setToggled( showPipsOfFoodHeld );
+
+    alwaysShowPlayerLabelEnabled = SettingsManager::getIntSetting("alwaysShowPlayerLabelEnabled", 0);
+
+    mEnableAlwaysShowPlayerLabelsBox.setToggled( alwaysShowPlayerLabelEnabled );
     
     
 
@@ -964,6 +973,13 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         if( newSetting ) showPipsOfFoodHeld = true;
         SettingsManager::setSetting( "showPipsOfFoodHeldEnabled", newSetting );
         }
+    else if ( inTarget == &mEnableAlwaysShowPlayerLabelsBox ) {
+        int newSetting = mEnableAlwaysShowPlayerLabelsBox.getToggled();
+        alwaysShowPlayerLabelEnabled = false;
+        if( newSetting ) alwaysShowPlayerLabelEnabled = true;
+        SettingsManager::setSetting("alwaysShowPlayerLabelEnabled",
+                                    newSetting);
+        }
 
     checkRestartRequired();
     updatePage();
@@ -1261,6 +1277,13 @@ void SettingsPage::draw( doublePair inViewCenter,
 
         drawTextWithShadow("SHOW HELD FOOD PIPS", pos, alignRight);
         }
+    if (mEnableAlwaysShowPlayerLabelsBox.isVisible()) {
+        doublePair pos = mEnableAlwaysShowPlayerLabelsBox.getPosition();
+        pos.x -= 30;
+        pos.y -= 2;
+
+        drawTextWithShadow("ALWAYS SHOW NAMES", pos, alignRight);
+        }
     }
 
 
@@ -1331,6 +1354,8 @@ void SettingsPage::makeActive( char inFresh ) {
         mMusicStartTime = 0;
 
         mUISizeSlider.setValue( 1 / gui_fov_target_scale_hud );
+
+        mEnableAlwaysShowPlayerLabelsBox.setToggled( alwaysShowPlayerLabelEnabled );
         
         int tryCount = 0;
         
@@ -1414,16 +1439,17 @@ void SettingsPage::updatePage() {
     mDiscordHideFirstNameInDetails.setPosition(0, -lineSpacing);
 #endif // USE_DISCORD
 
-    mCommandShortcuts.setPosition(180 - 16, lineSpacing * 4);
-    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 3);
-    mEnableCoordinatesBox.setPosition(0, lineSpacing * 2);
-    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 1);
-    mEnableYumFinderBox.setPosition(0, lineSpacing * 0);
-    mEnableObjectSearchBox.setPosition(0, lineSpacing * -1);
-    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -2);
-    mEnableDangerousTileBox.setPosition(0, lineSpacing * -3);
-    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -4);
-    mEnableShowingHeldFoodPips.setPosition(0, lineSpacing * -5);
+    mCommandShortcuts.setPosition(180 - 16, lineSpacing * 5);
+    mEnableAdvancedShowUseOnObjectHoverKeybind.setPosition(0, lineSpacing * 4);
+    mEnableCoordinatesBox.setPosition(0, lineSpacing * 3);
+    mEnablePersistentEmoteBox.setPosition(0, lineSpacing * 2);
+    mEnableYumFinderBox.setPosition(0, lineSpacing * 1);
+    mEnableObjectSearchBox.setPosition(0, lineSpacing * 0);
+    mEnableFamilyDisplayBox.setPosition(0, lineSpacing * -1);
+    mEnableDangerousTileBox.setPosition(0, lineSpacing * -2);
+    mGenerateTownPlannerMapsBox.setPosition(0, lineSpacing * -3);
+    mEnableShowingHeldFoodPips.setPosition(0, lineSpacing * -4);
+    mEnableAlwaysShowPlayerLabelsBox.setPosition(0, lineSpacing * -5);
     
     mEnableFOVBox.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
@@ -1476,6 +1502,7 @@ void SettingsPage::updatePage() {
     mEnableDangerousTileBox.setVisible(mPage == 5);
     mGenerateTownPlannerMapsBox.setVisible(mPage == 5);
     mEnableShowingHeldFoodPips.setVisible(mPage == 5);
+    mEnableAlwaysShowPlayerLabelsBox.setVisible(mPage == 5);
     
     mGameplayButton.setActive( mPage != 0 );
     mControlButton.setActive( mPage != 1 );

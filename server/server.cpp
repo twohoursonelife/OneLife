@@ -9704,7 +9704,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                 
                 // Execute containment transitions - removeFromContainerToHold - container
                 
-                if( contTrans != NULL ) {
+                if( contTrans != NULL && target != contTrans->newActor ) {
                     setMapObject( inContX, inContY, contTrans->newActor );
                 }
 
@@ -18550,6 +18550,73 @@ int main() {
                                              m.x, m.y,
                                              getObject( r->newTarget ),
                                              &playerIndicesToSendUpdatesAbout );
+                                            }
+                                        }
+                                    }
+                                }
+                            else {
+                                // target location emtpy
+                                // and we're not holding anything
+                                // check bare-hand transition on floor
+                                
+                                int floorID = getMapFloor( m.x, m.y );
+                                
+                                if( floorID > 0 ) {
+                                    
+                                    TransRecord *r = 
+                                        getPTrans( 0,
+                                                  floorID );
+                                        
+
+                                    if( r != NULL && 
+                                        // make sure we're not too young
+                                        // to hold result of on-floor
+                                        // transition
+                                        ( r->newActor == 0 ||
+                                          getObject( r->newActor )->
+                                             minPickupAge <= 
+                                          computeAge( nextPlayer ) ) ) {
+
+                                        // applies to floor
+                                        int resultID = r->newTarget;
+                                        
+                                        if( getObject( resultID )->floor ) {
+                                            // changing floor to floor
+                                            // go ahead
+                                            
+                                            if( resultID != floorID ) {
+                                                setMapFloor( m.x, m.y,
+                                                             resultID );
+                                                }
+                                            handleHoldingChange( nextPlayer,
+                                                                 r->newActor );
+                                            
+                                            setHeldGraveOrigin( nextPlayer, 
+                                                                m.x, m.y,
+                                                                resultID );
+                                            }
+                                        else {
+                                            // changing floor to non-floor
+                                            char canPlace = true;
+                                            if( getObject( resultID )->
+                                                blocksWalking &&
+                                                ! isMapSpotEmpty( m.x, m.y ) ) {
+                                                canPlace = false;
+                                                }
+                                            
+                                            if( canPlace ) {
+                                                setMapFloor( m.x, m.y, 0 );
+                                                
+                                                setMapObject( m.x, m.y,
+                                                              resultID );
+                                                
+                                                handleHoldingChange( 
+                                                    nextPlayer,
+                                                    r->newActor );
+                                                setHeldGraveOrigin( nextPlayer, 
+                                                                    m.x, m.y,
+                                                                    resultID );
+                                                }
                                             }
                                         }
                                     }
