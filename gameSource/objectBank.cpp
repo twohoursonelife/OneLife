@@ -4472,6 +4472,7 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
             }
 
 
+        slotPos = mult( slotPos, drawObjectScale );
         doublePair pos = add( slotPos, inPos );
         
 
