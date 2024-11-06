@@ -114,6 +114,12 @@ double loadingStartTime;
 
 EditorScenePage *scenePage;
 
+extern int mapSizeX;
+extern int mapSizeY;
+extern int initCenterX;
+extern int initCenterY;
+
+
 LoadingPage *loadingPage;
 
 int loadingPhase = 0;
@@ -538,6 +544,18 @@ void initFrameDrawer( int inWidth, int inHeight, int inTargetFrameRate,
     setSoundSpriteVolumeRange( 0.60, 1.0 );
     
     initOverlayBankStart();
+
+
+    mapSizeX = SettingsManager::getIntSetting( "townPlannerMapSizeX", 400 );
+    mapSizeY = SettingsManager::getIntSetting( "townPlannerMapSizeY", 400 );
+    initCenterX = SettingsManager::getIntSetting( "townPlannerMapInitCenterX", int(mapSizeX / 2) );
+    initCenterY = SettingsManager::getIntSetting( "townPlannerMapInitCenterY", int(mapSizeY / 2) );
+    if( mapSizeX < 0 ) mapSizeX = 400;
+    if( mapSizeY < 0 ) mapSizeY = 400;
+    if( mapSizeX > 800 ) mapSizeX = 800;
+    if( mapSizeY > 800 ) mapSizeY = 800;
+    if( initCenterX >= mapSizeX || initCenterX < 0 ) initCenterX = int(mapSizeX / 2);
+    if( initCenterY >= mapSizeY || initCenterY < 0 ) initCenterY = int(mapSizeY / 2);
     
 
     // importPage = new EditorImportPage;

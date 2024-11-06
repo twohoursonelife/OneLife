@@ -26,10 +26,10 @@ int pickedGID;
 std::vector<GridPos> fadingTiles;
 std::vector<float> fadingTilesFade;
 
-int mapSizeX = 200;
-int mapSizeY = 200;
-int initCenterX = 100;
-int initCenterY = 100;
+int mapSizeX = 400;
+int mapSizeY = 400;
+int initCenterX = 200;
+int initCenterY = 200;
 
 int queueCapacity = 8;
 
@@ -77,12 +77,12 @@ static const AnimType personAnimTypes[ NUM_PERSON_ANIM ] =
 static doublePair cornerPos = { 0, 0 }; //{ - 704, 360 };
 
 void setScale(double inScale) {
-	scale = inScale;
-	xLimit = 7/scale*2;
-	yLimit = 4/scale*2;
-	cursorDim = 32*scale;
-	rectDim = 64*scale;
-}
+    scale = inScale;
+    xLimit = 7/scale*2;
+    yLimit = 4/scale*2;
+    cursorDim = 32*scale;
+    rectDim = 64*scale;
+    }
 
 #define copyAreaSize 6
 
@@ -96,53 +96,53 @@ static SceneCell copyPeopleArea[ copyAreaSize ][ copyAreaSize ];
 EditorScenePage::EditorScenePage()
         : mPlayingTime( false ),
           mRecordingFrames( false ),
-		  
-		  // mUndoButton( smallFont, -877, 340, "Undo" ),
-		  // mRedoButton( smallFont, -817, 340, "Redo" ),
-		  mUndoButton( smallFont, -(int)( viewWidth/2 * 0.75 ) - 55, (int)( viewWidth*viewHeightFraction * 0.32 ), "Undo" ),
-		  mRedoButton( smallFont, mUndoButton.getPosition().x + 60, mUndoButton.getPosition().y, "Redo" ),
-		  
-		  
-		  
+          
+          // mUndoButton( smallFont, -877, 340, "Undo" ),
+          // mRedoButton( smallFont, -817, 340, "Redo" ),
+          mUndoButton( smallFont, -(int)( viewWidth/2 * 0.75 ) - 55, (int)( viewWidth*viewHeightFraction * 0.32 ), "Undo" ),
+          mRedoButton( smallFont, mUndoButton.getPosition().x + 60, mUndoButton.getPosition().y, "Redo" ),
+          
+          
+          
           mAnimEditorButton( mainFont, 210, 260, "Anim" ),
-		  
+          
           // mGroundPicker( &groundPickable, -410, 90 ),
           // mObjectPicker( &objectPickable, 410, 90 ),
           // mGroundPicker( &groundPickable, 820, 90 ),
           // mObjectPicker( &objectPickable, -820, 90 ),
-		  mGroundPicker( &groundPickable, (int)( viewWidth/2 * 0.75 ), (int)( viewWidth*viewHeightFraction * 0.15 ) ),
-		  mObjectPicker( &objectPickable, (int)( -viewWidth/2 * 0.75 ), (int)( viewWidth*viewHeightFraction * 0.15 ) ),
-		  
-		  
-		  
+          mGroundPicker( &groundPickable, (int)( viewWidth/2 * 0.75 ), (int)( viewWidth*viewHeightFraction * 0.15 ) ),
+          mObjectPicker( &objectPickable, (int)( -viewWidth/2 * 0.75 ), (int)( viewWidth*viewHeightFraction * 0.15 ) ),
+          
+          
+          
           // mDeleteButton( smallFont, 820, 220, "Delete file" ),
-		  mDeleteButton( smallFont, (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y - 70, "Delete file" ),
-		  mConfirmDeleteButton( smallFont, mDeleteButton.getPosition().x, mDeleteButton.getPosition().y, "Confirm ?" ),
-		  
-		  
+          mDeleteButton( smallFont, (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y - 70, "Delete file" ),
+          mConfirmDeleteButton( smallFont, mDeleteButton.getPosition().x, mDeleteButton.getPosition().y, "Confirm ?" ),
+          
+          
           // mSaveTestMapButton( smallFont, -300, 200, "Export Test Map" ),
-		  // mSaveTestMapButton( smallFont, 820, 260, "Export Test Map" ),
-		  mSaveTestMapButton( smallFont, (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y - 35, "Export Test Map" ),
-		  
-		  
+          // mSaveTestMapButton( smallFont, 820, 260, "Export Test Map" ),
+          mSaveTestMapButton( smallFont, (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y - 35, "Export Test Map" ),
+          
+          
           // mSaveNewButton( smallFont, -300, 260, "Save New" ),
-		  // mSaveNewButton( smallFont, 820 + 30, 300, "Save New" ),
-		  mSaveNewButton( smallFont, (int)( viewWidth/2 * 0.75 ) + 30, mUndoButton.getPosition().y, "Save New" ),
-		  
-		  
-		  // mClearSceneButton( smallFont, 820 - 50, 300, "New" ),
-		  mClearSceneButton( smallFont, (int)( viewWidth/2 * 0.75 ) - 50, mUndoButton.getPosition().y, "New" ),
-		  
+          // mSaveNewButton( smallFont, 820 + 30, 300, "Save New" ),
+          mSaveNewButton( smallFont, (int)( viewWidth/2 * 0.75 ) + 30, mUndoButton.getPosition().y, "Save New" ),
+          
+          
+          // mClearSceneButton( smallFont, 820 - 50, 300, "New" ),
+          mClearSceneButton( smallFont, (int)( viewWidth/2 * 0.75 ) - 50, mUndoButton.getPosition().y, "New" ),
+          
 
-		  // mReplaceButton( smallFont, -500, 260, "Replace" ),
-		  // mReplaceButton( smallFont, 820, 340, "Save" ),
-		  mReplaceButton( smallFont, (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y + 35, "Save" ),
-		  mConfirmReplaceButton( smallFont, mReplaceButton.getPosition().x, mReplaceButton.getPosition().y, "Confirm ?" ),
+          // mReplaceButton( smallFont, -500, 260, "Replace" ),
+          // mReplaceButton( smallFont, 820, 340, "Save" ),
+          mReplaceButton( smallFont, (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y + 35, "Save" ),
+          mConfirmReplaceButton( smallFont, mReplaceButton.getPosition().x, mReplaceButton.getPosition().y, "Confirm ?" ),
           // mNextSceneButton( smallFont, -420, 260, ">" ),
           // mPrevSceneButton( smallFont, -580, 260, "<" ),
           mNextSceneButton( smallFont, mReplaceButton.getPosition().x + 60, mReplaceButton.getPosition().y, ">" ),
           mPrevSceneButton( smallFont, mReplaceButton.getPosition().x - 60, mReplaceButton.getPosition().y, "<" ),
-		  
+          
           mPersonAgeSlider( smallFont, -55, -220, 2,
                             100, 20,
                             0, 100, "Age" ),
@@ -207,15 +207,15 @@ EditorScenePage::EditorScenePage()
 
     addComponent( &mUndoButton );
     mUndoButton.addActionListener( this );
-	mUndoButton.setVisible( false );
-	
+    mUndoButton.setVisible( false );
+    
     addComponent( &mRedoButton );
     mRedoButton.addActionListener( this );
-	mRedoButton.setVisible( false );
+    mRedoButton.setVisible( false );
     
     addComponent( &mAnimEditorButton );
     mAnimEditorButton.addActionListener( this );
-	mAnimEditorButton.setVisible( false );
+    mAnimEditorButton.setVisible( false );
 
     addComponent( &mGroundPicker );
     mGroundPicker.addActionListener( this );
@@ -229,7 +229,7 @@ EditorScenePage::EditorScenePage()
 
     addComponent( &mReplaceButton );
     mReplaceButton.addActionListener( this );
-	
+    
     addComponent( &mConfirmReplaceButton );
     mConfirmReplaceButton.addActionListener( this );
 
@@ -237,7 +237,7 @@ EditorScenePage::EditorScenePage()
     mDeleteButton.addActionListener( this );
 
     addComponent( &mConfirmDeleteButton );
-    mConfirmDeleteButton.addActionListener( this );	
+    mConfirmDeleteButton.addActionListener( this ); 
 
     addComponent( &mSaveTestMapButton );
     mSaveTestMapButton.addActionListener( this );
@@ -253,9 +253,9 @@ EditorScenePage::EditorScenePage()
     mClearSceneButton.addActionListener( this );
 
     mReplaceButton.setVisible( false );
-	mConfirmReplaceButton.setVisible( false );
+    mConfirmReplaceButton.setVisible( false );
     mDeleteButton.setVisible( false );
-	mConfirmDeleteButton.setVisible( false );
+    mConfirmDeleteButton.setVisible( false );
     
 
     addComponent( &mPersonAgeSlider );
@@ -347,7 +347,7 @@ EditorScenePage::EditorScenePage()
         
         mGroundPicker.setPosition( (int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y - 180 );
         mObjectPicker.setPosition( -(int)( viewWidth/2 * 0.75 ), mUndoButton.getPosition().y - 180 );
-    }
+        }
 
 
     for( int i=0; i<4; i++ ) {
@@ -368,7 +368,7 @@ EditorScenePage::EditorScenePage()
     
     resizeGrid( mSceneH, mSceneW );
     
-	spriteCount = round( std::max(mSceneH, mSceneW) / 200 * 25 );
+    spriteCount = round( std::max(mSceneH, mSceneW) / 200 * 25 );
 
     mSceneID = -1;
     
@@ -386,9 +386,9 @@ EditorScenePage::EditorScenePage()
         
 //        mNextSceneNumber = mNextFile->readFileIntContents( 0 );
         File **sceneFiles = mScenesFolder.getChildFiles( &mNextSceneNumber ); // Get the number of scenes we have.
-	for (int i = 0; i<mNextSceneNumber; i++) {
+    for (int i = 0; i<mNextSceneNumber; i++) {
             delete sceneFiles[i];
-	    }
+        }
         delete [] sceneFiles;
         }
     
@@ -397,15 +397,15 @@ EditorScenePage::EditorScenePage()
 
 
     addKeyClassDescription( &mKeyLegend, "Ctrl + L - Click / Shft + WASD", "Move view" );
-	addKeyClassDescription( &mKeyLegend, "L - Click", "Add selected" );
-	addKeyClassDescription( &mKeyLegend, "None/Ctrl/Shft + R - Click", "Clear object/floor/both" );
-	
-	addKeyDescription( &mKeyLegend, 'E', "Hide/show UI" );
-	addKeyClassDescription( &mKeyLegend, "Z/X", "Undo/redo" );
-	addKeyClassDescription( &mKeyLegend, "None/Shft/Ctrl + F", "Pick object/floor/biome" );
-	addKeyClassDescription( &mKeyLegend, "None/Shft + C", "Copy cell/area" );
+    addKeyClassDescription( &mKeyLegend, "L - Click", "Add selected" );
+    addKeyClassDescription( &mKeyLegend, "None/Ctrl/Shft + R - Click", "Clear object/floor/both" );
+    
+    addKeyDescription( &mKeyLegend, 'E', "Hide/show UI" );
+    addKeyClassDescription( &mKeyLegend, "Z/X", "Undo/redo" );
+    addKeyClassDescription( &mKeyLegend, "None/Shft/Ctrl + F", "Pick object/floor/biome" );
+    addKeyClassDescription( &mKeyLegend, "None/Shft + C", "Copy cell/area" );
     addKeyClassDescription( &mKeyLegend, "None/Shft + V", "Paste cell/area" );
-	addKeyClassDescription( &mKeyLegend, "None/Shft + Q", "Clear cell/area" );
+    addKeyClassDescription( &mKeyLegend, "None/Shft + Q", "Clear cell/area" );
     
     addKeyClassDescription( &mKeyLegend, "Tab", "Focus/Unfocus search" );
     addKeyClassDescription( &mKeyLegend, "Ctrl + W/S", "Change selection in search page" );
@@ -416,13 +416,6 @@ EditorScenePage::EditorScenePage()
     addKeyClassDescription( &mKeyLegendC, "Shft + L - Click", "Add to Container" );
     // addKeyClassDescription( &mKeyLegendP, "R-Click", "Add Clothing/Held" );
     // addKeyClassDescription( &mKeyLegendF, "R-Click", "Add Floor" );
-    
-    mapSizeX = SettingsManager::getIntSetting( "townPlannerMapSizeX", 200 );
-    mapSizeY = SettingsManager::getIntSetting( "townPlannerMapSizeY", 200 );
-    initCenterX = SettingsManager::getIntSetting( "townPlannerInitCenterX", 100 );
-    initCenterY = SettingsManager::getIntSetting( "townPlannerInitCenterY", 100 );
-    
-    queueCapacity = SettingsManager::getIntSetting( "townPlannerQueueCapacity", 8 );
     
     }
 
@@ -486,9 +479,9 @@ void EditorScenePage::floodFill( int inX, int inY,
     }
 
 void EditorScenePage::actionPerformed( GUIComponent *inTarget ) {
-	
-	if (!mShowUI) return;
-	
+    
+    if (!mShowUI) return;
+    
     SceneCell *c = getCurrentCell();
     SceneCell *p = getCurrentPersonCell();
     // SceneCell *f = getCurrentFloorCell();
@@ -496,29 +489,29 @@ void EditorScenePage::actionPerformed( GUIComponent *inTarget ) {
     if( inTarget == &mAnimEditorButton ) {
         setSignal( "animEditor" );
         }
-	else if( inTarget == &mUndoButton ) {
-		undo();
-		}
-	else if( inTarget == &mRedoButton ) {
-		redo();
-		}
+    else if( inTarget == &mUndoButton ) {
+        undo();
+        }
+    else if( inTarget == &mRedoButton ) {
+        redo();
+        }
     else if( inTarget == &mGroundPicker ) {
-		
-		// char gWasRightClick = false;
-		// pickedGID = mGroundPicker.getSelectedObject( &gWasRightClick );
-		mObjectPicker.unselectObject();
-		// pickedOID = 0;
-		mGroundPickerClicked = true;
+        
+        // char gWasRightClick = false;
+        // pickedGID = mGroundPicker.getSelectedObject( &gWasRightClick );
+        mObjectPicker.unselectObject();
+        // pickedOID = 0;
+        mGroundPickerClicked = true;
 
         }
     else if( inTarget == &mObjectPicker ) {
-		
-		// char oWasRightClick = false;
-		// pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
-		mGroundPicker.unselectObject();
-		// pickedGID = -1;
-		mObjectPickerClicked = true;
-		
+        
+        // char oWasRightClick = false;
+        // pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
+        mGroundPicker.unselectObject();
+        // pickedGID = -1;
+        mObjectPickerClicked = true;
+        
         }
     else if( inTarget == &mSaveNewButton ) {
 
@@ -527,7 +520,7 @@ void EditorScenePage::actionPerformed( GUIComponent *inTarget ) {
         mDeleteButton.setVisible( true );
         mReplaceButton.setVisible( true );
         mNextSceneButton.setVisible( false );
-		mapChanged = false;
+        mapChanged = false;
         checkNextPrevVisible();
         }
     else if( inTarget == &mSaveTestMapButton ) {
@@ -575,21 +568,21 @@ void EditorScenePage::actionPerformed( GUIComponent *inTarget ) {
             }
         }
     else if( inTarget == &mReplaceButton ) {
-		mReplaceButton.setVisible( false );
-		mConfirmReplaceButton.setVisible( true );
+        mReplaceButton.setVisible( false );
+        mConfirmReplaceButton.setVisible( true );
         }
     else if( inTarget == &mConfirmReplaceButton ) {
         writeSceneToFile( mSceneID );
-		mReplaceButton.setVisible( true );
-		mConfirmReplaceButton.setVisible( false );
-		mapChanged = false;
-		checkNextPrevVisible();
+        mReplaceButton.setVisible( true );
+        mConfirmReplaceButton.setVisible( false );
+        mapChanged = false;
+        checkNextPrevVisible();
         }
     else if( inTarget == &mDeleteButton ) {
-		mDeleteButton.setVisible( false );
-		mConfirmDeleteButton.setVisible( true );
-		}
-	else if( inTarget == &mConfirmDeleteButton ) {	
+        mDeleteButton.setVisible( false );
+        mConfirmDeleteButton.setVisible( true );
+        }
+    else if( inTarget == &mConfirmDeleteButton ) {  
         File *f = getSceneFile( mSceneID );
         
         f->remove();
@@ -599,7 +592,7 @@ void EditorScenePage::actionPerformed( GUIComponent *inTarget ) {
         mSceneID = -1;
         
         mDeleteButton.setVisible( true );
-		mConfirmDeleteButton.setVisible( false );
+        mConfirmDeleteButton.setVisible( false );
         mReplaceButton.setVisible( false );
         checkNextPrevVisible();
         }
@@ -656,7 +649,7 @@ void EditorScenePage::actionPerformed( GUIComponent *inTarget ) {
         }
     else if( inTarget == &mClearSceneButton ) {
         clearScene();
-		mSceneID = -1;
+        mSceneID = -1;
         checkVisible();
         }
     else if( inTarget == &mPersonAgeSlider ) {
@@ -762,8 +755,8 @@ void EditorScenePage::drawGroundOverlaySprites() {
     // overlayCornerPos.x += 512*scale - 1024*scale;
     // overlayCornerPos.y -= 512*scale - 1024*scale;
 
-	overlayCornerPos.x += 1024*scale/2 - spriteCount*1024*scale/2;
-	overlayCornerPos.y -= 1024*scale/2 - spriteCount*1024*scale/2;
+    overlayCornerPos.x += 1024*scale/2 - spriteCount*1024*scale/2;
+    overlayCornerPos.y -= 1024*scale/2 - spriteCount*1024*scale/2;
 
     for( int y=0; y<spriteCount; y++ ) {
         for( int x=0; x<spriteCount; x++ ) {
@@ -803,11 +796,11 @@ SceneCell *EditorScenePage::getCurrentFloorCell() {
 SceneCell *EditorScenePage::getCell(int absX, int absY) {
     return &( mCells[ absY ][ absX ] );
     }
-	
+    
 SceneCell *EditorScenePage::getFloorCell(int absX, int absY) {
     return &( mFloorCells[ absY ][ absX ] );
     }
-	
+    
 
 
 
@@ -818,7 +811,6 @@ std::vector<std::vector<SceneCell>> floorCellsQueue;
 std::vector<std::vector<SceneCell>> cellsAfterQueue;
 std::vector<std::vector<SceneCell>> floorCellsAfterQueue;
 int queueIndex = 0;
-// int queueCapacity = 8;
 int queueSize = 0;
 
 std::vector<GridPos> currentTouchedTiles;
@@ -829,18 +821,19 @@ std::vector<SceneCell> currentAfterCells;
 std::vector<SceneCell> currentAfterFloorCells;
 
 void EditorScenePage::mark( int x, int y, int beforeOrAfter = 0 ) {
-	
+    
     if( beforeOrAfter == 0 ) {
         for( int i=0; i<currentTouchedTiles.size(); i++ ) {
             GridPos currentTile = currentTouchedTiles[i];
             if( currentTile.x == x && currentTile.y == y ) return;
-        }
-    } else {
+            }
+        } 
+    else {
         for( int i=0; i<currentAfterTouchedTiles.size(); i++ ) {
             GridPos currentTile = currentAfterTouchedTiles[i];
             if( currentTile.x == x && currentTile.y == y ) return;
+            }
         }
-    }
     
     GridPos tile = { x, y };
     
@@ -848,20 +841,21 @@ void EditorScenePage::mark( int x, int y, int beforeOrAfter = 0 ) {
         currentTouchedTiles.push_back( tile );
         currentCells.push_back( mCells[tile.y][tile.x] );
         currentFloorCells.push_back( mFloorCells[tile.y][tile.x] );
-    } else {
+        }
+    else {
         currentAfterTouchedTiles.push_back( tile );
         currentAfterCells.push_back( mCells[tile.y][tile.x] );
         currentAfterFloorCells.push_back( mFloorCells[tile.y][tile.x] );
+        }
     }
-}
 
 void EditorScenePage::backup() {
-	
-	mapChanged = true;
-	
-	while (queueIndex < queueSize) {
-		queuesPopBack();
-	}
+    
+    mapChanged = true;
+    
+    while (queueIndex < queueSize) {
+        queuesPopBack();
+        }
     
     touchedQueue.push_back( currentTouchedTiles );
     cellsQueue.push_back( currentCells );
@@ -877,19 +871,19 @@ void EditorScenePage::backup() {
     currentAfterFloorCells.clear();
 
     queueSize = touchedQueue.size();
-	
-	if (queueSize > queueCapacity) {
-		queuesPopFront();
-	}
-	
-	queueIndex = queueSize;
-	checkVisible();
     
-}
+    if (queueSize > queueCapacity) {
+        queuesPopFront();
+        }
+    
+    queueIndex = queueSize;
+    checkVisible();
+    
+    }
 
 void EditorScenePage::undo() {
-	
-	if (queueSize == 0 || queueIndex == 0) return;
+    
+    if (queueSize == 0 || queueIndex == 0) return;
     
     queueIndex--;
     
@@ -901,14 +895,14 @@ void EditorScenePage::undo() {
         GridPos tile = touchedTiles[i];
         mCells[tile.y][tile.x] = cells[i];
         mFloorCells[tile.y][tile.x] = floors[i];
+        }
+    
+    checkVisible();
     }
-	
-	checkVisible();
-}
 
 void EditorScenePage::redo() {
-	
-	if (queueIndex >= queueSize) return;
+    
+    if (queueIndex >= queueSize) return;
 
     std::vector<GridPos> touchedTiles = touchedQueue[queueIndex];
     std::vector<SceneCell> cells = cellsAfterQueue[queueIndex];
@@ -918,12 +912,12 @@ void EditorScenePage::redo() {
         GridPos tile = touchedTiles[i];
         mCells[tile.y][tile.x] = cells[i];
         mFloorCells[tile.y][tile.x] = floors[i];
-    }
+        }
     
     queueIndex++;
-	
-	checkVisible();
-}
+    
+    checkVisible();
+    }
 
 void EditorScenePage::queuesPopBack() {
     touchedQueue.pop_back();
@@ -931,25 +925,25 @@ void EditorScenePage::queuesPopBack() {
     floorCellsQueue.pop_back();
     cellsAfterQueue.pop_back();
     floorCellsAfterQueue.pop_back();
-	
-	queueSize = touchedQueue.size();
-}
+    
+    queueSize = touchedQueue.size();
+    }
 
 void EditorScenePage::queuesPopFront() {
-	touchedQueue.erase(touchedQueue.begin());
+    touchedQueue.erase(touchedQueue.begin());
     cellsQueue.erase(cellsQueue.begin());
     floorCellsQueue.erase(floorCellsQueue.begin());
     cellsAfterQueue.erase(cellsAfterQueue.begin());
     floorCellsAfterQueue.erase(floorCellsAfterQueue.begin());
     
     queueSize = touchedQueue.size();
-}
+    }
 
 void EditorScenePage::flashTile( int x, int y ) {
     GridPos tile = { x, y };
-	fadingTiles.push_back( tile );
+    fadingTiles.push_back( tile );
     fadingTilesFade.push_back( 1.0 );
-}
+    }
 
 
 
@@ -971,10 +965,10 @@ void EditorScenePage::checkVisible() {
         curFocusX += p->destCellXOffset;
         curFocusY += p->destCellYOffset;
         }
-	
-	mShiftX = 0-curFocusX;
-	mShiftY = curFocusY-0;
-	
+    
+    mShiftX = 0-curFocusX;
+    mShiftY = curFocusY-0;
+    
     // if( curFocusX >= 4 && curFocusX <= 7 ) {
         // mShiftX = 0;
         // }
@@ -1002,9 +996,9 @@ void EditorScenePage::checkVisible() {
     // make all visible, then turn some off selectively
     // below
     
-	mUndoButton.setVisible( true );
-	mRedoButton.setVisible( true );
-		
+    mUndoButton.setVisible( true );
+    mRedoButton.setVisible( true );
+        
     mAnimEditorButton.setVisible( false );
     mSaveNewButton.setVisible( true );
     mClearSceneButton.setVisible( true );
@@ -1013,9 +1007,9 @@ void EditorScenePage::checkVisible() {
 
 
     mReplaceButton.setVisible( mSceneID != -1 );
-	mConfirmReplaceButton.setVisible( false );
+    mConfirmReplaceButton.setVisible( false );
     mDeleteButton.setVisible( mSceneID != -1 );
-	mConfirmDeleteButton.setVisible( false );
+    mConfirmDeleteButton.setVisible( false );
         
     checkNextPrevVisible();
         
@@ -1050,8 +1044,8 @@ void EditorScenePage::checkVisible() {
     mPersonMoveDelayField.setVisible( p->destCellXOffset != 0 ||
                                       p->destCellYOffset != 0 );
     
-	if (queueSize == 0 || queueIndex == 0) mUndoButton.setVisible( false );
-	if (queueIndex >= queueSize - 1) mRedoButton.setVisible( false );
+    if (queueSize == 0 || queueIndex == 0) mUndoButton.setVisible( false );
+    if (queueIndex >= queueSize - 1) mRedoButton.setVisible( false );
 
     if( c->oID > 0 ) {
         mCellAnimRadioButtons.setVisible( false );
@@ -1451,7 +1445,7 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                     }
 
                 char used;
-				
+                
                 setDrawnObjectScale(scale);
                 drawObjectAnim( oID, 2, ground, 
                                 frameTime, 
@@ -1942,6 +1936,10 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                         }
 
                     setDrawnObjectScale(scale);
+
+                    // draw the object without animation
+                    // animation creates too much lag
+                    // also, contained position is incorrect with zoom in the drawObjectAnim
                     drawObject( getObject(c->oID), cellPos, 0, 
                                 false, c->flipH, -1,
                                 0,
@@ -2028,27 +2026,27 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
     drawSquare( curPos, rectDim+1 ); //64
 
     stopStencil();
-		
-		
-	doublePair cursorInfoPos = {cursorX + 35.0, cursorY - 25.0};
-	char *cursorInfo;
+        
+        
+    doublePair cursorInfoPos = {cursorX + 35.0, cursorY - 25.0};
+    char *cursorInfo;
 
-	int x = cursorGridX - mZeroX;
-	int y = mZeroY - cursorGridY;
-	
-	cursorInfo = autoSprintf( "%d, %d", x, y );
-	
-	double w2 = smallFont->measureString( cursorInfo );
-	double h2 = smallFont->getFontHeight();
-	int padding = 4;
-	w2 += 2 * padding;
-	h2 += 2 * padding;
-	
-	setDrawColor( 0, 0, 0, 0.5 );
-	doublePair rectPos = { cursorInfoPos.x + w2/2 - padding, cursorInfoPos.y };
-	drawRect( rectPos, w2 / 2, h2 / 2 );
-	setDrawColor( 1, 1, 1, 1 );
-	smallFont->drawString( cursorInfo, cursorInfoPos, alignLeft );
+    int x = cursorGridX - mZeroX;
+    int y = mZeroY - cursorGridY;
+    
+    cursorInfo = autoSprintf( "%d, %d", x, y );
+    
+    double w2 = smallFont->measureString( cursorInfo );
+    double h2 = smallFont->getFontHeight();
+    int padding = 4;
+    w2 += 2 * padding;
+    h2 += 2 * padding;
+    
+    setDrawColor( 0, 0, 0, 0.5 );
+    doublePair rectPos = { cursorInfoPos.x + w2/2 - padding, cursorInfoPos.y };
+    drawRect( rectPos, w2 / 2, h2 / 2 );
+    setDrawColor( 1, 1, 1, 1 );
+    smallFont->drawString( cursorInfo, cursorInfoPos, alignLeft );
 
     if( !mShowUI ) {
         return;
@@ -2069,7 +2067,7 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
     
     setDrawColor( 1, 1, 1, 1 );
     
-	
+    
     
     // doublePair cornerPos = zeroPos;
     // cornerPos.x -= cursorDim+1;
@@ -2092,7 +2090,7 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
     // drawSquare( cornerPos, cursorDim );
 
     startDrawingThroughStencil( true );
-	
+    
     for( int i=fadingTiles.size()-1; i>=0; i-- ) {
         GridPos tile = fadingTiles[i];
         float fade = fadingTilesFade[i];
@@ -2101,10 +2099,11 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
             fadingTiles.erase(fadingTiles.begin() + i);
             fadingTilesFade.erase(fadingTilesFade.begin() + i);
             continue;
-        } else {
+            }
+        else {
             fadingTilesFade[i] -= 0.05;
             fade = fadingTilesFade[i];
-        }
+            }
         
         doublePair tilePos = { tile.x * CELL_D*scale, -tile.y * CELL_D*scale };
         tilePos.x += mShiftX * CELL_D*scale;
@@ -2112,25 +2111,26 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
         
         setDrawColor( 1, 1, 1, 0.5 * fade );
         drawSquare( tilePos, rectDim );
-    }
+        }
     
     // setDrawColor( 1, 0, 0, 0.75 );
     // drawSquare( zeroPos, cursorDim*2 );
 
     stopStencil();
-	
-	
+    
+    
 
     
 
 
     // SceneCell *c = getCurrentCell();
-	SceneCell *c;
-	if ( cursorGridX >= 0 && cursorGridY >= 0 && cursorGridX < mSceneW && cursorGridY < mSceneH ) {
-		c = getCell(cursorGridX, cursorGridY);
-	} else {
-		c = &mEmptyCell;
-	}
+    SceneCell *c;
+    if ( cursorGridX >= 0 && cursorGridY >= 0 && cursorGridX < mSceneW && cursorGridY < mSceneH ) {
+        c = getCell(cursorGridX, cursorGridY);
+        }
+    else {
+        c = &mEmptyCell;
+        }
     SceneCell *p = getCurrentPersonCell();
     
 
@@ -2157,10 +2157,10 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
     // doublePair legendPos = mAnimEditorButton.getPosition();
     // legendPos.x = -150;
     // legendPos.y += 20;
-	
-	doublePair legendPos = mObjectPicker.getPosition();
-	legendPos.y -= 325;
-	legendPos.x -= 80;
+    
+    doublePair legendPos = mObjectPicker.getPosition();
+    legendPos.y -= 325;
+    legendPos.x -= 80;
             
     drawKeyLegend( &mKeyLegend, legendPos );
 
@@ -2211,7 +2211,7 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
     
 
     // doublePair posStringPos = {-820, 400}; //mSaveNewButton.getPosition();
-	doublePair posStringPos = mUndoButton.getPosition();
+    doublePair posStringPos = mUndoButton.getPosition();
     posStringPos.y += 90;
     posStringPos.x += 15;
     
@@ -2230,9 +2230,9 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
 
     if( pickedOID > 0 ) {
         // doublePair pos = { -400, -290 };
-		doublePair pos = posStringPos;
-		pos.y -= 25;
-		pos.x -= 40;
+        doublePair pos = posStringPos;
+        pos.y -= 25;
+        pos.x -= 40;
         
         char *s = autoSprintf( "Picked: #%d  %s", pickedOID,
                                getObject( pickedOID )->description );
@@ -2243,9 +2243,9 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
         }
     if( c->oID > 0 ) {
         // doublePair pos = { -400, -290 };
-		doublePair pos = posStringPos;
-		pos.y -= 50;
-		pos.x -= 40;
+        doublePair pos = posStringPos;
+        pos.y -= 50;
+        pos.x -= 40;
         
         char *s = autoSprintf( "Drawn: #%d  %s", c->oID,
                                getObject( c->oID )->description );
@@ -2331,32 +2331,34 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
         
         pos.y += 32;
         // pos.x -= 40;
-		
-		if (mSceneID == -1) {
-			char *s = autoSprintf( "Unsaved Scene*" );
-			drawOutlineString( s, pos, alignCenter );
-			delete [] s;
-		} else {
-			if (mapChanged) { // Output the current scene filename to the screen.
-				File *f = getSceneFile( mSceneID );
-				char *n = f->getFileName();
-				char *s = autoSprintf( "Scene %s*", n );
-				drawOutlineString( s, pos, alignCenter );
-				delete [] n;
-				delete f;
-				delete [] s;
-			} else {
-				File *f = getSceneFile( mSceneID );
-				char *n = f->getFileName();
-				char *s = autoSprintf( "Scene %s", n );
-				drawOutlineString( s, pos, alignCenter );
-				delete [] n;
-				delete f;
-				delete [] s;
-			}
-		}
-		
-		
+        
+        if (mSceneID == -1) {
+            char *s = autoSprintf( "Unsaved Scene*" );
+            drawOutlineString( s, pos, alignCenter );
+            delete [] s;
+            }
+        else {
+            if (mapChanged) { // Output the current scene filename to the screen.
+                File *f = getSceneFile( mSceneID );
+                char *n = f->getFileName();
+                char *s = autoSprintf( "Scene %s*", n );
+                drawOutlineString( s, pos, alignCenter );
+                delete [] n;
+                delete f;
+                delete [] s;
+                }
+            else {
+                File *f = getSceneFile( mSceneID );
+                char *n = f->getFileName();
+                char *s = autoSprintf( "Scene %s", n );
+                drawOutlineString( s, pos, alignCenter );
+                delete [] n;
+                delete f;
+                delete [] s;
+                }
+            }
+        
+        
         // }
     
 
@@ -2441,10 +2443,10 @@ extern char downKey;
 extern char rightKey;
 
 void EditorScenePage::keyDown( unsigned char inASCII ) {
-	
-	// if (isShiftKeyDown()) shiftDown = true;
+    
+    // if (isShiftKeyDown()) shiftDown = true;
     // if (isCommandKeyDown()) ctrlDown = true;
-	
+    
     char skipCheckVisible = false;
     
     if( inASCII == 13 ) {
@@ -2458,33 +2460,39 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
         if( !commandKey && inASCII == 9 ) { // TAB
             if( TextField::isAnyFocused() ) {
                 TextField::unfocusAll();
-            } else {
+                }
+            else {
                 mObjectPicker.clearSearchField();
                 mObjectPicker.focusSearchField();
-            }
+                }
             return;
-        } else if( commandKey && inASCII == 9 ) { // ctrl + TAB
+            }
+        else if( commandKey && inASCII == 9 ) { // ctrl + TAB
             mObjectPicker.setSearchField( "." );
             TextField::unfocusAll();
             return;
-        } else if( !TextField::isAnyFocused() && commandKey ) {
+            }
+        else if( !TextField::isAnyFocused() && commandKey ) {
             if( inASCII + 64 == toupper(upKey) ) {
                 mObjectPicker.selectUp();
                 char oWasRightClick = false;
                 pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
                 pickedGID = -1;
-            } else if( inASCII + 64 == toupper(downKey) ) {
+                }
+            else if( inASCII + 64 == toupper(downKey) ) {
                 mObjectPicker.selectDown();
                 char oWasRightClick = false;
                 pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
                 pickedGID = -1;
-            }  else if( inASCII + 64 == toupper(rightKey) ) {
+                }
+            else if( inASCII + 64 == toupper(rightKey) ) {
                 mObjectPicker.nextPage();
-            }  else if( inASCII + 64 == toupper(leftKey) ) {
+                }
+            else if( inASCII + 64 == toupper(leftKey) ) {
                 mObjectPicker.prevPage();
+                }
             }
         }
-    }
 
     if( TextField::isAnyFocused() ) {
         mShowUI = true;
@@ -2494,11 +2502,11 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
     if ( tolower(inASCII) == 'e' ) {
         mShowUI = ! mShowUI;
         skipDrawingSubComponents( ! mShowUI );
-    }
+        }
     if( tolower(inASCII) == 'z' ) {
         if (mShowUI) undo();
         }
-		
+        
     if( tolower(inASCII) == 'x' ) {
         if (mShowUI) redo();
         }
@@ -2518,77 +2526,78 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
     SceneCell *c = getCurrentCell();
     SceneCell *p = getCurrentPersonCell();
     SceneCell *f = getCurrentFloorCell();
-	
-	int offset = 1;
-	
-	if( isShiftKeyDown() ) {
-		offset = 4;
-	}
-	if( isCommandKeyDown() && isShiftKeyDown() ) {
-		offset = 8;
-	}
-	
-	switch( tolower(inASCII) ) {
-		case 'a':
-			mCurX -= offset;
-			if( mCurX < 0 ) {
-				mCurX = 0;
-			}
-			break;
-		case 'd':
-			mCurX += offset;
-			if( mCurX >= mSceneW ) {
-				mCurX = mSceneW - 1;
-			}
-			break;
-		case 's':
-			mCurY += offset;
-			if( mCurY >= mSceneH ) {
-				mCurY = mSceneH - 1;
-			}
-			break;
-		case 'w':
-			mCurY -= offset;
-			if( mCurY < 0 ) {
-				mCurY = 0;
-			}
-			break;
-	}
-	
-	if ( tolower(inASCII) == 'f' ) {
-		if ( mShowUI ) {
-			int tempOID = -1;
-			if ( !isShiftKeyDown() ) {
-				tempOID = getCell(cursorGridX, cursorGridY)->oID;
-				
-			} else {
-				tempOID = getFloorCell(cursorGridX, cursorGridY)->oID;
-			}
-			if (tempOID != -1) {
-				mObjectPicker.unselectObject();
-				mGroundPicker.unselectObject();
-				pickedOID = tempOID;
-				pickedGID = -1;
+    
+    int offset = 1;
+    
+    if( isShiftKeyDown() ) {
+        offset = 4;
+        }
+    if( isCommandKeyDown() && isShiftKeyDown() ) {
+        offset = 8;
+        }
+    
+    switch( tolower(inASCII) ) {
+        case 'a':
+            mCurX -= offset;
+            if( mCurX < 0 ) {
+                mCurX = 0;
+                }
+            break;
+        case 'd':
+            mCurX += offset;
+            if( mCurX >= mSceneW ) {
+                mCurX = mSceneW - 1;
+                }
+            break;
+        case 's':
+            mCurY += offset;
+            if( mCurY >= mSceneH ) {
+                mCurY = mSceneH - 1;
+                }
+            break;
+        case 'w':
+            mCurY -= offset;
+            if( mCurY < 0 ) {
+                mCurY = 0;
+                }
+            break;
+        }
+    
+    if ( tolower(inASCII) == 'f' ) {
+        if ( mShowUI ) {
+            int tempOID = -1;
+            if ( !isShiftKeyDown() ) {
+                tempOID = getCell(cursorGridX, cursorGridY)->oID;
+                
+                }
+            else {
+                tempOID = getFloorCell(cursorGridX, cursorGridY)->oID;
+                }
+            if (tempOID != -1) {
+                mObjectPicker.unselectObject();
+                mGroundPicker.unselectObject();
+                pickedOID = tempOID;
+                pickedGID = -1;
                 
                 flashTile( cursorGridX, cursorGridY );
-			}
-		}
-	}
-	if ( inASCII + 64 == toupper('f') ) {
-		if ( mShowUI ) {
-			int tempBiome = -1;
-			tempBiome = getCell(cursorGridX, cursorGridY)->biome;
-			if (tempBiome != -1) {
-				mObjectPicker.unselectObject();
-				mGroundPicker.unselectObject();
-				pickedOID = 0;
-				pickedGID = tempBiome;
+                }
+            }
+        }
+    if ( inASCII + 64 == toupper('f') ) {
+        if ( mShowUI ) {
+            int tempBiome = -1;
+            tempBiome = getCell(cursorGridX, cursorGridY)->biome;
+            if (tempBiome != -1) {
+                mObjectPicker.unselectObject();
+                mGroundPicker.unselectObject();
+                pickedOID = 0;
+                pickedGID = tempBiome;
                 
                 flashTile( cursorGridX, cursorGridY );
-			}
-		}
-	}
-	if ( tolower(inASCII) == 'c' ) {
+                }
+            }
+        }
+    if ( tolower(inASCII) == 'c' ) {
         if ( mShowUI ) {
             if ( !isShiftKeyDown() ) {
                 // copy
@@ -2597,7 +2606,8 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
                 copyAreaSet = false;
                 
                 flashTile( cursorGridX, cursorGridY );
-            } else {
+                }
+            else {
                 if( cursorGridY + copyAreaSize <= mSceneH &&
                     cursorGridX + copyAreaSize <= mSceneW &&
                     cursorGridY >= 0 &&
@@ -2610,14 +2620,14 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
                             
                             copyArea[ y - cursorGridY ][ x - cursorGridX ] = mCells[ y ][ x ];
                             copyFloorArea[ y - cursorGridY ][ x - cursorGridX ] = mFloorCells[ y ][ x ];
+                            }
                         }
-                    }
                     copyAreaSet = true;
+                    }
                 }
             }
         }
-	}
-	if( tolower(inASCII) == 'v' ) {
+    if( tolower(inASCII) == 'v' ) {
         if ( mShowUI ) {
             // paste
             if( copyAreaSet && isShiftKeyDown() ) {
@@ -2640,16 +2650,17 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
                             
                             mark( x, y, 1 );
                             
+                            }
                         }
-                    }
                     backup();
+                    }
                 }
-            }
             if ( !isShiftKeyDown() ) {
                 if( mCopyBuffer.oID > 0 &&
                     getObject( mCopyBuffer.oID )->person ) {
                     // *p = mCopyBuffer;
-                } else {
+                    }
+                else {
                     mark( cursorGridX, cursorGridY, 0 );
                     // mCopyBuffer.biome = c->biome;
                     int oldBiome = mCells[ cursorGridY ][ cursorGridX ].biome;
@@ -2660,11 +2671,11 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
                     backup();
                     
                     flashTile( cursorGridX, cursorGridY );
+                    }
                 }
-            }
             restartAllMoves();
+            }
         }
-	}
     if ( tolower(inASCII) == 'q' ) {
         if ( mShowUI ) {
             if ( isShiftKeyDown() ) {
@@ -2686,11 +2697,12 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
                             
                             mark( x, y, 1 );
                             
+                            }
                         }
-                    }
                     backup();
+                    }
                 }
-            } else {
+            else {
                 mark( cursorGridX, cursorGridY, 0 );
                 
                 clearCell( &(mCells[ cursorGridY ][ cursorGridX ]) );
@@ -2699,20 +2711,20 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
                 
                 mark( cursorGridX, cursorGridY, 1 );
                 backup();
+                }
             }
         }
-    }
     if( tolower(inASCII) == 'o' ) {
         if ( mShowUI ) {
             mZeroX = cursorGridX;
             mZeroY = cursorGridY;
+            }
         }
-    }
-		
-	checkVisible();
-		
-	return;
-	
+        
+    checkVisible();
+        
+    return;
+    
     
     // if( inASCII == 'h' ) {
         // mShowUI = ! mShowUI;
@@ -2809,8 +2821,8 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
             for( int y=mCurY; y< mCurY + copyAreaSize; y++ ) {
                 for( int x=mCurX; x< mCurX + copyAreaSize; x++ ) {
                 
-					copyArea[ y - mCurY ][ x - mCurX ].biome = mCells[ y ][ x ].biome;
-				
+                    copyArea[ y - mCurY ][ x - mCurX ].biome = mCells[ y ][ x ].biome;
+                
                     mCells[ y ][ x ] = 
                         copyArea[ y - mCurY ][ x - mCurX ];
                     mFloorCells[ y ][ x ] = 
@@ -2912,10 +2924,10 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
 
 
 void EditorScenePage::keyUp( unsigned char inASCII ) {
-	
-	// shiftDown = false;
+    
+    // shiftDown = false;
     // ctrlDown = false;
-	
+    
     if( TextField::isAnyFocused() ) {
         return;
         }
@@ -2989,165 +3001,173 @@ void EditorScenePage::clearScene() {
             mFloorCells[y][x] = mEmptyCell;
             }
         }
-	mapChanged = false;
+    mapChanged = false;
     }
-	
+    
 bool EditorScenePage::hoverAnyUI( float inX, float inY ) {
-	if (mUndoButton.isMouseOver()) return true;
-	if (mRedoButton.isMouseOver()) return true;
-	if (mSaveNewButton.isMouseOver()) return true;
-	if (mReplaceButton.isMouseOver()) return true;
-	if (mConfirmReplaceButton.isMouseOver()) return true;
-	if (mDeleteButton.isMouseOver()) return true;
-	if (mConfirmDeleteButton.isMouseOver()) return true;
-	if (mSaveTestMapButton.isMouseOver()) return true;
-	if (mNextSceneButton.isMouseOver()) return true;
-	if (mPrevSceneButton.isMouseOver()) return true;
-	
-	doublePair gPos = mGroundPicker.getPosition();
-	if ( abs(inX - gPos.x) < 100 && abs(inY - gPos.y) < 350 ) return true;
-	doublePair oPos = mObjectPicker.getPosition();
-	if ( abs(inX - oPos.x) < 100 && abs(inY - oPos.y) < 350 ) return true;
-	
-	return false;
-}
+    if (mUndoButton.isMouseOver()) return true;
+    if (mRedoButton.isMouseOver()) return true;
+    if (mSaveNewButton.isMouseOver()) return true;
+    if (mReplaceButton.isMouseOver()) return true;
+    if (mConfirmReplaceButton.isMouseOver()) return true;
+    if (mDeleteButton.isMouseOver()) return true;
+    if (mConfirmDeleteButton.isMouseOver()) return true;
+    if (mSaveTestMapButton.isMouseOver()) return true;
+    if (mNextSceneButton.isMouseOver()) return true;
+    if (mPrevSceneButton.isMouseOver()) return true;
+    
+    doublePair gPos = mGroundPicker.getPosition();
+    if ( abs(inX - gPos.x) < 100 && abs(inY - gPos.y) < 350 ) return true;
+    doublePair oPos = mObjectPicker.getPosition();
+    if ( abs(inX - oPos.x) < 100 && abs(inY - oPos.y) < 350 ) return true;
+    
+    return false;
+    }
 
 void EditorScenePage::pointerUp( float inX, float inY ) {
     
     if( currentTouchedTiles.size() > 0 ) backup();
-	
-	if ( mObjectPickerClicked ) {
-		char oWasRightClick = false;
-		pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
-		pickedGID = -1;
-		mObjectPickerClicked = false;
-	}
-	if ( mGroundPickerClicked ) {
-		char gWasRightClick = false;
-		pickedGID = mGroundPicker.getSelectedObject( &gWasRightClick );
-		pickedOID = 0;
-		mGroundPickerClicked = false;
-		
-	}
-	
-}
+    
+    if ( mObjectPickerClicked ) {
+        char oWasRightClick = false;
+        pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
+        pickedGID = -1;
+        mObjectPickerClicked = false;
+        }
+    if ( mGroundPickerClicked ) {
+        char gWasRightClick = false;
+        pickedGID = mGroundPicker.getSelectedObject( &gWasRightClick );
+        pickedOID = 0;
+        mGroundPickerClicked = false;
+        
+        }
+    
+    }
 
 void EditorScenePage::pointerDown( float inX, float inY ) {
 
-	int mouseButton = getLastMouseButton();
+    int mouseButton = getLastMouseButton();
     if ( mouseButton == MouseButton::WHEELUP ) {
-        setScale(scale*1.15);
+        float newScale = scale * 1.15f;
+        if( newScale > 1.5f ) newScale = 1.5f;
+        setScale( newScale );
         return;
-    } else if ( mouseButton == MouseButton::WHEELDOWN ) {
-        setScale(scale*0.87);
+        }
+    else if ( mouseButton == MouseButton::WHEELDOWN ) {
+        float newScale = scale / 1.15f;
+        if( newScale < 0.01f ) newScale = 0.01f;
+        setScale( newScale );
         return;
-    }
-	
-	if ( mShowUI && hoverAnyUI(inX, inY) ) return;
-	
-	int x = round( inX / (CELL_D*scale) ) + mCurX;
-	int y = round( - inY / (CELL_D*scale) ) + mCurY;
+        }
     
-	if( ( !mShowUI && !isLastMouseButtonRight() ) ||
-		( mShowUI && !isLastMouseButtonRight() && isCommandKeyDown() )
-	) {
-		mCurX = x;
-		mCurY = y;
-		
-		if( mCurX < 0 ) {
-			mCurX = 0;
-		}
-		if( mCurX >= mSceneW ) {
-			mCurX = mSceneW - 1;
-		}
-		if( mCurY >= mSceneH ) {
-			mCurY = mSceneH - 1;
-		}
-		if( mCurY < 0 ) {
-			mCurY = 0;
-		}
-		
+    if ( mShowUI && hoverAnyUI(inX, inY) ) return;
+    
+    int x = round( inX / (CELL_D*scale) ) + mCurX;
+    int y = round( - inY / (CELL_D*scale) ) + mCurY;
+    
+    if( ( !mShowUI && !isLastMouseButtonRight() ) ||
+        ( mShowUI && !isLastMouseButtonRight() && isCommandKeyDown() )
+    ) {
+        mCurX = x;
+        mCurY = y;
+        
+        if( mCurX < 0 ) {
+            mCurX = 0;
+            }
+        if( mCurX >= mSceneW ) {
+            mCurX = mSceneW - 1;
+            }
+        if( mCurY >= mSceneH ) {
+            mCurY = mSceneH - 1;
+            }
+        if( mCurY < 0 ) {
+            mCurY = 0;
+            }
+        
         checkVisible();
         
         return;
-	}
-	
-	if ( mShowUI ) {
-		
-		if( x < 0 || x >= mSceneW || y >= mSceneH || y < 0 ) {
-			checkVisible();
-			return;
-		}
-		
-		SceneCell *f = getFloorCell(x, y);
-		SceneCell *c = getCell(x, y);
-		
-		if ( !isLastMouseButtonRight() ) {
-			
-			char oWasRightClick = false;
-			char gWasRightClick = false;
-			
-			int oId = pickedOID;
-			int gId = pickedGID;
-			
-			// int oId = mObjectPicker.getSelectedObject( &oWasRightClick );
-			// int gId = mGroundPicker.getSelectedObject( &gWasRightClick );
-			
-			if( oId > 0 ) {
-				char placed = false;
-				ObjectRecord *o = getObject( oId );
-				
-				if( isShiftKeyDown() && c->oID > 0 && !o->floor ) {
-					if( getObject( c->oID )->numSlots > c->contained.size() ) {
-						mark( x, y, 0 );
-						c->contained.push_back( oId );
-						SimpleVector<int> sub;
-						c->subContained.push_back( sub );
-						placed = true;
+        }
+    
+    if ( mShowUI ) {
+        
+        if( x < 0 || x >= mSceneW || y >= mSceneH || y < 0 ) {
+            checkVisible();
+            return;
+            }
+        
+        SceneCell *f = getFloorCell(x, y);
+        SceneCell *c = getCell(x, y);
+        
+        if ( !isLastMouseButtonRight() ) {
+            
+            char oWasRightClick = false;
+            char gWasRightClick = false;
+            
+            int oId = pickedOID;
+            int gId = pickedGID;
+            
+            // int oId = mObjectPicker.getSelectedObject( &oWasRightClick );
+            // int gId = mGroundPicker.getSelectedObject( &gWasRightClick );
+            
+            if( oId > 0 ) {
+                char placed = false;
+                ObjectRecord *o = getObject( oId );
+                
+                if( isShiftKeyDown() && c->oID > 0 && !o->floor ) {
+                    if( getObject( c->oID )->numSlots > c->contained.size() ) {
+                        mark( x, y, 0 );
+                        c->contained.push_back( oId );
+                        SimpleVector<int> sub;
+                        c->subContained.push_back( sub );
+                        placed = true;
                         mark( x, y, 1 );
-					}
-				}
-				if( !placed && o->floor ) {
+                        }
+                    }
+                if( !placed && o->floor ) {
                     mark( x, y, 0 );
-					// place floor
-					f->oID = oId;
-					placed = true;
+                    // place floor
+                    f->oID = oId;
+                    placed = true;
                     mark( x, y, 1 );
-				}
-				
-				if( !placed ) {
-					if( !getObject( oId )->person ) {
-						mark( x, y, 0 );
-						c->oID = oId;
-						c->contained.deleteAll();
-						c->subContained.deleteAll();
-						c->numUsesRemaining = o->numUses;
+                    }
+                
+                if( !placed ) {
+                    if( !getObject( oId )->person ) {
+                        mark( x, y, 0 );
+                        c->oID = oId;
+                        c->contained.deleteAll();
+                        c->subContained.deleteAll();
+                        c->numUsesRemaining = o->numUses;
                         mark( x, y, 1 );
-					}
-				}
+                        }
+                    }
                 
                 mObjectPicker.usePickable( oId );
                 
-			} else if( gId >= 0 ) {
-				
-				if( gId >= 0 ) {
-					
-					if( isShiftKeyDown() ) {
-						
-						floodFill( x, y,
-								   c->biome,
-								   gId );
-                                   
-					} else {
-						// single cell
-                        mark( x, y, 0 );
-						mCells[ y ][ x ].biome = gId;
-                        mark( x, y, 1 );
-					}
+                }
+            else if( gId >= 0 ) {
+                
+                if( gId >= 0 ) {
                     
-				}				
-			}
-		} else {
+                    if( isShiftKeyDown() ) {
+                        
+                        floodFill( x, y,
+                                   c->biome,
+                                   gId );
+                                   
+                        }
+                    else {
+                        // single cell
+                        mark( x, y, 0 );
+                        mCells[ y ][ x ].biome = gId;
+                        mark( x, y, 1 );
+                        }
+                        
+                    }               
+                }
+            }
+        else {
             mark( x, y, 0 );
             
             bool clearObj = false;
@@ -3158,14 +3178,17 @@ void EditorScenePage::pointerDown( float inX, float inY ) {
                 clearObj = true;
                 clearFloor = true;
                 clearBiome = true;
-            } else if( isCommandKeyDown() ) {
+                }
+            else if( isCommandKeyDown() ) {
                 clearFloor = true;
-            } else if( isShiftKeyDown() ) {
+                }
+            else if( isShiftKeyDown() ) {
                 clearObj = true;
                 clearFloor = true;
-            } else {
+                }
+            else {
                 clearObj = true;                
-            }
+                }
             
             int oldBiome = c->biome;
             if( clearObj ) clearCell(c);
@@ -3173,13 +3196,13 @@ void EditorScenePage::pointerDown( float inX, float inY ) {
             if( !clearBiome ) c->biome = oldBiome;
             
             mark( x, y, 1 );
-		}
-		
-	}
-	
-	checkVisible();
-	
-}
+            }
+            
+        }
+    
+    checkVisible();
+    
+    }
 
 float cursorX;
 float cursorY;
@@ -3188,101 +3211,104 @@ int cursorGridY;
 
 void EditorScenePage::pointerMove( float inX, float inY ) {    
 
-	int x = round( inX / (CELL_D*scale) ) + mCurX;
-	int y = round( - inY / (CELL_D*scale) ) + mCurY;
-	
-	cursorX = inX;
-	cursorY = inY;
-	cursorGridX = x;
-	cursorGridY = y;
+    int x = round( inX / (CELL_D*scale) ) + mCurX;
+    int y = round( - inY / (CELL_D*scale) ) + mCurY;
+    
+    cursorX = inX;
+    cursorY = inY;
+    cursorGridX = x;
+    cursorGridY = y;
 
     }
 
 
 
 void EditorScenePage::pointerDrag( float inX, float inY ) {
-	
-	int x = round( inX / (CELL_D*scale) ) + mCurX;
-	int y = round( - inY / (CELL_D*scale) ) + mCurY;
-	
-	cursorX = inX;
-	cursorY = inY;
-	cursorGridX = x;
-	cursorGridY = y;
-	
-	if (!mShowUI) return;
-	if ( hoverAnyUI(inX, inY) ) return;
-	
-	if( x < 0 || x >= mSceneW || y >= mSceneH || y < 0 ) return;
-	
-	SceneCell *f = getFloorCell(x, y);
-	SceneCell *c = getCell(x, y);
+    
+    int x = round( inX / (CELL_D*scale) ) + mCurX;
+    int y = round( - inY / (CELL_D*scale) ) + mCurY;
+    
+    cursorX = inX;
+    cursorY = inY;
+    cursorGridX = x;
+    cursorGridY = y;
+    
+    if (!mShowUI) return;
+    if ( hoverAnyUI(inX, inY) ) return;
+    
+    if( x < 0 || x >= mSceneW || y >= mSceneH || y < 0 ) return;
+    
+    SceneCell *f = getFloorCell(x, y);
+    SceneCell *c = getCell(x, y);
    
-	if ( !isLastMouseButtonRight() ) {
-		
-		if ( !isCommandKeyDown() ) {
-		
-			char oWasRightClick = false;
-			char gWasRightClick = false;
-			
-			int oId = pickedOID;
-			int gId = pickedGID;
-			
-			// int oId = mObjectPicker.getSelectedObject( &oWasRightClick );
-			// int gId = mGroundPicker.getSelectedObject( &gWasRightClick );
-			
-			if( oId > 0 ) {
-				char placed = false;
-				ObjectRecord *o = getObject( oId );
-				
-				if( oWasRightClick && c->oID > 0 && !o->floor ) {
-					if( getObject( c->oID )->numSlots > c->contained.size() ) {
-						mark( x, y, 0 );
-						c->contained.push_back( oId );
-						SimpleVector<int> sub;
-						c->subContained.push_back( sub );
-						placed = true;
-                        mark( x, y, 1 );
-					}
-				}
-				if( !placed && o->floor ) {
-					mark( x, y, 0 );
-					// place floor
-					f->oID = oId;
-					placed = true;
-                    mark( x, y, 1 );
-				}
-				
-				if( !placed ) {
-					if( !getObject( oId )->person ) {
-						mark( x, y, 0 );
-						c->oID = oId;
-						c->contained.deleteAll();
-						c->subContained.deleteAll();
-						c->numUsesRemaining = o->numUses;                    
-                        mark( x, y, 1 );
-					}
-				}
-			} else if( gId >= 0 ) {
-				
-				if( gId >= 0 ) {
-					
-					if( isShiftKeyDown() ) {
-						
-						floodFill( x, y,
-								   c->biome,
-								   gId );
-					} else {
+    if ( !isLastMouseButtonRight() ) {
+        
+        if ( !isCommandKeyDown() ) {
+        
+            char oWasRightClick = false;
+            char gWasRightClick = false;
+            
+            int oId = pickedOID;
+            int gId = pickedGID;
+            
+            // int oId = mObjectPicker.getSelectedObject( &oWasRightClick );
+            // int gId = mGroundPicker.getSelectedObject( &gWasRightClick );
+            
+            if( oId > 0 ) {
+                char placed = false;
+                ObjectRecord *o = getObject( oId );
+                
+                if( oWasRightClick && c->oID > 0 && !o->floor ) {
+                    if( getObject( c->oID )->numSlots > c->contained.size() ) {
                         mark( x, y, 0 );
-						// single cell
-						mCells[ y ][ x ].biome = gId;
+                        c->contained.push_back( oId );
+                        SimpleVector<int> sub;
+                        c->subContained.push_back( sub );
+                        placed = true;
                         mark( x, y, 1 );
-					}
-				}				
-			}
-		}
-		
-	} else {
+                        }
+                    }
+                if( !placed && o->floor ) {
+                    mark( x, y, 0 );
+                    // place floor
+                    f->oID = oId;
+                    placed = true;
+                    mark( x, y, 1 );
+                    }
+                
+                if( !placed ) {
+                    if( !getObject( oId )->person ) {
+                        mark( x, y, 0 );
+                        c->oID = oId;
+                        c->contained.deleteAll();
+                        c->subContained.deleteAll();
+                        c->numUsesRemaining = o->numUses;                    
+                        mark( x, y, 1 );
+                        }
+                    }
+                }
+            else if( gId >= 0 ) {
+                
+                if( gId >= 0 ) {
+                    
+                    if( isShiftKeyDown() ) {
+                        
+                        floodFill( x, y,
+                                   c->biome,
+                                   gId );
+                        }
+                    else {
+                        mark( x, y, 0 );
+                        // single cell
+                        mCells[ y ][ x ].biome = gId;
+                        mark( x, y, 1 );
+                        }
+                    }
+                }
+            }
+        
+        }
+    else {
         mark( x, y, 0 );
         
         bool clearObj = false;
@@ -3293,14 +3319,17 @@ void EditorScenePage::pointerDrag( float inX, float inY ) {
             clearObj = true;
             clearFloor = true;
             clearBiome = true;
-        } else if( isCommandKeyDown() ) {
+            }
+        else if( isCommandKeyDown() ) {
             clearFloor = true;
-        } else if( isShiftKeyDown() ) {
+            }
+        else if( isShiftKeyDown() ) {
             clearObj = true;
             clearFloor = true;
-        } else {
+            }
+        else {
             clearObj = true;                
-        }
+            }
         
         int oldBiome = c->biome;
         if( clearObj ) clearCell(c);
@@ -3308,16 +3337,16 @@ void EditorScenePage::pointerDrag( float inX, float inY ) {
         if( !clearBiome ) c->biome = oldBiome;
         
         mark( x, y, 1 );
-	}
-	// checkVisible();
-	
+        }
+    // checkVisible();
+    
     }
-	
+    
 
 
 
 void EditorScenePage::specialKeyDown( int inKeyCode ) {
-	
+    
     if( TextField::isAnyFocused() ) {
         return;
         }
@@ -3412,15 +3441,16 @@ std::vector<File*> EditorScenePage::getSceneFiles() {
     for( int i=0; i<numFiles; i++ ) {
         if( strcmp( SceneDirectoryList[i]->getFileName(), "next.txt" ) != 0 ) {
             results.push_back( SceneDirectoryList[i] );
-        } else {
+            }
+        else {
             delete SceneDirectoryList[i];
+            }
         }
-    }
     delete [] SceneDirectoryList;
     
     return results;
     
-}
+    }
 
 int EditorScenePage::getSceneFileID( char *fileName ) {
     
@@ -3433,17 +3463,17 @@ int EditorScenePage::getSceneFileID( char *fileName ) {
         char *thisFileName = SceneDirectoryList[i]->getFileName();
         if ( strcmp(thisFileName, fileName) == 0 ) {
             ret = i; // Found it!
-        }
+            }
         delete [] thisFileName;
-    }
+        }
 
     for( int i = 0; i < numFiles; i++ ) {
         delete SceneDirectoryList[i];
-    }
+        }
 
     return ret;
     
-}
+    }
 
 File *EditorScenePage::getSceneFile( int inSceneID ) {
     
@@ -3456,7 +3486,7 @@ File *EditorScenePage::getSceneFile( int inSceneID ) {
     // inSceneID bounds should be checked elsewhere
     if( inSceneID < 0 ) {
         return NULL;
-    }
+        }
     
     if ( inSceneID >= numFiles ) {
         
@@ -3465,28 +3495,29 @@ File *EditorScenePage::getSceneFile( int inSceneID ) {
             if( f != NULL ) {
                 delete f;
                 f = NULL;
-	        }
+                }
 
             f = mScenesFolder.getChildFile( name );
             inSceneID++;
             delete [] name;
-        } while ( f->exists() ); // For real though, a new file.
+            } while ( f->exists() ); // For real though, a new file.
         
-    } else {
+        }
+    else {
     
         char *name = SceneDirectoryList[inSceneID]->getFileName();
 
         f = mScenesFolder.getChildFile( name );
         delete [] name;
         
-    }
+        }
 
     for( int i=0; i<numFiles; i++ ) {
         delete SceneDirectoryList[i];
-    }
+        }
 
     return f;
-}
+    }
 
 
 
@@ -3636,7 +3667,7 @@ void EditorScenePage::writeSceneToFile( int inIDToUse ) {
             }
         }
         
-    lines.push_back( "" );
+    lines.push_back( stringDuplicate("") );
     
         
     
@@ -3653,10 +3684,10 @@ void EditorScenePage::writeSceneToFile( int inIDToUse ) {
         mNextSceneNumber++; // Just in case we've deleted it. It might change the ID when it's created.
         mNextFile->writeToFile( mNextSceneNumber );
 
-	char *fileName = f->getFileName(); // Make sure we have the same file we just created loaded.
-	mSceneID = getSceneFileID( fileName );
-	delete [] fileName;
-    }
+        char *fileName = f->getFileName(); // Make sure we have the same file we just created loaded.
+        mSceneID = getSceneFileID( fileName );
+        delete [] fileName;
+        }
     delete [] contents;
 
     delete f;
@@ -3831,7 +3862,7 @@ char EditorScenePage::tryLoadScene( int inSceneID ) {
     if( f == NULL ) {
         clearScene();
         return r;
-    }
+        }
     
     if( f->exists() && ! f->isDirectory() ) {
         
@@ -3840,11 +3871,11 @@ char EditorScenePage::tryLoadScene( int inSceneID ) {
         char *fileText = f->readFileContents();
         
         if( fileText != NULL ) {
-			
-			while ( queueSize > 0 ) {
-				queuesPopBack();
-			}
-			queueIndex = 0;
+            
+            while ( queueSize > 0 ) {
+                queuesPopBack();
+                }
+            queueIndex = 0;
             
             int numLines = 0;
             
@@ -3863,31 +3894,31 @@ char EditorScenePage::tryLoadScene( int inSceneID ) {
                 if( next < numLines ) { // if we ever look at lines[next] after running out of lines
                     sscanf( lines[next], "w=%d", &w );    // we will have a segfault.
                     next++;
-                }
+                    }
 
                 if( next < numLines ) {
                     sscanf( lines[next], "h=%d", &h );
                     next++;
-                }
+                    }
 
                 if( w != mSceneW || h != mSceneH ) {
                     resizeGrid( h, w );
-                }
+                    }
 
                 if( next < numLines ) {
                     if( strstr( lines[next], "origin" ) != NULL ) {
                         sscanf( lines[next], "origin=%d,%d", &mZeroX, &mZeroY );
                         next++;
+                        }
                     }
-                }
                 
                 char floorPresent = false;
                 if( next < numLines ) {
                     if( strstr( lines[next], "floorPresent" ) != NULL ) {
                         floorPresent = true;
                         next++;
+                        }
                     }
-                }
                 clearScene();
 
                 int numRead = 0;
@@ -3895,7 +3926,7 @@ char EditorScenePage::tryLoadScene( int inSceneID ) {
                 if (next < numLines) {
                     numRead = sscanf( lines[next], "x=%d,y=%d", &x, &y );
                     next++;
-                }
+                    }
 
                 while( numRead == 2 ) {
                     SceneCell *c = &( mCells[y][x] );
@@ -3914,14 +3945,14 @@ char EditorScenePage::tryLoadScene( int inSceneID ) {
                     if( next < numLines ) {
                         numRead = sscanf( lines[next], "x=%d,y=%d", &x, &y );
                         next++;
+                        }
                     }
+                    
                 }
-                
-	        }
             
             for( int i=0; i<numLines; i++ ) {
                 delete [] lines[i];
-            }
+                }
             delete [] lines;
 
             r = true;
@@ -3929,16 +3960,16 @@ char EditorScenePage::tryLoadScene( int inSceneID ) {
             mCurY = mZeroY;
             mShiftX = 0;
             mShiftY = 0;
-			
-			spriteCount = round( std::max(mSceneH, mSceneW) / 200 * 25 );
-				
-        }
-    }    
+            
+            spriteCount = round( std::max(mSceneH, mSceneW) / 200 * 25 );
+                
+            }
+        }    
     
     delete f;
     
     return r;
-}
+    }
 
         
 
@@ -3956,21 +3987,21 @@ void EditorScenePage::checkNextPrevVisible() {
         mNextSceneButton.setVisible( false );
         
         mPrevSceneButton.setVisible( num >= 1 );
-    }
+        }
     else { // Bounds are from 0 to one less than the number of files in the directory.
         if( mSceneID < num - 1 ) {
             mNextSceneButton.setVisible( true );
-        }
+            }
         if( mSceneID > 0 && num > 0 ) {
             mPrevSceneButton.setVisible( true );
+            }
         }
-    }
         
     for( int i=0; i<num; i++ ) {
         delete cf[i];
-    }
+        }
     
-}
+    }
 
 
 

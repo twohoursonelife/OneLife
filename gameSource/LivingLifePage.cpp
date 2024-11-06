@@ -3346,14 +3346,16 @@ static void initTownPlannerMap() {
     
     if( !townPlannerMapFileRaw->exists() ) {
         townPlannerMapFile = fopen( townPlannerMapFileRaw->getFullFileName(), "ab" );
-        townPlannerMapFile_w = SettingsManager::getIntSetting( "townPlannerMapMapSizeX", 400 );
-        townPlannerMapFile_h = SettingsManager::getIntSetting( "townPlannerMapMapSizeY", 400 );
+        townPlannerMapFile_w = SettingsManager::getIntSetting( "townPlannerMapSizeX", 400 );
+        townPlannerMapFile_h = SettingsManager::getIntSetting( "townPlannerMapSizeY", 400 );
         townPlannerMapFile_oX = SettingsManager::getIntSetting( "townPlannerMapInitCenterX", int(townPlannerMapFile_w / 2) );
         townPlannerMapFile_oY = SettingsManager::getIntSetting( "townPlannerMapInitCenterY", int(townPlannerMapFile_h / 2) );
+        if( townPlannerMapFile_w < 0 ) townPlannerMapFile_w = 400;
+        if( townPlannerMapFile_h < 0 ) townPlannerMapFile_h = 400;
         if( townPlannerMapFile_w > 800 ) townPlannerMapFile_w = 800;
         if( townPlannerMapFile_h > 800 ) townPlannerMapFile_h = 800;
-        if( townPlannerMapFile_oX >= townPlannerMapFile_w || townPlannerMapFile_w < 0 ) townPlannerMapFile_oX = int(townPlannerMapFile_w / 2);
-        if( townPlannerMapFile_oY >= townPlannerMapFile_h || townPlannerMapFile_h < 0 ) townPlannerMapFile_oY = int(townPlannerMapFile_h / 2);
+        if( townPlannerMapFile_oX >= townPlannerMapFile_w || townPlannerMapFile_oX < 0 ) townPlannerMapFile_oX = int(townPlannerMapFile_w / 2);
+        if( townPlannerMapFile_oY >= townPlannerMapFile_h || townPlannerMapFile_oY < 0 ) townPlannerMapFile_oY = int(townPlannerMapFile_h / 2);
         fprintf( townPlannerMapFile, "w=%d\nh=%d\norigin=%d,%d\nfloorPresent\n", townPlannerMapFile_w, townPlannerMapFile_h, townPlannerMapFile_oX, townPlannerMapFile_oY );
         } 
     else {
