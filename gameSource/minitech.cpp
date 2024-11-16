@@ -971,7 +971,8 @@ vector<TransRecord*> minitech::getProdTrans(int objId) {
                 int newId = idSet.getElementDirect(i);
                 if (cOrD == 0) staticTrans->newActor = newId;
                 if (cOrD == 1) staticTrans->newTarget = newId;
-                results.push_back(staticTrans);
+                if( staticTrans->newActor == objId || staticTrans->newTarget == objId )
+                    results.push_back(staticTrans);
             }
             continue;
         }
