@@ -1571,6 +1571,50 @@ static void addAncientHomeLocation( int inX, int inY ) {
 
 
 
+// this list actually contains other monuments, e.g. apoc or Halloween shine
+// for the time being this doesn't matter
+// this list contains duplicates
+// the list is in chronological order
+static SimpleVector<GridPos> bellList;
+
+// these bells are manually removed by the player from coords list
+static SimpleVector<GridPos> bellIgnoreList;
+
+// this is the last bell we heard that isn't ignored by the spam filter
+static GridPos lastBellPos;
+
+static addBell( int inX, int inY ) {
+    GridPos newPos = { inX, inY };
+    bellList.push_back( newPos );
+    }
+
+// ignore ancient monument if we already heard another nearby
+// however we allow the same bell to ring
+// hence we specifically filter out cluster of bells
+static isBellSpammy( int inX, int inY ) {
+    GridPos newPos = { inX, inY };
+    for( int i=0; i<bellIgnoreList.size(); i++ ) {
+        GridPos oldPos = bellIgnoreList.getElementDirect( i );
+        if( newPos.x == oldPos.x && newPos.y == oldPos.y ) {
+            // this bell is explicitly ignored by player
+            return true;
+            }
+        }
+
+    for( int i=0; i<bellList.size(); i++ ) {
+        GridPos oldPos = bellList.getElementDirect( i );
+        double dx = (double)newPos.x - (double)oldPos.x;
+        double dy = (double)newPos.y - (double)oldPos.y;
+        double d = sqrt(  dx * dx + dy * dy );
+        // since the list is in chronological order
+        // if we find the exact bell in the list
+        // it must be the first we heard in a cluster
+        if( d == 0 ) return false;
+        if( d < 128.0 && d != 0 ) return true;
+        }
+    return false;
+    }
+
 
 
 
@@ -12214,6 +12258,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 else if( savedCoords.type == 3 ) {
                     setDrawColor( 0.50, 0.36, 0.55, 1.0 ); // purple
+                    if( savedCoords.x == lastBellPos.x && 
+                        savedCoords.y == lastBellPos.y ) {
+                        setDrawColor( 0.72, 0.18, 0.92, 1.0 ); // bright purple
+                        }
                     }
 
                 handwritingFont->drawString( lineName, pos, alignLeft );
@@ -16164,27 +16212,23 @@ void LivingLifePage::step() {
                     double d = distance( pos, ourLiveObject->currentPos );
                     
                     if( d > 32 ) {
-                        
-                        // ignore ancient monument if we already
-                        // heard another nearby, to avoid bell spam
-                        bool found = false;
-                        for( int i=0; i<homePosStack.size(); i++ ) {
-                            if( homePosStack.getElementDirect( i ).ancient ) {
-                                GridPos homeGridPos = homePosStack.getElementDirect( i ).pos;
-                                doublePair homePos = {(double)homeGridPos.x, (double)homeGridPos.y};
-                                if( distance( pos, homePos ) < 32 ) {
-                                    found = true;
-                                    break;
-                                    }
-                                }
-                            }
+
+                        // we are calling all monuments "bell" here
+                        // while they can also be apoc or Halloween shine etc
+                        // this doesn't matter for now
+                        bool isSpam = isBellSpammy(posX, posY);
+
+                        // record the bell even if it is spammy
+                        addBell(posX, posY);
                             
-                        if( !found ) {
+                        if( !isSpam ) {
                         
                             addAncientHomeLocation( posX, posY );
 
                             SavedCoordinates bellCoords = {posX, posY, translate("bellLocation"), 3};
                             addCoordinates( bellCoords );
+
+                            lastBellPos = {posX, posY};
                             
                             // play sound in distance
                             ObjectRecord *monObj = getObject( monumentID );
@@ -25141,6 +25185,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                             savedOrigin = SavedCoordinatesList.getElementDirect( i );
                             }
                         else {
+                            SavedCoordinates coordsToBeRemoved = SavedCoordinatesList.getElementDirect( i );
+                            if( coordsToBeRemoved.type == 3 ) {
+                                // we are manually removing a monument coords
+                                // add it to ignore list
+                                GridPos ignorePos = { coordsToBeRemoved.x, coordsToBeRemoved.y };
+                                bellIgnoreList.push_back( ignorePos );
+                                }
+
                             SavedCoordinatesList.deleteElement( i );
                             SavedCoordinatesComponentList.deleteElement( i );
                             }
