@@ -28623,25 +28623,25 @@ void LivingLifePage::movementStep() {
     lastPosX = sX;
     lastPosY = sY;
 
-    bool nextStepIsDiagonal = 
-        abs( (int)round(ourLiveObject->currentPos.x) - x ) + 
-        abs( (int)round(ourLiveObject->currentPos.y) - y ) > 1;
+    // bool nextStepIsDiagonal = 
+    //     abs( (int)round(ourLiveObject->currentPos.x) - x ) + 
+    //     abs( (int)round(ourLiveObject->currentPos.y) - y ) > 1;
 
-    if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
-        waitForDoorToOpen = false;
-    } else if (waitForDoorToOpen) {
-        if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
-            return;
-        waitForDoorToOpen = false;
-    } else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
-        char msg[32];
-        sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
-        setNextActionMessage( msg, x, y );
-        waitForDoorToOpen = true;
-        lastDoorToOpenX = (int)x;
-        lastDoorToOpenY = (int)y;
-        return;
-    }
+    // if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
+    //     waitForDoorToOpen = false;
+    // } else if (waitForDoorToOpen) {
+    //     if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
+    //         return;
+    //     waitForDoorToOpen = false;
+    // } else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
+    //     char msg[32];
+    //     sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
+    //     setNextActionMessage( msg, x, y );
+    //     waitForDoorToOpen = true;
+    //     lastDoorToOpenX = (int)x;
+    //     lastDoorToOpenY = (int)y;
+    //     return;
+    // }
 
     x *= CELL_D;
     y *= CELL_D;
