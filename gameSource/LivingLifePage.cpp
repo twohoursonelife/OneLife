@@ -25057,7 +25057,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
         char rightClick;
         int id = mObjectPicker.getSelectedObject( &rightClick );
-        if( isLastMouseButtonRight() ) id = 1938; // Smooth Ground
+        if( isLastMouseButtonRight() ) {
+            if( isShiftKeyDown() ) {
+                id = 16003; // Smooth Ground #floor
+                }
+            else {
+                id = 1938; // Smooth Ground
+                }
+            }
         
         if( id != -1 ) {
             char *message = autoSprintf( "VOGI %d %d %d#",
@@ -26902,11 +26909,60 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
 
 
+double lastVogDragTime = 0;
 
 void LivingLifePage::pointerDrag( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+
+    if( !mForceGroundClick && vogMode && vogPickerOn && 
+        !isHoveringPicker(inX, inY)
+        ) {
+
+        if( game_getCurrentTime() - lastVogDragTime < 0.05 ) return;
+
+        GridPos pos;
+        pos.x = int(round( inX / (float)CELL_D ));
+        pos.y = int(round( inY / (float)CELL_D ));
+        
+        char rightClick;
+        int id = mObjectPicker.getSelectedObject( &rightClick );
+        if( isLastMouseButtonRight() ) {
+            if( isShiftKeyDown() ) {
+                id = 16003; // Smooth Ground #floor
+                }
+            else {
+                id = 1938; // Smooth Ground
+                }
+            }
+        
+        if( id != -1 ) {
+
+            ObjectRecord *o = getObject( id );
+            if( o == NULL ) return;
+            if( o->floor ) {
+                int mapI = getMapIndex( pos.x, pos.y );
+                if( mapI != -1 ) {
+                    int currentFloor = mMapFloors[ mapI ];
+                    if( id == currentFloor ) return;
+                    }
+                }
+            else {
+                int currentObject = getObjId( pos.x, pos.y );
+                if( id == currentObject ) return;
+                }
+
+            char *message = autoSprintf( "VOGI %d %d %d#",
+                                         lrint( pos.x ), 
+                                         lrint( pos.y ), id );
+            sendToServerSocket( message );
+            lastVogDragTime = game_getCurrentTime();
+            delete [] message;
+            mObjectPicker.usePickable( id );
+            return;
+            }
+        }
     
     if( showBugMessage ) {
         return;
