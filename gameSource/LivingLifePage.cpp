@@ -10758,7 +10758,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    if( hideGuiPanel || drawGuiPanelToggle) {
+    if( hideGuiPanel || (drawGuiPanelToggle && !vogMode)) {
         // skip gui
         return;
         }    
@@ -27977,7 +27977,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case 96: { // grave
-            if( !TextField::isAnyFocused() ) {
+            if( !TextField::isAnyFocused() && !vogMode) {
                 drawGuiPanelToggle = !drawGuiPanelToggle;
                 }
             // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
