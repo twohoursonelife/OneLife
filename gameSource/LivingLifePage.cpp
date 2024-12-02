@@ -1583,7 +1583,7 @@ static SimpleVector<GridPos> bellIgnoreList;
 // this is the last bell we heard that isn't ignored by the spam filter
 static GridPos lastBellPos;
 
-static addBell( int inX, int inY ) {
+static void addBell( int inX, int inY ) {
     GridPos newPos = { inX, inY };
     bellList.push_back( newPos );
     }
@@ -1591,7 +1591,7 @@ static addBell( int inX, int inY ) {
 // ignore ancient monument if we already heard another nearby
 // however we allow the same bell to ring
 // hence we specifically filter out cluster of bells
-static isBellSpammy( int inX, int inY ) {
+static bool isBellSpammy( int inX, int inY ) {
     GridPos newPos = { inX, inY };
     for( int i=0; i<bellIgnoreList.size(); i++ ) {
         GridPos oldPos = bellIgnoreList.getElementDirect( i );
