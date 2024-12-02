@@ -5777,6 +5777,9 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                 randSource.getRandomBoundedDouble(
                                     leftDecayT->autoDecaySeconds * 0.9,
                                     leftDecayT->autoDecaySeconds );
+
+                            if( leftDecayT->autoDecaySeconds - tweakedSeconds > 5.0 )
+                                tweakedSeconds = leftDecayT->autoDecaySeconds - 5.0;
                            
                             leftMapETA = MAP_TIMESEC + tweakedSeconds;
                             }
@@ -5999,6 +6002,9 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     randSource.getRandomBoundedDouble(
                         newDecayT->autoDecaySeconds * 0.9,
                         newDecayT->autoDecaySeconds );
+
+                if( newDecayT->autoDecaySeconds - tweakedSeconds > 5.0 )
+                    tweakedSeconds = newDecayT->autoDecaySeconds - 5.0;
                
                 mapETA = MAP_TIMESEC + tweakedSeconds;
                 }
@@ -6164,6 +6170,9 @@ void checkDecayContained( int inX, int inY, int inSubCont ) {
                             randSource.getRandomBoundedDouble(
                                 newDecayT->autoDecaySeconds * 0.9,
                                 newDecayT->autoDecaySeconds );
+
+                        if( newDecayT->autoDecaySeconds - tweakedSeconds > 5.0 )
+                            tweakedSeconds = newDecayT->autoDecaySeconds - 5.0;
  
                        
                         mapETA =
@@ -7194,6 +7203,9 @@ static void runTapoutOperation( int inX, int inY,
                                 randSource.getRandomBoundedDouble(
                                     newDecayT->autoDecaySeconds * 0.9,
                                     newDecayT->autoDecaySeconds );
+
+                            if( newDecayT->autoDecaySeconds - tweakedSeconds > 5.0 )
+                                tweakedSeconds = newDecayT->autoDecaySeconds - 5.0;
                         
                             mapETA = MAP_TIMESEC + tweakedSeconds;
                             }
@@ -7299,6 +7311,9 @@ static void runTapoutOperation( int inX, int inY,
                                 randSource.getRandomBoundedDouble(
                                     newDecayT->autoDecaySeconds * 0.9,
                                     newDecayT->autoDecaySeconds );
+
+                            if( newDecayT->autoDecaySeconds - tweakedSeconds > 5.0 )
+                                tweakedSeconds = newDecayT->autoDecaySeconds - 5.0;
                         
                             mapETA = MAP_TIMESEC + tweakedSeconds;
                             }

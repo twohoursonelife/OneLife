@@ -2142,7 +2142,8 @@ void regenerateBecomeFoodMap() {
                 }
 
             if( nextToCheck != -1 ) {
-                becomeFoodMap[nextToCheck] = becomeFoodMap[nextID];
+                if( becomeFoodMap[nextToCheck] == 0 ) 
+                    becomeFoodMap[nextToCheck] = becomeFoodMap[nextID];
                 if( horizon.getElementIndex( nextToCheck ) == -1 ) {
                     horizon.push_back( nextToCheck );
                     depths.push_back( nextDepth );

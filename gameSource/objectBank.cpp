@@ -1968,6 +1968,23 @@ void initObjectBankFinish() {
                                 a->objectID = mainID;
                                 }
                             }
+
+                        // allow use dummies to be tapout triggers
+                        TapoutRecord *tr = getTapoutRecord( mainID );
+                        if( tr != NULL ) {
+                            TapoutRecord tr_dummy;
+                            tr_dummy.triggerID = dummyID;
+                            tr_dummy.tapoutMode = tr->tapoutMode;
+                            tr_dummy.radiusN = tr->radiusN;
+                            tr_dummy.radiusE = tr->radiusE;
+                            tr_dummy.radiusS = tr->radiusS;
+                            tr_dummy.radiusW = tr->radiusW;
+                            tr_dummy.tapoutCountLimit = tr->tapoutCountLimit;
+                            tr_dummy.specificX = tr->specificX;
+                            tr_dummy.specificY = tr->specificY;
+                            tapoutRecords.push_back( tr_dummy );
+                            }
+
                         }
                     }
                 
@@ -4472,6 +4489,7 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
             }
 
 
+        slotPos = mult( slotPos, drawObjectScale );
         doublePair pos = add( slotPos, inPos );
         
 

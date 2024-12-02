@@ -1571,6 +1571,50 @@ static void addAncientHomeLocation( int inX, int inY ) {
 
 
 
+// this list actually contains other monuments, e.g. apoc or Halloween shine
+// for the time being this doesn't matter
+// this list contains duplicates
+// the list is in chronological order
+static SimpleVector<GridPos> bellList;
+
+// these bells are manually removed by the player from coords list
+static SimpleVector<GridPos> bellIgnoreList;
+
+// this is the last bell we heard that isn't ignored by the spam filter
+static GridPos lastBellPos;
+
+static addBell( int inX, int inY ) {
+    GridPos newPos = { inX, inY };
+    bellList.push_back( newPos );
+    }
+
+// ignore ancient monument if we already heard another nearby
+// however we allow the same bell to ring
+// hence we specifically filter out cluster of bells
+static isBellSpammy( int inX, int inY ) {
+    GridPos newPos = { inX, inY };
+    for( int i=0; i<bellIgnoreList.size(); i++ ) {
+        GridPos oldPos = bellIgnoreList.getElementDirect( i );
+        if( newPos.x == oldPos.x && newPos.y == oldPos.y ) {
+            // this bell is explicitly ignored by player
+            return true;
+            }
+        }
+
+    for( int i=0; i<bellList.size(); i++ ) {
+        GridPos oldPos = bellList.getElementDirect( i );
+        double dx = (double)newPos.x - (double)oldPos.x;
+        double dy = (double)newPos.y - (double)oldPos.y;
+        double d = sqrt(  dx * dx + dy * dy );
+        // since the list is in chronological order
+        // if we find the exact bell in the list
+        // it must be the first we heard in a cluster
+        if( d == 0 ) return false;
+        if( d < 128.0 && d != 0 ) return true;
+        }
+    return false;
+    }
+
 
 
 
@@ -3346,14 +3390,16 @@ static void initTownPlannerMap() {
     
     if( !townPlannerMapFileRaw->exists() ) {
         townPlannerMapFile = fopen( townPlannerMapFileRaw->getFullFileName(), "ab" );
-        townPlannerMapFile_w = SettingsManager::getIntSetting( "townPlannerMapMapSizeX", 400 );
-        townPlannerMapFile_h = SettingsManager::getIntSetting( "townPlannerMapMapSizeY", 400 );
+        townPlannerMapFile_w = SettingsManager::getIntSetting( "townPlannerMapSizeX", 400 );
+        townPlannerMapFile_h = SettingsManager::getIntSetting( "townPlannerMapSizeY", 400 );
         townPlannerMapFile_oX = SettingsManager::getIntSetting( "townPlannerMapInitCenterX", int(townPlannerMapFile_w / 2) );
         townPlannerMapFile_oY = SettingsManager::getIntSetting( "townPlannerMapInitCenterY", int(townPlannerMapFile_h / 2) );
+        if( townPlannerMapFile_w < 0 ) townPlannerMapFile_w = 400;
+        if( townPlannerMapFile_h < 0 ) townPlannerMapFile_h = 400;
         if( townPlannerMapFile_w > 800 ) townPlannerMapFile_w = 800;
         if( townPlannerMapFile_h > 800 ) townPlannerMapFile_h = 800;
-        if( townPlannerMapFile_oX >= townPlannerMapFile_w || townPlannerMapFile_w < 0 ) townPlannerMapFile_oX = int(townPlannerMapFile_w / 2);
-        if( townPlannerMapFile_oY >= townPlannerMapFile_h || townPlannerMapFile_h < 0 ) townPlannerMapFile_oY = int(townPlannerMapFile_h / 2);
+        if( townPlannerMapFile_oX >= townPlannerMapFile_w || townPlannerMapFile_oX < 0 ) townPlannerMapFile_oX = int(townPlannerMapFile_w / 2);
+        if( townPlannerMapFile_oY >= townPlannerMapFile_h || townPlannerMapFile_oY < 0 ) townPlannerMapFile_oY = int(townPlannerMapFile_h / 2);
         fprintf( townPlannerMapFile, "w=%d\nh=%d\norigin=%d,%d\nfloorPresent\n", townPlannerMapFile_w, townPlannerMapFile_h, townPlannerMapFile_oX, townPlannerMapFile_oY );
         } 
     else {
@@ -12212,6 +12258,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 else if( savedCoords.type == 3 ) {
                     setDrawColor( 0.50, 0.36, 0.55, 1.0 ); // purple
+                    if( savedCoords.x == lastBellPos.x && 
+                        savedCoords.y == lastBellPos.y ) {
+                        setDrawColor( 0.72, 0.18, 0.92, 1.0 ); // bright purple
+                        }
                     }
 
                 handwritingFont->drawString( lineName, pos, alignLeft );
@@ -16162,27 +16212,23 @@ void LivingLifePage::step() {
                     double d = distance( pos, ourLiveObject->currentPos );
                     
                     if( d > 32 ) {
-                        
-                        // ignore ancient monument if we already
-                        // heard another nearby, to avoid bell spam
-                        bool found = false;
-                        for( int i=0; i<homePosStack.size(); i++ ) {
-                            if( homePosStack.getElementDirect( i ).ancient ) {
-                                GridPos homeGridPos = homePosStack.getElementDirect( i ).pos;
-                                doublePair homePos = {(double)homeGridPos.x, (double)homeGridPos.y};
-                                if( distance( pos, homePos ) < 32 ) {
-                                    found = true;
-                                    break;
-                                    }
-                                }
-                            }
+
+                        // we are calling all monuments "bell" here
+                        // while they can also be apoc or Halloween shine etc
+                        // this doesn't matter for now
+                        bool isSpam = isBellSpammy(posX, posY);
+
+                        // record the bell even if it is spammy
+                        addBell(posX, posY);
                             
-                        if( !found ) {
+                        if( !isSpam ) {
                         
                             addAncientHomeLocation( posX, posY );
 
                             SavedCoordinates bellCoords = {posX, posY, translate("bellLocation"), 3};
                             addCoordinates( bellCoords );
+
+                            lastBellPos = {posX, posY};
                             
                             // play sound in distance
                             ObjectRecord *monObj = getObject( monumentID );
@@ -25011,7 +25057,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         
         char rightClick;
         int id = mObjectPicker.getSelectedObject( &rightClick );
-        if( isLastMouseButtonRight() ) id = 1938; // Smooth Ground
+        if( isLastMouseButtonRight() ) {
+            if( isShiftKeyDown() ) {
+                id = 16003; // Smooth Ground #floor
+                }
+            else {
+                id = 1938; // Smooth Ground
+                }
+            }
         
         if( id != -1 ) {
             char *message = autoSprintf( "VOGI %d %d %d#",
@@ -25139,6 +25192,14 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                             savedOrigin = SavedCoordinatesList.getElementDirect( i );
                             }
                         else {
+                            SavedCoordinates coordsToBeRemoved = SavedCoordinatesList.getElementDirect( i );
+                            if( coordsToBeRemoved.type == 3 ) {
+                                // we are manually removing a monument coords
+                                // add it to ignore list
+                                GridPos ignorePos = { coordsToBeRemoved.x, coordsToBeRemoved.y };
+                                bellIgnoreList.push_back( ignorePos );
+                                }
+
                             SavedCoordinatesList.deleteElement( i );
                             SavedCoordinatesComponentList.deleteElement( i );
                             }
@@ -26848,11 +26909,60 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
 
 
+double lastVogDragTime = 0;
 
 void LivingLifePage::pointerDrag( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
+
+    if( !mForceGroundClick && vogMode && vogPickerOn && 
+        !isHoveringPicker(inX, inY)
+        ) {
+
+        if( game_getCurrentTime() - lastVogDragTime < 0.05 ) return;
+
+        GridPos pos;
+        pos.x = int(round( inX / (float)CELL_D ));
+        pos.y = int(round( inY / (float)CELL_D ));
+        
+        char rightClick;
+        int id = mObjectPicker.getSelectedObject( &rightClick );
+        if( isLastMouseButtonRight() ) {
+            if( isShiftKeyDown() ) {
+                id = 16003; // Smooth Ground #floor
+                }
+            else {
+                id = 1938; // Smooth Ground
+                }
+            }
+        
+        if( id != -1 ) {
+
+            ObjectRecord *o = getObject( id );
+            if( o == NULL ) return;
+            if( o->floor ) {
+                int mapI = getMapIndex( pos.x, pos.y );
+                if( mapI != -1 ) {
+                    int currentFloor = mMapFloors[ mapI ];
+                    if( id == currentFloor ) return;
+                    }
+                }
+            else {
+                int currentObject = getObjId( pos.x, pos.y );
+                if( id == currentObject ) return;
+                }
+
+            char *message = autoSprintf( "VOGI %d %d %d#",
+                                         lrint( pos.x ), 
+                                         lrint( pos.y ), id );
+            sendToServerSocket( message );
+            lastVogDragTime = game_getCurrentTime();
+            delete [] message;
+            mObjectPicker.usePickable( id );
+            return;
+            }
+        }
     
     if( showBugMessage ) {
         return;
@@ -28569,25 +28679,25 @@ void LivingLifePage::movementStep() {
     lastPosX = sX;
     lastPosY = sY;
 
-    bool nextStepIsDiagonal = 
-        abs( (int)round(ourLiveObject->currentPos.x) - x ) + 
-        abs( (int)round(ourLiveObject->currentPos.y) - y ) > 1;
+    // bool nextStepIsDiagonal = 
+    //     abs( (int)round(ourLiveObject->currentPos.x) - x ) + 
+    //     abs( (int)round(ourLiveObject->currentPos.y) - y ) > 1;
 
-    if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
-        waitForDoorToOpen = false;
-    } else if (waitForDoorToOpen) {
-        if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
-            return;
-        waitForDoorToOpen = false;
-    } else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
-        char msg[32];
-        sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
-        setNextActionMessage( msg, x, y );
-        waitForDoorToOpen = true;
-        lastDoorToOpenX = (int)x;
-        lastDoorToOpenY = (int)y;
-        return;
-    }
+    // if (waitForDoorToOpen && (lastDoorToOpenX != x || lastDoorToOpenY != y)) {
+    //     waitForDoorToOpen = false;
+    // } else if (waitForDoorToOpen) {
+    //     if (tileHasClosedDoor( lastDoorToOpenX, lastDoorToOpenY ))
+    //         return;
+    //     waitForDoorToOpen = false;
+    // } else if (tileHasClosedDoor( x, y ) && !nextStepIsDiagonal) {
+    //     char msg[32];
+    //     sprintf( msg, "USE %d %d#", sendX(x), sendY(y));
+    //     setNextActionMessage( msg, x, y );
+    //     waitForDoorToOpen = true;
+    //     lastDoorToOpenX = (int)x;
+    //     lastDoorToOpenY = (int)y;
+    //     return;
+    // }
 
     x *= CELL_D;
     y *= CELL_D;
