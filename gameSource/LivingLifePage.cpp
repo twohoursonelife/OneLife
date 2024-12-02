@@ -282,6 +282,7 @@ static doublePair yumBubbleDrawPos = {0, 0};
 
 static int historyGraphLength = 100;
 
+static char drawGuiPanelToggle = false;
 static char showFPS = false;
 static double frameBatchMeasureStartTime = -1;
 static int framesInBatch = 0;
@@ -10675,7 +10676,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    if( hideGuiPanel ) {
+    if( hideGuiPanel || (drawGuiPanelToggle && !vogMode)) {
         // skip gui
         return;
         }    
@@ -27611,6 +27612,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case 96: { // grave
+            if( !TextField::isAnyFocused() && !vogMode) {
+                drawGuiPanelToggle = !drawGuiPanelToggle;
+                }
             // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
             // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
             // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
@@ -27622,6 +27626,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if( !TextField::isAnyFocused() ) {
                 drawGridToggle = !drawGridToggle;
                 }
+            break;
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
                 
