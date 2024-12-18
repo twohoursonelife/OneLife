@@ -639,6 +639,8 @@ class LivingLifePage : public GamePage, public ActionListener {
     protected:
         
         int *mMapBiomes;
+        SimpleVector<doublePair> mRememberedChunkCoordinates;
+        SimpleVector<int*> mMapBiomesRemembered;
         int *mMapFloors;
 
         char *mMapCellDrawnFlags;
