@@ -638,7 +638,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         
     protected:
         
-        int *mMapBiomes;
         SimpleVector<doublePair> mRememberedChunkCoordinates;
         SimpleVector<int*> mMapBiomesRemembered;
         int *mMapFloors;
@@ -1141,7 +1140,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         // true if tile index is covered by a floor tile that doesn't
         // have a +noCover tag
         char isCoveredByFloor( int inTileIndex );
-
+        int* findChunkByCoords( int absoluteChunkX, int absoluteChunkY );
 
         void drawHomeSlip( doublePair inSlipPos, int inIndex = 0 );
         
