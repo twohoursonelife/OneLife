@@ -4103,6 +4103,10 @@ void LivingLifePage::clearMap() {
         // -1 represents unknown
         // 0 represents known empty
         mMap[i] = -1;
+        for (int c = 0; c < mMapBiomesRemembered.size(); c++){
+            int* chunk = *mMapBiomesRemembered.getElement(c);
+            chunk[i] = -1;
+        }
         mMapFloors[i] = -1;
         
         mMapAnimationFrameCount[i] = randSource.getRandomBoundedInt( 0, 10000 );
