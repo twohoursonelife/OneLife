@@ -8218,23 +8218,23 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 doublePair pos = { (double)screenX, (double)screenY };
 
                 // this draws debug info about remembered chunks every 4 tiles
-                if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
-                    doublePair drawPos = pos;
-                    setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
-                    char* string;
-                    string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
-                    tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                    delete[] string;
-                    drawPos.y += 30;
-                    string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
-                    tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                    delete[] string;
-                    drawPos.y += 30;
-                    string = autoSprintf("%d,%d", b, chunk != NULL);
-                    tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                    delete[] string;
-                    setDrawColor( 1,1,1,1 );
-                }
+                // if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
+                //     doublePair drawPos = pos;
+                //     setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
+                //     char* string;
+                //     string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     drawPos.y += 30;
+                //     string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     drawPos.y += 30;
+                //     string = autoSprintf("%d,%d", b, chunk != NULL);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     setDrawColor( 1,1,1,1 );
+                // }
 
                 // wrap around
                 int setY = tileY % s->numTilesHigh;
