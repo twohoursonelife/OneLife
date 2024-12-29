@@ -8218,23 +8218,23 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 doublePair pos = { (double)screenX, (double)screenY };
 
                 // this draws debug info about remembered chunks every 4 tiles
-                // if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
-                //     doublePair drawPos = pos;
-                //     setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
-                //     char* string;
-                //     string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     delete[] string;
-                //     drawPos.y += 30;
-                //     string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     delete[] string;
-                //     drawPos.y += 30;
-                //     string = autoSprintf("%d,%d", b, chunk != NULL);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     delete[] string;
-                //     setDrawColor( 1,1,1,1 );
-                // }
+                if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
+                    doublePair drawPos = pos;
+                    setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
+                    char* string;
+                    string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
+                    tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                    delete[] string;
+                    drawPos.y += 30;
+                    string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
+                    tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                    delete[] string;
+                    drawPos.y += 30;
+                    string = autoSprintf("%d,%d", b, chunk != NULL);
+                    tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                    delete[] string;
+                    setDrawColor( 1,1,1,1 );
+                }
 
                 // wrap around
                 int setY = tileY % s->numTilesHigh;
@@ -8257,34 +8257,29 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     
                     // check borders of would-be sheet too
                     for( int nY = posInChunkY+1; nY >= posInChunkY - s->numTilesHigh; nY-- ) {
-                        
-                        if( nY >=0 && nY < mMapD ) {
+                        for( int nX = posInChunkX-1; nX <= posInChunkX + s->numTilesWide; nX++ ) {
+                            int nI = nY * mMapD + nX;
+                            int nB = -1;
                             
-                            for( int nX = posInChunkX-1; nX <= posInChunkX + s->numTilesWide; nX++ ) {
-                                
-                                if( nX >=0 && nX < mMapD ) {
-                                    int nI = nY * mMapD + nX;
-                                    
-                                    int nB = -1;
-                                    
-                                    if( isInBounds( nX, nY, mMapD ) ) {
-                                        if (chunk != NULL){
-                                            nB = chunk[nI];
-                                        }
-                                    }
-
-                                    if( nB != b ) {
-                                        allSameBiome = false;
-                                        break;
-                                        }
-                                    }
+                            if( isInBounds( nX, nY, mMapD ) ) {
+                                if (chunk != NULL){
+                                    nB = chunk[nI];
                                 }
-
                             }
-                        if( !allSameBiome ) {
-                            break;
+                            else {
+                                allSameBiome = false; // this sheet is on the borders of chunks, draw each thing separately because I'm too lazy to look up chunks in the chunks array.
+                                break;
+                            }
+
+                            if( nB != b ) {
+                                allSameBiome = false;
+                                break;
                             }
                         }
+                        if( !allSameBiome ) {
+                            break;
+                        }
+                    }
                     
                     if( allSameBiome ) {
                         
