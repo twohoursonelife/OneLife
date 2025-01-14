@@ -1,4 +1,5 @@
 #include "TownplannerScenePage.h"
+#include "inputManager.h"
 #include <math.h>
 #include <vector>
 
@@ -2435,12 +2436,6 @@ void EditorScenePage::step() {
         }
     }
 
-// bool shiftDown = false;
-// bool ctrlDown = false;
-char upKey = 'w';
-char leftKey = 'a';
-char downKey = 's';
-char rightKey = 'd';
 
 void EditorScenePage::keyDown( unsigned char inASCII ) {
     
@@ -2473,22 +2468,22 @@ void EditorScenePage::keyDown( unsigned char inASCII ) {
             return;
             }
         else if( !TextField::isAnyFocused() && commandKey ) {
-            if( inASCII + 64 == toupper(upKey) ) {
+            if( inASCII + 64 == toupper(charKey_Up) ) {
                 mObjectPicker.selectUp();
                 char oWasRightClick = false;
                 pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
                 pickedGID = -1;
                 }
-            else if( inASCII + 64 == toupper(downKey) ) {
+            else if( inASCII + 64 == toupper(charKey_Down) ) {
                 mObjectPicker.selectDown();
                 char oWasRightClick = false;
                 pickedOID = mObjectPicker.getSelectedObject( &oWasRightClick );
                 pickedGID = -1;
                 }
-            else if( inASCII + 64 == toupper(rightKey) ) {
+            else if( inASCII + 64 == toupper(charKey_Right) ) {
                 mObjectPicker.nextPage();
                 }
-            else if( inASCII + 64 == toupper(leftKey) ) {
+            else if( inASCII + 64 == toupper(charKey_Left) ) {
                 mObjectPicker.prevPage();
                 }
             }

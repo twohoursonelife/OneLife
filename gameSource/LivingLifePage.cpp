@@ -8,6 +8,19 @@
 #include "whiteSprites.h"
 #include "message.h"
 #include "groundSprites.h"
+// #include "inputManager.h"
+
+const unsigned char charKey_Up = 'w';
+const unsigned char charKey_Down = 's';
+const unsigned char charKey_Left = 'a';
+const unsigned char charKey_Right = 'd';
+const unsigned char charKey_TileStandingOn = ' ';
+
+const unsigned char charKey_Backpack = 'q';
+const unsigned char charKey_TakeOffBackpack = 'b';
+const unsigned char charKey_Pocket = 't';
+const unsigned char charKey_Eat = 'e';
+const unsigned char charKey_Baby = 'c';
 
 #include "accountHmac.h"
 
@@ -177,18 +190,6 @@ int lastDoorToOpenY;
 
 float lastPosX;
 float lastPosY;
-
-unsigned char charKey_Up = 'w';
-unsigned char charKey_Down = 's';
-unsigned char charKey_Left = 'a';
-unsigned char charKey_Right = 'd';
-unsigned char charKey_TileStandingOn = ' ';
-
-unsigned char charKey_Backpack = 'q';
-unsigned char charKey_TakeOffBackpack = 'b';
-unsigned char charKey_Pocket = 't';
-unsigned char charKey_Eat = 'e';
-unsigned char charKey_Baby = 'c';
 
 static bool waitForDoorToOpen;
 
@@ -27029,11 +27030,6 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
     }
 
 
-extern char upKey;
-extern char leftKey;
-extern char downKey;
-extern char rightKey;
-
 void LivingLifePage::keyDown( unsigned char inASCII ) {
     
     registerTriggerKeyCommand( inASCII, this );
@@ -27071,14 +27067,14 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             TextField::unfocusAll();
             return;
         } else if( !TextField::isAnyFocused() && commandKey ) {
-            if( inASCII + 64 == toupper(upKey) ) {
+            if( inASCII + 64 == toupper(charKey_Up) ) {
                 mObjectPicker.selectUp();
-            } else if( inASCII + 64 == toupper(downKey) ) {
+            } else if( inASCII + 64 == toupper(charKey_Down) ) {
                 mObjectPicker.selectDown();
                 return;
-            }  else if( inASCII + 64 == toupper(rightKey) ) {
+            }  else if( inASCII + 64 == toupper(charKey_Right) ) {
                 mObjectPicker.nextPage();
-            }  else if( inASCII + 64 == toupper(leftKey) ) {
+            }  else if( inASCII + 64 == toupper(charKey_Left) ) {
                 mObjectPicker.prevPage();
             }
         } else if( TextField::isAnyFocused() && !mSayField.isFocused() && inASCII == 13 ) {

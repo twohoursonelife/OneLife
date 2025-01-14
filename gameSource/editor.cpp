@@ -78,7 +78,6 @@ int accountHmacVersionNumber = 0;
 
 #include "groundSprites.h"
 
-
 #include "ageControl.h"
 #include "emotion.h"
 
@@ -146,11 +145,6 @@ int webRetrySeconds;
 
 
 double frameRateFactor = 1;
-
-char upKey = 'w';
-char leftKey = 'a';
-char downKey = 's';
-char rightKey = 'd';
 
 char *serverAddress = NULL;
 int serverPort;
