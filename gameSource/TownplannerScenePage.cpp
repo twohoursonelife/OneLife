@@ -2437,10 +2437,10 @@ void EditorScenePage::step() {
 
 // bool shiftDown = false;
 // bool ctrlDown = false;
-extern char upKey;
-extern char leftKey;
-extern char downKey;
-extern char rightKey;
+char upKey = 'w';
+char leftKey = 'a';
+char downKey = 's';
+char rightKey = 'd';
 
 void EditorScenePage::keyDown( unsigned char inASCII ) {
     

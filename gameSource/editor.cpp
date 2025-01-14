@@ -147,18 +147,10 @@ int webRetrySeconds;
 
 double frameRateFactor = 1;
 
-
-char firstDrawFrameCalled = false;
-char firstServerMessageReceived = false;
-
-
 char upKey = 'w';
 char leftKey = 'a';
 char downKey = 's';
 char rightKey = 'd';
-
-
-
 
 char *serverAddress = NULL;
 int serverPort;
@@ -1032,37 +1024,8 @@ void drawFrame( char inUpdate ) {
                     }
                 }
             }
-        }    
-    
-    
-
-    if( !firstDrawFrameCalled ) {
-        
-        // do final init step... stuff that shouldn't be done until
-        // we have control of screen
-        
-        char *moveKeyMapping = 
-            SettingsManager::getStringSetting( "upLeftDownRightKeys" );
-    
-        if( moveKeyMapping != NULL ) {
-            char *temp = stringToLowerCase( moveKeyMapping );
-            delete [] moveKeyMapping;
-            moveKeyMapping = temp;
-        
-            if( strlen( moveKeyMapping ) == 4 &&
-                strcmp( moveKeyMapping, "wasd" ) != 0 ) {
-                // different assignment
-
-                upKey = moveKeyMapping[0];
-                leftKey = moveKeyMapping[1];
-                downKey = moveKeyMapping[2];
-                rightKey = moveKeyMapping[3];
-                }
-            delete [] moveKeyMapping;
-            }
-
-        firstDrawFrameCalled = true;
         }
+
 
     if( wasPaused ) {
         if( currentGamePage != NULL ) {
