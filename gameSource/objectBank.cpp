@@ -3690,6 +3690,76 @@ int addObject( const char *inDescription,
     
     r->homeMarker = inHomeMarker;
     r->isTapOutTrigger = inTapoutTrigger;
+
+    // Remove the tapout record and add again
+    // for the case of replacing an existing object
+    TapoutRecord *tr = getTapoutRecord( newID );
+    if( tr != NULL ) {
+        for( int i=tapoutRecords.size()-1; i>=0; i-- ) {
+            TapoutRecord *r = tapoutRecords.getElement( i );
+            
+            if( r->triggerID == newID ) {
+                tapoutRecords.deleteElement(i);
+                }
+            }
+        }
+
+    if( inTapoutTrigger ) {
+        TapoutRecord tr;
+
+        int value1 = -1;
+        int value2 = -1;
+        int value3 = -1;
+        int value4 = -1;
+        int value5 = -1;
+        int value6 = -1;
+
+        int numRead = sscanf( inTapoutTriggerParameters, 
+                            "%d,%d,%d,%d,%d,%d", 
+                            &value1, &value2,
+                            &value3, &value4,
+                            &value5, &value6 );
+        
+        if( numRead >= 2 && numRead <= 6 ) {
+            // valid tapout trigger
+            
+            tr.triggerID = newID;
+            
+            tr.tapoutMode = value1;
+            tr.tapoutCountLimit = -1;
+            tr.specificX = 9999;
+            tr.specificY = 9999;
+            tr.radiusN = -1;
+            tr.radiusE = -1;
+            tr.radiusS = -1;
+            tr.radiusW = -1;
+            
+            if( tr.tapoutMode == 1 ) {
+                tr.specificX = value2;
+                tr.specificY = value3;
+                }
+            else if( tr.tapoutMode == 0 ) {
+                tr.radiusN = value3;
+                tr.radiusE = value2;
+                tr.radiusS = value3;
+                tr.radiusW = value2;
+                if( numRead == 4 )
+                    tr.tapoutCountLimit = value4;
+                }                
+            else if( tr.tapoutMode == 2 ) {
+                tr.radiusN = value2;
+                tr.radiusE = value3;
+                tr.radiusS = value4;
+                tr.radiusW = value5;
+                if( numRead == 6 )
+                    tr.tapoutCountLimit = value6;
+                }
+
+            tapoutRecords.push_back( tr );
+            }
+
+        }
+
     r->floor = inFloor;
     r->noCover = inPartialFloor;
     r->floorHugging = inFloorHugging;
@@ -5901,6 +5971,8 @@ char *getBiomesString( ObjectRecord *inObject ) {
     }
 
 char *getTapoutTriggerString( ObjectRecord *inObject ) {
+
+    if( inObject == NULL ) return NULL;
 
     char *working = NULL;
 
