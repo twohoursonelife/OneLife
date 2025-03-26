@@ -4097,16 +4097,21 @@ static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
     }
 
 
+void LivingLifePage::clearRememberedMap(){
+    for (int c = 0; c < mMapBiomesRemembered.size(); c++){
+        int* chunk = *mMapBiomesRemembered.getElement(c);
+        for( int i=0; i<mMapD*mMapD; i++ ) {
+            chunk[i] = -1;
+        }
+    }
+}
 
 void LivingLifePage::clearMap() {
-    for( int i=0; i<mMapD *mMapD; i++ ) {
+    clearRememberedMap();
+    for( int i=0; i<mMapD*mMapD; i++ ) {
         // -1 represents unknown
         // 0 represents known empty
         mMap[i] = -1;
-        for (int c = 0; c < mMapBiomesRemembered.size(); c++){
-            int* chunk = *mMapBiomesRemembered.getElement(c);
-            chunk[i] = -1;
-        }
         mMapFloors[i] = -1;
         
         mMapAnimationFrameCount[i] = randSource.getRandomBoundedInt( 0, 10000 );
@@ -8225,12 +8230,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 //     string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
                 //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
                 //     delete[] string;
-                //     drawPos.y += 30;
+                //     drawPos.y += 50;
                 //     string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
                 //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
                 //     delete[] string;
-                //     drawPos.y += 30;
-                //     string = autoSprintf("%d,%d", b, chunk != NULL);
+                //     drawPos.y += 50;
+                //     string = autoSprintf("b%d,c%d", b, chunk != NULL);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     drawPos.y += 50;
+                //     string = autoSprintf("%d,%d", mMapOffsetX, mMapOffsetY);
                 //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
                 //     delete[] string;
                 //     setDrawColor( 1,1,1,1 );
@@ -17088,7 +17097,10 @@ void LivingLifePage::step() {
             delete [] newMapPlayerPlacedFlags;
             
             
-
+            if (newMapOffsetX == 0 && newMapOffsetY == 0){
+                // probably when we are flying or teleporting. coordinates reset to (0, 0)
+                clearRememberedMap();
+            }
             mMapOffsetX = newMapOffsetX;
             mMapOffsetY = newMapOffsetY;
             

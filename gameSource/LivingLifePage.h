@@ -465,6 +465,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         LivingLifePage();
         ~LivingLifePage();
         
+        void clearRememberedMap();
         void clearMap();
         
         // enabled tutorail next time a connection loads
