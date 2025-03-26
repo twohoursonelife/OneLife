@@ -7498,7 +7498,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         newObject.isEve = true;
         newObject.lineageEveID = newObject.id;
         
-        newObject.lifeStartTimeSeconds -= 14 * ( 1.0 / getAgeRate() );
+        newObject.lifeStartTimeSeconds -= SettingsManager::getIntSetting( "eveStartingAge", 14 ) * ( 1.0 / getAgeRate() );
         
         // she starts off craving a food right away
         newObject.cravingFood = getCravedFood( newObject.lineageEveID,
