@@ -12581,7 +12581,7 @@ char isHungryWorkBlocked( LiveObject *inPlayer,
         
         if( inPlayer->foodStore + 
             inPlayer->yummyBonusStore < 
-            cost + 4 ) {
+            cost + 3 ) {
             // block hungry work,
             // not enough food to have a
             // "safe" buffer after
