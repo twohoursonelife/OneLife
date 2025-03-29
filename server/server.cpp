@@ -12542,17 +12542,20 @@ static char isAccessBlocked( LiveObject *inPlayer,
 
 
 void sendHungryWorkSpeech( LiveObject *inPlayer ) {
-    // tell player about it with private speech
-    char *message = autoSprintf( 
-        "PS\n"
-        "%d/0 +MORE FOOD+\n#",
-        inPlayer->id );
+    // tell player about it with private global message
+    // (instead of private speech as in OHOL because speech bubble is too intrusive)
+
+    double curTime = Time::getCurrentTime();
+    if( curTime - inPlayer->lastGlobalMessageTime > minGlobalMessageSpacingSeconds ) {
+        // don't even bother sending hungry work messages when the global messages start getting spammy
+        // e.g. when player spams hungryWork action without enough food
+        char *message = autoSprintf( "YOU NEED MORE FOOD PIPS TO COMPLETE." );
     
-    sendMessageToPlayer( 
-        inPlayer, 
-        message, 
-        strlen( message ) );
-    delete [] message;
+        sendGlobalMessage( message, inPlayer );
+    
+        delete [] message;
+        }
+
     }
 
 
