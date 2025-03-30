@@ -17990,6 +17990,17 @@ int main() {
                                             contTarget = -contTarget;
                                             isSubCont = true;
                                             }
+                                        
+                                        // The isSubCont check above blocks the action
+                                        // whenever the contained item has subcontainment
+                                        // even though the newTarget may have enough slots.
+                                        // So there is no point to allow for the case where
+                                        // contained item is empty while the held item has subcontainment.
+                                        // Case example: using a non-empty basket on an empty basket on wall shelf
+                                        // Blocking it here for simplicity
+                                        if( nextPlayer->numContained ) {
+                                            isSubCont = true;
+                                            }
 
                                         ObjectRecord *contTargetObj =
                                             getObject( contTarget );
