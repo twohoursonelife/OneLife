@@ -8722,6 +8722,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
+    drawTileVanillaHighlight( moveClickX, moveClickY, {1, 0, 0, 1.0}, false, true );
+
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
@@ -28674,7 +28676,23 @@ void LivingLifePage::movementStep() {
     int dir = getMoveDirection();
     if (dir <= 0) return;
 
+    // saving the tile we intend to move for use below
+    int unsafeX = x;
+    int unsafeY = y;
+    setMoveDirection(unsafeX, unsafeY, dir);
+
     if (!findNextMove(x, y, dir)) return; // sets x and y
+
+    // if you try to move in a direction say N
+    // when the keyboard movement leads you in a different direction say SE or SW
+    // you can be stuck going back and forth between 2 tiles
+    // the conditions below try to capture and stop that
+    // and let the keyboard movement finishes first
+    if( 
+        (unsafeX != x || unsafeY != y) && // keyboard movement disagrees with intended tile
+        magnetMoveCount > 0 && // this is after the first tile where the disagreement takes place
+        ourLiveObject->inMotion // we're moving
+    ) return;
 
     lastPosX = sX;
     lastPosY = sY;
