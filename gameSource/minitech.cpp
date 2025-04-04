@@ -163,9 +163,9 @@ static SpriteHandle mCellFillSprite;
 static SpriteHandle mCellBorderSprite;
 static SpriteHandle mTempArrowSprite;
 
-SpriteHandle sheet;
-SpriteHandle bigSheet;
-SpriteHandle crossHair;
+SpriteHandle sheet = NULL;
+SpriteHandle bigSheet = NULL;
+SpriteHandle crossHair = NULL;
 
 void minitech::setLivingLifePage(
     LivingLifePage *inLivingLifePage, 
@@ -259,9 +259,9 @@ void minitech::changeScale( float newScale ) {
 }
 
 void minitech::clearStep(){
-    freeSprite(sheet);
-    freeSprite(bigSheet);
-    freeSprite(crossHair);
+    if( sheet != NULL ) freeSprite(sheet);
+    if( bigSheet != NULL ) freeSprite(bigSheet);
+    if( crossHair != NULL ) freeSprite(crossHair);
 }
 
 bool minitech::posWithinArea(doublePair pos, doublePair areaTL, doublePair areaBR) {

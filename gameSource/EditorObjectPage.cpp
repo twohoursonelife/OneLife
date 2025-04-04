@@ -172,7 +172,7 @@ EditorObjectPage::EditorObjectPage()
           mHomeMarkerCheckbox( 635, -290, 2 ),
           mTapoutTriggerCheckbox( 635, -310, 2 ),
           mTapoutTriggerField( smallFont, 602, -334, 8, false, "",
-                       "0123456789,", NULL ),
+                       "-0123456789,", NULL ),
           mFloorCheckbox( 635, -210, 2 ),
           mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
@@ -3467,8 +3467,10 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             if( mTapoutTriggerCheckbox.getToggled() ) {
                 mTapoutTriggerField.setVisible( true );
                 char *tapoutTriggerParametersText = getTapoutTriggerString( pickedRecord );
-                mTapoutTriggerField.setText( tapoutTriggerParametersText );
-                delete [] tapoutTriggerParametersText;
+                if( tapoutTriggerParametersText != NULL ) {
+                    mTapoutTriggerField.setText( tapoutTriggerParametersText );
+                    delete [] tapoutTriggerParametersText;
+                    }
                 }
             else {
                 mTapoutTriggerField.setVisible( false );

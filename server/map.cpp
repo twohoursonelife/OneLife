@@ -5787,9 +5787,11 @@ int checkDecayObject( int inX, int inY, int inID ) {
                             // no further decay
                             leftMapETA = 0;
                             }
-                        //for movement from posA to posB, we want posA to be potentially always live tracked as well
-                        //leftDecayT is passed to check if it should be always live tracked
-                        setEtaDecay( inX, inY, leftMapETA, leftDecayT );
+                        // for movement from posA to posB, we want posA to be potentially always live tracked as well
+                        // potential decay of leftBehindID is passed to check if it should be always live tracked
+                        // cannot pass leftDecayT here because the pointer fuckery in getMetaTrans
+                        TransRecord *furtherDecay = getTrans( -1, leftBehindID );
+                        setEtaDecay( inX, inY, leftMapETA, furtherDecay );
                         }
                     else {
                         // leave empty spot behind
@@ -6041,7 +6043,9 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     }
                 }            
  
-            setEtaDecay( newX, newY, mapETA, newDecayT );
+            // cannot pass newDecayT here because the pointer fuckery in getMetaTrans
+            TransRecord *furtherDecay = getTrans( -1, newID );
+            setEtaDecay( newX, newY, mapETA, furtherDecay );
             }
  
         }

@@ -12541,6 +12541,64 @@ static char isAccessBlocked( LiveObject *inPlayer,
 
 
 
+void sendHungryWorkSpeech( LiveObject *inPlayer ) {
+    // tell player about it with private global message
+    // (instead of private speech as in OHOL because speech bubble is too intrusive)
+
+    double curTime = Time::getCurrentTime();
+    if( curTime - inPlayer->lastGlobalMessageTime > minGlobalMessageSpacingSeconds ) {
+        // don't even bother sending hungry work messages when the global messages start getting spammy
+        // e.g. when player spams hungryWork action without enough food
+        char *message = autoSprintf( "YOU NEED MORE FOOD PIPS TO COMPLETE." );
+    
+        sendGlobalMessage( message, inPlayer );
+    
+        delete [] message;
+        }
+
+    }
+
+
+
+// cost set to 0 unless hungry work not blocked
+char isHungryWorkBlocked( LiveObject *inPlayer, 
+                          int inNewTarget, int *outCost ) {          
+    *outCost = 0;
+    
+    char *des =
+        getObject( inNewTarget )->description;
+                                    
+    char *desPos =
+        strstr( des, "+hungryWork" );
+    
+    if( desPos != NULL ) {
+                                        
+        int cost = 0;
+        
+        sscanf( desPos,
+                "+hungryWork%d", 
+                &cost );
+        
+        if( inPlayer->foodStore + 
+            inPlayer->yummyBonusStore < 
+            cost + 3 ) {
+            // block hungry work,
+            // not enough food to have a
+            // "safe" buffer after
+            return true;
+            }
+        
+        // can do work
+        *outCost = cost;
+        return false;
+        }
+
+    // not hungry work at all
+    return false;
+    }
+
+
+
 // returns NULL if not found
 static LiveObject *getPlayerByName( char *inName, 
                                     LiveObject *inPlayerSayingName ) {
@@ -17506,25 +17564,14 @@ int main() {
                                 
                                 if( r != NULL && 
                                     r->newTarget > 0 ) {
-                                    char *des =
-                                        getObject( r->newTarget )->description;
-                                    
-                                    char *desPos =
-                                        strstr( des, "+hungryWork" );
-                                    
-                                    if( desPos != NULL ) {
+
+                                    if( isHungryWorkBlocked( 
+                                            nextPlayer,
+                                            r->newTarget,
+                                            &hungryWorkCost ) ) {
+                                        r = NULL;
                                         
-                                    
-                                        sscanf( desPos,
-                                                "+hungryWork%d", 
-                                                &hungryWorkCost );
-                                        
-                                        if( nextPlayer->foodStore < 
-                                            hungryWorkCost ) {
-                                            // block transition,
-                                            // not enough food
-                                            r = NULL;
-                                            }
+                                        sendHungryWorkSpeech( nextPlayer );
                                         }
                                     }
 
@@ -17774,19 +17821,24 @@ int main() {
                                         }
                                     
                                     if( hungryWorkCost > 0 ) {
-                                        int oldStore = nextPlayer->foodStore;
+                                        if( nextPlayer->yummyBonusStore > 0 ) {
+                                            if( nextPlayer->yummyBonusStore
+                                                >= hungryWorkCost ) {
+                                                nextPlayer->yummyBonusStore -=
+                                                    hungryWorkCost;
+                                                hungryWorkCost = 0;
+                                                }
+                                            else {
+                                                hungryWorkCost -= 
+                                                    nextPlayer->yummyBonusStore;
+                                                nextPlayer->yummyBonusStore = 0;
+                                                }
+                                            }
                                         
                                         nextPlayer->foodStore -= hungryWorkCost;
                                         
-                                        if( nextPlayer->foodStore < 3 ) {
-                                            if( oldStore > 3  ) {
-                                                // generally leave
-                                                // player with 3 food
-                                                // unless they had less than
-                                                // 3 to start
-                                                nextPlayer->foodStore = 3;
-                                                }
-                                            }
+                                        // we checked above, so player
+                                        // never is taken down below 5 here
                                         nextPlayer->foodUpdate = true;
                                         }
                                     
@@ -17936,6 +17988,17 @@ int main() {
                                         char isSubCont = false;
                                         if( contTarget < 0 ) {
                                             contTarget = -contTarget;
+                                            isSubCont = true;
+                                            }
+                                        
+                                        // The isSubCont check above blocks the action
+                                        // whenever the contained item has subcontainment
+                                        // even though the newTarget may have enough slots.
+                                        // So there is no point to allow for the case where
+                                        // contained item is empty while the held item has subcontainment.
+                                        // Case example: using a non-empty basket on an empty basket on wall shelf
+                                        // Blocking it here for simplicity
+                                        if( nextPlayer->numContained ) {
                                             isSubCont = true;
                                             }
 
