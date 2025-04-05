@@ -8722,8 +8722,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
-    drawTileVanillaHighlight( moveClickX, moveClickY, {1, 0, 0, 1.0}, false, true );
-
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
