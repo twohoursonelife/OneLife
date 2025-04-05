@@ -28694,6 +28694,7 @@ void LivingLifePage::movementStep() {
     // the conditions below try to capture and stop that
     // and let the keyboard movement finishes first
     if( 
+        dir % 2 == 0 && // if intended movement is cardinal
         (unsafeX != x || unsafeY != y) && // keyboard movement disagrees with intended tile
         magnetMoveCount > 0 && // this is after the first tile where the disagreement takes place
         ourLiveObject->inMotion // we're moving
