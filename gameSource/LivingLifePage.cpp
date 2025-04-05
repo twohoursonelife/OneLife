@@ -18167,6 +18167,11 @@ void LivingLifePage::step() {
                                     }
                                 }
                             }
+
+                        // pretend to move a pointer to the cell if we were hovering it to update the cursor-tip
+                        // if (lastMouseX / CELL_D == mapX && lastMouseY / CELL_D == mapY){
+                            pointerMove(lastMouseX, lastMouseY);
+                            // }
                         }
                     }
                 
