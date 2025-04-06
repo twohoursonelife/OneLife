@@ -13248,6 +13248,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
         timeMeasures[2] += game_getCurrentTime() - drawStartTime;
         }
     
+    // simulate a pointer move to the last known position
+    // to check again what the pointer is hitting
+    // doing it here instead of say when the screen moves / when an MX is received
+    // should catch all other fringe cases
+    // e.g. a character or an object moves into the cursor
+    // should also note the expensiveness of the call
+    // but it shouldn't be too much different from the previous version where
+    // we call this whenever the screen moves
+    pointerMove(lastMouseX, lastMouseY);
+    
     }
 
 
@@ -18165,11 +18175,6 @@ void LivingLifePage::step() {
                                     }
                                 }
                             }
-
-                        // pretend to move a pointer to the cell if we were hovering it to update the cursor-tip
-                        // if (lastMouseX / CELL_D == mapX && lastMouseY / CELL_D == mapY){
-                            pointerMove(lastMouseX, lastMouseY);
-                            // }
                         }
                     }
                 
@@ -22496,10 +22501,6 @@ void LivingLifePage::step() {
                            lastScreenMouseY,
                            &lastMouseX,
                            &lastMouseY );
-                           
-            // camera moved, simulate a pointer move to the last known position
-            // to check again what the pointer is hitting
-            pointerMove( lastMouseX, lastMouseY );
             
             }
 
