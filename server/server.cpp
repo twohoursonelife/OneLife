@@ -12549,7 +12549,7 @@ void sendHungryWorkSpeech( LiveObject *inPlayer ) {
     if( curTime - inPlayer->lastGlobalMessageTime > minGlobalMessageSpacingSeconds ) {
         // don't even bother sending hungry work messages when the global messages start getting spammy
         // e.g. when player spams hungryWork action without enough food
-        char *message = autoSprintf( "YOU NEED MORE FOOD PIPS TO COMPLETE." );
+        char *message = autoSprintf( "YOU NEED MORE FOOD PIPS TO COMPLETE THIS ACTION." );
     
         sendGlobalMessage( message, inPlayer );
     

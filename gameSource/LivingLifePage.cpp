@@ -238,6 +238,10 @@ static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
 static float lastMouseX = 0;
 static float lastMouseY = 0;
 
+// last time cursor actually moves (instead of calling pointerMove with the same pos)
+static double lastCursorMoveTime = false;
+static char hideCursorTipsAndHighlightChanges = false;
+
 
 // set to true to render for teaser video
 static char teaserVideo = false;
@@ -5921,7 +5925,7 @@ void LivingLifePage::drawMapCell( int inMapI,
                 }
             }
         
-        if( ! mShowHighlights ) {
+        if( ! (mShowHighlights && !hideCursorTipsAndHighlightChanges) ) {
             if( inHighlightOnly ) {
                 setObjectDrawAlpha( 1.0 );
                 return;
@@ -8722,8 +8726,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         }
 
-    drawTileVanillaHighlight( moveClickX, moveClickY, {1, 0, 0, 1.0}, false, true );
-
     
     float maxFullCellFade = 0.5;
     float maxEmptyCellFade = 0.75;
@@ -11485,7 +11487,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // cursor-tips
-    if( !isAnyUIHovered() )
+    if( !isAnyUIHovered() &&
+        !hideCursorTipsAndHighlightChanges
+    )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -13249,6 +13253,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
     if( showFPS ) {
         timeMeasures[2] += game_getCurrentTime() - drawStartTime;
         }
+    
+    // simulate a pointer move to the last known position
+    // to check again what the pointer is hitting
+    // doing it here instead of say when the screen moves / when an MX is received
+    // should catch all other fringe cases
+    // e.g. a character or an object moves into the cursor
+    // should also note the expensiveness of the call
+    // but it shouldn't be too much different from the previous version where
+    // we call this whenever the screen moves
+    pointerMove(lastMouseX, lastMouseY);
     
     }
 
@@ -18167,11 +18181,6 @@ void LivingLifePage::step() {
                                     }
                                 }
                             }
-
-                        // pretend to move a pointer to the cell if we were hovering it to update the cursor-tip
-                        // if (lastMouseX / CELL_D == mapX && lastMouseY / CELL_D == mapY){
-                            pointerMove(lastMouseX, lastMouseY);
-                            // }
                         }
                     }
                 
@@ -22498,11 +22507,19 @@ void LivingLifePage::step() {
                            lastScreenMouseY,
                            &lastMouseX,
                            &lastMouseY );
-                           
-            // camera moved, simulate a pointer move to the last known position
-            // to check again what the pointer is hitting
-            pointerMove( lastMouseX, lastMouseY );
             
+            }
+
+        // cursor tips and object highlight can get noisy when
+        // the screen keeps scrolling and the cursor hits a bunch of objects
+        // (even the empty space within an object sprite can cause the tips 
+        // and highlight to flash)
+        // this is most noticeable if you hold WASD to walk and leave the
+        // cursor still
+        hideCursorTipsAndHighlightChanges = false;
+        if( viewChange &&
+            (game_getCurrentTime() - lastCursorMoveTime > 2.0) ) {
+                hideCursorTipsAndHighlightChanges = true;
             }
 
         }
@@ -24593,6 +24610,8 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
 
 
 void LivingLifePage::pointerMove( float inX, float inY ) {
+
+    if( lastMouseX != inX || lastMouseY != inY ) lastCursorMoveTime = game_getCurrentTime();
     lastMouseX = inX;
     lastMouseY = inY;
         
@@ -28694,6 +28713,7 @@ void LivingLifePage::movementStep() {
     // the conditions below try to capture and stop that
     // and let the keyboard movement finishes first
     if( 
+        dir % 2 == 0 && // if intended movement is cardinal
         (unsafeX != x || unsafeY != y) && // keyboard movement disagrees with intended tile
         magnetMoveCount > 0 && // this is after the first tile where the disagreement takes place
         ourLiveObject->inMotion // we're moving
