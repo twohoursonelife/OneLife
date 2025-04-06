@@ -238,6 +238,10 @@ static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
 static float lastMouseX = 0;
 static float lastMouseY = 0;
 
+// last time cursor actually moves (instead of calling pointerMove with the same pos)
+static double lastCursorMoveTime = false;
+static char hideCursorTipsAndHighlightChanges = false;
+
 
 // set to true to render for teaser video
 static char teaserVideo = false;
@@ -5921,7 +5925,7 @@ void LivingLifePage::drawMapCell( int inMapI,
                 }
             }
         
-        if( ! mShowHighlights ) {
+        if( ! (mShowHighlights && !hideCursorTipsAndHighlightChanges) ) {
             if( inHighlightOnly ) {
                 setObjectDrawAlpha( 1.0 );
                 return;
@@ -11483,7 +11487,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
     // cursor-tips
-    if( !isAnyUIHovered() )
+    if( !isAnyUIHovered() &&
+        !hideCursorTipsAndHighlightChanges
+    )
     if( ourLiveObject != NULL ) {
         if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
             int idToDescribe = mCurMouseOverID;
@@ -22504,6 +22510,18 @@ void LivingLifePage::step() {
             
             }
 
+        // cursor tips and object highlight can get noisy when
+        // the screen keeps scrolling and the cursor hits a bunch of objects
+        // (even the empty space within an object sprite can cause the tips 
+        // and highlight to flash)
+        // this is most noticeable if you hold WASD to walk and leave the
+        // cursor still
+        hideCursorTipsAndHighlightChanges = false;
+        if( viewChange &&
+            (game_getCurrentTime() - lastCursorMoveTime > 2.0) ) {
+                hideCursorTipsAndHighlightChanges = true;
+            }
+
         }
     
 
@@ -24592,6 +24610,8 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
 
 
 void LivingLifePage::pointerMove( float inX, float inY ) {
+
+    if( lastMouseX != inX || lastMouseY != inY ) lastCursorMoveTime = game_getCurrentTime();
     lastMouseX = inX;
     lastMouseY = inY;
         
