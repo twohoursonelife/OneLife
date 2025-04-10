@@ -2277,10 +2277,6 @@ std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) {
     return description;
     }
 
-static bool isAllDigits( std::string &str ) {
-    return std::all_of(str.begin(), str.end(), ::isdigit);
-    }
-
 // Checks for a potential container change caused by containment transitions
 // We could check all the changed contained objects and all the IN and OUT transitions
 // But it suffices for now to just check for
@@ -11875,7 +11871,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
                         }
 
-                    std::string displayedComment = objComment;
+                    std::string displayedComment = "";
                     std::string tagName = " USE";
                     std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
 
@@ -11883,7 +11879,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
                         displayedComment = remainingUseCount;
                         }
-                    if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
+                    if( !displayedComment.empty() ) {
                         char *display = autoSprintf("USE: %s", displayedComment.c_str());
                         drawCursorTips( display, {4, -24} );
                         delete [] display;
