@@ -5944,7 +5944,8 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     ) {
                         
                     int numContained;
-                    getContained( inX, inY, &numContained );
+                    int *cont = getContained( inX, inY, &numContained );
+                    delete [] cont;
                         
                     if( numContained > 0 ) {
                         
