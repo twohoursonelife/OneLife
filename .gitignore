@@ -12,6 +12,7 @@ leak.out*
 core*
 
 gameSource/OneLife
+gameSource/OneLife.exe
 gameSource/testUser/*
 gameSource/testUser2/*
 gameSource/recordedGames/*
