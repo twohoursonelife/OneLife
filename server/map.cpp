@@ -5943,8 +5943,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     oldSlots == newSlots
                     ) {
                         
-                    int numContained;
-                    getContained( inX, inY, &numContained );
+                    int numContained = getNumContained(inX, inY);
                         
                     if( numContained > 0 ) {
                         

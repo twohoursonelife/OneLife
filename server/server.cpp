@@ -194,6 +194,7 @@ static int familySpan = 2;
 // phrases that trigger baby and family naming
 static SimpleVector<char*> nameGivingPhrases;
 static SimpleVector<char*> familyNameGivingPhrases;
+static SimpleVector<char*> eveNameGivingPhrases;
 static SimpleVector<char*> cursingPhrases;
 
 char *curseYouPhrase = NULL;
@@ -678,9 +679,17 @@ typedef struct LiveObject {
         int lastSentMapX;
         int lastSentMapY;
         
+        // path dest for the last full path that we checked completely
+        // for getting too close to player's known map chunk
+        GridPos mapChunkPathCheckedDest;
+        
+
         double moveTotalSeconds;
         double moveStartTime;
         
+        double pathDist;
+        
+
         int facingOverride;
         int actionAttempt;
         GridPos actionTarget;
@@ -1578,13 +1587,15 @@ void transferHeldContainedToMap( LiveObject *inPlayer, int inX, int inY ) {
 
 
 
+
+// diags are square root of 2 in length
+static double diagLength = 1.41421356237;
+    
+
+
 // diagonal steps are longer
 static double measurePathLength( int inXS, int inYS, 
                                  GridPos *inPathPos, int inPathLength ) {
-    
-    // diags are square root of 2 in length
-    double diagLength = 1.41421356237;
-    
 
     double totalLength = 0;
     
@@ -1905,6 +1916,7 @@ void quitCleanup() {
 
     nameGivingPhrases.deallocateStringElements();
     familyNameGivingPhrases.deallocateStringElements();
+    eveNameGivingPhrases.deallocateStringElements();
     cursingPhrases.deallocateStringElements();
     
     forgivingPhrases.deallocateStringElements();
@@ -2635,11 +2647,15 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
 
 
 
-// compute closest starting position part way along
-// path
-// (-1 if closest spot is starting spot not included in path steps)
-int computePartialMovePathStep( LiveObject *inPlayer ) {
+// computes a fractional index along path
+// 1.25 means 1/4 way between index 1 and 2 on path
+// thus, this can be as low as -1 (for starting position)
+double computePartialMovePathStepPrecise( LiveObject *inPlayer ) {
     
+    if( inPlayer->pathLength == 0 || inPlayer->pathToDest == NULL ) {
+        return -1;
+        }
+
     double fractionDone = 
         ( Time::getCurrentTime() - 
           inPlayer->moveStartTime )
@@ -2649,18 +2665,124 @@ int computePartialMovePathStep( LiveObject *inPlayer ) {
         fractionDone = 1;
         }
     
-    int c = 
-        lrint( ( inPlayer->pathLength ) *
-               fractionDone );
-    return c - 1;
+    if( fractionDone < 0 ) {
+        fractionDone = 0;
+        }
+
+    if( fractionDone == 1 ) {
+        // at last spot in path, no partial measurment necessary
+        return inPlayer->pathLength - 1;
+        }
+    
+    if( fractionDone == 0 ) {
+        // at start location, before first spot in path
+        return -1;
+        }
+
+    double distDone = fractionDone * inPlayer->pathDist;
+
+    
+    // walk through path steps until we see dist done
+    double totalLength = 0;
+    
+    GridPos lastPos = { inPlayer->xs, inPlayer->ys };
+    
+    double lastPosDist = 0;
+
+    for( int i=0; i<inPlayer->pathLength; i++ ) {
+
+        GridPos thisPos = inPlayer->pathToDest[i];
+        
+        double stepLen;
+        
+
+        if( thisPos.x != lastPos.x &&
+            thisPos.y != lastPos.y ) {
+            stepLen = diagLength;
+            }
+        else {
+            // not diag
+            stepLen = 1;
+            }
+
+        totalLength += stepLen;
+
+        if( totalLength > distDone ) {
+            // add in extra
+            return ( i - 1 ) + (distDone - lastPosDist) / stepLen;
+            }
+
+        lastPos = thisPos;
+        lastPosDist += stepLen;
+        }
+    
+    return inPlayer->pathLength - 1;
     }
 
 
 
-GridPos computePartialMoveSpot( LiveObject *inPlayer ) {
 
-    int c = computePartialMovePathStep( inPlayer );
+int computePartialMovePathStep( LiveObject *inPlayer ) {
+    return lrint( computePartialMovePathStepPrecise( inPlayer ) );
+    }
 
+
+
+doublePair computePartialMoveSpotPrecise( LiveObject *inPlayer ) {
+
+    double c = computePartialMovePathStepPrecise( inPlayer );
+    
+    if( c == -1 ) {
+        doublePair result = { (double)inPlayer->xs, 
+                              (double)inPlayer->ys };
+        return result;
+        }
+
+    
+    int aInd = floor( c );
+    int bInd = ceil( c );
+    
+    
+    GridPos aPos;
+    
+    if( aInd >= 0 ) {
+        aPos = inPlayer->pathToDest[ aInd ];
+        }
+    else {
+        aPos.x = inPlayer->xs;
+        aPos.y = inPlayer->ys;
+        }
+    
+    double bMix = c - aInd;
+    
+    doublePair result = { (double)aPos.x, (double)aPos.y };
+    
+    if( bMix > 0 ) {
+        GridPos bPos = inPlayer->pathToDest[ bInd ];
+        
+        double aMix = 1.0 - bMix;
+        
+        result.x *= aMix;
+        result.y *= aMix;
+        
+        result.x += bMix * bPos.x;
+        result.y += bMix * bPos.y;
+        }
+    
+    return result;
+    }
+
+
+
+
+// if inOverrideC > -2, then it is used instead of current partial move step
+GridPos computePartialMoveSpot( LiveObject *inPlayer, int inOverrideC = -2 ) {
+
+    int c = inOverrideC;
+    if( c < -1 ) {
+        c = computePartialMovePathStep( inPlayer );
+        }
+    
     if( c >= 0 ) {
         
         GridPos cPos = inPlayer->pathToDest[c];
@@ -4705,6 +4827,59 @@ static void setFreshEtaDecayForHeld( LiveObject *inPlayer ) {
 
 
 
+
+static void truncateMove( LiveObject *otherPlayer, int blockedStep ) {
+    
+    int c = computePartialMovePathStep( otherPlayer );
+    
+    otherPlayer->pathLength
+        = blockedStep;
+    otherPlayer->pathTruncated
+        = true;
+    
+    // update timing
+    double dist = 
+        measurePathLength( otherPlayer->xs,
+                           otherPlayer->ys,
+                           otherPlayer->pathToDest,
+                           otherPlayer->pathLength );    
+    
+    double distAlreadyDone =
+        measurePathLength( otherPlayer->xs,
+                           otherPlayer->ys,
+                           otherPlayer->pathToDest,
+                           c );
+    
+    double moveSpeed = computeMoveSpeed( otherPlayer ) *
+        getPathSpeedModifier( otherPlayer->pathToDest,
+                              otherPlayer->pathLength );
+    
+    otherPlayer->moveTotalSeconds 
+        = 
+        dist / 
+        moveSpeed;
+    
+    double secondsAlreadyDone = 
+        distAlreadyDone / 
+        moveSpeed;
+    
+    otherPlayer->moveStartTime = 
+        Time::getCurrentTime() - 
+        secondsAlreadyDone;
+    
+    otherPlayer->newMove = true;
+    
+    otherPlayer->xd 
+        = otherPlayer->pathToDest[
+            blockedStep - 1].x;
+    otherPlayer->yd 
+        = otherPlayer->pathToDest[
+            blockedStep - 1].y;
+    }
+
+                        
+
+
 void handleMapChangeToPaths( 
     int inX, int inY, ObjectRecord *inNewObject,
     SimpleVector<int> *inPlayerIndicesToSendUpdatesAbout ) {
@@ -4770,51 +4945,8 @@ void handleMapChangeToPaths(
 
                     if( blocked &&
                         blockedStep > 0 ) {
-                                                
-                        otherPlayer->pathLength
-                            = blockedStep;
-                        otherPlayer->pathTruncated
-                            = true;
-
-                        // update timing
-                        double dist = 
-                            measurePathLength( otherPlayer->xs,
-                                               otherPlayer->ys,
-                                               otherPlayer->pathToDest,
-                                               otherPlayer->pathLength );    
-                                                
-                        double distAlreadyDone =
-                            measurePathLength( otherPlayer->xs,
-                                               otherPlayer->ys,
-                                               otherPlayer->pathToDest,
-                                               c );
-                            
-                        double moveSpeed = computeMoveSpeed( otherPlayer ) *
-                            getPathSpeedModifier( otherPlayer->pathToDest,
-                                                  otherPlayer->pathLength );
-
-                        otherPlayer->moveTotalSeconds 
-                            = 
-                            dist / 
-                            moveSpeed;
-                            
-                        double secondsAlreadyDone = 
-                            distAlreadyDone / 
-                            moveSpeed;
-                                
-                        otherPlayer->moveStartTime = 
-                            Time::getCurrentTime() - 
-                            secondsAlreadyDone;
-                            
-                        otherPlayer->newMove = true;
-                                                
-                        otherPlayer->xd 
-                            = otherPlayer->pathToDest[
-                                blockedStep - 1].x;
-                        otherPlayer->yd 
-                            = otherPlayer->pathToDest[
-                                blockedStep - 1].y;
-                                                
+                        
+                        truncateMove( otherPlayer, blockedStep );
                         }
                     else if( blocked ) {
                         // cutting off path
@@ -7583,6 +7715,11 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.facingLeft = 0;
     newObject.lastFlipTime = currentTime;
     
+
+    newObject.mapChunkPathCheckedDest.x = 0;
+    newObject.mapChunkPathCheckedDest.y = 0;
+    
+
     newObject.lastRegionLookTime = 0;
     newObject.playerCrossingCheckTime = 0;
     
@@ -10577,6 +10714,10 @@ char *isFamilyNamingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &familyNameGivingPhrases );
     }
 
+char *isEveNamingSay( char *inSaidString ) {
+    return isNamingSay( inSaidString, &eveNameGivingPhrases );
+    }
+
 char *isCurseNamingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &cursingPhrases );
     }
@@ -11764,6 +11905,16 @@ static void setPerpetratorHoldingAfterKill( LiveObject *nextPlayer,
 
 
 
+static void printPath( LiveObject *inPlayer ) {
+    printf( "Path: " );
+    for( int i=0; i<inPlayer->pathLength; i++ ) {
+        printf( "(%d,%d) ", inPlayer->pathToDest[i].x,
+                inPlayer->pathToDest[i].y );
+        }
+    printf( "\n" );
+    }
+
+
 
 void executeKillAction( int inKillerIndex,
                         int inTargetIndex,
@@ -12101,6 +12252,29 @@ void executeKillAction( int inKillerIndex,
                 setPerpetratorHoldingAfterKill( nextPlayer, 
                                                 woundHit, rHit, r );
 
+                // if they are moving, end their move NOW
+                // (this allows their move speed to get updated
+                //  with the murder weapon before their next move)
+                // Otherwise, if their move continues, they might walk
+                // at the wrong speed with the changed weapon
+                
+                if( nextPlayer->xd != nextPlayer->xs ||
+                    nextPlayer->yd != nextPlayer->ys ) {
+                    
+                    int truncationSpot = 
+                        computePartialMovePathStep( nextPlayer );
+                    
+                    if( truncationSpot < nextPlayer->pathLength - 2 ) {
+                        
+                        // truncate a step ahead, to reduce chance 
+                        // of client-side players needing to turn-around
+                        // to reach this truncation point
+
+                        truncateMove( nextPlayer, truncationSpot + 2 );
+                        }                    
+                    }
+                
+
                 timeSec_t oldEtaDecay = 
                     nextPlayer->holdingEtaDecay;
                                     
@@ -12174,6 +12348,48 @@ void executeKillAction( int inKillerIndex,
 
 
 
+static void nameEve( LiveObject *nextPlayer, char *name ) {
+    
+    const char *close = findCloseLastName( name );
+    nextPlayer->name = autoSprintf( "%s %s", eveName, close );
+    
+                                
+    nextPlayer->name = getUniqueCursableName( 
+        nextPlayer->name, 
+        &( nextPlayer->nameHasSuffix ),
+        true );
+                                
+    char firstName[99];
+    char lastName[99];
+    char suffix[99];
+    
+    if( nextPlayer->nameHasSuffix ) {
+        
+        sscanf( nextPlayer->name, 
+                "%s %s %s", 
+                firstName, lastName, suffix );
+        }
+    else {
+        sscanf( nextPlayer->name, 
+                "%s %s", 
+                firstName, lastName );
+        }
+    
+    nextPlayer->familyName = 
+        stringDuplicate( lastName );
+    
+    
+    if( ! nextPlayer->isTutorial ) {    
+        logName( nextPlayer->id,
+                 nextPlayer->email,
+                 nextPlayer->name,
+                 nextPlayer->lineageEveID );
+        }
+    }
+
+                                
+
+
 void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
                SimpleVector<int> *playerIndicesToSendNamesAbout ) {    
 
@@ -12182,9 +12398,17 @@ void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
     
     char *name = inName;
     
+
+    // NEW:  keep the baby's family name at all costs, even in case
+    // of adoption
+    // (if baby has no family name, then take mother's family name as last
+    // name)
     
     const char *lastName = "";
-    if( nextPlayer->name != NULL ) {
+    
+
+    // note that we skip this case now, in favor of keeping baby's family name
+    if( false && nextPlayer->name != NULL ) {
         lastName = strstr( nextPlayer->name, 
                            " " );
                                         
@@ -12228,11 +12452,11 @@ void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
                 }
             }
         }
-    else if( nextPlayer->familyName != NULL ) {
-        lastName = nextPlayer->familyName;
-        }
     else if( babyO->familyName != NULL ) {
         lastName = babyO->familyName;
+        }
+    else if( nextPlayer->familyName != NULL ) {
+        lastName = nextPlayer->familyName;
         }
                                     
 
@@ -12948,10 +13172,30 @@ int main() {
     
     familySpan =
         SettingsManager::getIntSetting( "familySpan", 2 );
+
+    eveName = 
+        SettingsManager::getStringSetting( "eveName", "EVE" );
     
     
     readPhrases( "babyNamingPhrases", &nameGivingPhrases );
     readPhrases( "familyNamingPhrases", &familyNameGivingPhrases );
+
+    readPhrases( "babyNamingPhrases", &eveNameGivingPhrases );
+
+    // add YOU ARE EVE SMITH versions of these
+    // put them in front
+    SimpleVector<char*> oldPhrases( eveNameGivingPhrases.size() * 2 );
+    oldPhrases.push_back_other( &eveNameGivingPhrases );
+    eveNameGivingPhrases.deleteAll();
+    int numEvePhrases = oldPhrases.size();
+    for( int i=0; i<numEvePhrases; i++ ) {
+        char *phrase = oldPhrases.getElementDirect( i );
+        
+        char *newPhrase = autoSprintf( "%s %s", phrase, eveName );
+        eveNameGivingPhrases.push_back( newPhrase );
+        }
+    eveNameGivingPhrases.push_back_other( &oldPhrases );
+    
 
     readPhrases( "cursingPhrases", &cursingPhrases );
 
@@ -15982,12 +16226,20 @@ int main() {
                         char interrupt = false;
                         char pathPrefixAdded = false;
                         
+
+                        // where exactly did we used to be standing?
+                        doublePair startPosPrecise =
+                            computePartialMoveSpotPrecise( nextPlayer );
+                                
+
                         // first, construct a path from any existing
                         // path PLUS path that player is suggesting
                         SimpleVector<GridPos> unfilteredPath;
 
-                        if( nextPlayer->xs != m.x ||
-                            nextPlayer->ys != m.y ) {
+                        if( nextPlayer->pathLength > 0 &&
+                            nextPlayer->pathToDest != NULL &&
+                            ( nextPlayer->xs != m.x ||
+                              nextPlayer->ys != m.y ) ) {
                             
                             // start pos of their submitted path
                             // donesn't match where we think they are
@@ -16005,6 +16257,7 @@ int main() {
 
                             // where we think they are along last move path
                             GridPos cPos;
+                            int c;
                             
                             if( nextPlayer->xs != nextPlayer->xd 
                                 ||
@@ -16012,12 +16265,16 @@ int main() {
                                 
                                 // a real interrupt to a move that is
                                 // still in-progress on server
-                                cPos = computePartialMoveSpot( nextPlayer );
+                                c = computePartialMovePathStep( nextPlayer );
+                                cPos = computePartialMoveSpot( nextPlayer, c );
                                 }
                             else {
                                 // we think their last path is done
                                 cPos.x = nextPlayer->xs;
                                 cPos.y = nextPlayer->ys;
+                                // we think they are on final destination
+                                // spot on last path
+                                c = nextPlayer->pathLength - 1;
                                 }
                             
                             /*
@@ -16097,9 +16354,7 @@ int main() {
                                 // (we may walk backward along the old
                                 //  path to do this)
                                 
-                                int c = computePartialMovePathStep( 
-                                    nextPlayer );
-                                    
+
                                 // -1 means starting, pre-path 
                                 // pos is closest
                                 // but okay to leave c at -1, because
@@ -16397,6 +16652,48 @@ int main() {
                                                        nextPlayer->pathToDest,
                                                        nextPlayer->pathLength );
  
+                                nextPlayer->pathDist = dist;
+
+                                
+                                // get precise about distance for move timing
+                                // we don't necessarily start right
+                                // at naiveStart, but often some distance
+                                // along (or further behind)
+                                GridPos naiveStart;
+                                
+                                if( startIndex > 0 ) {
+                                    naiveStart = 
+                                        nextPlayer->pathToDest[ startIndex -1 ];
+                                    }
+                                else {
+                                    naiveStart.x = nextPlayer->xs;
+                                    naiveStart.y = nextPlayer->ys;
+                                    }
+                                
+                                double naiveStartDist = 
+                                    distance( 
+                                        naiveStart,
+                                        nextPlayer->pathToDest[startIndex] );
+                                
+                                // subtract out this naive
+                                // first-step distance
+                                // before adding in the true distance
+                                dist -= naiveStartDist;
+                                
+                                doublePair newFirstSpot = 
+                                    { (double)
+                                      nextPlayer->pathToDest[startIndex].x,
+                                      (double)
+                                      nextPlayer->pathToDest[startIndex].y };
+                                
+                                        
+                                // now add in true distance to first spot
+                                dist +=
+                                    distance( startPosPrecise, newFirstSpot );
+  
+
+                                
+
                                 double distAlreadyDone =
                                     measurePathLength( nextPlayer->xs,
                                                        nextPlayer->ys,
@@ -16411,7 +16708,15 @@ int main() {
                                 
                                 nextPlayer->moveTotalSeconds = dist / 
                                     moveSpeed;
-                           
+                                
+                                if( nextPlayer->moveTotalSeconds <= 0.1 ) {
+                                    // never allow moveTotalSeconds to be
+                                    // 0, too small, or negative
+                                    // (we divide by it in certain 
+                                    // calculations)
+                                    nextPlayer->moveTotalSeconds = 0.1;
+                                    }
+                                
                                 double secondsAlreadyDone = distAlreadyDone / 
                                     moveSpeed;
                                 /*
@@ -16624,43 +16929,7 @@ int main() {
                             char *name = isFamilyNamingSay( m.saidText );
                             
                             if( name != NULL && strcmp( name, "" ) != 0 ) {
-                                const char *close = findCloseLastName( name );
-                                nextPlayer->name = autoSprintf( "%s %s",
-                                                                eveName, 
-                                                                close );
-
-                                
-                                nextPlayer->name = getUniqueCursableName( 
-                                    nextPlayer->name, 
-                                    &( nextPlayer->nameHasSuffix ),
-                                    true );
-                                
-                                char firstName[99];
-                                char lastName[99];
-                                char suffix[99];
-
-                                if( nextPlayer->nameHasSuffix ) {
-                                    
-                                    sscanf( nextPlayer->name, 
-                                            "%s %s %s", 
-                                            firstName, lastName, suffix );
-                                    }
-                                else {
-                                    sscanf( nextPlayer->name, 
-                                            "%s %s", 
-                                            firstName, lastName );
-                                    }
-                                
-                                nextPlayer->familyName = 
-                                        stringDuplicate( lastName );
-
-
-                                if( ! nextPlayer->isTutorial ) {    
-                                    logName( nextPlayer->id,
-                                             nextPlayer->email,
-                                             nextPlayer->name,
-                                             nextPlayer->lineageEveID );
-                                    }
+                                nameEve( nextPlayer, name );
                                 
                                 if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
                                 if ( nextPlayer->declaredInfertile ) {
@@ -16669,7 +16938,7 @@ int main() {
                                 else {
                                     nextPlayer->displayedName = stringDuplicate( nextPlayer->name );
                                     }
-                                
+
                                 playerIndicesToSendNamesAbout.push_back( i );
                                 }
                             }
@@ -16778,10 +17047,29 @@ int main() {
                                                            babyAge, true );
 
                                 if( closestOther != NULL ) {
-                                    nameBaby( nextPlayer, closestOther,
-                                              name, 
-                                              &playerIndicesToSendNamesAbout );
                                     
+                                    if( closestOther->isEve ) {
+                                        
+                                        name = isEveNamingSay( m.saidText );
+                                        
+                                        if( name != NULL && 
+                                            strcmp( name, "" ) != 0 ) {
+                                            
+                                            nameEve( closestOther, name );
+                                            playerIndicesToSendNamesAbout.
+                                                push_back( 
+                                                    getLiveObjectIndex( 
+                                                        closestOther->id ) );
+                                            }
+                                        }
+                                    else {
+                                        // non-Eve
+                                        nameBaby( 
+                                            nextPlayer, closestOther,
+                                            name, 
+                                            &playerIndicesToSendNamesAbout );
+                                        }
+                                        
                                     if ( closestOther->displayedName != NULL ) delete [] closestOther->displayedName;
                                     if ( closestOther->declaredInfertile ) {
                                         closestOther->displayedName = autoSprintf( "%s %s", closestOther->name, infertilitySuffix);
@@ -23515,10 +23803,88 @@ int main() {
 
                         delete [] temp;
                         }
+                    
+                    // done handling sending new map chunk and player updates
+                    // for players in the new chunk
                     }
-                // done handling sending new map chunk and player updates
-                // for players in the new chunk
-                
+                else {
+                    // check if moving path goes near edge of player's
+                    // known map
+                    LiveObject *playerToCheck = nextPlayer;
+                    if( nextPlayer->heldByOther ) {
+                        LiveObject *holdingPlayer = 
+                            getLiveObject( nextPlayer->heldByOtherID );
+                        
+                        if( holdingPlayer != NULL ) { 
+                            playerToCheck = holdingPlayer;
+                            }
+                        }
+                    
+                    if( ( playerToCheck->xd != playerToCheck->xs ||
+                          playerToCheck->yd != playerToCheck->ys ) 
+                        && 
+                        playerToCheck->pathToDest != NULL 
+                        &&
+                        ( nextPlayer->mapChunkPathCheckedDest.x 
+                          != playerToCheck->xd || 
+                          nextPlayer->mapChunkPathCheckedDest.y 
+                          != playerToCheck->yd ) ) {
+                        // moving and haven't checked this path before
+                        // to see if it gets too close to the edge of the
+                        // map
+                        
+                        // remember it to not check it again
+                        nextPlayer->mapChunkPathCheckedDest.x =
+                            playerToCheck->xd;
+                        nextPlayer->mapChunkPathCheckedDest.y =
+                            playerToCheck->yd;
+
+                        // find most distant points on current path
+                            
+                        GridPos xFarPos, yFarPos;
+                        int xFarPosDist = 0;
+                        int yFarPosDist = 0;
+                            
+                        for( int i=0; i < playerToCheck->pathLength; i++ ) {
+                            GridPos p = playerToCheck->pathToDest[i];
+                                
+                            int xdist = 
+                                abs( p.x - nextPlayer->lastSentMapX );
+                            int ydist = 
+                                abs( p.y - nextPlayer->lastSentMapY );
+                                
+                            if( xdist > xFarPosDist ) {
+                                xFarPos = p;
+                                xFarPosDist = xdist;
+                                }
+                            if( ydist > yFarPosDist ) {
+                                yFarPos = p;
+                                yFarPosDist = ydist;
+                                }
+                            }
+                            
+                        if( xFarPosDist > 0 && 
+                            abs( xFarPos.x - 
+                                 nextPlayer->lastSentMapX ) > 7 ) {
+                            
+                            sendMapChunkMessage( nextPlayer,
+                                                 // override chunk pos
+                                                 true,
+                                                 xFarPos.x,
+                                                 xFarPos.y );
+                            }
+                        if( yFarPosDist > 0 &&
+                            abs( yFarPos.y - 
+                                 nextPlayer->lastSentMapY ) > 7 ) {
+                                
+                            sendMapChunkMessage( nextPlayer,
+                                                 // override chunk pos
+                                                 true,
+                                                 yFarPos.x,
+                                                 yFarPos.y );
+                            }
+                        }
+                    }
                 
 
                 // EVERYONE gets info about dying players

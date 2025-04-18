@@ -23,6 +23,17 @@ Version 326     ???
   including their time in the tutorial), their mother gets a message when they
   are born.
 
+--Fixed glitch in naming an unnamed Eve so that she doesn't get your family
+  name.
+
+--Fixed a movement bug that caused jump-back when rapidly clickly to extend a
+  path (a timing bug).  This jump-back would also cause a carried child's view
+  to scroll way off into the unknown map area and then slide back.
+
+--Fixed a jump-back movement glitch when a slow client tries to interrupt a
+  move that the server thinks is already done.
+
+
 
 
 --Fixed display of numbers of years above 1000, which didn't zero-pad
@@ -61,6 +72,11 @@ Server Fixes
 
 --Special announcement to let players know they have a PAX Expo baby.
 
+--Current move truncated when you land a kill, to prevent a long move from
+  continuing at full speed with a slow-down bloody weapon in your hand.
+  Fixes #362
+
+
 
 
 
@@ -69,6 +85,8 @@ Server Fixes
 --Fixed VOGP crash, if player count shrinks between invocations.
 
 --Wildcard support on vog allow list.
+
+--Fixed digit in sqrt(2) constant.  Fixes #372
 
 
 
