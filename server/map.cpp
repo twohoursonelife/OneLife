@@ -5224,6 +5224,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                 }
  
  
+            char inPlaceTransApplicable = false;
            
             if( t->move != 0 && t->desiredMoveDist > 0 ) {
                 // moving
@@ -5919,6 +5920,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                 inPlaceTrans->newTarget > 0 ) {
                                
                                 newID = inPlaceTrans->newTarget;
+                                inPlaceTransApplicable = true;
                                 }
                             }
                         }
@@ -6044,6 +6046,20 @@ int checkDecayObject( int inX, int inY, int inID ) {
  
             // cannot pass newDecayT here because the pointer fuckery in getMetaTrans
             TransRecord *furtherDecay = getTrans( -1, newID );
+            if( inPlaceTransApplicable ) {
+                // we're doing in-place transition here
+                // meaning the NSEW move is blocked
+                // e.g. water is stuck
+                // stop always-live-tracking further decay
+                // to save server resources
+                furtherDecay = NULL;
+                }
+            if( !inPlaceTransApplicable && t->move > 3 && t->move < 8 ) {
+                // an actual NSEW move, not stuck ones
+                // look at the 3x3 region to re-activate the decay tracking
+                lookAtRegion(inX - 1, inY - 1, inX + 1, inY + 1);
+                }
+            
             setEtaDecay( newX, newY, mapETA, furtherDecay );
             }
  
