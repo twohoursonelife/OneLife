@@ -183,6 +183,8 @@ typedef struct LiveObject {
         
 
         float heat;
+        float foodDrainTime;
+        float indoorBonusTime;
         
 
         int numContained;
@@ -504,6 +506,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         void vogMoveCamera( float newScreenViewCenterX, float newScreenViewCenterY );
 
         bool isHoveringPicker( float x, float y );
+        char isHoveringTempMeter();
         char isAnyUIHovered();
 
         DisplayedFamily* getOurFamily();
