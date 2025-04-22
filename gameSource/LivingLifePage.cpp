@@ -27806,6 +27806,16 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 if( strcmp( typedText, "" ) == 0 ) {
                     mSayField.unfocus();
                     }
+                else if( strcmp( typedText, "/NO BB" ) == 0 || strcmp( typedText, "/NOBB" ) == 0 ) {
+                    sendToServerSocket((char*)"SAY 0 0 NO BB#");
+                    mSayField.setText( "" );
+                    mSayField.unfocus();
+                    }
+                else if( strcmp( typedText, "/YES BB" ) == 0 || strcmp( typedText, "/YESBB" ) == 0 ) {
+                    sendToServerSocket((char*)"SAY 0 0 YES BB#");
+                    mSayField.setText( "" );
+                    mSayField.unfocus();
+                    }
                 else {
                     
                     if( strlen( typedText ) > 0 &&
