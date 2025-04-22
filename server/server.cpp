@@ -951,6 +951,8 @@ typedef struct LiveObject {
         int lastMonumentID;
         char monumentPosSent;
         
+        char monumentPosInherited;
+        
 
         char holdingFlightObject;
         
@@ -8446,6 +8448,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.monumentPosSet = false;
     newObject.monumentPosSent = true;
     
+    newObject.monumentPosInherited = false;
+
     newObject.holdingFlightObject = false;
 
     newObject.vogMode = false;
@@ -8489,12 +8493,17 @@ int processLoggedInPlayer( char inAllowReconnect,
         
 
         // inherit last heard monument, if any, from parent
-        if( babyInheritMonument ) {
+
+        // but only if parent heard the monument call directly, not if THEY
+        // also inherited it
+        // Don't keep propagating across multiple generations.
+        if( babyInheritMonument && ! parent->monumentPosInherited ) {
             newObject.monumentPosSet = parent->monumentPosSet;
             newObject.lastMonumentPos = parent->lastMonumentPos;
             newObject.lastMonumentID = parent->lastMonumentID;
             if( newObject.monumentPosSet ) {
                 newObject.monumentPosSent = false;
+                newObject.monumentPosInherited = true;
                 }
             }
         
