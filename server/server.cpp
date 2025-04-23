@@ -8876,6 +8876,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                     delete [] inConnection.twinCode;
                     inConnection.twinCode = NULL;
                     }
+                if( inConnection.ipAddress != NULL ) {
+                    delete [] inConnection.ipAddress;
+                    inConnection.twinCode = NULL;
+                    }
                 nextLogInTwin = false;
                 return;
                 }
@@ -8942,6 +8946,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         delete [] inConnection.twinCode;
                         inConnection.twinCode = NULL;
                         }
+                    if( inConnection.ipAddress != NULL ) {
+                        delete [] inConnection.ipAddress;
+                        inConnection.ipAddress = NULL;
+                        }
                     nextLogInTwin = false;
                     return;
                     }
@@ -8958,6 +8966,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         if( nextConnectionToReject->twinCode != NULL ) {
                             delete [] nextConnectionToReject->twinCode;
                             nextConnectionToReject->twinCode = NULL;
+                            }
+                        if( nextConnectionToReject->ipAddress != NULL ) {
+                            delete [] nextConnectionToReject->ipAddress;
+                            nextConnectionToReject->ipAddress = NULL;
                             }
                         }
                     
@@ -9075,6 +9087,12 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                 
                 delete [] nextConnection->twinCode;
                 waitingForTwinConnections.deleteElement( i );
+
+                if( nextConnection->ipAddress != NULL ) {
+                    delete [] nextConnection->ipAddress;
+                    nextConnection->ipAddress = NULL;
+                    }
+
                 i--;
                 }
             }
@@ -14380,8 +14398,6 @@ int main() {
                     bool removeConnectionFromList = true;
                     
                     
-                    delete [] nextConnection->ipAddress;
-                    nextConnection->ipAddress = NULL;
 
                     if( nextConnection->twinCode != NULL
                         && 
@@ -14395,7 +14411,12 @@ int main() {
                             delete [] nextConnection->twinCode;
                             nextConnection->twinCode = NULL;
                             }
-                                
+
+                        if( nextConnection->ipAddress != NULL ) {
+                            delete [] nextConnection->ipAddress;
+                            nextConnection->ipAddress = NULL;
+                            }
+                        
                         int newID = processLoggedInPlayer( 
                             true,
                             nextConnection->sock,
@@ -14840,6 +14861,14 @@ int main() {
                                             delete [] nextConnection->twinCode;
                                             nextConnection->twinCode = NULL;
                                             }
+                                        
+                                        if( nextConnection->ipAddress
+                                            != NULL ) {
+                                            delete []
+                                                nextConnection->ipAddress;
+                                            nextConnection->ipAddress = NULL;
+                                            }
+                                        
                                         int newID = processLoggedInPlayer( 
                                             true,
                                             nextConnection->sock,
