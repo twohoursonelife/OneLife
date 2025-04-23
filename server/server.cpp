@@ -14379,6 +14379,10 @@ int main() {
                             
                     bool removeConnectionFromList = true;
                     
+                    
+                    delete [] nextConnection->ipAddress;
+                    nextConnection->ipAddress = NULL;
+
                     if( nextConnection->twinCode != NULL
                         && 
                         nextConnection->twinCount > 0 ) {
