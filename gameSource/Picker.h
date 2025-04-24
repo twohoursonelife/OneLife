@@ -24,7 +24,7 @@ class Picker : public PageComponent, ActionListener,
     public:
         
         // centered on inX, inY
-        Picker( Pickable *inPickable, double inX, double inY );
+        Picker( Pickable *inPickable, double inX, double inY, char inOverrideIdSearch = false );
         
         ~Picker();
 
@@ -109,6 +109,8 @@ class Picker : public PageComponent, ActionListener,
         
         // list of filter functions
         SimpleVector<FilterFunction> mFilterFuncions;
+
+        char overrideIdSearch;
         
     };
 

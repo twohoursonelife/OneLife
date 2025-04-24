@@ -22,7 +22,7 @@ extern Font *mainFont;
 extern Font *smallFont;
 
 
-Picker::Picker( Pickable *inPickable, double inX, double inY )
+Picker::Picker( Pickable *inPickable, double inX, double inY, char inOverrideIdSearch )
         : PageComponent( inX, inY ),
           mPressStartedHere( false ),
           mPickable( inPickable ),
@@ -41,7 +41,8 @@ Picker::Picker( Pickable *inPickable, double inX, double inY )
           mSelectionIndex( -1 ),
           mMouseOverIndex( -1 ),
           mSelectionRightClicked( false ),
-          mPastSearchCurrentIndex( -1 ) {
+          mPastSearchCurrentIndex( -1 ),
+          overrideIdSearch( inOverrideIdSearch ) {
 
     addComponent( &mNextButton );
     addComponent( &mPrevButton );
@@ -374,7 +375,7 @@ void Picker::redoSearch( char inClearPageSkip ) {
         
         int searchID = getIDFromSearch( search );
             
-        if( searchID != -1 ) {
+        if( searchID != -1 && !overrideIdSearch ) {
             // directly searched for an id
                 
             // see if there's a match

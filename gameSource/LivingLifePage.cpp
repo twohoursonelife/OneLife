@@ -4194,7 +4194,7 @@ LivingLifePage::LivingLifePage()
           mUsingSteam( false ),
           mZKeyDown( false ),
           mXKeyDown( false ),
-          mObjectPicker( &objectPickable, +510, 90 ),
+          mObjectPicker( &objectPickable, +510, 90, true ),
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
           objectSearchSlipComponent(),
