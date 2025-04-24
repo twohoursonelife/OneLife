@@ -9762,13 +9762,17 @@ char removeFromContainerToHold( LiveObject *inPlayer,
         
             if( inPlayer->holdingID == 0 && 
                 numIn > 0 &&
-                // old enough to handle it
-                getObject( toRemoveID )->minPickupAge <= 
-                computeAge( inPlayer ) &&
                 // permanent object cannot be removed from container
                 ( !getObject( toRemoveID )->permanent ||
                 hasPickUpTrans )
                 ) {
+
+                // too young to handle it
+                if ( getObject( toRemoveID )->minPickupAge > computeAge( inPlayer ) ) {
+                    char *message = autoSprintf( "Too young! Pickup age of %s is %d", getObject( toRemoveID )->description, getObject( toRemoveID )->minPickupAge);
+                    sendGlobalMessage( message, inPlayer );
+                }
+                else { // I didn't make another indent to spare indent bloat
                 // get from container
 
 
@@ -9853,11 +9857,11 @@ char removeFromContainerToHold( LiveObject *inPlayer,
 
                     inPlayer->containedIDs =
                         getContained( inContX, inContY, 
-                                      &( inPlayer->numContained ), 
+                                      &( inPlayer->numContained ),
                                       subSlotNumber + 1 );
                     inPlayer->containedEtaDecays =
                         getContainedEtaDecay( inContX, inContY, 
-                                              &( inPlayer->numContained ), 
+                                              &( inPlayer->numContained ),
                                               subSlotNumber + 1 );
 
                     // these will be cleared when removeContained is called
@@ -9920,6 +9924,7 @@ char removeFromContainerToHold( LiveObject *inPlayer,
                 return true;
                 }
             }
+        }
         }        
     
     return false;
@@ -10177,14 +10182,17 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
     if( oldNumContained > 0 &&
         oldNumContained > slotToRemove &&
         slotToRemove >= 0 &&
-        // old enough to handle it
-        getObject( toRemoveID )->minPickupAge <= playerAge &&
         // permanent object that dont have a pick up transition
         // cannot be removed from container
         ( !getObject( toRemoveID )->permanent ||
         hasPickUpTrans )
         ) {
-                                    
+        // too young to handle it
+        if (getObject( toRemoveID )->minPickupAge > playerAge) {
+            char *message = autoSprintf( "Too young! Pickup age of %s is %d", getObject( toRemoveID )->description, getObject( toRemoveID )->minPickupAge);
+            sendGlobalMessage( message, inPlayer );
+        }
+        else { // I didn't make another indent to spare indent bloat
 
         inPlayer->holdingID = 
             inPlayer->clothingContained[inC].
@@ -10262,7 +10270,8 @@ static char removeFromClothingContainerToHold( LiveObject *inPlayer,
         inPlayer->heldTransitionSourceID = -1;
         return true;
         }
-    
+        }
+
     return false;
     }
 
@@ -17907,13 +17916,9 @@ int main() {
                                 else if( r != NULL &&
                                     // are we old enough to handle
                                     // what we'd get out of this transition?
-                                    ( ( r->newActor == 0 &&
-                                        playerAge >= defaultActionAge )
+                                    ( ( r->newActor == 0 && playerAge >= defaultActionAge )
                                       || 
-                                      ( r->newActor > 0 &&
-                                        getObject( r->newActor )->minPickupAge 
-                                        <= 
-                                        playerAge ) ) 
+                                      ( r->newActor > 0 && getObject( r->newActor )->minPickupAge <= playerAge ) ) 
                                     &&
                                     // does this create a blocking object?
                                     // only consider vertical-blocking
@@ -18246,17 +18251,19 @@ int main() {
                                         }
                                     }
                                 else if( nextPlayer->holdingID == 0 &&
-                                         ! targetObj->permanent &&
-                                         targetObj->minPickupAge <= 
-                                         computeAge( nextPlayer ) ) {
+                                         ! targetObj->permanent ) {
                                     // no bare-hand transition applies to
                                     // this non-permanent target object
                                     
                                     // treat it like pick up
-                                    
-                                    pickupToHold( nextPlayer, m.x, m.y,
-                                                  target );
-                                    }         
+                                    if (targetObj->minPickupAge <= computeAge( nextPlayer )){
+                                        pickupToHold( nextPlayer, m.x, m.y, target );
+                                    }
+                                    else{
+                                        char *message = autoSprintf( "Too young! Pickup age of %s is %d", targetObj->description, targetObj->minPickupAge);
+                                        sendGlobalMessage( message, nextPlayer );
+                                    }
+                                    }
                                 else if( nextPlayer->holdingID >= 0 ) {
                                     
                                     char handled = false;
@@ -20456,9 +20463,14 @@ int main() {
                             
                             char handEmpty = ( nextPlayer->holdingID == 0 );
                             
-                            if( ! accessBlocked ) 
-                            removeFromContainerToHold( nextPlayer,
+                            if( ! accessBlocked ){
+                                char removedSomethingFromContainer = removeFromContainerToHold( nextPlayer,
                                                        m.x, m.y, m.i );
+                                if (! removedSomethingFromContainer){
+                                    // see if player is too young to pick up anything
+
+                                }
+                            }
 
                             if( ! accessBlocked ) 
                             if( handEmpty &&
@@ -20471,13 +20483,16 @@ int main() {
                                     ObjectRecord *targetObj = 
                                         getObject( target );
                                 
-                                    if( ! targetObj->permanent &&
-                                        targetObj->minPickupAge <= 
-                                        computeAge( nextPlayer ) ) {
-                                    
-                                        // treat it like pick up   
-                                        pickupToHold( nextPlayer, m.x, m.y, 
-                                                      target );
+                                    if( ! targetObj->permanent ) {
+                                        if (targetObj->minPickupAge <= computeAge( nextPlayer )) {
+                                            // treat it like pick up
+                                            pickupToHold( nextPlayer, m.x, m.y,
+                                                        target );
+                                        }
+                                        else {
+                                            char *message = autoSprintf( "Too young! Pickup age of %s is %d", targetObj->description, targetObj->minPickupAge);
+                                            sendGlobalMessage( message, nextPlayer );
+                                        }
                                         }
                                     else if( targetObj->permanent ) {
                                         // consider bare-hand action
