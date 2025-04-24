@@ -17916,9 +17916,7 @@ int main() {
                                 else if( r != NULL &&
                                     // are we old enough to handle
                                     // what we'd get out of this transition?
-                                    ( ( r->newActor == 0 && playerAge >= defaultActionAge )
-                                      || 
-                                      ( r->newActor > 0 && getObject( r->newActor )->minPickupAge <= playerAge ) ) 
+                                    ( ( r->newActor == 0 && playerAge >= defaultActionAge ) ) 
                                     &&
                                     // does this create a blocking object?
                                     // only consider vertical-blocking
@@ -17943,7 +17941,11 @@ int main() {
                                       ||
                                       isMapSpotEmptyOfPlayers( m.x, 
                                                                m.y ) ) ) {
-                                    
+                                    if ( r->newActor > 0 && getObject( r->newActor )->minPickupAge > playerAge ) {
+                                        char *message = autoSprintf( "Too young! Pickup age of %s is %d", targetObj->description, targetObj->minPickupAge);
+                                        sendGlobalMessage( message, nextPlayer );
+                                    }
+                                    else {
                                     if( ! defaultTrans ) {    
                                         handleHoldingChange( nextPlayer,
                                                              r->newActor );
@@ -18249,6 +18251,7 @@ int main() {
                                             getObject( r->newTarget ),
                                             &playerIndicesToSendUpdatesAbout );
                                         }
+                                    }
                                     }
                                 else if( nextPlayer->holdingID == 0 &&
                                          ! targetObj->permanent ) {
@@ -20197,9 +20200,13 @@ int main() {
                                             // can treat it like a swap
 
                                     
-                                            if( ! targetObj->permanent 
-                                                && getObject( targetObj->id )->minPickupAge < computeAge( nextPlayer ) ) {
+                                            if( ! targetObj->permanent ) {
                                                 // target can be picked up
+                                                if ( getObject( targetObj->id )->minPickupAge < computeAge( nextPlayer ) ){
+                                                    char *message = autoSprintf( "Too young! Pickup age of %s is %d", targetObj->description, targetObj->minPickupAge);
+                                                    sendGlobalMessage( message, nextPlayer );
+                                                }
+                                                else {
 
                                                 // "set-down" type bare ground 
                                                 // trans exists?
@@ -20228,6 +20235,7 @@ int main() {
                                                         m.y,
                                             &playerIndicesToSendUpdatesAbout );
                                                     }
+                                                }
                                                 }
                                             }
 
@@ -20463,14 +20471,9 @@ int main() {
                             
                             char handEmpty = ( nextPlayer->holdingID == 0 );
                             
-                            if( ! accessBlocked ){
-                                char removedSomethingFromContainer = removeFromContainerToHold( nextPlayer,
+                            if( ! accessBlocked )
+                                removeFromContainerToHold( nextPlayer,
                                                        m.x, m.y, m.i );
-                                if (! removedSomethingFromContainer){
-                                    // see if player is too young to pick up anything
-
-                                }
-                            }
 
                             if( ! accessBlocked ) 
                             if( handEmpty &&
