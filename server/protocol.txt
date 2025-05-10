@@ -631,9 +631,13 @@ when the next yummy food is eaten.
 
 
 HX
-heat#
+heat food_time indoor_bonus#
 
-Tells player about their current heat value.
+Tells player about their current heat value, food drain time, and indoor bonus.
+
+Food drain time and indoor bonus are in seconds.
+
+Food drain time is total including bonus.
 
 
 
@@ -859,6 +863,7 @@ some_message_text_with_space_replaced_by_underscore
 #
 
 Server sending a global message to be displayed by all non-tutorial clients.
+Note that ** in the message encodes a newline.
 
 
 
@@ -922,6 +927,8 @@ VOGI x y id#
 VOGT x y text# 
 VOGX x y#
 PHOTO x y seq#
+PHOID x y photo_id_string#
+FLIP x y#
 
 KA   is a keep-alive message used to keep the connection alive when the client
      is idle and not sending any other messages (NATs and other routers can
@@ -1016,6 +1023,12 @@ PING is used to request a PONG response fromt the server.  The x and y
 
 PHOTO is used to request a photo approval and signature for position
       x y and sequence number seq
+
+PHOID is used to post a photo id string for position x y
+      photo_id_string is 40 digits of lowercase ascii hex   
+
+FLIP requests flip to player's orientation, new facing toward x y
+
 
 
 This one is more complicated:

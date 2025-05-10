@@ -61,6 +61,7 @@
 #include "arcReport.h"
 #include "curseDB.h"
 #include "cravings.h"
+#include "ipBanList.h"
 
 
 #include "minorGems/util/random/JenkinsRandomSource.h"
@@ -149,6 +150,8 @@ static double newPlayerFoodBonusHalfLifeSeconds = 36000;
 
 
 
+static double indoorFoodDecrementSecondsBonus = 20.0;
+
 static int babyBirthFoodDecrement = 10;
 
 // bonus applied to all foods
@@ -159,6 +162,8 @@ static int eatBonus = 0;
 // static double eatBonusHalfLife = 50;
 
 static int canYumChainBreak = 0;
+// -1 for no cap
+static int yumBonusCap = -1;
 
 static double minAgeForCravings = 10;
 
@@ -538,6 +543,9 @@ typedef struct FreshConnection {
         // in a timely manner
         double connectionStartTimeSeconds;
 
+        char *ipAddress;
+
+
         char *email;
         uint32_t hashedSpawnSeed;
         char *famTarget = NULL;
@@ -850,6 +858,21 @@ typedef struct LiveObject {
         // true if heat map features player surrounded by walls
         char isIndoors;
         
+        double foodDrainTime;
+        double indoorBonusTime;
+        double indoorBonusFraction;
+        
+        // if isIndoors is false, when were they last indoors?
+        // this allows the effects of isIndoors to fade gradually over time
+        // and even-out briefly opened doors a bit more
+        double wasIndoorsLastAtTimestamp;
+        
+        // note that after isIndoors becomes false, indoorBonusFraction 
+        // stays set at last fraction when they were indoors
+        // so as time passes (away from the wasIndoorsLastAtTimestamp),
+        // we remember the last effect that they had when they were indoors
+        // and fade that.
+
 
 
         int foodStore;
@@ -933,6 +956,8 @@ typedef struct LiveObject {
         GridPos lastMonumentPos;
         int lastMonumentID;
         char monumentPosSent;
+        
+        char monumentPosInherited;
         
 
         char holdingFlightObject;
@@ -1728,6 +1753,10 @@ static void deleteMembers( FreshConnection *inConnection ) {
         delete inConnection->ticketServerRequest;
         }
     
+    if( inConnection->ipAddress != NULL ) {
+        delete [] inConnection->ipAddress;
+        }
+
     if( inConnection->email != NULL ) {
         delete [] inConnection->email;
         }
@@ -1887,6 +1916,9 @@ void quitCleanup() {
     freeFamilySkipList();
 
     freeTriggers();
+    
+    freeIPBanList();
+
 
     freeMap();
 
@@ -2040,7 +2072,7 @@ void intHandler( int inUnused ) {
     }
 
 
-#ifdef WIN_32
+#ifdef WIN32
 #include <windows.h>
 BOOL WINAPI ctrlHandler( DWORD dwCtrlType ) {
     if( CTRL_C_EVENT == dwCtrlType ) {
@@ -2120,7 +2152,14 @@ char readSocketFull( Socket *inSock, SimpleVector<char> *inBuffer ) {
 
 
 // NULL if there's no full message available
-char *getNextClientMessage( SimpleVector<char> *inBuffer ) {
+// if inLoginMessageOnly true, then we look for messages that start with
+// LOGIN or RLOGIN, and count sufficiently long messages that don't
+// start with either string as NONSENSE (this allows us to instantly reject 
+// web requests and other non-OHOL messages that don't end with # and don't
+// exceed our 200 char limit)
+char *getNextClientMessage( SimpleVector<char> *inBuffer,
+                            char inLoginMessageOnly = false ) {
+
     // find first terminal character #
 
     int index = inBuffer->getElementIndex( '#' );
@@ -2138,6 +2177,25 @@ char *getNextClientMessage( SimpleVector<char> *inBuffer ) {
             
             return stringDuplicate( "NONSENSE 0 0" );
             }
+        else if( inLoginMessageOnly && inBuffer->size() >= 6 ) {
+            char *buffString = inBuffer->getElementString();
+            
+            if( strstr( buffString, "LOGIN" ) != buffString &&
+                strstr( buffString, "RLOGIN" ) != buffString ) {
+                delete [] buffString;
+                
+                AppLog::info( 
+                    "More than 6 characters in client receive buffer "
+                    "with no LOGIN or RLOGIN present, when inLoginMessageOnly "
+                    "set, generating NONSENSE message." );
+                
+                return stringDuplicate( "NONSENSE 0 0" );
+                }
+            
+            delete [] buffString;
+            }
+        
+
 
         return NULL;
         }
@@ -2203,6 +2261,7 @@ typedef enum messageType {
     VOGT,
     VOGX,
     PHOTO,
+    PHOID,
     FLIP,
     UNKNOWN
     } messageType;
@@ -2228,6 +2287,10 @@ typedef struct ClientMessage {
         
         // null if type not BUG
         char *bugText;
+        
+        // null if type not PHOID
+        char *photoIDString;
+        
 
         // for MOVE messages
         int sequenceNumber;
@@ -2261,6 +2324,7 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
     m.extraPos = NULL;
     m.saidText = NULL;
     m.bugText = NULL;
+    m.photoIDString = NULL;
     m.sequenceNumber = -1;
     
     // don't require # terminator here
@@ -2623,6 +2687,16 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
             m.id = 0;
             }
         }
+    else if( strcmp( nameBuffer, "PHOID" ) == 0 ) {
+        m.type = PHOID;
+        
+        m.photoIDString = new char[41];
+        m.photoIDString[0] = '\0';
+        
+        numRead = sscanf( inMessage, 
+                          "%99s %d %d %40s", 
+                          nameBuffer, &( m.x ), &( m.y ), m.photoIDString );
+        }
     else if( strcmp( nameBuffer, "FLIP" ) == 0 ) {
         m.type = FLIP;
         }
@@ -2845,6 +2919,7 @@ void forcePlayerAge( const char *inEmail, double inAge ) {
 
 
 
+double computeAge( LiveObject *inPlayer );
 
 
 double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
@@ -2895,6 +2970,36 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
         // still obey the min
         value = std::max(value, minFoodDecrementSeconds);
         }
+
+    inPlayer->indoorBonusTime = 0;
+    
+    if( inPlayer->indoorBonusFraction > 0 &&
+        computeAge( inPlayer ) > defaultActionAge ) {
+        
+        double fadeFactor = 1.0;
+        
+        double maxFadeSeconds = 10;
+        
+        if( ! inPlayer->isIndoors ) {
+            double deltaTime = 
+                Time::getCurrentTime() - inPlayer->wasIndoorsLastAtTimestamp;
+            
+            // goes from 1 to 0 linearly over maxFadeSeconds
+            fadeFactor = 1 - deltaTime / maxFadeSeconds;
+            }
+        
+
+        if( fadeFactor > 0 ) {
+            // non-babies get a bonus for being indoors
+            inPlayer->indoorBonusTime = 
+                fadeFactor * indoorFoodDecrementSecondsBonus *
+                inPlayer->indoorBonusFraction;
+            
+            value += inPlayer->indoorBonusTime;
+            }
+        }
+    
+    inPlayer->foodDrainTime = value;
 
     return value;
     }
@@ -3883,6 +3988,12 @@ static void recomputeHeatMap( LiveObject *inPlayer ) {
         rBoundaryAverage = rBoundarySum / rBoundarySize;
         }
 
+    if( inPlayer->isIndoors ) {
+        // the more insulating the boundary, the bigger the bonus
+        inPlayer->indoorBonusFraction = rBoundaryAverage;
+        
+        inPlayer->wasIndoorsLastAtTimestamp = Time::getCurrentTime();
+        }
     
     
 
@@ -6273,7 +6384,21 @@ static char isYummy( LiveObject *inPlayer, int inObjectID ) {
         return false;
         }
 
-    if( inObjectID == inPlayer->cravingFood.foodID &&
+
+    int origID = inObjectID;
+
+    if( o->yumParentID != -1 ) {
+        // set this whether valid or not
+        inObjectID = o->yumParentID;
+        
+        // NOTE:
+        // we're NOT replacing o with the yumParent object
+        // because o isn't used beyond this point
+        }   
+    
+    
+    // don't consider yumParent when testing for craving satisfaction
+    if( origID == inPlayer->cravingFood.foodID &&
         computeAge( inPlayer ) >= minAgeForCravings ) {
         return true;
         }
@@ -6302,6 +6427,17 @@ static char isReallyYummy( LiveObject *inPlayer, int inObjectID ) {
     if( o->foodValue == 0 && ! eatEverythingMode ) {
         return false;
         }
+
+
+    if( o->yumParentID != -1 ) {
+        // set this whether valid or not
+        inObjectID = o->yumParentID;
+        
+        // NOTE:
+        // we're NOT replacing o with the yumParent object
+        // because o isn't used beyond this point
+        }   
+
 
     for( int i=0; i<inPlayer->yummyFoodChain.size(); i++ ) {
         if( inObjectID == inPlayer->yummyFoodChain.getElementDirect(i) ) {
@@ -6348,6 +6484,15 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         inPlayer->yummyFoodChain.size() == 0 ) {
         
         int eatenID = inFoodEatenID;
+
+        ObjectRecord *eatenO = getObject( inFoodEatenID );
+        
+        if( eatenO->yumParentID != -1 ) {
+            // this may or may not be a valid object id
+            // doesn't matter, because it's never used as an object ID
+            // just as a unique food ID in the yummyFoodChain list
+            eatenID = eatenO->yumParentID;
+            }
         
         if( isReallyYummy( inPlayer, eatenID ) ) {
             inPlayer->yummyFoodChain.push_back( eatenID );
@@ -6360,7 +6505,8 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         // easy food first in an advanced town
         logFoodDepth( inPlayer->lineageEveID, eatenID );
         
-        if( eatenID == inPlayer->cravingFood.foodID &&
+        // don't consider yumParent when testing for craving satisfaction
+        if( inFoodEatenID == inPlayer->cravingFood.foodID &&
             computeAge( inPlayer ) >= minAgeForCravings ) {
             
             for( int i=0; i< inPlayer->cravingFood.bonus; i++ ) {
@@ -6404,6 +6550,11 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
     if( currentBonus < 0 ) {
         currentBonus = 0;
         }    
+    
+    if( yumBonusCap != -1 &&
+        currentBonus > yumBonusCap ) {
+        currentBonus = yumBonusCap;
+        }
 
     if( wasYummy ) {
         // only get bonus if actually was yummy (whether fed self or not)
@@ -7287,6 +7438,9 @@ int processLoggedInPlayer( char inAllowReconnect,
     babyBirthFoodDecrement = 
         SettingsManager::getIntSetting( "babyBirthFoodDecrement", 10 );
 
+    indoorFoodDecrementSecondsBonus = SettingsManager::getFloatSetting( 
+        "indoorFoodDecrementSecondsBonus", 20 );
+
 
     eatBonus = 
         SettingsManager::getIntSetting( "eatBonus", 0 );
@@ -7298,6 +7452,8 @@ int processLoggedInPlayer( char inAllowReconnect,
         SettingsManager::getIntSetting( "minActivePlayersForLanguages", 15 );
 
     canYumChainBreak = SettingsManager::getIntSetting( "canYumChainBreak", 0 );
+    
+    yumBonusCap = SettingsManager::getIntSetting( "yumBonusCap", -1 );
     
 
     
@@ -7517,10 +7673,10 @@ int processLoggedInPlayer( char inAllowReconnect,
                     }
                 
             
-                if( ( inCurseStatus.curseLevel <= 0 && 
+                if( ( newObject.curseStatus.curseLevel <= 0 && 
                       player->curseStatus.curseLevel <= 0 ) 
                     || 
-                    ( inCurseStatus.curseLevel > 0 && 
+                    ( newObject.curseStatus.curseLevel > 0 && 
                       player->curseStatus.curseLevel > 0 ) ) {
                     // cursed babies only born to cursed mothers
                     // non-cursed babies never born to cursed mothers
@@ -7687,7 +7843,12 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.lastHeatUpdate = currentTime;
     newObject.isIndoors = false;
     
+    newObject.foodDrainTime = 0;
+    newObject.indoorBonusTime = 0;
+    newObject.indoorBonusFraction = 0;
+    
 
+    newObject.wasIndoorsLastAtTimestamp = 0;
     
     
                 
@@ -8045,7 +8206,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         // Eve's curse status
         char seekingCursed = false;
         
-        if( inCurseStatus.curseLevel > 0 ) {
+        if( newObject.curseStatus.curseLevel > 0 ) {
             seekingCursed = true;
             }
         
@@ -8078,8 +8239,8 @@ int processLoggedInPlayer( char inAllowReconnect,
                         newObject.id, &startX, &startY, 
                         &otherPeoplePos, allowEveRespawn );
 
-        if( inCurseStatus.curseLevel > 0 ) {
-            // keep cursed players away
+        if( newObject.curseStatus.curseLevel > 0 ) {
+            // keep cursed players away by sticking them in Donkeytown 
 
             // 20K away in X and 20K away in Y, pushing out away from 0
             // in both directions
@@ -8384,6 +8545,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.monumentPosSet = false;
     newObject.monumentPosSent = true;
     
+    newObject.monumentPosInherited = false;
+
     newObject.holdingFlightObject = false;
 
     newObject.vogMode = false;
@@ -8427,12 +8590,17 @@ int processLoggedInPlayer( char inAllowReconnect,
         
 
         // inherit last heard monument, if any, from parent
-        if( babyInheritMonument ) {
+
+        // but only if parent heard the monument call directly, not if THEY
+        // also inherited it
+        // Don't keep propagating across multiple generations.
+        if( babyInheritMonument && ! parent->monumentPosInherited ) {
             newObject.monumentPosSet = parent->monumentPosSet;
             newObject.lastMonumentPos = parent->lastMonumentPos;
             newObject.lastMonumentID = parent->lastMonumentID;
             if( newObject.monumentPosSet ) {
                 newObject.monumentPosSent = false;
+                newObject.monumentPosInherited = true;
                 }
             }
         
@@ -8768,6 +8936,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                     delete [] inConnection.twinCode;
                     inConnection.twinCode = NULL;
                     }
+                if( inConnection.ipAddress != NULL ) {
+                    delete [] inConnection.ipAddress;
+                    inConnection.twinCode = NULL;
+                    }
                 nextLogInTwin = false;
                 return;
                 }
@@ -8834,6 +9006,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         delete [] inConnection.twinCode;
                         inConnection.twinCode = NULL;
                         }
+                    if( inConnection.ipAddress != NULL ) {
+                        delete [] inConnection.ipAddress;
+                        inConnection.ipAddress = NULL;
+                        }
                     nextLogInTwin = false;
                     return;
                     }
@@ -8850,6 +9026,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         if( nextConnectionToReject->twinCode != NULL ) {
                             delete [] nextConnectionToReject->twinCode;
                             nextConnectionToReject->twinCode = NULL;
+                            }
+                        if( nextConnectionToReject->ipAddress != NULL ) {
+                            delete [] nextConnectionToReject->ipAddress;
+                            nextConnectionToReject->ipAddress = NULL;
                             }
                         }
                     
@@ -8966,7 +9146,14 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                 strcmp( nextConnection->twinCode, twinCode ) == 0 ) {
                 
                 delete [] nextConnection->twinCode;
-                waitingForTwinConnections.deleteElement( i );
+                
+                if( nextConnection->ipAddress != NULL ) {
+                    delete [] nextConnection->ipAddress;
+                    nextConnection->ipAddress = NULL;
+                    }
+
+                waitingForTwinConnections.deleteElement( i );                
+
                 i--;
                 }
             }
@@ -13134,6 +13321,9 @@ int main() {
     babyBirthFoodDecrement = 
         SettingsManager::getIntSetting( "babyBirthFoodDecrement", 10 );
 
+    indoorFoodDecrementSecondsBonus = SettingsManager::getFloatSetting( 
+        "indoorFoodDecrementSecondsBonus", 20 );
+
 
     eatBonus = 
         SettingsManager::getIntSetting( "eatBonus", 0 );
@@ -13279,7 +13469,7 @@ int main() {
     printf( "Curse word list has %d words\n", curseWords.size() );
     
 
-#ifdef WIN_32
+#ifdef WIN32
     printf( "\n\nPress CTRL-C to shut down server gracefully\n\n" );
 
     SetConsoleCtrlHandler( ctrlHandler, TRUE );
@@ -13308,6 +13498,7 @@ int main() {
     
     initCurseDB();
     
+    initIPBanList();
 
     char rebuilding;
 
@@ -13905,18 +14096,46 @@ int main() {
 
             if( sock != NULL ) {
                 HostAddress *a = sock->getRemoteHostAddress();
+
+                if( a == NULL ) {
+                    // reject connection from unknown address
+                    delete sock;
+                    sock = NULL;
+                    }
+                else {
+                    if( isIPBanned( a->mAddressString ) ) {
+                        // reject connection from banned IP
+                        // don't even print a log message about this
+                        // save disk space when we are getting hammered by bots
+                        delete sock;
+                        sock = NULL;
+                        }
+                    delete a;
+                    }
+                }
+            
+
+            if( sock != NULL ) {
+                FreshConnection newConnection;
+
+                HostAddress *a = sock->getRemoteHostAddress();
                 
                 if( a == NULL ) {    
                     AppLog::info( "Got connection from unknown address" );
+                    
+                    newConnection.ipAddress = stringDuplicate( "" );
                     }
                 else {
                     AppLog::infoF( "Got connection from %s:%d",
                                   a->mAddressString, a->mPort );
+                    
+                    newConnection.ipAddress = 
+                        stringDuplicate( a->mAddressString );
+
                     delete a;
                     }
             
 
-                FreshConnection newConnection;
                 
                 newConnection.connectionStartTimeSeconds = 
                     Time::getCurrentTime();
@@ -14239,6 +14458,8 @@ int main() {
                             
                     bool removeConnectionFromList = true;
                     
+                    
+
                     if( nextConnection->twinCode != NULL
                         && 
                         nextConnection->twinCount > 0 ) {
@@ -14251,7 +14472,12 @@ int main() {
                             delete [] nextConnection->twinCode;
                             nextConnection->twinCode = NULL;
                             }
-                                
+
+                        if( nextConnection->ipAddress != NULL ) {
+                            delete [] nextConnection->ipAddress;
+                            nextConnection->ipAddress = NULL;
+                            }
+                        
                         int newID = processLoggedInPlayer( 
                             true,
                             nextConnection->sock,
@@ -14309,10 +14535,43 @@ int main() {
                 
                 if( ! nextConnection->shutdownMode ) {
                     message = 
-                        getNextClientMessage( nextConnection->sockBuffer );
+                        getNextClientMessage( nextConnection->sockBuffer,
+                                              // treat non-LOGIN and non-RLOGIN
+                                              // messages as NONSENSE
+                                              true );
                     }
                 else {
                     timeLimit = 5;
+
+                    
+                    // client shouldn't be sending anything after
+                    // they see shutdown message
+                    // If we do receive something, it's probably a non
+                    // client or a web bot, sending us junk
+                    // don't keep a connection open to them
+                    message = 
+                        getNextClientMessage( nextConnection->sockBuffer,
+                                              // treat non-LOGIN and non-RLOGIN
+                                              // messages as NONSENSE
+                                              true );
+                    if( message != NULL ) {
+                        delete [] message;
+                        message = NULL;
+                        
+                        AppLog::info( "Client incorrectly sent a message "
+                                      "after receiving SHUTDOWN or SERVER_FULL "
+                                      "message, "
+                                      "client rejected immediately." );
+                        nextConnection->error = true;
+                        nextConnection->errorCauseString =
+                            "Unexpected post-shutdown message";
+                        
+                        // force connection close right away
+                        // don't send REJECTED message and wait
+                        nextConnection->rejectedSendTime = 1;
+                        
+                        addBadConnectionForIP( nextConnection->ipAddress );
+                        }
                     }
                 
                 if( message != NULL ) {
@@ -14431,7 +14690,7 @@ int main() {
                             tokens->size() == 7 ) {
                             
                             nextConnection->email = 
-                                stringDuplicate( 
+                                stringToLowerCase( 
                                     tokens->getElementDirect( 1 ) );
 
 
@@ -14663,6 +14922,14 @@ int main() {
                                             delete [] nextConnection->twinCode;
                                             nextConnection->twinCode = NULL;
                                             }
+                                        
+                                        if( nextConnection->ipAddress
+                                            != NULL ) {
+                                            delete []
+                                                nextConnection->ipAddress;
+                                            nextConnection->ipAddress = NULL;
+                                            }
+                                        
                                         int newID = processLoggedInPlayer( 
                                             true,
                                             nextConnection->sock,
@@ -14697,6 +14964,11 @@ int main() {
                             nextConnection->error = true;
                             nextConnection->errorCauseString =
                                 "Bad login message";
+                            
+                            // close connection with REJECTED
+                            // message and grace period
+                            // they at least tried to send a LOGIN
+                            // message of some kind
                             }
 
 
@@ -14705,10 +14977,16 @@ int main() {
                         }
                     else {
                         AppLog::info( "Client's first message not LOGIN, "
-                                      "client rejected." );
+                                      "client rejected immediately." );
                         nextConnection->error = true;
                         nextConnection->errorCauseString =
                             "Unexpected first message";
+                        
+                        // force connection close right away
+                        // don't send REJECTED message and wait
+                        nextConnection->rejectedSendTime = 1;
+
+                        addBadConnectionForIP( nextConnection->ipAddress );
                         }
                     
                     delete [] message;
@@ -14743,6 +15021,14 @@ int main() {
                     nextConnection->error = true;
                     nextConnection->errorCauseString =
                         "Login timeout";
+                    
+                    // note that this is a less noxious offense than sending
+                    // bad first messages
+                    // A slow client could do this innocently sometimes
+                    // but if they do it repeatedly, we ban them for a while.
+                    // Because a DDOS attack could just connect and sit there
+                    // silently, to fill up slots.
+                    addBadConnectionForIP( nextConnection->ipAddress );    
                     }
                 }
             }
@@ -14772,6 +15058,8 @@ int main() {
                     
                 nextConnection->errorCauseString =
                     "Socket read failed";
+                
+                addBadConnectionForIP( nextConnection->ipAddress );        
                 }
             }
             
@@ -16110,6 +16398,80 @@ int main() {
                     sendMessageToPlayer( nextPlayer, message, 
                                          strlen( message ) );
                     delete [] message;
+                    }
+                else if( m.type == PHOID ) {
+                    if( strlen( m.photoIDString ) == 40 ) {
+                        
+                        int oldObjectID = getMapObject( m.x, m.y );
+                        
+                        ObjectRecord *oldO = getObject( oldObjectID );
+                        
+                        if( oldO->writable &&
+                            strstr( oldO->description, "+photo" ) ) {
+                            
+                            
+                            // camera-on-camera transition specifies
+                            // what should result if the photo succeeds.
+                            // (The player could never cause this transition
+                            //  manually, since the camera is permanent when
+                            //  it's in photo-taking mode)
+                            TransRecord *writingHappenTrans =
+                                getMetaTrans( oldObjectID, oldObjectID );
+                                
+                            if( writingHappenTrans != NULL &&
+                                writingHappenTrans->newTarget > 0 &&
+                                getObject( writingHappenTrans->newTarget )
+                                ->written &&
+                                strstr( 
+                                    getObject( writingHappenTrans->newTarget )
+                                    ->description,
+                                    "+negativePhotoUnfixed" ) ) {
+                                // bare hands transition going from
+                                // writable to written
+                                // use this to transform object
+                                // with photo data
+                                
+                                const char *name;
+                                
+                                if( nextPlayer->name == NULL ) {
+                                    name = "UNKNOWN";
+                                    }
+                                else {
+                                    name = nextPlayer->name;
+                                    }
+                                
+
+                                char *textToAdd = autoSprintf( 
+                                    "A PHOTO BY %s *photo %s",
+                                    name, m.photoIDString );
+                                
+                                
+                                unsigned char metaData[ MAP_METADATA_LENGTH ];
+
+                                int lenToAdd = strlen( textToAdd );
+                                
+                                // leave room for null char at end
+                                if( lenToAdd > MAP_METADATA_LENGTH - 1 ) {
+                                    lenToAdd = MAP_METADATA_LENGTH - 1;
+                                    }
+
+                                memset( metaData, 0, MAP_METADATA_LENGTH );
+                                // this will leave 0 null character at end
+                                // left over from memset of full length
+                                memcpy( metaData, textToAdd, lenToAdd );
+                                
+                                delete [] textToAdd;
+                                
+                                int newObjectID =
+                                    addMetadata( 
+                                        writingHappenTrans->newTarget,
+                                        metaData );
+                                
+                                setMapObject( m.x, m.y, newObjectID );
+                                }
+                            }
+                        }
+                    delete [] m.photoIDString;
                     }
                 else if( m.type == FLIP ) {
                     
@@ -20849,6 +21211,11 @@ int main() {
                 
                 if( nextPlayer->curseStatus.curseLevel > 0 ) {
                     playerIndicesToSendCursesAbout.push_back( i );
+                    
+                    // tell the donkeytown player about their status
+                    
+                    sendGlobalMessage( (char*)"WELCOME TO DONKEYTOWN.",
+                                       nextPlayer );
                     }
                 
                 if( usePersonalCurses ) {
@@ -22846,8 +23213,10 @@ int main() {
                 
                 char *line;
                 
-                if( nextPlayer->holdingEtaDecay > 0 ) {
-                    // what they have will cure itself in time
+                if( nextPlayer->holdingID > 0 &&
+                    strstr(
+                        getObject( nextPlayer->holdingID )->description,
+                        "sick" ) != NULL ) {
                     // flag as sick
                     line = autoSprintf( "%d 1\n", nextPlayer->id );
                     }
@@ -22992,6 +23361,15 @@ int main() {
                     delete [] emotMessageText;
                     }
                 }
+
+
+            // we have to clear the emotes list NOW, right after composing
+            // this message.  If we wait until later, various actions, below
+            // may add new emotes to the list.  We need to save them for next
+            //  time, when we compose the next PE message
+            newEmotPlayerIDs.deleteAll();
+            newEmotIndices.deleteAll();
+            newEmotTTLs.deleteAll();
             }
 
         
@@ -23010,9 +23388,9 @@ int main() {
         SimpleVector<int> playersReceivingPlayerUpdate;
         
 
-        for( int i=0; i<numLive; i++ ) {
+        for( int p=0; p<numLive; p++ ) {
             
-            LiveObject *nextPlayer = players.getElement(i);
+            LiveObject *nextPlayer = players.getElement(p);
             
             
             // everyone gets all flight messages
@@ -24830,6 +25208,11 @@ int main() {
                         yumMult = 0;
                         }
                     
+                    if( yumBonusCap != -1 &&
+                        yumMult > yumBonusCap ) {
+                        yumMult = yumBonusCap;
+                        }
+
                     if( nextPlayer->connected ) {
                         
                         char *foodMessage = autoSprintf( 
@@ -24874,10 +25257,16 @@ int main() {
                 if( nextPlayer->heatUpdate && nextPlayer->connected ) {
                     // send this player a heat status change
                     
+                    // recompute now to update their decrement time
+                    // and indoor bonus for this message
+                    computeFoodDecrementTimeSeconds( nextPlayer );
+                    
                     char *heatMessage = autoSprintf( 
                         "HX\n"
-                        "%.2f#",
-                        nextPlayer->heat );
+                        "%.2f %.2f %.2f#",
+                        nextPlayer->heat,
+                        nextPlayer->foodDrainTime,
+                        nextPlayer->indoorBonusTime );
                      
                     int messageLength = strlen( heatMessage );
                     
@@ -25013,9 +25402,7 @@ int main() {
         newGraves.deleteAll();
         newGraveMoves.deleteAll();
         
-        newEmotPlayerIDs.deleteAll();
-        newEmotIndices.deleteAll();
-        newEmotTTLs.deleteAll();
+        
         
 
         
@@ -25137,9 +25524,9 @@ int main() {
             }
 
 
-        if( players.size() == 0 && newConnections.size() == 0 ) {
+        if( players.size() == 0 ) {
             if( shutdownMode ) {
-                AppLog::info( "No live players or connections in shutdown " 
+                AppLog::info( "No live players in shutdown " 
                               " mode, auto-quitting." );
                 quit = true;
                 }

@@ -95,6 +95,10 @@ char *getSpriteBankLoadFailure();
 SpriteRecord *getSpriteRecord( int inID );
 
 
+SpriteRecord **getAllSprites( int *outNumResults );
+
+
+
 char getUsesMultiplicativeBlending( int inID );
 
 // not destroyed by caller

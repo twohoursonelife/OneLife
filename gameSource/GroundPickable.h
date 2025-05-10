@@ -66,8 +66,8 @@ class GroundPickable : public Pickable {
         
 
 
-        virtual void draw( void *inObject, doublePair inPos ) {
-            GroundSpriteSet *r = (GroundSpriteSet*)inObject;
+        virtual void draw( void *inItem, doublePair inPos ) {
+            GroundSpriteSet *r = (GroundSpriteSet*)inItem;
 
             // don't access r->sprite directly here
             // getSprite needed to invoke dynamic sprite loading
@@ -84,12 +84,33 @@ class GroundPickable : public Pickable {
             }
         
 
-        virtual int getID( void *inObject ) {
-            GroundSpriteSet *r = (GroundSpriteSet*)inObject;
+        virtual int getID( void *inItem ) {
+            GroundSpriteSet *r = (GroundSpriteSet*)inItem;
             
             return r->biome;
+            }         
+        
+        
+        
+        virtual void *getItemFromID( int inID ) {
+            SimpleVector<int> allBiomes;
+            
+            getAllBiomes( &allBiomes );
+            
+            for( int i=0; i<allBiomes.size(); i++ ) {
+                
+                int b = allBiomes.getElementDirect( i );
+                
+                if( groundSprites[ b ] != NULL ) {
+                    if( groundSprites[b]->biome == inID ) {
+                        return groundSprites[b];
+                        }
+                    }
+                }
+            return NULL;
             }
         
+
 
         virtual char canDelete( int inID ) {
             return false;
@@ -101,8 +122,8 @@ class GroundPickable : public Pickable {
         
         
 
-        virtual const char *getText( void *inObject ) {
-            GroundSpriteSet *r = (GroundSpriteSet*)inObject;
+        virtual const char *getText( void *inItem ) {
+            GroundSpriteSet *r = (GroundSpriteSet*)inItem;
 
             if( r->biome < NUM_GROUND_STRING_NAMES ) {
                 return sStringNames[r->biome];

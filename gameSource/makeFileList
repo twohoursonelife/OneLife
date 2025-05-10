@@ -78,6 +78,7 @@ lifeTokens.cpp \
 PollPage.cpp \
 fitnessScore.cpp \
 GeneticHistoryPage.cpp \
+photoCache.cpp \
 
 ifneq ($(DISCORD_SDK_PATH),)
 	LAYER_SOURCE += DiscordController.cpp
@@ -137,6 +138,10 @@ graphics/background.tga \
 graphics/logo.tga \
 graphics/yumIcon.tga \
 graphics/mehIcon.tga \
+graphics/photoDisplay1.tga \
+graphics/photoDisplay2.tga \
+graphics/photoDisplay3.tga \
+graphics/photoDisplay4.tga \
 
 
 
