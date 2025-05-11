@@ -4116,13 +4116,21 @@ static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
     }
 
 
+void LivingLifePage::clearRememberedMap(){
+    for (int c = 0; c < mMapBiomesRemembered.size(); c++){
+        int* chunk = *mMapBiomesRemembered.getElement(c);
+        for( int i=0; i<mMapD*mMapD; i++ ) {
+            chunk[i] = -1;
+        }
+    }
+}
 
 void LivingLifePage::clearMap() {
-    for( int i=0; i<mMapD *mMapD; i++ ) {
+    clearRememberedMap();
+    for( int i=0; i<mMapD*mMapD; i++ ) {
         // -1 represents unknown
         // 0 represents known empty
         mMap[i] = -1;
-        mMapBiomes[i] = -1;
         mMapFloors[i] = -1;
         
         mMapAnimationFrameCount[i] = randSource.getRandomBoundedInt( 0, 10000 );
@@ -4534,7 +4542,9 @@ LivingLifePage::LivingLifePage()
     //
 
     mMap = new int[ mMapD * mMapD ];
-    mMapBiomes = new int[ mMapD * mMapD ];
+    SimpleVector<doublePair> mRememberedChunkCoordinates;
+    SimpleVector<int*> mMapBiomesRemembered;
+
     mMapFloors = new int[ mMapD * mMapD ];
     
     mMapCellDrawnFlags = new char[ mMapD * mMapD ];
@@ -4805,7 +4815,9 @@ LivingLifePage::~LivingLifePage() {
     delete [] mMapSubContainedStacks;
     
     delete [] mMap;
-    delete [] mMapBiomes;
+    for(int i = 0; i<mMapBiomesRemembered.size(); i++){
+        delete [] mMapBiomesRemembered.getElement(i);
+    }
     delete [] mMapFloors;
 
     delete [] mMapCellDrawnFlags;
@@ -7902,7 +7914,20 @@ char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
     return false;
     }
 
-
+int* LivingLifePage::findChunkByCoords( int absoluteChunkX, int absoluteChunkY ) {
+    // is it possible to optimize this loop without too much memory?
+    // I just don't know how to store *only* visited chunks
+    int* chunk = NULL;
+    for (int c = 0; c < mRememberedChunkCoordinates.size(); c++) {
+        doublePair chunkCoords = *mRememberedChunkCoordinates.getElement(c);
+        if((int)chunkCoords.x == absoluteChunkX
+        &&
+        (int)chunkCoords.y == absoluteChunkY){
+            chunk = *mMapBiomesRemembered.getElement(c);
+        }
+    }
+    return chunk;
+}
 
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
@@ -8154,6 +8179,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         for( int x=xStartFloor; x<=xEndFloor; x++ ) {
             int mapI = y * mMapD + x;
+
+            // probably need to factor out all these calculations and chunk lookup into a separate function
+            // but I don't know how to make only necessary calculations.
+            int absoluteX = x + mMapOffsetX;
+            int absoluteY = y + mMapOffsetY;
+            int absoluteChunkX = floor((float)absoluteX / mMapD); // stupid negative numbers
+            int absoluteChunkY = floor((float)absoluteY / mMapD);
+            int posInChunkX = absoluteX % mMapD;
+            int posInChunkY = absoluteY % mMapD;
+            posInChunkX = posInChunkX < 0 ? posInChunkX + mMapD : posInChunkX; // stupid negative numbers
+            posInChunkY = posInChunkY < 0 ? posInChunkY + mMapD : posInChunkY; 
+            int mapC = posInChunkY * mMapD + posInChunkX;
             
             char inBounds = isInBounds( x, y, mMapD );
 
@@ -8170,10 +8207,40 @@ void LivingLifePage::draw( doublePair inViewCenter,
             screenX += 32;
             
             int b = -1;
-            
-            if( inBounds ) {
-                b = mMapBiomes[mapI];
+
+            char rememberedTile = false;
+            int* chunk = NULL;
+            // This bounding box is kinda stupid because center of the screen is (32, 32), so this box is too bottom-left.
+            // I'm hesitant to put remove *2 from bottom and left due to readability
+            char inFOVBounds = x > -mMapD * 2 && y > -mMapD * 2 && x < mMapD * 2 && y < mMapD * 2;
+            if( inFOVBounds ) {
+                    rememberedTile = true;
+                    chunk = findChunkByCoords(absoluteChunkX, absoluteChunkY);
+                    if (chunk != NULL){
+                        b = chunk[mapC];
+                    }
+                    else{
+                        // did not find it :(
+                        // printf("Didn't find chunk, in draw.\n");
+                        // printf("absoluteX: %d\n"
+                        //        "absoluteY: %d\n"
+                        //        "absoluteChunkX: %d\n"
+                        //        "absoluteChunkY: %d\n"
+                        //        "posInChunkX: %d\n"
+                        //        "posInChunkY: %d\n",
+                        //        absoluteX,
+                        //        absoluteY,
+                        //        absoluteChunkX,
+                        //        absoluteChunkY,
+                        //        posInChunkX,
+                        //        posInChunkY);
+                        // for (int c = 0; c < mRememberedChunkCoordinates.size(); c++){
+                        //     doublePair chunkCoords = *mRememberedChunkCoordinates.getElement(c);
+                        //     printf("(%f,%f) ", chunkCoords.x, chunkCoords.y);
+                        // }
+                        // printf("\n");
                 }
+            }
             
             GroundSpriteSet *s = NULL;
             
@@ -8210,8 +8277,30 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 
                             
                 doublePair pos = { (double)screenX, (double)screenY };
-                
-                
+
+                // this draws debug info about remembered chunks every 4 tiles
+                // if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
+                //     doublePair drawPos = pos;
+                //     setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
+                //     char* string;
+                //     string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     drawPos.y += 50;
+                //     string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     drawPos.y += 50;
+                //     string = autoSprintf("b%d,c%d", b, chunk != NULL);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     drawPos.y += 50;
+                //     string = autoSprintf("%d,%d", mMapOffsetX, mMapOffsetY);
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     delete[] string;
+                //     setDrawColor( 1,1,1,1 );
+                // }
+
                 // wrap around
                 int setY = tileY % s->numTilesHigh;
                 int setX = tileX % s->numTilesWide;
@@ -8232,34 +8321,30 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     char allSameBiome = true;
                     
                     // check borders of would-be sheet too
-                    for( int nY = y+1; nY >= y - s->numTilesHigh; nY-- ) {
-                        
-                        if( nY >=0 && nY < mMapD ) {
+                    for( int nY = posInChunkY+1; nY >= posInChunkY - s->numTilesHigh; nY-- ) {
+                        for( int nX = posInChunkX-1; nX <= posInChunkX + s->numTilesWide; nX++ ) {
+                            int nI = nY * mMapD + nX;
+                            int nB = -1;
                             
-                            for( int nX = x-1; 
-                                 nX <= x + s->numTilesWide; nX++ ) {
-                                
-                                if( nX >=0 && nX < mMapD ) {
-                                    int nI = nY * mMapD + nX;
-                                    
-                                    int nB = -1;
-                                    
-                                    if( isInBounds( nX, nY, mMapD ) ) {
-                                        nB = mMapBiomes[nI];
-                                        }
-
-                                    if( nB != b ) {
-                                        allSameBiome = false;
-                                        break;
-                                        }
-                                    }
+                            if( isInBounds( nX, nY, mMapD ) ) {
+                                if (chunk != NULL){
+                                    nB = chunk[nI];
                                 }
-
                             }
-                        if( !allSameBiome ) {
-                            break;
+                            else {
+                                allSameBiome = false; // this sheet is on the borders of chunks, draw each thing separately because I'm too lazy to look up chunks in the chunks array.
+                                break;
+                            }
+
+                            if( nB != b ) {
+                                allSameBiome = false;
+                                break;
                             }
                         }
+                        if( !allSameBiome ) {
+                            break;
+                        }
+                    }
                     
                     if( allSameBiome ) {
                         
@@ -8270,14 +8355,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         doublePair sheetPos = mult( add( pos, lastCornerPos ),
                                                     0.5 );
 
-                        if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
-                            !mXKeyDown // Show complete biome in X-ray mode
-                            ) {
+                        // All tiles are drawn to change color independently
+                        // Show complete biome in X-ray mode
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown) {
+                            // This draws 3x3 patches
                             drawSprite( s->wholeSheet, sheetPos );
                             }
                         
-                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown ) {
                         // mark all cells under sheet as drawn
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown ) {
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
                                 if( sY >=0 && sY < mMapD ) {
@@ -8305,16 +8391,62 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     int leftB = -1;
                     int diagB = -1;
                     
-                    if( isInBounds( x -1, y, mMapD ) ) {    
-                        leftB = mMapBiomes[ mapI - 1 ];
+                    if( isInBounds( posInChunkX-1, posInChunkY, mMapD ) ) {
+                        if (chunk != NULL){
+                            leftB = chunk[ mapC - 1 ];
                         }
-                    if( isInBounds( x, y + 1, mMapD ) ) {    
-                        aboveB = mMapBiomes[ mapI + mMapD ];
+                    }
+                    else {
+                        // this tile lies in the left chunk
+                        int leftChunkX = absoluteChunkX - 1;
+                        int* leftChunk = findChunkByCoords(leftChunkX, absoluteChunkY);
+                        if (leftChunk != NULL){
+                            // mapC-1 would bring us to upperleft tile, so we should +mMapD to go back to current line
+                            printf("leftChunkCoord: %d\n", mapC-1+mMapD);
+                            fflush(stdout);
+                            //leftB = leftChunk[mapC-1+mMapD];
                         }
+                    }
+                    if( isInBounds( posInChunkX, posInChunkY + 1, mMapD ) ) {    
+                        if (chunk != NULL){
+                            aboveB = chunk[ mapC + mMapD ];
+                        }
+                    }
+                    else {
+                        // this tile lies in the above chunk
+                        int aboveChunkY = absoluteChunkY + 1;
+                        int* aboveChunk = findChunkByCoords(absoluteChunkX, aboveChunkY);
+                        if (aboveChunk != NULL){
+                            // we were on the last Y row, so we just take posInChunkX + 0 * posInChunkY
+                            aboveB = aboveChunk[posInChunkX];
+                        }
+                    }
                     
-                    if( isInBounds( x + 1, y + 1, mMapD ) ) {    
-                        diagB = mMapBiomes[ mapI + mMapD + 1 ];
+                    if( isInBounds( posInChunkX + 1, posInChunkY + 1, mMapD ) ) {    
+                        if (chunk != NULL){
+                            diagB = chunk[ mapC + mMapD + 1 ];
                         }
+                    }
+                    else {
+                        int otherChunkX = absoluteChunkX;
+                        int otherChunkY = absoluteChunkY;
+                        int posInOtherChunkX = posInChunkX;
+                        int posInOtherChunkY = posInChunkY;
+                        if (!isInBounds(posInChunkX + 1, posInChunkY, mMapD)){
+                            // this tile lies to the right of current chunk
+                            otherChunkX += 1;
+                            posInOtherChunkX = (posInOtherChunkX + 1) % mMapD;
+                        }
+                        if (!isInBounds(posInChunkX, posInChunkY + 1, mMapD)){
+                            // this tile lies above of current chunk
+                            otherChunkY += 1;
+                            posInOtherChunkY = (posInOtherChunkY + 1) % mMapD;
+                        }
+                        int* otherChunk = findChunkByCoords(otherChunkX, otherChunkY);
+                        if (otherChunk != NULL){
+                            diagB = otherChunk[posInOtherChunkY * mMapD + posInOtherChunkX];
+                        }
+                    }
                     
                     char floorAt = isCoveredByFloor( mapI );
                     char floorR = false;
@@ -8380,6 +8512,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         if( !( floorAt && floorR && floorB && floorBR &&
                                floorL && floorA && floorAL && floorAR &&
                                floorBL ) || mXKeyDown ) {
+                            // this seems to draw tiles on borders of biomes
                             drawSprite( s->tiles[setY][setX], pos );
                             }
                         }
@@ -8621,13 +8754,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
     toggleAdditiveTextureColoring( true );
     setDrawColor( multAmount, multAmount, multAmount, 1 );
     
-    for( int y=-1; y<=1; y++ ) {
+    // bumped y to [-2, 2] and x to [-3, 3] because after zooming out there was an ugly square. Now the overlay spans to the borders of the screen.
+    // TODO: maybe set ranges of x and y according to zoom level?
+    for( int y=-2; y<=2; y++ ) {
 
         doublePair pos = groundCenterPos;
 
         pos.y = groundCenterPos.y + y * groundH;
 
-        for( int x=-1; x<=1; x++ ) {
+        for( int x=-3; x<=3; x++ ) {
 
             pos.x = groundCenterPos.x + x * groundW;
             
@@ -8664,7 +8799,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
     //toggleAdditiveTextureColoring( true );
     setDrawColor( 1, 1, 1, addAmount );
     
-    for( int y=-1; y<=1; y++ ) {
+    // bumped y to [-2, 2] and x to [-3, 3] because after zooming out there was an ugly square. Now the overlay spans to the borders of the screen.
+    // same as above
+    // TODO: maybe set ranges of x and y according to zoom level?
+    for( int y=-2; y<=2; y++ ) {
 
         doublePair pos = groundCenterPos;
         
@@ -8673,7 +8811,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
         pos.y = groundCenterPos.y + y * groundH;
 
-        for( int x=-1; x<=1; x++ ) {
+        for( int x=-3; x<=3; x++ ) {
 
             pos.x = groundCenterPos.x + x * groundW;
 
@@ -9195,14 +9333,12 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
     
 
+    // draw marked objects behind everything else, including players
     for( int y=yEnd; y>=yStart; y-- ) {
         
         int worldY = y + mMapOffsetY - mMapD / 2;
 
         int screenY = CELL_D * worldY;
-        
-
-        // draw marked objects behind everything else, including players
         
         for( int x=xStart; x<=xEnd; x++ ) {
             
@@ -17093,7 +17229,7 @@ void LivingLifePage::step() {
 
             
             for( int i=0; i<mMapD *mMapD; i++ ) {
-                // starts uknown, not empty
+                // starts unknown, not empty
                 newMap[i] = -1;
                 newMapBiomes[i] = -1;
                 newMapFloors[i] = -1;
@@ -17146,7 +17282,6 @@ void LivingLifePage::step() {
                     int oI = oldY * mMapD + oldX;
 
                     newMap[i] = mMap[oI];
-                    newMapBiomes[i] = mMapBiomes[oI];
                     newMapFloors[i] = mMapFloors[oI];
 
                     newMapAnimationFrameCount[i] = mMapAnimationFrameCount[oI];
@@ -17184,7 +17319,6 @@ void LivingLifePage::step() {
                 }
             
             memcpy( mMap, newMap, mMapD * mMapD * sizeof( int ) );
-            memcpy( mMapBiomes, newMapBiomes, mMapD * mMapD * sizeof( int ) );
             memcpy( mMapFloors, newMapFloors, mMapD * mMapD * sizeof( int ) );
 
             memcpy( mMapAnimationFrameCount, newMapAnimationFrameCount, 
@@ -17266,7 +17400,10 @@ void LivingLifePage::step() {
             delete [] newMapPlayerPlacedFlags;
             
             
-
+            if (newMapOffsetX == 0 && newMapOffsetY == 0){
+                // probably when we are flying or teleporting. coordinates reset to (0, 0)
+                clearRememberedMap();
+            }
             mMapOffsetX = newMapOffsetX;
             mMapOffsetY = newMapOffsetY;
             
@@ -17335,12 +17472,55 @@ void LivingLifePage::step() {
                             int mapI = mapY * mMapD + mapX;
                             int oldMapID = mMap[mapI];
                             
+                            // add new info to chunk remembering
+                            int* chunkBiome;
+                            int absoluteX = mapX + mMapOffsetX;
+                            int absoluteY = mapY + mMapOffsetY;
+                            int absoluteChunkX = floor((float)absoluteX / mMapD);
+                            int absoluteChunkY = floor((float)absoluteY / mMapD);
+                            int posInChunkX = absoluteX % mMapD;
+                            int posInChunkY = absoluteY % mMapD;
+                            posInChunkX = posInChunkX < 0 ? posInChunkX + mMapD : posInChunkX; // stupid negative numbers
+                            posInChunkY = posInChunkY < 0 ? posInChunkY + mMapD : posInChunkY; 
+                            int mapC = posInChunkY * mMapD + posInChunkX;
+
+                            chunkBiome = findChunkByCoords(absoluteChunkX, absoluteChunkY);
+                            if (chunkBiome == NULL){
+                                // create place for new chunkBiome
+                                chunkBiome = new int[mMapD * mMapD];
+                                for (int c = 0; c < mMapD * mMapD; c++){
+                                    chunkBiome[c] = -1;
+                                }
+                                mMapBiomesRemembered.push_back(chunkBiome);
+                                doublePair chunkCoords;
+                                chunkCoords.x = (double)absoluteChunkX;
+                                chunkCoords.y = (double)absoluteChunkY;
+                                mRememberedChunkCoordinates.push_back(chunkCoords);
+                                printf("Didn't find chunkBiome, creating a new one.\n");
+                                printf("absoluteX: %d\n"
+                                        "absoluteY: %d\n"
+                                        "absoluteChunkX: %d\n"
+                                        "absoluteChunkY: %d\n"
+                                        "posInChunkX: %d\n"
+                                        "posInChunkY: %d\n",
+                                        absoluteX,
+                                        absoluteY,
+                                        absoluteChunkX,
+                                        absoluteChunkY,
+                                        posInChunkX,
+                                        posInChunkY);
+                                for (int c = 0; c < mRememberedChunkCoordinates.size(); c++){
+                                    chunkCoords = *mRememberedChunkCoordinates.getElement(c);
+                                    printf("(%f,%f) ", chunkCoords.x, chunkCoords.y);
+                                }
+                                printf("\n");
+                            }
                             sscanf( tokens->getElementDirect(i),
-                                    "%d:%d:%d", 
-                                    &( mMapBiomes[mapI] ),
-                                    &( mMapFloors[mapI] ),
-                                    &( mMap[mapI] ) );
-                            
+                                "%d:%d:%d", 
+                                &( chunkBiome[mapC] ),
+                                &( mMapFloors[mapI] ),
+                                &( mMap[mapI] ) );
+
                             if( mMap[mapI] != oldMapID ) {
                                 // our placement status cleared
                                 mMapPlayerPlacedFlags[mapI] = false;
