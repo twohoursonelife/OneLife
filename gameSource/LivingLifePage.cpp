@@ -4194,6 +4194,7 @@ LivingLifePage::LivingLifePage()
           mUsingSteam( false ),
           mZKeyDown( false ),
           mXKeyDown( false ),
+          mGraveKeyDown( false ),
           mObjectPicker( &objectPickable, +510, 90, true ),
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
@@ -10757,7 +10758,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    if( hideGuiPanel ) {
+    if( hideGuiPanel || (mGraveKeyDown && !vogMode)) {
         // skip gui
         return;
         }    
@@ -24041,6 +24042,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     mEKeyDown = false;
     mZKeyDown = false;
     mXKeyDown = false;
+    mGraveKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
 
@@ -25409,7 +25411,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
     }
     
-    if (!mForceGroundClick && 
+    if (!mForceGroundClick && !mGraveKeyDown &&
         !isLastMouseButtonRight() &&
         minitech::livingLifePageMouseDown( inX, inY )) return;
     
@@ -25496,7 +25498,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 
-    if( !mForceGroundClick ) {
+    if( !mForceGroundClick && !mGraveKeyDown ) {
         if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
             if( isLastMouseButtonRight() ) return;
             coordinatesSlipComponent.mActive = false;
@@ -27976,6 +27978,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case 96: { // grave
+            if( !TextField::isAnyFocused() && !vogMode) {
+                mGraveKeyDown = true;
+                }
             // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
             // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
             // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
@@ -27987,6 +27992,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if( !TextField::isAnyFocused() ) {
                 drawGridToggle = !drawGridToggle;
                 }
+            break;
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
                 
@@ -28022,6 +28028,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 mEKeyDown = false;
                 mZKeyDown = false;
                 mXKeyDown = false;
+                mGraveKeyDown = false;
                 
                 // start typing a filter
                 mSayField.setText( "/" );
@@ -28034,6 +28041,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 mEKeyDown = false;
                 mZKeyDown = false;
                 mXKeyDown = false;
+                mGraveKeyDown = false;
                 
                 mSayField.setText( "" );
                 mSayField.focus();
@@ -28528,6 +28536,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
             mEKeyDown = false;
             mZKeyDown = false;
             mXKeyDown = false;
+            mGraveKeyDown = false;
             }
         else {
             char *curText = mSayField.getText();
@@ -28691,6 +28700,10 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
         case 'f':
         case 'F':
             if (SettingsManager::getIntSetting( "keyboardActions", 1 )) shouldMoveCamera = true;
+            break;
+        case 96: { // grave
+            mGraveKeyDown = false;
+            }
             break;
         }
 
