@@ -14747,7 +14747,7 @@ int main() {
                                     std::string famTarget { emailAndFamTarget.substr( famTargetDelimPos + 1 ) };
 
                                     nextConnection->famTarget =
-                                        stringDuplicate( famTarget.c_str() );
+                                        stringToUpperCase( famTarget.c_str() );
 
                                     // Remove famTarget from email
                                     if( famTargetDelimPos == 0 ) {
