@@ -17293,11 +17293,16 @@ int main() {
                             if( name != NULL && strcmp( name, "" ) != 0 ) {
                                 nameEve( nextPlayer, name );
                                 
-                                if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
+                                if ( nextPlayer->displayedName != NULL ) {
+                                    delete [] nextPlayer->displayedName;
+                                    nextPlayer->displayedName = NULL;
+                                    }
                                 if ( nextPlayer->declaredInfertile ) {
+                                    if( nextPlayer->name != NULL )
                                     nextPlayer->displayedName = autoSprintf( "%s %s", nextPlayer->name, infertilitySuffix);
                                     } 
                                 else {
+                                    if( nextPlayer->name != NULL )
                                     nextPlayer->displayedName = stringDuplicate( nextPlayer->name );
                                     }
 
@@ -17311,7 +17316,10 @@ int main() {
                             if( infertilityDeclaring != NULL && !nextPlayer->declaredInfertile ) {
                                 nextPlayer->declaredInfertile = true;
                                 
-                                if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
+                                if ( nextPlayer->displayedName != NULL ) {
+                                    delete [] nextPlayer->displayedName;
+                                    nextPlayer->displayedName = NULL;
+                                    }
                                 if (nextPlayer->name == NULL) {
                                     nextPlayer->displayedName = stringDuplicate( infertilitySuffix );
                                 } else {
@@ -17323,7 +17331,10 @@ int main() {
                             } else if( fertilityDeclaring != NULL && nextPlayer->declaredInfertile ) {
                                 nextPlayer->declaredInfertile = false;
                                 
-                                if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
+                                if ( nextPlayer->displayedName != NULL ) {
+                                    delete [] nextPlayer->displayedName;
+                                    nextPlayer->displayedName = NULL;
+                                    }
                                 if (nextPlayer->name == NULL) {
                                     nextPlayer->displayedName = stringDuplicate( fertilitySuffix );
                                 } else {
@@ -17385,11 +17396,16 @@ int main() {
                                     nameBaby( nextPlayer, babyO, name,
                                               &playerIndicesToSendNamesAbout );
                                     
-                                    if ( babyO->displayedName != NULL ) delete [] babyO->displayedName;
+                                    if ( babyO->displayedName != NULL ) {
+                                        delete [] babyO->displayedName;
+                                        babyO->displayedName = NULL;
+                                        }
                                     if ( babyO->declaredInfertile ) {
+                                        if( babyO->name != NULL )
                                         babyO->displayedName = autoSprintf( "%s %s", babyO->name, infertilitySuffix);
                                         } 
                                     else {
+                                        if( babyO->name != NULL )
                                         babyO->displayedName = stringDuplicate( babyO->name );
                                         }
                                     }
@@ -17432,11 +17448,16 @@ int main() {
                                             &playerIndicesToSendNamesAbout );
                                         }
                                         
-                                    if ( closestOther->displayedName != NULL ) delete [] closestOther->displayedName;
+                                    if ( closestOther->displayedName != NULL ) {
+                                        delete [] closestOther->displayedName;
+                                        closestOther->displayedName = NULL;
+                                        }
                                     if ( closestOther->declaredInfertile ) {
+                                        if( closestOther->name != NULL )
                                         closestOther->displayedName = autoSprintf( "%s %s", closestOther->name, infertilitySuffix);
                                         } 
                                     else {
+                                        if( closestOther->name != NULL )
                                         closestOther->displayedName = stringDuplicate( closestOther->name );
                                         }
                                     }
