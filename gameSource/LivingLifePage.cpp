@@ -25400,6 +25400,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     if ( blockMouseScaling ) { scaling = false; }
     
     //FOV
+    bool stillWaitingBirth = mFirstServerMessagesReceived != 3 || !mDoneLoadingFirstObjectSet;
+    if( !stillWaitingBirth ) // Disallow zooming in Connecting screen
     if( scaling ) {
         // if ( isCommandKeyDown() ) {
         //     float currentHUDScale = gui_fov_target_scale_hud;
