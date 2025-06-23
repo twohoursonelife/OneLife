@@ -6471,7 +6471,6 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             // biking animation
             // replace moving with biking
             // and replace ground2 with biking with timeVal = 0
-            // show limbs when riding a bike
                 
             if( curType == moving ) curType = biking;
             if( fadeTargetType == moving ) fadeTargetType = biking;
@@ -6488,20 +6487,15 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                 }
             if( frozenArmType == ground2 ) frozenArmType = biking;
             if( frozenArmFadeTargetType == ground2 ) frozenArmFadeTargetType = biking;
-            
-            hideAllLimbs = false;
             }
         else if( getObject( inObj->holdingID )->ridingAnimationIndex == sitting ) {
             // sitting animation
             // replace everything with sitting type
-            // show limbs when seated
             
             curType = sitting;
             fadeTargetType = sitting;
             frozenArmType = sitting;
             frozenArmFadeTargetType = sitting;
-            
-            hideAllLimbs = false;
             }
         }
     
@@ -6853,6 +6847,16 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                     getArmHoldingParameters( babyHoldingObj, 
                                              &hideClosestArmBaby,
                                              &hideAllLimbsBaby );
+                    
+                    // this baby is being held
+                    // and has dropped whatever it was holding when picked up
+                    // however it may still hold wounds
+                    // hence not removing the code above
+                    
+                    // these wounds should not be hiding baby's limb as in riding
+                    // hence below
+                    hideAllLimbsBaby = false;
+
                     }
                 
                 
