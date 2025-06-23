@@ -26022,7 +26022,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     if ( !mForceGroundClick && mouseButton == MouseButton::MIDDLE ) {
         // Mouse wheel click detected
         // Just open object minitech and prevents ever after this
-        if ( destID != 0 ) {
+        if ( destID != 0 && p.hitAnObject ) {
             minitech::minitechMinimized = false;
             
             mNextHintObjectID = destID;
