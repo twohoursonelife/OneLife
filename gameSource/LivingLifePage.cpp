@@ -3960,6 +3960,51 @@ void LivingLifePage::useOnSelf() {
         nextActionEating = true;
 }
 
+void LivingLifePage::takeOffClothing() {
+    LiveObject *ourLiveObject = getOurLiveObject();
+
+    //if we want top to bottom order
+    //const int slotOrder[] = { 0, 1, 4, 2, 3, 5 };
+    
+    int x, y;
+    setOurSendPosXY(x, y);
+    
+    char msg[32];
+    int startSlot = 0;
+    
+    // If holding clothing, put it on
+    if (ourLiveObject->holdingID > 0) {
+        ObjectRecord *held = getObject(ourLiveObject->holdingID);
+
+        // if held object is not wearable
+        if (!held || held->clothing == 'n') return;
+
+        switch (held->clothing) {
+            case 'h': startSlot = 1; break;
+            case 't': startSlot = 2; break;
+            case 's': startSlot = 3; break;
+            case 'b': startSlot = 5; break;
+            case 'p': startSlot = 0; break;
+            default: return;
+        }
+
+        sprintf(msg, "SELF %d %d %d#", x, y, -1);
+        sendToServerSocket(msg);
+    }
+    
+    // Find next equipped item
+    for (int i = 0; i < NUM_CLOTHING_PIECES; i++) {
+
+        int slot = (startSlot + i) % NUM_CLOTHING_PIECES;
+        ObjectRecord *item = clothingByIndex(ourLiveObject->clothing, slot);
+        if (item) {
+            sprintf(msg, "SELF %d %d %d#", x, y, slot);
+            setNextActionMessage(msg, x, y);
+            return;
+        }
+    }
+}
+
 void LivingLifePage::takeOffBackpack() {
     LiveObject *ourLiveObject = getOurLiveObject();
     
@@ -27552,8 +27597,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 useBackpack(true);
                 return;
             }
-            if (isCharKey(inASCII, charKey_Eat)) {
+            if (!shiftKey && isCharKey(inASCII, charKey_Eat)) {
                 useOnSelf();
+                return;
+            }
+            if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Eat)) {
+                takeOffClothing();
                 return;
             }
             if (isCharKey(inASCII, charKey_Baby)) {
