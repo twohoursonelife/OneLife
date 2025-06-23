@@ -3960,6 +3960,8 @@ void LivingLifePage::useOnSelf() {
         nextActionEating = true;
 }
 
+static int startSlot = 0;
+
 void LivingLifePage::takeOffClothing() {
     LiveObject *ourLiveObject = getOurLiveObject();
 
@@ -3970,7 +3972,6 @@ void LivingLifePage::takeOffClothing() {
     setOurSendPosXY(x, y);
     
     char msg[32];
-    int startSlot = 0;
     
     // If holding clothing, put it on
     if (ourLiveObject->holdingID > 0) {
@@ -3979,17 +3980,9 @@ void LivingLifePage::takeOffClothing() {
         // if held object is not wearable
         if (!held || held->clothing == 'n') return;
 
-        switch (held->clothing) {
-            case 'h': startSlot = 1; break;
-            case 't': startSlot = 2; break;
-            case 's': startSlot = 3; break;
-            case 'b': startSlot = 5; break;
-            case 'p': startSlot = 0; break;
-            default: return;
-        }
-
         sprintf(msg, "SELF %d %d %d#", x, y, -1);
-        sendToServerSocket(msg);
+        setNextActionMessage(msg, x, y);
+        return;
     }
     
     // Find next equipped item
@@ -4000,9 +3993,11 @@ void LivingLifePage::takeOffClothing() {
         if (item) {
             sprintf(msg, "SELF %d %d %d#", x, y, slot);
             setNextActionMessage(msg, x, y);
+            startSlot = slot + 1;
             return;
         }
     }
+    return;
 }
 
 void LivingLifePage::takeOffBackpack() {
@@ -27601,7 +27596,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 useOnSelf();
                 return;
             }
-            if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Eat)) {
+            if (shiftKey && isCharKey(inASCII, charKey_Eat)) {
                 takeOffClothing();
                 return;
             }
