@@ -3941,13 +3941,11 @@ void LivingLifePage::useOnSelf() {
         nextActionEating = true;
 }
 
-static int startSlot = 0;
+static int nextUndressingSlot = 0;
+const int slotOrder[] = { 0, 1, 4, 3, 2, 5 }; // top to bottom order (front shoe first)
 
 void LivingLifePage::takeOffClothing() {
     LiveObject *ourLiveObject = getOurLiveObject();
-
-    //if we want top to bottom order
-    //const int slotOrder[] = { 0, 1, 4, 2, 3, 5 };
     
     int x, y;
     setOurSendPosXY(x, y);
@@ -3969,12 +3967,12 @@ void LivingLifePage::takeOffClothing() {
     // Find next equipped item
     for (int i = 0; i < NUM_CLOTHING_PIECES; i++) {
 
-        int slot = (startSlot + i) % NUM_CLOTHING_PIECES;
-        ObjectRecord *item = clothingByIndex(ourLiveObject->clothing, slot);
+        int slot = (nextUndressingSlot + i) % NUM_CLOTHING_PIECES;
+        ObjectRecord *item = clothingByIndex(ourLiveObject->clothing, slotOrder[slot]);
         if (item) {
-            sprintf(msg, "SELF %d %d %d#", x, y, slot);
+            sprintf(msg, "SELF %d %d %d#", x, y, slotOrder[slot]);
             setNextActionMessage(msg, x, y);
-            startSlot = slot + 1;
+            nextUndressingSlot = slot + 1;
             return;
         }
     }
@@ -12090,7 +12088,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int mouseY = int(round( lastMouseY / (float)CELL_D ));
         int objID = getObjId(mouseX, mouseY);
 
-        char *firstLine = autoSprintf( "%d, %d, %d, %d", mouseX, mouseY, objID, startSlot );
+        char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
         char *additionalLine = NULL;
         char *debugLine = NULL;
 
