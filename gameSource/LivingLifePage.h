@@ -544,7 +544,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         void pickUpBabyInRange();
         void pickUpBaby( int x, int y );
         void useBackpack( bool replace = false );
-        void usePocket( int clothingID );
+        void usePocket( int clothingID, bool replace = false );
         void useOnSelf();
         void takeOffBackpack();
         void setOurSendPosXY(int &x, int &y);

@@ -6533,7 +6533,12 @@ void getArmHoldingParameters( ObjectRecord *inHeldObject,
             }
         else if( inHeldObject->rideable ) {
             *outHideClosestArm = 0;
-            *outHideAllLimbs = true;
+
+            // show limbs when riding a bike or sitting
+            if( !inHeldObject->ridingAnimationIndex == biking &&
+                !inHeldObject->ridingAnimationIndex == sitting )
+                *outHideAllLimbs = true;
+
             }
         else {
             // try hiding no arms, but freezing them instead
