@@ -546,6 +546,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         void useBackpack( bool replace = false );
         void usePocket( int clothingID, bool replace = false );
         void useOnSelf();
+        void takeOffClothing();
         void takeOffBackpack();
         void setOurSendPosXY(int &x, int &y);
         bool isCharKey(unsigned char c, unsigned char key);

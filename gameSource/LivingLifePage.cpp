@@ -3964,6 +3964,44 @@ void LivingLifePage::useOnSelf() {
         nextActionEating = true;
 }
 
+static int nextUndressingSlot = 0;
+const int slotOrder[] = { 0, 1, 4, 3, 2, 5 }; // top to bottom order (front shoe first)
+
+void LivingLifePage::takeOffClothing() {
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int x, y;
+    setOurSendPosXY(x, y);
+    
+    char msg[32];
+    
+    // If holding clothing, put it on
+    if (ourLiveObject->holdingID > 0) {
+        ObjectRecord *held = getObject(ourLiveObject->holdingID);
+
+        // if held object is not wearable
+        if (!held || held->clothing == 'n') return;
+
+        sprintf(msg, "SELF %d %d %d#", x, y, -1);
+        setNextActionMessage(msg, x, y);
+        return;
+    }
+    
+    // Find next equipped item
+    for (int i = 0; i < NUM_CLOTHING_PIECES; i++) {
+
+        int slot = (nextUndressingSlot + i) % NUM_CLOTHING_PIECES;
+        ObjectRecord *item = clothingByIndex(ourLiveObject->clothing, slotOrder[slot]);
+        if (item) {
+            sprintf(msg, "SELF %d %d %d#", x, y, slotOrder[slot]);
+            setNextActionMessage(msg, x, y);
+            nextUndressingSlot = slot + 1;
+            return;
+        }
+    }
+    return;
+}
+
 void LivingLifePage::takeOffBackpack() {
     LiveObject *ourLiveObject = getOurLiveObject();
     
@@ -27562,8 +27600,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 useBackpack(true);
                 return;
             }
-            if (isCharKey(inASCII, charKey_Eat)) {
+            if (!shiftKey && isCharKey(inASCII, charKey_Eat)) {
                 useOnSelf();
+                return;
+            }
+            if (shiftKey && isCharKey(inASCII, charKey_Eat)) {
+                takeOffClothing();
                 return;
             }
             if (isCharKey(inASCII, charKey_Baby)) {
