@@ -3925,7 +3925,7 @@ void LivingLifePage::useBackpack(bool replace) {
     }
 }
 
-void LivingLifePage::usePocket(int clothingID) {
+void LivingLifePage::usePocket(int clothingID, bool replace) {
     LiveObject *ourLiveObject = getOurLiveObject();
     
     int x, y;
@@ -3933,7 +3933,11 @@ void LivingLifePage::usePocket(int clothingID) {
 
     char msg[32];
     if( ourLiveObject->holdingID > 0 ) {
-        sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
+        if (replace) {
+            sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
+        } else {
+            sprintf( msg, "SELF %d %d %d#", x, y, clothingID );
+        }
         setNextActionMessage( msg, x, y );
         nextActionDropping = true;
     } else {
@@ -6505,7 +6509,6 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             // biking animation
             // replace moving with biking
             // and replace ground2 with biking with timeVal = 0
-            // show limbs when riding a bike
                 
             if( curType == moving ) curType = biking;
             if( fadeTargetType == moving ) fadeTargetType = biking;
@@ -6522,20 +6525,15 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                 }
             if( frozenArmType == ground2 ) frozenArmType = biking;
             if( frozenArmFadeTargetType == ground2 ) frozenArmFadeTargetType = biking;
-            
-            hideAllLimbs = false;
             }
         else if( getObject( inObj->holdingID )->ridingAnimationIndex == sitting ) {
             // sitting animation
             // replace everything with sitting type
-            // show limbs when seated
             
             curType = sitting;
             fadeTargetType = sitting;
             frozenArmType = sitting;
             frozenArmFadeTargetType = sitting;
-            
-            hideAllLimbs = false;
             }
         }
     
@@ -6887,6 +6885,16 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                     getArmHoldingParameters( babyHoldingObj, 
                                              &hideClosestArmBaby,
                                              &hideAllLimbsBaby );
+                    
+                    // this baby is being held
+                    // and has dropped whatever it was holding when picked up
+                    // however it may still hold wounds
+                    // hence not removing the code above
+                    
+                    // these wounds should not be hiding baby's limb as in riding
+                    // hence below
+                    hideAllLimbsBaby = false;
+
                     }
                 
                 
@@ -25434,6 +25442,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     if ( blockMouseScaling ) { scaling = false; }
     
     //FOV
+    bool stillWaitingBirth = mFirstServerMessagesReceived != 3 || !mDoneLoadingFirstObjectSet;
+    if( !stillWaitingBirth ) // Disallow zooming in Connecting screen
     if( scaling ) {
         // if ( isCommandKeyDown() ) {
         //     float currentHUDScale = gui_fov_target_scale_hud;
@@ -27606,12 +27616,17 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 takeOffBackpack();
                 return;
             }
-            if (shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+            if (shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
                 usePocket(1);
                 return;
             }
-            if (!shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+            if (!shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
                 usePocket(4);
+                return;
+            }
+            if (commandKey && isCharKey(inASCII, charKey_Pocket)) {
+                if(shiftKey) usePocket(0, true);
+                if(!shiftKey) usePocket(0);
                 return;
             }
         }

@@ -2566,6 +2566,8 @@ void drawFrame( char inUpdate ) {
                 setViewCenterPosition( lastScreenViewCenter.x, 
                                        lastScreenViewCenter.y );
                 
+                livingLifePage->changeFOV( 1.0f );
+                
                 currentGamePage = existingAccountPage;
                 
                 existingAccountPage->setStatus( "serverShutdown", true );
@@ -2581,6 +2583,8 @@ void drawFrame( char inUpdate ) {
                 setViewCenterPosition( lastScreenViewCenter.x, 
                                        lastScreenViewCenter.y );
                 
+                livingLifePage->changeFOV( 1.0f );
+                
                 currentGamePage = existingAccountPage;
                 
                 existingAccountPage->setStatus( "serverUpdate", true );
@@ -2595,6 +2599,8 @@ void drawFrame( char inUpdate ) {
 
                 setViewCenterPosition( lastScreenViewCenter.x, 
                                        lastScreenViewCenter.y );
+                
+                livingLifePage->changeFOV( 1.0f );
                 
                 currentGamePage = existingAccountPage;
                 
