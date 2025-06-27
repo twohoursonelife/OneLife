@@ -191,7 +191,7 @@ unsigned char charKey_Pocket = 't';
 unsigned char charKey_Eat = 'e';
 unsigned char charKey_Baby = 'c';
 
-static bool waitForDoorToOpen;
+//static bool waitForDoorToOpen;
 
 //FOV
 extern int gui_hud_mode;
@@ -539,7 +539,7 @@ static char *extractMapName( char *input ) {
         char **tokens = split( working, " ", &wordCount );
 
         for( int i=0; i<wordCount; i++ ) {
-            if( strlen(tokens[i]) > 0 && strlen(tokens[i]) <= maxNameLen ) {
+            if( strlen(tokens[i]) > 0 && (int)strlen(tokens[i]) <= maxNameLen ) {
                 if( returnString != NULL ) delete [] returnString;
                 returnString = stringDuplicate( tokens[i] );
                 break;
@@ -551,7 +551,7 @@ static char *extractMapName( char *input ) {
             }
         delete [] tokens;
         }
-    else if( strlen(working) <= maxNameLen ) {
+    else if( (int)strlen(working) <= maxNameLen ) {
         returnString = stringDuplicate( working );
         }
     if( returnString == NULL ) {
@@ -13307,10 +13307,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if ( distY > showLabelRange || distY < -showLabelRange) continue;
 
             char *name = NULL;
-            char infertilityTagPresent = false;
+            //char infertilityTagPresent = false;
             if( o->name != NULL ) {
                 name = stringDuplicate(o->name);
-                infertilityTagPresent = stripFertilitySuffix( name );
+                //infertilityTagPresent = stripFertilitySuffix( name );
                 if( name[0] == '\0' ) {
                     delete [] name;
                     name = NULL;
