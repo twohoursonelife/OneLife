@@ -13,7 +13,9 @@ core*
 
 gameSource/OneLife
 gameSource/OneLife.exe
+gameSource/EditOneLife
 gameSource/EditOneLife.exe
+gameSource/TownPlanner
 gameSource/TownPlanner.exe
 gameSource/testUser/*
 gameSource/testUser2/*
@@ -23,6 +25,7 @@ gameSource/icon.ico
 gameSource/icon.rc
 
 server/OneLifeServer
+server/OneLifeServer.exe
 server/log.txt
 server/recentPlacements.txt
 server/*.db
