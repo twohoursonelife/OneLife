@@ -11291,13 +11291,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
             mPhotoToShowSprites[i] != NULL ) {
 
             doublePair sheetPos  = 
-                add( mPhotoDisplayPosOffset[i], lastScreenViewCenter );
+                add( mult( recalcOffset(mPhotoDisplayPosOffset[i]), gui_fov_scale ), lastScreenViewCenter );
 
-            drawSprite( mPhotoDisplaySprites[i], sheetPos );
+            drawSprite( mPhotoDisplaySprites[i], sheetPos, gui_fov_scale_hud );
             
             toggleMultiplicativeBlend( true );
             
-            drawSprite( mPhotoToShowSprites[i], sheetPos );
+            drawSprite( mPhotoToShowSprites[i], sheetPos, gui_fov_scale_hud );
 
             toggleMultiplicativeBlend( false );
             }
