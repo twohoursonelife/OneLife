@@ -3980,7 +3980,12 @@ void LivingLifePage::takeOffClothing() {
         ObjectRecord *held = getObject(ourLiveObject->holdingID);
 
         // if held object is not wearable
-        if (!held || held->clothing == 'n') return;
+        // if (!held || held->clothing == 'n') return;
+
+        // let SELF through even if object is not wearable
+        // this is consistent with old behavior of Shift + E
+        // allow you to Shift + WASD and Shift + E to pick and eat a berries
+        // without needing to release shift and press again
 
         sprintf(msg, "SELF %d %d %d#", x, y, -1);
         setNextActionMessage(msg, x, y);
