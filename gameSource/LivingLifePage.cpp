@@ -100,8 +100,9 @@ static char shouldMoveCamera = true;
 bool showUseOnHoverEnabled = false;
 
 
-extern double visibleViewWidth;
+extern double viewWidth;
 extern double viewHeight;
+extern double visibleViewWidth;
 
 extern int screenW, screenH;
 
@@ -28954,10 +28955,12 @@ void LivingLifePage::changeFOV( float newScale ) {
 
     calcOffsetHUD();
 
+    float viewHeightFraction = viewHeight / viewWidth;
     visibleViewWidth = 1280 * newScale;
     viewHeight = 720 * newScale;
-    setLetterbox( 1280 * newScale, 720 * newScale );
-    setViewSize( 1280 * newScale );
+    viewWidth = viewHeight / viewHeightFraction;
+    setViewSize( viewWidth );
+    setLetterbox( visibleViewWidth, viewHeight );
     }
 
 void LivingLifePage::changeHUDFOV( float newScale ) {
