@@ -24835,6 +24835,21 @@ int main() {
                                     }
 
                                 
+                                // any other * metadata before *map?
+                                char *otherStarLoc = strstr( trimmedPhrase,
+                                                             " *" );
+                                if( otherStarLoc != NULL ) {
+                                    if( speakerID != listenerID ) {
+                                        // only send * metadata through
+                                        // to speaker
+                                        // trim it otherwise
+                                        
+                                        otherStarLoc[0] = '\0';
+                                        }
+                                    }
+                                
+
+                                
                                 char *translatedPhrase;
                                 
                                 // skip language filtering in some cases
