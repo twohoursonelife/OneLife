@@ -16434,7 +16434,7 @@ int main() {
                                 const char *name;
                                 
                                 if( nextPlayer->name == NULL ) {
-                                    name = "UNKNOWN";
+                                    name = "AN UNKNOWN PHOTOGRAPHER";
                                     }
                                 else {
                                     name = nextPlayer->name;
@@ -16442,7 +16442,7 @@ int main() {
                                 
 
                                 char *textToAdd = autoSprintf( 
-                                    "A PHOTO BY %s *photo %s",
+                                    "TAKEN BY %s *photo %s",
                                     name, m.photoIDString );
                                 
                                 
