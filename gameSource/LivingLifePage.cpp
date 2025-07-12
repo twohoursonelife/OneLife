@@ -769,11 +769,97 @@ char runningYumFinder = false;
 int livingLifeStepCount = 0;
 int bouncingAnimationStepOffset = 0;
 
+static FILE *yumChainFile = NULL;
 SimpleVector<int> yummyFoodChain;
 
 static char isFood( int inID );
 
 extern int *becomeFoodMap;
+
+static char* readYumChainFile(){
+    // open file
+    yumChainFile = fopen( "yumChain.txt", "r" );
+    if (!yumChainFile) return NULL;
+
+    // find length
+    fseek (yumChainFile, 0, SEEK_END);
+    int length = ftell (yumChainFile);
+    fseek (yumChainFile, 0, SEEK_SET);
+
+    // read file and close it
+    char *fileText = new char;
+    if (fileText)
+    {
+        fread (fileText, 1, length, yumChainFile);
+    }
+    fclose (yumChainFile);
+    return fileText; // should be deleted elsewhere
+}
+
+static void recoverYumChainFromFile(const int life_id){
+    char *fileText = readYumChainFile();
+
+    if (!fileText) return;
+
+    int numLines = 0;
+    char **lines = split( fileText, "\n", &numLines );
+    delete [] fileText;
+
+    int next = 0;
+
+    int saved_life_id;
+    sscanf( lines[next], "life_id=%d", &saved_life_id );
+    next++;
+
+    if (saved_life_id != life_id) return; // wrong life :(
+
+    while( next < numLines ) {
+        int food_id;
+        sscanf( lines[next], "%d", &food_id );
+        yummyFoodChain.push_back( food_id );
+        next++;
+    }
+
+}
+
+static void initYumChainFile(const int life_id) {
+    char should_create_new_file = false;
+
+    char *fileText = readYumChainFile();
+
+    if (fileText){ // file exists, check if the saved life is the same as current life
+        int numLines = 0;
+        char **lines = split( fileText, "\n", &numLines );
+        delete [] fileText;
+        int saved_life_id;
+        sscanf( lines[0], "life_id=%d", &saved_life_id );
+        if (saved_life_id == life_id){
+            recoverYumChainFromFile(saved_life_id);
+        }
+        else {
+            should_create_new_file = true;
+        }
+    }
+    else {
+        should_create_new_file = true;
+    }
+
+    if (should_create_new_file) {
+        yumChainFile = fopen( "yumChain.txt", "w" );
+        if (yumChainFile) {
+            fprintf( yumChainFile, "life_id=%d\n", life_id );
+            fclose( yumChainFile );
+        }
+    }
+}
+
+static void addYumToYumChainFile(const int yum_id) {
+    yumChainFile = fopen( "yumChain.txt", "a" );
+    if (yumChainFile) {
+        fprintf( yumChainFile, "%d\n", yum_id );
+        fclose( yumChainFile );
+    }
+}
 
 static int getFoodParent( int oid ) {
     oid = getObjectParent( oid );
@@ -784,6 +870,7 @@ static void addToYummyFoodChain( int foodID ) {
     foodID = getFoodParent( foodID );
     if( yummyFoodChain.getElementIndex( foodID ) != -1 ) return;
     yummyFoodChain.push_back( foodID );
+    addYumToYumChainFile( foodID );
     }
 
 char livingLifeBouncingYOffsetToggle = true;
@@ -20799,6 +20886,7 @@ void LivingLifePage::step() {
 
                     // clear yummy food chain
                     yummyFoodChain.deleteAll();
+                    initYumChainFile(ourID);
 
                     // don't clear object search
                     // allow searches across lives
@@ -20817,6 +20905,9 @@ void LivingLifePage::step() {
                         }
 
                     }
+                else { // same ID as last time, disconnect/reconnect or smth
+                    recoverYumChainFromFile(ourID);
+                }
                 homePosStack.push_back_other( &oldHomePosStack );
 
                 lastPlayerID = ourID;
