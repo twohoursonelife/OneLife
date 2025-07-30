@@ -18205,16 +18205,21 @@ int main() {
                                 if( r != NULL &&
                                     r->newTarget > 0 &&
                                     r->newTarget != target ) {
+
+                                    int floorID = getMapFloor( m.x, m.y );
                                     
                                     // target would change here
-                                    if( getMapFloor( m.x, m.y ) != 0 ) {
+                                    if( floorID != 0 ) {
                                         // floor present
                                         
                                         // make sure new target allowed 
                                         // to exist on floor
                                         if( strstr( getObject( r->newTarget )->
                                                     description, 
-                                                    "groundOnly" ) != NULL ) {
+                                                    "groundOnly" ) != NULL &&
+                                            strstr( getObject( floorID )->description, 
+                                                    "groundLikeFloor" ) == NULL
+                                                 ) {
                                             r = NULL;
                                             }
                                         }
@@ -19192,7 +19197,9 @@ int main() {
                                             strstr( newTargetObj->description, 
                                                     "groundOnly" ) != NULL
                                             &&
-                                            getMapFloor( m.x, m.y ) != 0 ) {
+                                            getMapFloor( m.x, m.y ) != 0 &&
+                                            strstr( getObject( getMapFloor( m.x, m.y ) )->description, 
+                                                    "groundLikeFloor" ) == NULL ) {
                                             // floor present
                                         
                                             // new target not allowed 
