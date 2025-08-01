@@ -9473,6 +9473,10 @@ static void changeContained( int inX, int inY, int inSlotNumber,
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
 char containmentPermitted( int inContainerID, int inContainedID ) {
+
+    // separate object ID from meta ID, in case the objects contain meta data
+    inContainerID = extractObjectID(inContainerID);
+    inContainedID = extractObjectID(inContainedID);
     
     // Use the container's and object's dummy parents to judge
     // So use objects also inherit the cont tag
