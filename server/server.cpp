@@ -5740,7 +5740,13 @@ static void forceObjectToRead( LiveObject *inPlayer,
         
         if( !passToRead )
         if( p.x == inReadPos.x && p.y == inReadPos.y && Time::getCurrentTime() <= eta ){
-            return;
+
+            // allow clickToRead location speech for now
+            // clickToRead container feature needs this to work
+            // you could be reading different written objects at the same pos
+            // because they're sitting in a container
+
+            // return;
         }
         
         if( passToRead )
@@ -9877,6 +9883,29 @@ char removeFromContainerToHold( LiveObject *inPlayer,
         if( target != 0 ) {
                             
             if( target > 0 && getObject( target )->slotsLocked ) {
+
+                if( inSlotNumber >= 0 && // a slot number is specified
+                    getObject( target )->clickToRead &&
+                    strstr( getObject( target )->description, "+useOnContained" ) != NULL
+                ) {
+                    // clickToRead container
+                    // to read written objects contained
+
+                    // target container needs to be:
+                    // 1) clickToRead - not technically required but it makes more sense
+                    // 2) useOnContained - required for USE, when you're holding something;
+                    //                     otherwise client won't send out a slot number
+                    // 3) slotsLocked - required for REMV, when your hands are empty;
+                    //                  otherwise you'd remove the object to hold
+
+                    int contID = getContained( inContX, inContY, inSlotNumber );
+
+                    // we don't need to check if contID contains meta data
+                    // the function will do the checking
+                    forceObjectToRead( inPlayer, contID, {inContX, inContY}, false );
+                    }
+                
+
                 return false;
                 }
 
@@ -18652,12 +18681,29 @@ int main() {
                                 else if( nextPlayer->holdingID >= 0 ) {
                                     
                                     char handled = false;
-                                    
-                                    if( m.i != -1 && targetObj->permanent &&
+
+                                    char validUseOnContainedRequest = 
+                                        m.i != -1 && targetObj->permanent &&
                                         targetObj->numSlots > m.i &&
                                         getNumContained( m.x, m.y ) > m.i &&
                                         strstr( targetObj->description,
-                                                "+useOnContained" ) != NULL ) {
+                                                "+useOnContained" ) != NULL;
+                                        
+                                    if( validUseOnContainedRequest && 
+                                        targetObj->slotsLocked &&
+                                        targetObj->clickToRead
+                                    ) {
+                                        // clickToRead container
+                                        // to read written objects contained
+
+                                        int contID = getContained( m.x, m.y, m.i );
+                                        forceObjectToRead( nextPlayer, contID, {m.x, m.y}, false );
+
+                                        // if slotsLocked, don't allow useOnContained
+                                        handled = true;
+                                        }
+                                    
+                                    if( !handled && validUseOnContainedRequest ) {
                                         // a valid slot specified to use
                                         // held object on.
                                         // AND container allows this
