@@ -10034,8 +10034,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         doublePair speechPos = pos;
 
-
-        speechPos.y += 84;
+        int x = pos.x / CELL_D;
+        int y = pos.y / CELL_D;
+        int oid = getObjId(x, y);
+        double adj = getObjectHeight(oid);
+        if( adj == 0 ) {
+            speechPos.y += 84;
+            }
+        else {
+            speechPos.y += adj;
+            }
+        
         
         int width = 250 * gui_fov_scale_hud;
         int widthLimit = 250 * gui_fov_scale_hud;
