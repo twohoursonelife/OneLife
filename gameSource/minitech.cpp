@@ -923,7 +923,8 @@ vector<TransRecord*> minitech::getUsesTrans(int objId) {
             //No container-ception, this probably results from cont tag inheritance
             if( idA == idB ) continue;
             //Similarly, this results from cont tag inheritance
-            if( getObject(idA) != NULL && getObject(idB) != NULL &&
+            if( idA > 0 && idB > 0 && 
+                getObject(idA) != NULL && getObject(idB) != NULL &&
                 getObject(idA)->permanent && getObject(idB)->permanent ) continue;
         }
         
@@ -1680,7 +1681,7 @@ void minitech::updateDrawTwoTech() {
             pos.x += iconSize;
             if (trans->actor == -1 && trans->autoDecaySeconds != 0 && trans->newActor == 0) {
                 //not drawing the plus sign for pure Changes over time...
-            } else if (trans->target == -1 && trans->newTarget == 0) {
+            } else if (trans->target == -1 && trans->newTarget == 0 && trans->contTransFlag == 0) {
                 //not drawing the plus sign for eating transitions
             } else {
                 if( trans->contTransFlag == 0 || inOrOutContainmentTrans ) {
