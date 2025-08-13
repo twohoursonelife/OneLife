@@ -26989,11 +26989,23 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                     // consider doing that as a USE
                     ObjectRecord *destObj = getObject( destID );
                     
-                    if( destObj->numSlots > p.hitSlotIndex &&
+                    if( getTrans( 0, destID ) == NULL && // make sure object has no bare-hand transition
+                        p.hitSlotIndex > -1 && // correctly check that a slot is clicked
+                        destObj->numSlots > p.hitSlotIndex &&
                         strstr( destObj->description, "+useOnContained" )
                         != NULL ) {
-                        action = "USE";
-                        useExtraIParam = p.hitSlotIndex;
+                        
+                        char containedHasBareHandTrans = false;
+                        int mapI = getMapIndex(p.closestCellX, p.closestCellY);
+                        if( mapI != -1 ) {
+                            int containedID = mMapContainedStacks[mapI].getElementDirect( p.hitSlotIndex );
+                            if( getTrans( 0, containedID ) != NULL ) containedHasBareHandTrans = true;
+                            }
+                        
+                        if( containedHasBareHandTrans ) {
+                            action = "USE";
+                            useExtraIParam = p.hitSlotIndex;
+                            }
                         }
                     }
                 
