@@ -27703,9 +27703,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         }
     }
 
+    LiveObject *ourLiveObject = getOurLiveObject();
+
     // Custom command shortcuts (was FOV emote keys)
     int commandIndex = -1;
-    if( !vogMode && !shiftKey ) {
+    if( !vogMode && !shiftKey && ourLiveObject != NULL ) {
         if ( isAltKeyDown() || !mSayField.isFocused() ) {
             int numberPressed = (int)inASCII - 48;
             if( numberPressed >= 0 && numberPressed <= 9 ) {
@@ -27719,8 +27721,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             char *command = commandShortcuts.getElementDirect( commandIndex );
 
             char *commandWorking = stringDuplicate(command);
-
-            LiveObject *ourLiveObject = getOurLiveObject();
 
             double age = computeCurrentAgeNoOverride( ourLiveObject );
 
