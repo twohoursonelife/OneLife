@@ -27372,7 +27372,9 @@ void LivingLifePage::pointerDrag( float inX, float inY ) {
     lastMouseY = inY;
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
 
-    if( vogModeActuallyOn && vogPickerOn ) {
+    if( vogModeActuallyOn && vogPickerOn && 
+        !isHoveringPicker(inX, inY) // this disallows drags that start and end within the picker UI
+        ) {
         if( !dragging ) {
             dragging = true;
             dragStart = {
