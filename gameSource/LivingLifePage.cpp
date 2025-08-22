@@ -100,8 +100,9 @@ static char shouldMoveCamera = true;
 bool showUseOnHoverEnabled = false;
 
 
-extern double visibleViewWidth;
+extern double viewWidth;
 extern double viewHeight;
+extern double visibleViewWidth;
 
 extern int screenW, screenH;
 
@@ -3980,7 +3981,12 @@ void LivingLifePage::takeOffClothing() {
         ObjectRecord *held = getObject(ourLiveObject->holdingID);
 
         // if held object is not wearable
-        if (!held || held->clothing == 'n') return;
+        // if (!held || held->clothing == 'n') return;
+
+        // let SELF through even if object is not wearable
+        // this is consistent with old behavior of Shift + E
+        // allow you to Shift + WASD and Shift + E to pick and eat a berries
+        // without needing to release shift and press again
 
         sprintf(msg, "SELF %d %d %d#", x, y, -1);
         setNextActionMessage(msg, x, y);
@@ -7949,6 +7955,10 @@ char LivingLifePage::isCoveredByFloor( int inTileIndex ) {
     }
 
 
+bool dragging = false;
+GridPos dragStart = {9999, 9999};
+GridPos dragEnd = {9999, 9999};
+
 
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
@@ -8836,6 +8846,30 @@ void LivingLifePage::draw( doublePair inViewCenter,
         FloatColor tileColor = {0.5, 0.0, 1.0, 1.0};
         if( vogScrollingMode ) tileColor = {1.0, 0.0, 1.0, 1.0};
         drawTileVanillaHighlight( viewingGridPos.x, viewingGridPos.y, tileColor );
+        }
+
+    if( vogModeActuallyOn && vogPickerOn && dragging ) {
+
+        GridPos end = dragEnd;
+        if( end.x == 9999 && end.y == 9999 ) {
+            end = {
+                int(round( lastMouseX / (float)CELL_D )),
+                int(round( lastMouseY / (float)CELL_D ))
+                };
+            }
+
+        int minX = std::min(dragStart.x, end.x);
+        int maxX = std::max(dragStart.x, end.x);
+        int minY = std::min(dragStart.y, end.y);
+        int maxY = std::max(dragStart.y, end.y);
+
+        FloatColor tileColor = {1.0, 1.0, 0.0, 1.0};
+        if( (maxX - minX) * (maxY - minY) <= 400 ) // spammy VOGI will not go through anyway
+        for( int x = minX; x <= maxX; x++) {
+            for( int y = minY; y <= maxY; y++) {
+                drawTileVanillaHighlight( x, y, tileColor );
+                }
+            }
         }
 
     if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
@@ -10000,8 +10034,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         doublePair speechPos = pos;
 
-
-        speechPos.y += 84;
+        int x = pos.x / CELL_D;
+        int y = pos.y / CELL_D;
+        int oid = getObjId(x, y);
+        double adj = getObjectHeight(oid);
+        if( adj == 0 ) {
+            speechPos.y += 84;
+            }
+        else {
+            speechPos.y += adj;
+            }
+        
         
         int width = 250 * gui_fov_scale_hud;
         int widthLimit = 250 * gui_fov_scale_hud;
@@ -11263,13 +11306,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
             mPhotoToShowSprites[i] != NULL ) {
 
             doublePair sheetPos  = 
-                add( mPhotoDisplayPosOffset[i], lastScreenViewCenter );
+                add( mult( recalcOffset(mPhotoDisplayPosOffset[i]), gui_fov_scale ), lastScreenViewCenter );
 
-            drawSprite( mPhotoDisplaySprites[i], sheetPos );
+            drawSprite( mPhotoDisplaySprites[i], sheetPos, gui_fov_scale_hud );
             
             toggleMultiplicativeBlend( true );
             
-            drawSprite( mPhotoToShowSprites[i], sheetPos );
+            drawSprite( mPhotoToShowSprites[i], sheetPos, gui_fov_scale_hud );
 
             toggleMultiplicativeBlend( false );
             }
@@ -25463,35 +25506,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         !isLastMouseButtonRight() &&
         minitech::livingLifePageMouseDown( inX, inY )) return;
     
-    if( !mForceGroundClick && vogMode && vogPickerOn && 
-        !isHoveringPicker(inX, inY)
-        ) {
-        GridPos pos;
-        pos.x = int(round( inX / (float)CELL_D ));
-        pos.y = int(round( inY / (float)CELL_D ));
-        
-        char rightClick;
-        int id = mObjectPicker.getSelectedObject( &rightClick );
-        if( isLastMouseButtonRight() ) {
-            if( isShiftKeyDown() ) {
-                id = 16003; // Smooth Ground #floor
-                }
-            else {
-                id = 1938; // Smooth Ground
-                }
-            }
-        
-        if( id != -1 ) {
-            char *message = autoSprintf( "VOGI %d %d %d#",
-                                         lrint( pos.x ), 
-                                         lrint( pos.y ), id );
-            sendToServerSocket( message );
-            delete [] message;
-            mObjectPicker.usePickable( id );
-            return;
-            }
-        }
-    
     lastMouseX = inX;
     lastMouseY = inY;
 
@@ -26975,11 +26989,23 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                     // consider doing that as a USE
                     ObjectRecord *destObj = getObject( destID );
                     
-                    if( destObj->numSlots > p.hitSlotIndex &&
+                    if( getTrans( 0, destID ) == NULL && // make sure object has no bare-hand transition
+                        p.hitSlotIndex > -1 && // correctly check that a slot is clicked
+                        destObj->numSlots > p.hitSlotIndex &&
                         strstr( destObj->description, "+useOnContained" )
                         != NULL ) {
-                        action = "USE";
-                        useExtraIParam = p.hitSlotIndex;
+                        
+                        char containedHasBareHandTrans = false;
+                        int mapI = getMapIndex(p.closestCellX, p.closestCellY);
+                        if( mapI != -1 ) {
+                            int containedID = mMapContainedStacks[mapI].getElementDirect( p.hitSlotIndex );
+                            if( getTrans( 0, containedID ) != NULL ) containedHasBareHandTrans = true;
+                            }
+                        
+                        if( containedHasBareHandTrans ) {
+                            action = "USE";
+                            useExtraIParam = p.hitSlotIndex;
+                            }
                         }
                     }
                 
@@ -27341,58 +27367,21 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
 
 
-double lastVogDragTime = 0;
-
 void LivingLifePage::pointerDrag( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
 
-    if( !mForceGroundClick && vogMode && vogPickerOn && 
-        !isHoveringPicker(inX, inY)
+    if( vogModeActuallyOn && vogPickerOn && 
+        !isHoveringPicker(inX, inY) // this disallows drags that start and end within the picker UI
         ) {
-
-        if( game_getCurrentTime() - lastVogDragTime < 0.05 ) return;
-
-        GridPos pos;
-        pos.x = int(round( inX / (float)CELL_D ));
-        pos.y = int(round( inY / (float)CELL_D ));
-        
-        char rightClick;
-        int id = mObjectPicker.getSelectedObject( &rightClick );
-        if( isLastMouseButtonRight() ) {
-            if( isShiftKeyDown() ) {
-                id = 16003; // Smooth Ground #floor
-                }
-            else {
-                id = 1938; // Smooth Ground
-                }
-            }
-        
-        if( id != -1 ) {
-
-            ObjectRecord *o = getObject( id );
-            if( o == NULL ) return;
-            if( o->floor ) {
-                int mapI = getMapIndex( pos.x, pos.y );
-                if( mapI != -1 ) {
-                    int currentFloor = mMapFloors[ mapI ];
-                    if( id == currentFloor ) return;
-                    }
-                }
-            else {
-                int currentObject = getObjId( pos.x, pos.y );
-                if( id == currentObject ) return;
-                }
-
-            char *message = autoSprintf( "VOGI %d %d %d#",
-                                         lrint( pos.x ), 
-                                         lrint( pos.y ), id );
-            sendToServerSocket( message );
-            lastVogDragTime = game_getCurrentTime();
-            delete [] message;
-            mObjectPicker.usePickable( id );
-            return;
+        if( !dragging ) {
+            dragging = true;
+            dragStart = {
+                int(round( inX / (float)CELL_D )),
+                int(round( inY / (float)CELL_D ))
+                };
+            dragEnd = {9999, 9999};
             }
         }
     
@@ -27458,6 +27447,73 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
     mPrevMouseOverCellFades.push_back( mCurMouseOverCellFade );
     mCurMouseOverCell.x = -1;
     mCurMouseOverCell.y = -1;
+
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) return;
+    
+    if( !mForceGroundClick && vogModeActuallyOn && vogPickerOn ) {
+
+        // we're either clicking or dragging here
+
+        char rightClick;
+        int id = mObjectPicker.getSelectedObject( &rightClick );
+        if( isLastMouseButtonRight() ) {
+            if( isShiftKeyDown() ) {
+                id = 16003; // Smooth Ground #floor
+                }
+            else {
+                id = 1938; // Smooth Ground
+                }
+            }
+
+        // if we're hovering picker
+        // let dragging go through but stop mouseUp
+
+        if( dragging ) {
+            dragEnd = {
+                int(round( inX / (float)CELL_D )),
+                int(round( inY / (float)CELL_D ))
+                };
+            
+            int minX = std::min(dragStart.x, dragEnd.x);
+            int maxX = std::max(dragStart.x, dragEnd.x);
+            int minY = std::min(dragStart.y, dragEnd.y);
+            int maxY = std::max(dragStart.y, dragEnd.y);
+            
+            if( (maxX - minX) * (maxY - minY) <= 400 ) // don't spam VOGI
+            for( int x = minX; x <= maxX; x++) {
+                for( int y = minY; y <= maxY; y++) {
+                    if( id != -1 ) {
+                        char *message = autoSprintf( "VOGI %d %d %d#",
+                                                    lrint( x ), 
+                                                    lrint( y ), id );
+                        sendToServerSocket( message );
+                        delete [] message;
+                        }
+                    }
+                }
+
+            dragging = false;
+            dragStart = {9999, 9999};
+            dragEnd = {9999, 9999};
+            }
+        else if( !isHoveringPicker(inX, inY) ) {
+            GridPos pos = {
+                int(round( inX / (float)CELL_D )),
+                int(round( inY / (float)CELL_D ))
+                };
+            
+            if( id != -1 ) {
+                char *message = autoSprintf( "VOGI %d %d %d#",
+                                            lrint( pos.x ), 
+                                            lrint( pos.y ), id );
+                sendToServerSocket( message );
+                delete [] message;
+                mObjectPicker.usePickable( id );
+                return;
+                }
+            }
+        }
     }
 
 
@@ -27649,9 +27705,11 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         }
     }
 
+    LiveObject *ourLiveObject = getOurLiveObject();
+
     // Custom command shortcuts (was FOV emote keys)
     int commandIndex = -1;
-    if( !vogMode && !shiftKey ) {
+    if( !vogMode && !shiftKey && ourLiveObject != NULL ) {
         if ( isAltKeyDown() || !mSayField.isFocused() ) {
             int numberPressed = (int)inASCII - 48;
             if( numberPressed >= 0 && numberPressed <= 9 ) {
@@ -27665,8 +27723,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             char *command = commandShortcuts.getElementDirect( commandIndex );
 
             char *commandWorking = stringDuplicate(command);
-
-            LiveObject *ourLiveObject = getOurLiveObject();
 
             double age = computeCurrentAgeNoOverride( ourLiveObject );
 
@@ -28715,6 +28771,10 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
     bool commandKey = isCommandKeyDown();
     bool shiftKey = isShiftKeyDown();
 
+    dragging = false;
+    dragStart = {9999, 9999};
+    dragEnd = {9999, 9999};
+
     if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
         upKeyDown = false;
     }
@@ -28918,10 +28978,12 @@ void LivingLifePage::changeFOV( float newScale ) {
 
     calcOffsetHUD();
 
+    float viewHeightFraction = viewHeight / viewWidth;
     visibleViewWidth = 1280 * newScale;
     viewHeight = 720 * newScale;
-    setLetterbox( 1280 * newScale, 720 * newScale );
-    setViewSize( 1280 * newScale );
+    viewWidth = viewHeight / viewHeightFraction;
+    setViewSize( viewWidth );
+    setLetterbox( visibleViewWidth, viewHeight );
     }
 
 void LivingLifePage::changeHUDFOV( float newScale ) {

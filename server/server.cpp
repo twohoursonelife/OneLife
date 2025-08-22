@@ -5740,7 +5740,13 @@ static void forceObjectToRead( LiveObject *inPlayer,
         
         if( !passToRead )
         if( p.x == inReadPos.x && p.y == inReadPos.y && Time::getCurrentTime() <= eta ){
-            return;
+
+            // allow clickToRead location speech for now
+            // clickToRead container feature needs this to work
+            // you could be reading different written objects at the same pos
+            // because they're sitting in a container
+
+            // return;
         }
         
         if( passToRead )
@@ -9473,6 +9479,10 @@ static void changeContained( int inX, int inY, int inSlotNumber,
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
 char containmentPermitted( int inContainerID, int inContainedID ) {
+
+    // separate object ID from meta ID, in case the objects contain meta data
+    inContainerID = extractObjectID(inContainerID);
+    inContainedID = extractObjectID(inContainedID);
     
     // Use the container's and object's dummy parents to judge
     // So use objects also inherit the cont tag
@@ -9873,6 +9883,29 @@ char removeFromContainerToHold( LiveObject *inPlayer,
         if( target != 0 ) {
                             
             if( target > 0 && getObject( target )->slotsLocked ) {
+
+                if( inSlotNumber >= 0 && // a slot number is specified
+                    getObject( target )->clickToRead &&
+                    strstr( getObject( target )->description, "+useOnContained" ) != NULL
+                ) {
+                    // clickToRead container
+                    // to read written objects contained
+
+                    // target container needs to be:
+                    // 1) clickToRead - not technically required but it makes more sense
+                    // 2) useOnContained - required for USE, when you're holding something;
+                    //                     otherwise client won't send out a slot number
+                    // 3) slotsLocked - required for REMV, when your hands are empty;
+                    //                  otherwise you'd remove the object to hold
+
+                    int contID = getContained( inContX, inContY, inSlotNumber );
+
+                    // we don't need to check if contID contains meta data
+                    // the function will do the checking
+                    forceObjectToRead( inPlayer, contID, {inContX, inContY}, false );
+                    }
+                
+
                 return false;
                 }
 
@@ -16434,7 +16467,7 @@ int main() {
                                 const char *name;
                                 
                                 if( nextPlayer->name == NULL ) {
-                                    name = "UNKNOWN";
+                                    name = "AN UNKNOWN PHOTOGRAPHER";
                                     }
                                 else {
                                     name = nextPlayer->name;
@@ -16442,7 +16475,7 @@ int main() {
                                 
 
                                 char *textToAdd = autoSprintf( 
-                                    "A PHOTO BY %s *photo %s",
+                                    "TAKEN BY %s *photo %s",
                                     name, m.photoIDString );
                                 
                                 
@@ -18205,16 +18238,21 @@ int main() {
                                 if( r != NULL &&
                                     r->newTarget > 0 &&
                                     r->newTarget != target ) {
+
+                                    int floorID = getMapFloor( m.x, m.y );
                                     
                                     // target would change here
-                                    if( getMapFloor( m.x, m.y ) != 0 ) {
+                                    if( floorID != 0 ) {
                                         // floor present
                                         
                                         // make sure new target allowed 
                                         // to exist on floor
                                         if( strstr( getObject( r->newTarget )->
                                                     description, 
-                                                    "groundOnly" ) != NULL ) {
+                                                    "groundOnly" ) != NULL &&
+                                            strstr( getObject( floorID )->description, 
+                                                    "groundLikeFloor" ) == NULL
+                                                 ) {
                                             r = NULL;
                                             }
                                         }
@@ -18643,12 +18681,29 @@ int main() {
                                 else if( nextPlayer->holdingID >= 0 ) {
                                     
                                     char handled = false;
-                                    
-                                    if( m.i != -1 && targetObj->permanent &&
+
+                                    char validUseOnContainedRequest = 
+                                        m.i != -1 && targetObj->permanent &&
                                         targetObj->numSlots > m.i &&
                                         getNumContained( m.x, m.y ) > m.i &&
                                         strstr( targetObj->description,
-                                                "+useOnContained" ) != NULL ) {
+                                                "+useOnContained" ) != NULL;
+                                        
+                                    if( validUseOnContainedRequest && 
+                                        targetObj->slotsLocked &&
+                                        targetObj->clickToRead
+                                    ) {
+                                        // clickToRead container
+                                        // to read written objects contained
+
+                                        int contID = getContained( m.x, m.y, m.i );
+                                        forceObjectToRead( nextPlayer, contID, {m.x, m.y}, false );
+
+                                        // if slotsLocked, don't allow useOnContained
+                                        handled = true;
+                                        }
+                                    
+                                    if( !handled && validUseOnContainedRequest ) {
                                         // a valid slot specified to use
                                         // held object on.
                                         // AND container allows this
@@ -19192,7 +19247,9 @@ int main() {
                                             strstr( newTargetObj->description, 
                                                     "groundOnly" ) != NULL
                                             &&
-                                            getMapFloor( m.x, m.y ) != 0 ) {
+                                            getMapFloor( m.x, m.y ) != 0 &&
+                                            strstr( getObject( getMapFloor( m.x, m.y ) )->description, 
+                                                    "groundLikeFloor" ) == NULL ) {
                                             // floor present
                                         
                                             // new target not allowed 
@@ -24833,6 +24890,21 @@ int main() {
                                             }
                                         }
                                     }
+
+                                
+                                // any other * metadata before *map?
+                                char *otherStarLoc = strstr( trimmedPhrase,
+                                                             " *" );
+                                if( otherStarLoc != NULL ) {
+                                    if( speakerID != listenerID ) {
+                                        // only send * metadata through
+                                        // to speaker
+                                        // trim it otherwise
+                                        
+                                        otherStarLoc[0] = '\0';
+                                        }
+                                    }
+                                
 
                                 
                                 char *translatedPhrase;
