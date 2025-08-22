@@ -192,7 +192,7 @@ unsigned char charKey_Pocket = 't';
 unsigned char charKey_Eat = 'e';
 unsigned char charKey_Baby = 'c';
 
-static bool waitForDoorToOpen;
+//static bool waitForDoorToOpen;
 
 //FOV
 extern int gui_hud_mode;
@@ -540,7 +540,7 @@ static char *extractMapName( char *input ) {
         char **tokens = split( working, " ", &wordCount );
 
         for( int i=0; i<wordCount; i++ ) {
-            if( strlen(tokens[i]) > 0 && strlen(tokens[i]) <= maxNameLen ) {
+            if( strlen(tokens[i]) > 0 && (int)strlen(tokens[i]) <= maxNameLen ) {
                 if( returnString != NULL ) delete [] returnString;
                 returnString = stringDuplicate( tokens[i] );
                 break;
@@ -552,7 +552,7 @@ static char *extractMapName( char *input ) {
             }
         delete [] tokens;
         }
-    else if( strlen(working) <= maxNameLen ) {
+    else if( (int)strlen(working) <= maxNameLen ) {
         returnString = stringDuplicate( working );
         }
     if( returnString == NULL ) {
@@ -13257,51 +13257,52 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // pencilFont->drawString( stringUpper, pos, alignCenter );
             
             // Moved to be cursor-tips
-            if( ! mXKeyDown )
-            if( mCurMouseOverID != 0 &&
-                // If we're hovering another player
-                // player label will be drawn instead of cursor-tips
-                currHoverPlayerID == 0 && 
-                !isHoveringTempMeter()
-                ) {
+            if( ! mXKeyDown ) {
+                if( mCurMouseOverID != 0 &&
+                    // If we're hovering another player
+                    // player label will be drawn instead of cursor-tips
+                    currHoverPlayerID == 0 && 
+                    !isHoveringTempMeter()
+                    ) {
 
-                if( showUseOnHoverEnabled ) {
-                    const int playerSelfID = -99;
-                    std::string objComment = "";
-                    if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
-                        objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
-                        }
-                    else if( mCurMouseOverID > 0 ) {
-                        objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
+                    if( showUseOnHoverEnabled ) {
+                        const int playerSelfID = -99;
+                        std::string objComment = "";
+                        if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
+                            objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
+                            }
+                        else if( mCurMouseOverID > 0 ) {
+                            objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
+                            }
+
+                        std::string displayedComment = "";
+                        std::string tagName = " USE";
+                        std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
+
+                        if( !tagData.empty() ) {
+                            std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
+                            displayedComment = remainingUseCount;
+                            }
+                        if( !displayedComment.empty() ) {
+                            char *display = autoSprintf("USE: %s", displayedComment.c_str());
+                            drawCursorTips( display, {4, -24} );
+                            delete [] display;
+                            }
                         }
 
-                    std::string displayedComment = "";
-                    std::string tagName = " USE";
-                    std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
+                    drawCursorTips( stringUpper );
 
-                    if( !tagData.empty() ) {
-                        std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
-                        displayedComment = remainingUseCount;
-                        }
-                    if( !displayedComment.empty() ) {
-                        char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawCursorTips( display, {4, -24} );
-                        delete [] display;
-                        }
                     }
-
-                drawCursorTips( stringUpper );
-
-                }
-            else if( isHoveringTempMeter() ) {
-                double length = tinyHandwritingFont->measureString( stringUpper );
-                doublePair tipPos = { lastScreenViewCenter.x + ( recalcOffsetX( 610 ) * gui_fov_scale - length ), 
-                    lastScreenViewCenter.y - ( recalcOffsetY( 310 ) * gui_fov_scale ) };
-                
-                FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-                FloatColor txtColor = { 1, 1, 1, 1 };
-                drawChalkBackgroundString( tipPos, stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true, true );
-                }
+                else if( isHoveringTempMeter() ) {
+                    double length = tinyHandwritingFont->measureString( stringUpper );
+                    doublePair tipPos = { lastScreenViewCenter.x + ( recalcOffsetX( 610 ) * gui_fov_scale - length ), 
+                        lastScreenViewCenter.y - ( recalcOffsetY( 310 ) * gui_fov_scale ) };
+                    
+                    FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+                    FloatColor txtColor = { 1, 1, 1, 1 };
+                    drawChalkBackgroundString( tipPos, stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true, true );
+                    }
+            }
             delete [] stringUpper;
             }
         else {
@@ -13350,10 +13351,10 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if ( distY > showLabelRange || distY < -showLabelRange) continue;
 
             char *name = NULL;
-            char infertilityTagPresent = false;
+            //char infertilityTagPresent = false;
             if( o->name != NULL ) {
                 name = stringDuplicate(o->name);
-                infertilityTagPresent = stripFertilitySuffix( name );
+                //infertilityTagPresent = stripFertilitySuffix( name );
                 if( name[0] == '\0' ) {
                     delete [] name;
                     name = NULL;
