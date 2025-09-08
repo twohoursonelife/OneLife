@@ -14723,7 +14723,7 @@ int main() {
                             tokens->size() == 7 ) {
                             
                             nextConnection->email = 
-                                stringToLowerCase( 
+                                stringDuplicate( 
                                     tokens->getElementDirect( 1 ) );
 
 
@@ -14796,6 +14796,10 @@ int main() {
                                     nextConnection->famTarget = NULL;
                                 }
                             }
+
+                            nextConnection->email = 
+                                stringToLowerCase( 
+                                    nextConnection->email );
 
                             char *pwHash = tokens->getElementDirect( 2 );
                             char *keyHash = tokens->getElementDirect( 3 );
