@@ -17504,6 +17504,7 @@ int main() {
                             unsigned char metaData[ MAP_METADATA_LENGTH ];
                             int len = strlen( m.saidText );
                             
+                            if( strcmp( m.saidText, "" ) != 0 )
                             if( nextPlayer->holdingID > 0 &&
                                 len < MAP_METADATA_LENGTH &&
                                 getObject( 
