@@ -11,6 +11,7 @@
 
 #include "minorGems/game/game.h"
 
+#include "OneLife/server/HashTable.h"
 
 #include "transitionBank.h"
 
@@ -640,7 +641,7 @@ class LivingLifePage : public GamePage, public ActionListener {
     protected:
         
         SimpleVector<doublePair> mRememberedChunkCoordinates;
-        SimpleVector<int*> mMapBiomesRemembered;
+        HashTable<int*> mMapBiomesRemembered;
         int *mMapFloors;
 
         char *mMapCellDrawnFlags;
