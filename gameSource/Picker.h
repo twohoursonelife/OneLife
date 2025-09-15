@@ -24,7 +24,7 @@ class Picker : public PageComponent, ActionListener,
     public:
         
         // centered on inX, inY
-        Picker( Pickable *inPickable, double inX, double inY );
+        Picker( Pickable *inPickable, double inX, double inY, char inOverrideIdSearch = false );
         
         ~Picker();
 
@@ -67,6 +67,9 @@ class Picker : public PageComponent, ActionListener,
     protected:
         virtual void draw();
 
+
+        virtual void pointerMove( float inX, float inY );
+
         virtual void pointerDown( float inX, float inY );
         virtual void pointerUp( float inX, float inY );
 
@@ -92,6 +95,7 @@ class Picker : public PageComponent, ActionListener,
         TextField mSearchField;
     protected:
         int mSelectionIndex;
+        int mMouseOverIndex;
         
         char mSelectionRightClicked;
 
@@ -105,6 +109,8 @@ class Picker : public PageComponent, ActionListener,
         
         // list of filter functions
         SimpleVector<FilterFunction> mFilterFuncions;
+
+        char overrideIdSearch;
         
     };
 

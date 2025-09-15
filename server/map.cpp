@@ -5224,6 +5224,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                 }
  
  
+            char inPlaceTransApplicable = false;
            
             if( t->move != 0 && t->desiredMoveDist > 0 ) {
                 // moving
@@ -5379,7 +5380,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                         avoidFloor ) {
                                         int floorID = getMapFloor( testX, testY );
                                     
-                                        if( floorID > 0 ) {
+                                        if( floorID > 0 && strstr( getObject( floorID )->description, "groundLikeFloor" ) == NULL ) {
                                             blockedByFloor = true;
                                             }
                                         }
@@ -5538,7 +5539,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                             avoidFloor ) {
                             int floorID = getMapFloor( testX, testY );
                         
-                            if( floorID > 0 ) {
+                            if( floorID > 0 && strstr( getObject( floorID )->description, "groundLikeFloor" ) == NULL ) {
                                 blockedByFloor = true;
                                 }
                             }
@@ -5678,7 +5679,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                         int floorID = 
                                             getMapFloor( testX, testY );
                         
-                                        if( floorID > 0 ) {
+                                        if( floorID > 0 && strstr( getObject( floorID )->description, "groundLikeFloor" ) == NULL ) {
                                             // blocked by floor
                                             continue;
                                             }
@@ -5787,9 +5788,11 @@ int checkDecayObject( int inX, int inY, int inID ) {
                             // no further decay
                             leftMapETA = 0;
                             }
-                        //for movement from posA to posB, we want posA to be potentially always live tracked as well
-                        //leftDecayT is passed to check if it should be always live tracked
-                        setEtaDecay( inX, inY, leftMapETA, leftDecayT );
+                        // for movement from posA to posB, we want posA to be potentially always live tracked as well
+                        // potential decay of leftBehindID is passed to check if it should be always live tracked
+                        // cannot pass leftDecayT here because the pointer fuckery in getMetaTrans
+                        TransRecord *furtherDecay = getTrans( -1, leftBehindID );
+                        setEtaDecay( inX, inY, leftMapETA, furtherDecay );
                         }
                     else {
                         // leave empty spot behind
@@ -5917,6 +5920,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                                 inPlaceTrans->newTarget > 0 ) {
                                
                                 newID = inPlaceTrans->newTarget;
+                                inPlaceTransApplicable = true;
                                 }
                             }
                         }
@@ -5941,8 +5945,7 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     oldSlots == newSlots
                     ) {
                         
-                    int numContained;
-                    getContained( inX, inY, &numContained );
+                    int numContained = getNumContained(inX, inY);
                         
                     if( numContained > 0 ) {
                         
@@ -6041,7 +6044,23 @@ int checkDecayObject( int inX, int inY, int inID ) {
                     }
                 }            
  
-            setEtaDecay( newX, newY, mapETA, newDecayT );
+            // cannot pass newDecayT here because the pointer fuckery in getMetaTrans
+            TransRecord *furtherDecay = getTrans( -1, newID );
+            if( inPlaceTransApplicable ) {
+                // we're doing in-place transition here
+                // meaning the NSEW move is blocked
+                // e.g. water is stuck
+                // stop always-live-tracking further decay
+                // to save server resources
+                furtherDecay = NULL;
+                }
+            if( !inPlaceTransApplicable && t->move > 3 && t->move < 8 ) {
+                // an actual NSEW move, not stuck ones
+                // look at the 3x3 region to re-activate the decay tracking
+                lookAtRegion(inX - 1, inY - 1, inX + 1, inY + 1);
+                }
+            
+            setEtaDecay( newX, newY, mapETA, furtherDecay );
             }
  
         }
@@ -6470,7 +6489,8 @@ int getTweakedBaseMap( int inX, int inY ) {
                     }
                 }
             }
-        else if( !wasGridPlacement && getObjectHeight( result ) < CELL_D ) {
+        else if( result != edgeObjectID && 
+                 !wasGridPlacement && getObjectHeight( result ) < CELL_D ) {
             // a short object should be here
             // and it wasn't forced by a grid placement
  

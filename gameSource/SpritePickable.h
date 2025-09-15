@@ -44,8 +44,8 @@ class SpritePickable : public Pickable {
         
 
 
-        virtual void draw( void *inObject, doublePair inPos ) {
-            SpriteRecord *r = (SpriteRecord*)inObject;
+        virtual void draw( void *inItem, doublePair inPos ) {
+            SpriteRecord *r = (SpriteRecord*)inItem;
 
             // don't access r->sprite directly here
             // getSprite needed to invoke dynamic sprite loading
@@ -62,12 +62,21 @@ class SpritePickable : public Pickable {
 
 
 
-        virtual int getID( void *inObject ) {
-            SpriteRecord *r = (SpriteRecord*)inObject;
+        virtual int getID( void *inItem ) {
+            SpriteRecord *r = (SpriteRecord*)inItem;
             
             return r->id;
             }
+                
         
+        
+        virtual void *getItemFromID( int inID ) {
+            SpriteRecord *o = getSpriteRecord( inID );
+            
+            return (void*) o;
+            }
+
+
 
         virtual char canDelete( int inID ) {
             return ! isSpriteUsed( inID );
@@ -83,10 +92,54 @@ class SpritePickable : public Pickable {
         
         
 
-        virtual const char *getText( void *inObject ) {
-            SpriteRecord *r = (SpriteRecord*)inObject;
+        virtual const char *getText( void *inItem ) {
+            SpriteRecord *r = (SpriteRecord*)inItem;
             
             return r->tag;
+            }
+        
+
+
+        virtual float getItemFieldValue( void *inItem,
+                                         const char *inFieldName,
+                                         char *outFound ) {
+            *outFound = true;
+            
+            // filled with garbage undefined values, but that's okay
+            SpriteRecord defaultS;
+            
+            SpriteRecord *inS = (SpriteRecord*)inItem;
+
+            if( inS == NULL ) {
+                inS = &defaultS;
+                }
+
+            if( strcmp( inFieldName, "solid" ) == 0 ) {
+                return ! inS->multiplicativeBlend;
+                }
+            if( strcmp( inFieldName, "w" ) == 0 ) {
+                return inS->w;
+                }
+            if( strcmp( inFieldName, "h" ) == 0 ) {
+                return inS->h;
+                }
+            if( strcmp( inFieldName, "visiblew" ) == 0 ) {
+                return inS->visibleW;
+                }
+            if( strcmp( inFieldName, "visibleh" ) == 0 ) {
+                return inS->visibleH;
+                }
+            
+            *outFound = false;
+            return 0;
+            }
+
+        
+
+        virtual void **getAllItemsForFieldSearch( int *outNumItems ) {
+            SpriteRecord **returnArray = getAllSprites( outNumItems );
+            
+            return (void**)returnArray;
             }
 
         

@@ -25,10 +25,14 @@ class Pickable {
         
         
 
-        virtual void draw( void *inObject, doublePair inPos ) = 0;
+        virtual void draw( void *inItem, doublePair inPos ) = 0;
 
 
-        virtual int getID( void *inObject ) = 0;
+        virtual int getID( void *inItem ) = 0;
+
+        // returns pointer to pickable object that matches inID
+        // or NULL if no match
+        virtual void *getItemFromID( int inID ) = 0;
         
 
         virtual char canDelete( int inID ) = 0;
@@ -38,7 +42,7 @@ class Pickable {
             }
         
 
-        virtual FloatColor getTextColor( void *inObject ) {
+        virtual FloatColor getTextColor( void *inItem ) {
             FloatColor c = { 0, 0, 0, 1 };
             return c;
             }
@@ -61,8 +65,135 @@ class Pickable {
         
         
         // not destroyed by caller
-        virtual const char *getText( void *inObject ) = 0;
+        virtual const char *getText( void *inItem ) = 0;
         
+
+
+        
+        // for implementing field=value search, like mapp=0.2
+        
+        // default implementations (where
+        // such search isn't supported) are defined here.
+        
+        
+        
+        // For field search to work, a subclass MUST implement this:
+        //
+        // inItem can be NULL
+        // in that case, function can return an undefined value
+        // But passing in NULL for inItem can still be used to check whether
+        // a field name is a valid one (outFound should still be set)
+        virtual float getItemFieldValue( void *inItem,
+                                         const char *inFieldName,
+                                         char *outFound ) {
+            // no fields are valid by default
+            *outFound = false;
+            return 0;
+            }
+        
+        
+        
+        // For field search to work, a subclass MUST implement this:
+        //
+        // return array destroyed by caller
+        // 
+        // default implementation, for Pickable implementations that
+        // have no field search, returns an empty array
+        virtual void **getAllItemsForFieldSearch( int *outNumItems ) {
+            void **returnArray = new void*[0];
+            *outNumItems = 0;
+            
+            return returnArray;
+            }
+        
+
+
+
+        
+        // these two implementation functions are meant to work for
+        // field=value search on all item types
+        
+
+        // inFieldName will be all lower case
+        virtual char isValidField( const char *inFieldName ) {
+            char found = false;
+            
+            getItemFieldValue( NULL, inFieldName, &found );
+            
+            return found;
+            }
+
+
+
+        // searches for objects with field matching value
+        // inLessEqualGreater is -1, 0, or 1 if we want to find
+        // objects that have fields that are less than, equal to, or greater
+        // than inFieldValue, respectively.
+        virtual void **search( const char *inFieldName,
+                               float inFieldValue,
+                               int inLessEqualGreater,
+                               int inNumToSkip, 
+                               int inNumToGet, 
+                               int *outNumResults, int *outNumRemaining ) {
+            
+            int numItems;
+            void **allItems =
+                getAllItemsForFieldSearch( &numItems );
+            
+            SimpleVector<void*> matches;
+            
+            int matchIndex = 0;
+            
+            int remaining = 0;
+
+            for( int i=numItems - 1; i>=0; i-- ) {
+            
+                char found;
+                float thisValue = 
+                    getItemFieldValue( allItems[i], inFieldName, &found );
+                
+                if( ! found ) {
+                    continue;
+                    }
+
+                if( ( inLessEqualGreater == -1 &&
+                      thisValue < inFieldValue )
+                    ||
+                    // close enough for equals
+                    ( inLessEqualGreater == 0 &&
+                      fabs( thisValue - inFieldValue ) < 0.0001 )
+                    ||
+                    ( inLessEqualGreater == 1 &&
+                      thisValue > inFieldValue ) ) {
+                    
+                    if( matchIndex >= inNumToSkip ) {
+                        if( matches.size() < inNumToGet ) {
+                            matches.push_back( allItems[i] );
+                            }
+                        else {
+                            remaining++;
+                            }
+                        }
+
+                    matchIndex ++;
+                    }
+                }
+            
+            delete [] allItems;
+
+            int numResults = matches.size();
+
+
+            void **returnArray = matches.getElementArray();
+            
+            *outNumResults = numResults;
+            *outNumRemaining = remaining;
+            
+            return returnArray;
+            }
+
+        
+
     protected:
         
         // sub classes return their static stacks

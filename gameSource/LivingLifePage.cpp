@@ -18,6 +18,7 @@
 #include "emotion.h"
 
 #include "photos.h"
+#include "photoCache.h"
 
 
 #include "liveAnimationTriggers.h"
@@ -98,8 +99,9 @@ static char shouldMoveCamera = true;
 bool showUseOnHoverEnabled = false;
 
 
-extern double visibleViewWidth;
+extern double viewWidth;
 extern double viewHeight;
+extern double visibleViewWidth;
 
 extern int screenW, screenH;
 
@@ -189,7 +191,7 @@ unsigned char charKey_Pocket = 't';
 unsigned char charKey_Eat = 'e';
 unsigned char charKey_Baby = 'c';
 
-static bool waitForDoorToOpen;
+//static bool waitForDoorToOpen;
 
 //FOV
 extern int gui_hud_mode;
@@ -237,6 +239,10 @@ static int screenCenterPlayerOffsetX, screenCenterPlayerOffsetY;
 static float lastMouseX = 0;
 static float lastMouseY = 0;
 
+// last time cursor actually moves (instead of calling pointerMove with the same pos)
+static double lastCursorMoveTime = false;
+static char hideCursorTipsAndHighlightChanges = false;
+
 
 // set to true to render for teaser video
 static char teaserVideo = false;
@@ -262,6 +268,9 @@ static char takingPhotoFlip = false;
 static int photoSequenceNumber = -1;
 static char waitingForPhotoSig = false;
 static char *photoSig = NULL;
+static char waitingForPhotoID = false;
+
+
 
 
 static double emotDuration = 10;
@@ -427,6 +436,21 @@ bool LivingLifePage::isHoveringPicker( float worldMouseX, float worldMouseY ) {
 // 1 for object search queries
 int leftPanelPageNumber = 0;
 
+char LivingLifePage::isHoveringTempMeter() {
+    doublePair tipPos = { lastScreenViewCenter.x + ( recalcOffsetX( 544 ) * gui_fov_scale ), 
+        lastScreenViewCenter.y - ( recalcOffsetY( 330 ) * gui_fov_scale ) };
+
+    doublePair mousePos = { lastMouseX, lastMouseY };
+        
+    if( mousePos.y > tipPos.y - ( 22 ) * gui_fov_scale_hud &&
+        mousePos.y < tipPos.y + ( 22 ) * gui_fov_scale_hud &&
+        mousePos.x > tipPos.x - ( 63 ) * gui_fov_scale_hud &&
+        mousePos.x < tipPos.x + ( 63 ) * gui_fov_scale_hud ) {
+        return true;
+        }
+    return false;
+    }
+
 char LivingLifePage::isAnyUIHovered() {
     return 
         leftPanelComponent.mHover ||
@@ -515,7 +539,7 @@ static char *extractMapName( char *input ) {
         char **tokens = split( working, " ", &wordCount );
 
         for( int i=0; i<wordCount; i++ ) {
-            if( strlen(tokens[i]) > 0 && strlen(tokens[i]) <= maxNameLen ) {
+            if( strlen(tokens[i]) > 0 && (int)strlen(tokens[i]) <= maxNameLen ) {
                 if( returnString != NULL ) delete [] returnString;
                 returnString = stringDuplicate( tokens[i] );
                 break;
@@ -527,7 +551,7 @@ static char *extractMapName( char *input ) {
             }
         delete [] tokens;
         }
-    else if( strlen(working) <= maxNameLen ) {
+    else if( (int)strlen(working) <= maxNameLen ) {
         returnString = stringDuplicate( working );
         }
     if( returnString == NULL ) {
@@ -2272,10 +2296,6 @@ std::string LivingLifePage::minitechGetDisplayObjectDescription( int objId ) {
     return description;
     }
 
-static bool isAllDigits( std::string &str ) {
-    return std::all_of(str.begin(), str.end(), ::isdigit);
-    }
-
 // Checks for a potential container change caused by containment transitions
 // We could check all the changed contained objects and all the IN and OUT transitions
 // But it suffices for now to just check for
@@ -2774,7 +2794,7 @@ static GridPos sub( GridPos inA, GridPos inB ) {
 static double measurePathLength( LiveObject *inObject,
                                  int inPathLength ) {
     // diags are square root of 2 in length
-    double diagLength = 1.4142356237;
+    double diagLength = 1.41421356237;
     
 
     double totalLength = 0;
@@ -3905,7 +3925,7 @@ void LivingLifePage::useBackpack(bool replace) {
     }
 }
 
-void LivingLifePage::usePocket(int clothingID) {
+void LivingLifePage::usePocket(int clothingID, bool replace) {
     LiveObject *ourLiveObject = getOurLiveObject();
     
     int x, y;
@@ -3913,7 +3933,11 @@ void LivingLifePage::usePocket(int clothingID) {
 
     char msg[32];
     if( ourLiveObject->holdingID > 0 ) {
-        sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
+        if (replace) {
+            sprintf( msg, "DROP %d %d %d#", x, y, clothingID );
+        } else {
+            sprintf( msg, "SELF %d %d %d#", x, y, clothingID );
+        }
         setNextActionMessage( msg, x, y );
         nextActionDropping = true;
     } else {
@@ -3938,6 +3962,49 @@ void LivingLifePage::useOnSelf() {
     // not sure if these two condition are redundant
     if( getObject( ourLiveObject->holdingID )->foodValue > 0 || holdingYumOrMeh )
         nextActionEating = true;
+}
+
+static int nextUndressingSlot = 0;
+const int slotOrder[] = { 0, 1, 4, 3, 2, 5 }; // top to bottom order (front shoe first)
+
+void LivingLifePage::takeOffClothing() {
+    LiveObject *ourLiveObject = getOurLiveObject();
+    
+    int x, y;
+    setOurSendPosXY(x, y);
+    
+    char msg[32];
+    
+    // If holding clothing, put it on
+    if (ourLiveObject->holdingID > 0) {
+        ObjectRecord *held = getObject(ourLiveObject->holdingID);
+
+        // if held object is not wearable
+        // if (!held || held->clothing == 'n') return;
+
+        // let SELF through even if object is not wearable
+        // this is consistent with old behavior of Shift + E
+        // allow you to Shift + WASD and Shift + E to pick and eat a berries
+        // without needing to release shift and press again
+
+        sprintf(msg, "SELF %d %d %d#", x, y, -1);
+        setNextActionMessage(msg, x, y);
+        return;
+    }
+    
+    // Find next equipped item
+    for (int i = 0; i < NUM_CLOTHING_PIECES; i++) {
+
+        int slot = (nextUndressingSlot + i) % NUM_CLOTHING_PIECES;
+        ObjectRecord *item = clothingByIndex(ourLiveObject->clothing, slotOrder[slot]);
+        if (item) {
+            sprintf(msg, "SELF %d %d %d#", x, y, slotOrder[slot]);
+            setNextActionMessage(msg, x, y);
+            nextUndressingSlot = slot + 1;
+            return;
+        }
+    }
+    return;
 }
 
 void LivingLifePage::takeOffBackpack() {
@@ -4178,7 +4245,8 @@ LivingLifePage::LivingLifePage()
           mUsingSteam( false ),
           mZKeyDown( false ),
           mXKeyDown( false ),
-          mObjectPicker( &objectPickable, +510, 90 ),
+          mGraveKeyDown( false ),
+          mObjectPicker( &objectPickable, +510, 90, true ),
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
           objectSearchSlipComponent(),
@@ -4620,7 +4688,28 @@ LivingLifePage::LivingLifePage()
         
         mLineSegmentSprite = loadWhiteSprite( "lineSegment.tga" );
         }
-          
+         
+
+
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        char *name = autoSprintf( "photoDisplay%d.tga", i + 1 );    
+        mPhotoDisplaySprites[i] = loadSprite( name, false );
+        delete [] name;
+        
+        mPhotoToShowIDs[i] = NULL;
+        mPhotoToShowAreNegative[i] = false;
+        
+        mPhotoToShowSprites[i] = NULL;
+    
+        // offset separate pages in x direction slightly
+        mPhotoDisplayHideOffset[i].x = 430 - i * 10;
+        mPhotoDisplayHideOffset[i].y = 360 + 200;
+        
+        mPhotoDisplayPosOffset[i] = mPhotoDisplayHideOffset[i];
+        mPhotoDisplayPosTargetOffset[i] = mPhotoDisplayHideOffset[i];
+        }
+    mLivePhotoSheetIndex = 0;
+    
     
     int tutorialDone = SettingsManager::getIntSetting( "tutorialDone", 0 );
     
@@ -4844,7 +4933,22 @@ LivingLifePage::~LivingLifePage() {
         freeSprite( mTeaserArrowVeryShortSprite );
         freeSprite( mLineSegmentSprite );
         }
+
     
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        freeSprite( mPhotoDisplaySprites[i] );
+
+        if( mPhotoToShowIDs[i] != NULL ) {
+            delete [] mPhotoToShowIDs[i];
+            }
+        
+        if( mPhotoToShowSprites[i] != NULL ) {
+            freeSprite( mPhotoToShowSprites[i] );
+            mPhotoToShowSprites[i] = NULL;
+            }
+        }
+    
+
     for( int i=0; i<4; i++ ) {
         freeSprite( mGroundOverlaySprite[i] );
         }
@@ -5929,7 +6033,7 @@ void LivingLifePage::drawMapCell( int inMapI,
                 }
             }
         
-        if( ! mShowHighlights ) {
+        if( ! (mShowHighlights && !hideCursorTipsAndHighlightChanges) ) {
             if( inHighlightOnly ) {
                 setObjectDrawAlpha( 1.0 );
                 return;
@@ -6419,7 +6523,6 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
             // biking animation
             // replace moving with biking
             // and replace ground2 with biking with timeVal = 0
-            // show limbs when riding a bike
                 
             if( curType == moving ) curType = biking;
             if( fadeTargetType == moving ) fadeTargetType = biking;
@@ -6436,20 +6539,15 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                 }
             if( frozenArmType == ground2 ) frozenArmType = biking;
             if( frozenArmFadeTargetType == ground2 ) frozenArmFadeTargetType = biking;
-            
-            hideAllLimbs = false;
             }
         else if( getObject( inObj->holdingID )->ridingAnimationIndex == sitting ) {
             // sitting animation
             // replace everything with sitting type
-            // show limbs when seated
             
             curType = sitting;
             fadeTargetType = sitting;
             frozenArmType = sitting;
             frozenArmFadeTargetType = sitting;
-            
-            hideAllLimbs = false;
             }
         }
     
@@ -6801,6 +6899,16 @@ ObjectAnimPack LivingLifePage::drawLiveObject(
                     getArmHoldingParameters( babyHoldingObj, 
                                              &hideClosestArmBaby,
                                              &hideAllLimbsBaby );
+                    
+                    // this baby is being held
+                    // and has dropped whatever it was holding when picked up
+                    // however it may still hold wounds
+                    // hence not removing the code above
+                    
+                    // these wounds should not be hiding baby's limb as in riding
+                    // hence below
+                    hideAllLimbsBaby = false;
+
                     }
                 
                 
@@ -7861,6 +7969,11 @@ int* LivingLifePage::findChunkByCoords( int absoluteChunkX, int absoluteChunkY )
     return chunk;
 }
 
+bool dragging = false;
+GridPos dragStart = {9999, 9999};
+GridPos dragEnd = {9999, 9999};
+
+
 void LivingLifePage::draw( doublePair inViewCenter, 
                            double inViewSize ) {
     
@@ -8860,6 +8973,30 @@ void LivingLifePage::draw( doublePair inViewCenter,
         FloatColor tileColor = {0.5, 0.0, 1.0, 1.0};
         if( vogScrollingMode ) tileColor = {1.0, 0.0, 1.0, 1.0};
         drawTileVanillaHighlight( viewingGridPos.x, viewingGridPos.y, tileColor );
+        }
+
+    if( vogModeActuallyOn && vogPickerOn && dragging ) {
+
+        GridPos end = dragEnd;
+        if( end.x == 9999 && end.y == 9999 ) {
+            end = {
+                int(round( lastMouseX / (float)CELL_D )),
+                int(round( lastMouseY / (float)CELL_D ))
+                };
+            }
+
+        int minX = std::min(dragStart.x, end.x);
+        int maxX = std::max(dragStart.x, end.x);
+        int minY = std::min(dragStart.y, end.y);
+        int maxY = std::max(dragStart.y, end.y);
+
+        FloatColor tileColor = {1.0, 1.0, 0.0, 1.0};
+        if( (maxX - minX) * (maxY - minY) <= 400 ) // spammy VOGI will not go through anyway
+        for( int x = minX; x <= maxX; x++) {
+            for( int y = minY; y <= maxY; y++) {
+                drawTileVanillaHighlight( x, y, tileColor );
+                }
+            }
         }
 
     if ( vogPickerOn && !isHoveringPicker(worldMouseX, worldMouseY) ) {
@@ -10022,8 +10159,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
         
         doublePair speechPos = pos;
 
-
-        speechPos.y += 84;
+        int x = pos.x / CELL_D;
+        int y = pos.y / CELL_D;
+        int oid = getObjId(x, y);
+        double adj = getObjectHeight(oid);
+        if( adj == 0 ) {
+            speechPos.y += 84;
+            }
+        else {
+            speechPos.y += adj;
+            }
+        
         
         int width = 250 * gui_fov_scale_hud;
         int widthLimit = 250 * gui_fov_scale_hud;
@@ -10705,7 +10851,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             waitingForPhotoSig = true;
             delete [] message;
             }
-        else if( photoSig != NULL ) {
+        else if( photoSig != NULL && ! waitingForPhotoID ) {
             float currentFOV = gui_fov_scale;
             changeFOV( 1.0f ); // reset fov for photo taking temporarily
 
@@ -10783,13 +10929,40 @@ void LivingLifePage::draw( doublePair inViewCenter,
                        &subjectIDs,
                        &subjectNames );
             
-            takingPhoto = false;
-            delete [] photoSig;
-            photoSig = NULL;
-            photoSequenceNumber = -1;
-            waitingForPhotoSig = false;
+            waitingForPhotoID = true;
 
             changeFOV( currentFOV ); // restore fov after photo taking
+            }
+        else if( waitingForPhotoID ) {
+            // is our photo ID ready yet?
+            
+            char *photoID = getPostedPhotoID();
+            
+            if( photoID != NULL ) {
+                
+                // empty string means error in submitting photo
+                if( strcmp( photoID, "" ) != 0 ) {
+                    char *message = 
+                        autoSprintf( "PHOID %d %d %s#",
+                                     takingPhotoGlobalPos.x, 
+                                     takingPhotoGlobalPos.y,
+                                     photoID );
+                
+                    sendToServerSocket( message );
+                    delete [] message;
+                    }
+                
+                delete [] photoID;
+                
+
+                delete [] photoSig;
+                photoSig = NULL;
+                photoSequenceNumber = -1;
+                waitingForPhotoSig = false;
+                waitingForPhotoID = false;
+                
+                takingPhoto = false;
+                }
             }
         }
     
@@ -10799,7 +10972,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    if( hideGuiPanel ) {
+    if( hideGuiPanel || (mGraveKeyDown && !vogMode)) {
         // skip gui
         return;
         }    
@@ -11249,8 +11422,26 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
 
 
+    // now draw photo sheets    
+    setDrawColor( 1, 1, 1, 1 );
+    
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+        if( ! equal( mPhotoDisplayPosOffset[i], mPhotoDisplayHideOffset[i] ) 
+            &&
+            mPhotoToShowSprites[i] != NULL ) {
 
+            doublePair sheetPos  = 
+                add( mult( recalcOffset(mPhotoDisplayPosOffset[i]), gui_fov_scale ), lastScreenViewCenter );
 
+            drawSprite( mPhotoDisplaySprites[i], sheetPos, gui_fov_scale_hud );
+            
+            toggleMultiplicativeBlend( true );
+            
+            drawSprite( mPhotoToShowSprites[i], sheetPos, gui_fov_scale_hud );
+
+            toggleMultiplicativeBlend( false );
+            }
+        }
 
 
 
@@ -11602,614 +11793,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 mErasedNoteChars.getElementDirect( i ), 
                 add( paperPos, 
                      mult( mErasedNoteCharOffsets.getElementDirect( i ), gui_fov_scale_hud ) ) );
-        }
-
-
-
-    // cursor-tips
-    if( !isAnyUIHovered() )
-    if( ourLiveObject != NULL ) {
-        if( mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
-            int idToDescribe = mCurMouseOverID;
-            
-            if( mCurMouseOverID == 0 ) {
-                idToDescribe = mLastMouseOverID;
-                }
-
-            
-            
-            char *des = NULL;
-            char *desToDelete = NULL;
-            
-            if( idToDescribe == -99 ) {
-                if( ourLiveObject->holdingID > 0 &&
-                    getObject( ourLiveObject->holdingID )->foodValue > 0 ) {
-                    
-                    des = autoSprintf( "%s %s",
-                                       translate( "eat" ),
-                                       getObject( ourLiveObject->holdingID )->
-                                       description );
-                    desToDelete = des;
-                    }
-                else if( ourLiveObject->dying &&
-                         ourLiveObject->holdingID > 0 ) {
-                    des = autoSprintf( "%s %s",
-                                       translate( "youWith" ),
-                                       getObject( ourLiveObject->holdingID )->
-                                       description );
-                    desToDelete = des;
-                    }
-                else if( ourLiveObject->holdingID > 0 &&
-                    getObject( ourLiveObject->holdingID )->rideable ) {
-                    
-                    des = autoSprintf( "%s %s",
-                                       translate( "youRiding" ),
-                                       getObject( ourLiveObject->holdingID )->
-                                       description );
-                    desToDelete = des;
-                    }
-                else if( ourLiveObject->holdingID > 0 ) {
-                    des = autoSprintf( "%s %s",
-                                       translate( "youHolding" ),
-                                       getObject( ourLiveObject->holdingID )->
-                                       description );
-                    desToDelete = des;
-                    }
-                else {
-                    des = (char*)translate( "you" );
-                    if( ourLiveObject->name != NULL ) {
-                        des = autoSprintf( "%s - %s", des, 
-                                           ourLiveObject->name );
-                        desToDelete = des;
-                        }
-                    }
-                }
-            else if( idToDescribe < 0 ) {
-                LiveObject *otherObj = getLiveObject( -idToDescribe );
-                
-                if( otherObj != NULL ) {
-                    des = otherObj->relationName;
-                    }
-                if( des == NULL ) {
-                    des = (char*)translate( "unrelated" );
-                    }
-                if( otherObj != NULL && otherObj->name != NULL ) {
-                    des = autoSprintf( "%s - %s",
-                                       otherObj->name, des );
-                    desToDelete = des;
-                    }
-                if( otherObj != NULL && 
-                    otherObj->dying && otherObj->holdingID > 0 ) {
-                    des = autoSprintf( "%s - %s %s",
-                                       des,
-                                       translate( "with" ),
-                                       getObject( otherObj->holdingID )->
-                                       description );
-                    if( desToDelete != NULL ) {
-                        delete [] desToDelete;
-                        }
-                    
-                    desToDelete = des;
-                    }
-                }
-            else {
-                ObjectRecord *o = getObject( idToDescribe );
-                
-                des = o->description;
-
-                if( strstr( des, "origGrave" ) != NULL ) {
-                    char found = false;
-                    
-                    for( int g=0; g<mGraveInfo.size(); g++ ) {
-                        GraveInfo *gI = mGraveInfo.getElement( g );
-                        
-                        if( gI->worldPos.x == mCurMouseOverWorld.x &&
-                            gI->worldPos.y == mCurMouseOverWorld.y ) {
-                            
-                            char *desNoComment = stringDuplicate( des );
-                            stripDescriptionComment( desNoComment );
-
-                            // a grave we know about
-                            int years = 
-                                lrint( 
-                                    ( game_getCurrentTime() - 
-                                      gI->creationTime ) *
-                                    ourLiveObject->ageRate );
-
-                            if( gI->creationTimeUnknown ) {
-                                years = 0;
-                                }
-
-                            double currentTime = game_getCurrentTime();
-                            
-                            if( gI->lastMouseOverYears != -1 &&
-                                currentTime - gI->lastMouseOverTime < 2 ) {
-                                // continuous mouse-over
-                                // don't let years tick up
-                                years = gI->lastMouseOverYears;
-                                gI->lastMouseOverTime = currentTime;
-                                }
-                            else {
-                                // save it for next time
-                                gI->lastMouseOverYears = years;
-                                gI->lastMouseOverTime = currentTime;
-                                }
-                            
-                            const char *yearWord;
-                            if( years == 1 ) {
-                                yearWord = translate( "yearAgo" );
-                                }
-                            else {
-                                yearWord = translate( "yearsAgo" );
-                                }
-                            
-                            char *yearsString;
-                            
-                            if( years >= NUM_NUMBER_KEYS ) {
-                                // this stops behaving above 999,999,999 years
-                                // but each in-game year is 1 minute,
-                                // so this stops behaving after 1902 real-life
-                                // years.
-                                if( years > 1000000 ) {
-                                    int mil = years / 1000000;
-                                    int remain = years % 1000000;
-                                    int thou = remain / 1000;
-                                    int extra = remain % 1000;
-                                    yearsString = 
-                                        autoSprintf( "%d,%03d,%03d", 
-                                                     mil, thou, extra );
-                                    }
-                                else if( years > 1000 ) {
-                                    yearsString = 
-                                        autoSprintf( "%d,%03d", 
-                                                     years / 1000,
-                                                     years % 1000 );
-                                    }
-                                else {
-                                    yearsString = autoSprintf( "%d", years );
-                                    }
-                                }
-                            else {
-                                yearsString = stringDuplicate( 
-                                    translate( numberKeys[ years ] ) );
-                                }
-                            
-
-
-                            char *deathPhrase;
-                            
-                            if( years == 0 ) {
-                                deathPhrase = stringDuplicate( "" );
-                                }
-                            else {
-                                deathPhrase = 
-                                    autoSprintf( " - %s %s %s",
-                                                 translate( "died" ),
-                                                 yearsString, yearWord );
-                                }
-
-                            delete [] yearsString;
-                            
-                            des = autoSprintf( "%s %s %s%s",
-                                               desNoComment, translate( "of" ),
-                                               gI->relationName,
-                                               deathPhrase );
-                            delete [] desNoComment;
-                            delete [] deathPhrase;
-                            
-                            desToDelete = des;
-                            found = true;
-                            break;
-                            }    
-                        }
-                    
-                        
-
-                    if( !found ) {
-
-                        char alreadySent = false;
-                        for( int i=0; i<graveRequestPos.size(); i++ ) {
-                            if( equal( graveRequestPos.getElementDirect( i ),
-                                       mCurMouseOverWorld ) ) {
-                                alreadySent = true;
-                                break;
-                                }
-                            }
-
-                        if( !alreadySent ) {                            
-                            char *graveMessage = 
-                                autoSprintf( "GRAVE %d %d#",
-                                             mCurMouseOverWorld.x,
-                                             mCurMouseOverWorld.y );
-                            
-                            sendToServerSocket( graveMessage );
-                            delete [] graveMessage;
-                            graveRequestPos.push_back( mCurMouseOverWorld );
-                            }
-                        
-                        // blank des for now
-                        // avoid flicker when response arrives
-                        des = stringDuplicate( "" );
-                        desToDelete = des;
-                        }
-                    
-                    }
-                else if( o->isOwned ) {
-                    char found = false;
-                    
-                    for( int g=0; g<mOwnerInfo.size(); g++ ) {
-                        OwnerInfo *gI = mOwnerInfo.getElement( g );
-                        
-                        if( gI->worldPos.x == mCurMouseOverWorld.x &&
-                            gI->worldPos.y == mCurMouseOverWorld.y ) {
-                            
-                            char *desNoComment = stringDuplicate( des );
-                            stripDescriptionComment( desNoComment );
-
-
-                            const char *personName = 
-                                translate( "unknownPerson" );
-                            
-                            double minDist = DBL_MAX;
-                            LiveObject *ourLiveObject = getOurLiveObject();
-                            
-                            for( int p=0; p< gI->ownerList->size(); p++ ) {
-                                int pID = gI->ownerList->getElementDirect( p );
-                                
-                                if( pID == ourID ) {
-                                    personName = translate( "YOU" );
-                                    break;
-                                    }
-                                LiveObject *pO = getLiveObject( pID );
-                                if( pO != NULL ) {
-                                    double thisDist =
-                                        distance( pO->currentPos,
-                                                  ourLiveObject->currentPos );
-                                    if( thisDist < minDist ) {
-                                        minDist = thisDist;
-                                        if( pO->name != NULL ) {
-                                            personName = pO->name;
-                                            }
-                                        else {
-                                            personName = 
-                                                translate( "namelessPerson" );
-                                            }
-                                        }
-                                    }
-                                }
-                            
-
-                            // an owned object we know about
-                            des = autoSprintf( "%s %s %s",
-                                               desNoComment, 
-                                               translate( "ownedBy" ),
-                                               personName );
-                            delete [] desNoComment;
-                            
-                            desToDelete = des;
-                            found = true;
-                            break;
-                            }    
-                        }
-
-                    if( !found ) {
-
-                        char alreadySent = false;
-                        for( int i=0; i<ownerRequestPos.size(); i++ ) {
-                            if( equal( ownerRequestPos.getElementDirect( i ),
-                                       mCurMouseOverWorld ) ) {
-                                alreadySent = true;
-                                break;
-                                }
-                            }
-
-                        if( !alreadySent ) {                            
-                            char *ownerMessage = 
-                                autoSprintf( "OWNER %d %d#",
-                                             mCurMouseOverWorld.x,
-                                             mCurMouseOverWorld.y );
-                            
-                            sendToServerSocket( ownerMessage );
-                            delete [] ownerMessage;
-                            ownerRequestPos.push_back( mCurMouseOverWorld );
-                            }
-                        
-                        // blank des for now
-                        // avoid flicker when response arrives
-                        des = stringDuplicate( "" );
-                        desToDelete = des;
-                        }
-                    }
-                }
-            
-            char *stringUpper = stringToUpperCase( des );
-
-            if( desToDelete != NULL ) {
-                delete [] desToDelete;
-                }
-
-            stripDescriptionComment( stringUpper );
-            
-
-            if( mCurrentDes == NULL ) {
-                mCurrentDes = stringDuplicate( stringUpper );
-                }
-            else {
-                if( strcmp( mCurrentDes, stringUpper ) != 0 ) {
-                    // adding a new one to stack, fade out old
-                    
-                    for( int i=0; i<mOldDesStrings.size(); i++ ) {
-                        float fade =
-                            mOldDesFades.getElementDirect( i );
-                        
-                        if( fade > 0.5 ) {
-                            fade -= 0.20;
-                            }
-                        else {
-                            fade -= 0.1;
-                            }
-                        
-                        *( mOldDesFades.getElement( i ) ) = fade;
-                        if( fade <= 0 ) {
-                            mOldDesStrings.deallocateStringElement( i );
-                            mOldDesFades.deleteElement( i );
-                            i--;
-                            }
-                        else if( strcmp( mCurrentDes, 
-                                         mOldDesStrings.getElementDirect(i) )
-                                 == 0 ) {
-                            // already in stack, move to top
-                            mOldDesStrings.deallocateStringElement( i );
-                            mOldDesFades.deleteElement( i );
-                            i--;
-                            }
-                        }
-                    
-                    mOldDesStrings.push_back( mCurrentDes );
-                    mOldDesFades.push_back( 1.0f );
-                    mCurrentDes = stringDuplicate( stringUpper );
-                    }
-                }
-            
-            // This was the main description drawn on guiPanel
-            // setDrawColor( 0, 0, 0, 1 );
-            // pencilFont->drawString( stringUpper, pos, alignCenter );
-            
-            // Moved to be cursor-tips
-            if( ! mXKeyDown )
-            if( mCurMouseOverID != 0 &&
-                // If we're hovering another player
-                // player label will be drawn instead of cursor-tips
-                currHoverPlayerID == 0
-                ) {
-
-                if( showUseOnHoverEnabled ) {
-                    const int playerSelfID = -99;
-                    std::string objComment = "";
-                    if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
-                        objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
-                        }
-                    else if( mCurMouseOverID > 0 ) {
-                        objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
-                        }
-
-                    std::string displayedComment = objComment;
-                    std::string tagName = " USE";
-                    std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
-
-                    if( !tagData.empty() ) {
-                        std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
-                        displayedComment = remainingUseCount;
-                        }
-                    if( !displayedComment.empty() && isAllDigits(displayedComment) ) {
-                        char *display = autoSprintf("USE: %s", displayedComment.c_str());
-                        drawCursorTips( display, {4, -24} );
-                        delete [] display;
-                        }
-                    }
-
-                drawCursorTips( stringUpper );
-
-                }
-            delete [] stringUpper;
-            }
-        else {
-            if( mCurrentDes != NULL ) {
-                // done with this des
-
-                // move to top of stack
-                for( int i=0; i<mOldDesStrings.size(); i++ ) {
-                    if( strcmp( mCurrentDes, 
-                                mOldDesStrings.getElementDirect(i) )
-                        == 0 ) {
-                        // already in stack, move to top
-                        mOldDesStrings.deallocateStringElement( i );
-                        mOldDesFades.deleteElement( i );
-                        i--;
-                        }
-                    }
-                
-                mOldDesStrings.push_back( mCurrentDes );
-                mOldDesFades.push_back( 1.0f );
-                mCurrentDes = NULL;
-                }
-            }
-        }
-
-
-    // Player labels
-    int playerLabelSec = 3;
-    int playerLabelFadeSec = 1;
-    if( game_getCurrentTime() - lastHoverPlayerTime > playerLabelSec + playerLabelFadeSec ) {
-        lastHoverPlayerID = 0;
-        }
-
-    if( alwaysShowPlayerLabelEnabled ) {
-        int showLabelRange = 50;
-
-        for( int i=0; i<gameObjects.size(); i++ ) {
-            LiveObject *o = gameObjects.getElement( i );
-            if ( o == ourLiveObject ) continue;
-            if ( o->heldByAdultID != -1 ) continue;
-            if ( o->id == lastHoverPlayerID ) continue;
-            if ( o->outOfRange ) continue;
-            int distX = o->xd - ourLiveObject->xd;
-            if ( distX > showLabelRange || distX < -showLabelRange) continue;
-            int distY = o->yd - ourLiveObject->yd;
-            if ( distY > showLabelRange || distY < -showLabelRange) continue;
-
-            char *name = NULL;
-            char infertilityTagPresent = false;
-            if( o->name != NULL ) {
-                name = stringDuplicate(o->name);
-                infertilityTagPresent = stripFertilitySuffix( name );
-                if( name[0] == '\0' ) {
-                    delete [] name;
-                    name = NULL;
-                    }
-                }
-
-            char *label;
-            if( name != NULL ) {
-                label = autoSprintf("%s", name);
-                }
-            else if( o->relationName != NULL ) {
-                label = autoSprintf("%s", o->relationName);
-                }
-            else {
-                label = autoSprintf("UNNAMED STRANGER");
-                }
-
-            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-            FloatColor txtColor = { 1, 1, 1, 1 };
-            
-            doublePair labelPos = mult( o->currentPos, CELL_D );
-
-            double labelWidth = tinyHandwritingFont->measureString( label );
-            labelPos.x -= labelWidth / 2;
-            labelPos.y -= 16;
-
-            drawChalkBackgroundString( 
-                labelPos,
-                label, 1.0, 100000.0, o, -1, &bgColor, &txtColor, true, true );
-
-            if( name != NULL ) delete [] name;
-            delete [] label;
-
-            }
-
-        }
-    
-    if( lastHoverPlayerID != 0 ) {
-
-        LiveObject *o = getLiveObject( lastHoverPlayerID );
-
-        if( o != NULL && o->heldByAdultID == -1 ) {
-
-            float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
-            float fade = 1.0;
-            if( delta > playerLabelSec ) 
-                fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
-            if( alwaysShowPlayerLabelEnabled ) fade = 1.0;
-            
-            char *name = NULL;
-            char infertilityTagPresent = false;
-            if( o->name != NULL ) {
-                name = stringDuplicate(o->name);
-                infertilityTagPresent = stripFertilitySuffix( name );
-                if( name[0] == '\0' ) {
-                    delete [] name;
-                    name = NULL;
-                    }
-                }
-            char *infertilityString = NULL;
-            if( infertilityTagPresent ) {
-                infertilityString = stringDuplicate( " (INFERTILE)" );
-                }
-            else {
-                infertilityString = stringDuplicate( "" );
-                }
-
-            double age = computeServerAge( computeCurrentAge( o ) );
-            
-            char *label;
-            if( name != NULL && o->relationName != NULL ) {
-                label = autoSprintf("%s %.1f, %s%s", name, age, o->relationName, infertilityString);
-                }
-            else if( name == NULL && o->relationName != NULL ) {
-                label = autoSprintf("%s %.1f%s", o->relationName, age, infertilityString);
-                }
-            else if( name != NULL && o->relationName == NULL ) {
-                label = autoSprintf("%s %.1f%s", name, age, infertilityString);
-                }
-            else {
-                label = autoSprintf("UNNAMED STRANGER %.1f%s", age, infertilityString);
-                }
-
-            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
-            FloatColor txtColor = { 1, 1, 1, 1 };
-
-            doublePair labelPos = mult( o->currentPos, CELL_D );
-
-            double labelWidth = tinyHandwritingFont->measureString( label );
-            labelPos.x -= labelWidth / 2;
-            labelPos.y -= 16;
-
-            drawChalkBackgroundString( 
-                labelPos,
-                label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
-            
-            if( name != NULL ) delete [] name;
-            delete [] label;
-
-            }
-
-        }
-
-
-    // debug info on cursor
-    if( debugMode ) {
-
-        int mouseX = int(round( lastMouseX / (float)CELL_D ));
-        int mouseY = int(round( lastMouseY / (float)CELL_D ));
-        int objID = getObjId(mouseX, mouseY);
-
-        char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
-        char *additionalLine = NULL;
-        char *debugLine = NULL;
-
-        int graveID = -1;
-        if( objID > 0 ) {
-            for( int g=0; g<mGraveInfo.size(); g++ ) {
-                GraveInfo *gI = mGraveInfo.getElement( g );
-                if( gI->worldPos.x == mouseX && gI->worldPos.y == mouseY ) {
-                    graveID = gI->playerID;
-                    }
-                }
-            }
-
-
-        if( currHoverPlayerID != 0 ) {
-            additionalLine = autoSprintf( "PID: %d", currHoverPlayerID );
-            }
-        else if( graveID != -1 ) {
-            additionalLine = autoSprintf( "GRAVE: %d", graveID );
-            }
-        else if( vogFollowMode && vogFollowPlayerID != -1 ) {
-            additionalLine = autoSprintf( "FOLLOWING PID: %d", vogFollowPlayerID );
-            }
-
-        drawCursorTips( firstLine, {0, -24 * 2} );
-        if( additionalLine != NULL ) {
-            drawCursorTips( additionalLine, {0, -24 * 3} );
-            }
-        if( debugLine != NULL ) {
-            drawCursorTips( debugLine, {0, -24 * 4} );
-            }
-
-        if( firstLine != NULL ) delete [] firstLine;
-        if( additionalLine != NULL ) delete [] additionalLine;
-        if( debugLine != NULL ) delete [] debugLine;
         }
 
 
@@ -13372,6 +12955,680 @@ void LivingLifePage::draw( doublePair inViewCenter,
         timeMeasures[2] += game_getCurrentTime() - drawStartTime;
         }
     
+    // simulate a pointer move to the last known position
+    // to check again what the pointer is hitting
+    // doing it here instead of say when the screen moves / when an MX is received
+    // should catch all other fringe cases
+    // e.g. a character or an object moves into the cursor
+    // should also note the expensiveness of the call
+    // but it shouldn't be too much different from the previous version where
+    // we call this whenever the screen moves
+    pointerMove(lastMouseX, lastMouseY);
+    
+    char overTempMeter = isHoveringTempMeter();
+    
+    // cursor-tips
+    if( (!isAnyUIHovered() && !hideCursorTipsAndHighlightChanges) ||
+        overTempMeter
+    )
+    if( ourLiveObject != NULL ) {
+        
+        if( ( overTempMeter && ourLiveObject->foodDrainTime > 0 ) 
+            || mCurMouseOverID != 0 || mLastMouseOverID != 0 ) {
+            
+            int idToDescribe = mCurMouseOverID;
+            
+            if( mCurMouseOverID == 0 ) {
+                idToDescribe = mLastMouseOverID;
+                }
+
+            
+            
+            char *des = NULL;
+            char *desToDelete = NULL;
+            
+
+            
+            if( overTempMeter && ourLiveObject->foodDrainTime > 0 ) {
+                // don't replace old until next mouse over
+                // otherwise, it gets redrawn constantly as value
+                // changes
+                // if( mCurrentDes == NULL ||
+                //     strstr( mCurrentDes,
+                //             translate( "foodTimeString" ) ) == NULL ) {
+                if( 1 ) {
+                    
+                    
+                    char *indoorBonusString;
+                    double mainSeconds = ourLiveObject->foodDrainTime;
+                    
+                    if( ourLiveObject->indoorBonusTime > 0 ) {
+                        indoorBonusString = 
+                            autoSprintf( 
+                                translate( "indoorBonusFormatString" ),
+                                ourLiveObject->indoorBonusTime );
+                        mainSeconds -= ourLiveObject->indoorBonusTime;
+                        }
+                    else {
+                        indoorBonusString = stringDuplicate( "" );
+                        }
+                    
+                    
+                    des = autoSprintf( translate( "foodTimeFormatString" ),
+                                       translate( "foodTimeString" ),
+                                       mainSeconds,
+                                       indoorBonusString );
+                    delete [] indoorBonusString;
+                    
+                    desToDelete = des;
+                    }
+                else {
+                    des = stringDuplicate( mCurrentDes );
+                    desToDelete = des;
+                    }
+                }
+            else if( idToDescribe == -99 ) {
+                if( ourLiveObject->holdingID > 0 &&
+                    getObject( ourLiveObject->holdingID )->foodValue > 0 ) {
+                    
+                    des = autoSprintf( "%s %s",
+                                       translate( "eat" ),
+                                       getObject( ourLiveObject->holdingID )->
+                                       description );
+                    desToDelete = des;
+                    }
+                else if( ourLiveObject->dying &&
+                         ourLiveObject->holdingID > 0 ) {
+                    des = autoSprintf( "%s %s",
+                                       translate( "youWith" ),
+                                       getObject( ourLiveObject->holdingID )->
+                                       description );
+                    desToDelete = des;
+                    }
+                else if( ourLiveObject->holdingID > 0 &&
+                    getObject( ourLiveObject->holdingID )->rideable ) {
+                    
+                    des = autoSprintf( "%s %s",
+                                       translate( "youRiding" ),
+                                       getObject( ourLiveObject->holdingID )->
+                                       description );
+                    desToDelete = des;
+                    }
+                else if( ourLiveObject->holdingID > 0 ) {
+                    des = autoSprintf( "%s %s",
+                                       translate( "youHolding" ),
+                                       getObject( ourLiveObject->holdingID )->
+                                       description );
+                    desToDelete = des;
+                    }
+                else {
+                    des = (char*)translate( "you" );
+                    if( ourLiveObject->name != NULL ) {
+                        des = autoSprintf( "%s - %s", des, 
+                                           ourLiveObject->name );
+                        desToDelete = des;
+                        }
+                    }
+                }
+            else if( idToDescribe < 0 ) {
+                LiveObject *otherObj = getLiveObject( -idToDescribe );
+                
+                if( otherObj != NULL ) {
+                    des = otherObj->relationName;
+                    }
+                if( des == NULL ) {
+                    des = (char*)translate( "unrelated" );
+                    }
+                if( otherObj != NULL && otherObj->name != NULL ) {
+                    des = autoSprintf( "%s - %s",
+                                       otherObj->name, des );
+                    desToDelete = des;
+                    }
+                if( otherObj != NULL && 
+                    otherObj->dying && otherObj->holdingID > 0 ) {
+                    des = autoSprintf( "%s - %s %s",
+                                       des,
+                                       translate( "with" ),
+                                       getObject( otherObj->holdingID )->
+                                       description );
+                    if( desToDelete != NULL ) {
+                        delete [] desToDelete;
+                        }
+                    
+                    desToDelete = des;
+                    }
+                }
+            else {
+                ObjectRecord *o = getObject( idToDescribe );
+                
+                des = o->description;
+
+                if( strstr( des, "origGrave" ) != NULL ) {
+                    char found = false;
+                    
+                    for( int g=0; g<mGraveInfo.size(); g++ ) {
+                        GraveInfo *gI = mGraveInfo.getElement( g );
+                        
+                        if( gI->worldPos.x == mCurMouseOverWorld.x &&
+                            gI->worldPos.y == mCurMouseOverWorld.y ) {
+                            
+                            char *desNoComment = stringDuplicate( des );
+                            stripDescriptionComment( desNoComment );
+
+                            // a grave we know about
+                            int years = 
+                                lrint( 
+                                    ( game_getCurrentTime() - 
+                                      gI->creationTime ) *
+                                    ourLiveObject->ageRate );
+
+                            if( gI->creationTimeUnknown ) {
+                                years = 0;
+                                }
+
+                            double currentTime = game_getCurrentTime();
+                            
+                            if( gI->lastMouseOverYears != -1 &&
+                                currentTime - gI->lastMouseOverTime < 2 ) {
+                                // continuous mouse-over
+                                // don't let years tick up
+                                years = gI->lastMouseOverYears;
+                                gI->lastMouseOverTime = currentTime;
+                                }
+                            else {
+                                // save it for next time
+                                gI->lastMouseOverYears = years;
+                                gI->lastMouseOverTime = currentTime;
+                                }
+                            
+                            const char *yearWord;
+                            if( years == 1 ) {
+                                yearWord = translate( "yearAgo" );
+                                }
+                            else {
+                                yearWord = translate( "yearsAgo" );
+                                }
+                            
+                            char *yearsString;
+                            
+                            if( years >= NUM_NUMBER_KEYS ) {
+                                // this stops behaving above 999,999,999 years
+                                // but each in-game year is 1 minute,
+                                // so this stops behaving after 1902 real-life
+                                // years.
+                                if( years > 1000000 ) {
+                                    int mil = years / 1000000;
+                                    int remain = years % 1000000;
+                                    int thou = remain / 1000;
+                                    int extra = remain % 1000;
+                                    yearsString = 
+                                        autoSprintf( "%d,%03d,%03d", 
+                                                     mil, thou, extra );
+                                    }
+                                else if( years > 1000 ) {
+                                    yearsString = 
+                                        autoSprintf( "%d,%03d", 
+                                                     years / 1000,
+                                                     years % 1000 );
+                                    }
+                                else {
+                                    yearsString = autoSprintf( "%d", years );
+                                    }
+                                }
+                            else {
+                                yearsString = stringDuplicate( 
+                                    translate( numberKeys[ years ] ) );
+                                }
+                            
+
+
+                            char *deathPhrase;
+                            
+                            if( years == 0 ) {
+                                deathPhrase = stringDuplicate( "" );
+                                }
+                            else {
+                                deathPhrase = 
+                                    autoSprintf( " - %s %s %s",
+                                                 translate( "died" ),
+                                                 yearsString, yearWord );
+                                }
+
+                            delete [] yearsString;
+                            
+                            des = autoSprintf( "%s %s %s%s",
+                                               desNoComment, translate( "of" ),
+                                               gI->relationName,
+                                               deathPhrase );
+                            delete [] desNoComment;
+                            delete [] deathPhrase;
+                            
+                            desToDelete = des;
+                            found = true;
+                            break;
+                            }    
+                        }
+                    
+                        
+
+                    if( !found ) {
+
+                        char alreadySent = false;
+                        for( int i=0; i<graveRequestPos.size(); i++ ) {
+                            if( equal( graveRequestPos.getElementDirect( i ),
+                                       mCurMouseOverWorld ) ) {
+                                alreadySent = true;
+                                break;
+                                }
+                            }
+
+                        if( !alreadySent ) {                            
+                            char *graveMessage = 
+                                autoSprintf( "GRAVE %d %d#",
+                                             mCurMouseOverWorld.x,
+                                             mCurMouseOverWorld.y );
+                            
+                            sendToServerSocket( graveMessage );
+                            delete [] graveMessage;
+                            graveRequestPos.push_back( mCurMouseOverWorld );
+                            }
+                        
+                        // blank des for now
+                        // avoid flicker when response arrives
+                        des = stringDuplicate( "" );
+                        desToDelete = des;
+                        }
+                    
+                    }
+                else if( o->isOwned ) {
+                    char found = false;
+                    
+                    for( int g=0; g<mOwnerInfo.size(); g++ ) {
+                        OwnerInfo *gI = mOwnerInfo.getElement( g );
+                        
+                        if( gI->worldPos.x == mCurMouseOverWorld.x &&
+                            gI->worldPos.y == mCurMouseOverWorld.y ) {
+                            
+                            char *desNoComment = stringDuplicate( des );
+                            stripDescriptionComment( desNoComment );
+
+
+                            const char *personName = 
+                                translate( "unknownPerson" );
+                            
+                            double minDist = DBL_MAX;
+                            LiveObject *ourLiveObject = getOurLiveObject();
+                            
+                            for( int p=0; p< gI->ownerList->size(); p++ ) {
+                                int pID = gI->ownerList->getElementDirect( p );
+                                
+                                if( pID == ourID ) {
+                                    personName = translate( "YOU" );
+                                    break;
+                                    }
+                                LiveObject *pO = getLiveObject( pID );
+                                if( pO != NULL ) {
+                                    double thisDist =
+                                        distance( pO->currentPos,
+                                                  ourLiveObject->currentPos );
+                                    if( thisDist < minDist ) {
+                                        minDist = thisDist;
+                                        if( pO->name != NULL ) {
+                                            personName = pO->name;
+                                            }
+                                        else {
+                                            personName = 
+                                                translate( "namelessPerson" );
+                                            }
+                                        }
+                                    }
+                                }
+                            
+
+                            // an owned object we know about
+                            des = autoSprintf( "%s %s %s",
+                                               desNoComment, 
+                                               translate( "ownedBy" ),
+                                               personName );
+                            delete [] desNoComment;
+                            
+                            desToDelete = des;
+                            found = true;
+                            break;
+                            }    
+                        }
+
+                    if( !found ) {
+
+                        char alreadySent = false;
+                        for( int i=0; i<ownerRequestPos.size(); i++ ) {
+                            if( equal( ownerRequestPos.getElementDirect( i ),
+                                       mCurMouseOverWorld ) ) {
+                                alreadySent = true;
+                                break;
+                                }
+                            }
+
+                        if( !alreadySent ) {                            
+                            char *ownerMessage = 
+                                autoSprintf( "OWNER %d %d#",
+                                             mCurMouseOverWorld.x,
+                                             mCurMouseOverWorld.y );
+                            
+                            sendToServerSocket( ownerMessage );
+                            delete [] ownerMessage;
+                            ownerRequestPos.push_back( mCurMouseOverWorld );
+                            }
+                        
+                        // blank des for now
+                        // avoid flicker when response arrives
+                        des = stringDuplicate( "" );
+                        desToDelete = des;
+                        }
+                    }
+                }
+            
+            char *stringUpper = stringToUpperCase( des );
+
+            if( desToDelete != NULL ) {
+                delete [] desToDelete;
+                }
+
+            stripDescriptionComment( stringUpper );
+            
+
+            if( mCurrentDes == NULL ) {
+                mCurrentDes = stringDuplicate( stringUpper );
+                }
+            else {
+                if( strcmp( mCurrentDes, stringUpper ) != 0 ) {
+                    // adding a new one to stack, fade out old
+                    
+                    for( int i=0; i<mOldDesStrings.size(); i++ ) {
+                        float fade =
+                            mOldDesFades.getElementDirect( i );
+                        
+                        if( fade > 0.5 ) {
+                            fade -= 0.20;
+                            }
+                        else {
+                            fade -= 0.1;
+                            }
+                        
+                        *( mOldDesFades.getElement( i ) ) = fade;
+                        if( fade <= 0 ) {
+                            mOldDesStrings.deallocateStringElement( i );
+                            mOldDesFades.deleteElement( i );
+                            i--;
+                            }
+                        else if( strcmp( mCurrentDes, 
+                                         mOldDesStrings.getElementDirect(i) )
+                                 == 0 ) {
+                            // already in stack, move to top
+                            mOldDesStrings.deallocateStringElement( i );
+                            mOldDesFades.deleteElement( i );
+                            i--;
+                            }
+                        }
+                    
+                    mOldDesStrings.push_back( mCurrentDes );
+                    mOldDesFades.push_back( 1.0f );
+                    mCurrentDes = stringDuplicate( stringUpper );
+                    }
+                }
+            
+            // This was the main description drawn on guiPanel
+            // setDrawColor( 0, 0, 0, 1 );
+            // pencilFont->drawString( stringUpper, pos, alignCenter );
+            
+            // Moved to be cursor-tips
+            if( ! mXKeyDown ) {
+                if( mCurMouseOverID != 0 &&
+                    // If we're hovering another player
+                    // player label will be drawn instead of cursor-tips
+                    currHoverPlayerID == 0 && 
+                    !isHoveringTempMeter()
+                    ) {
+
+                    if( showUseOnHoverEnabled ) {
+                        const int playerSelfID = -99;
+                        std::string objComment = "";
+                        if( mCurMouseOverID == playerSelfID && ourLiveObject->holdingID > 0 ) {
+                            objComment = minitech::getObjDescriptionComment(ourLiveObject->holdingID);
+                            }
+                        else if( mCurMouseOverID > 0 ) {
+                            objComment = minitech::getObjDescriptionComment(mCurMouseOverID);
+                            }
+
+                        std::string displayedComment = "";
+                        std::string tagName = " USE";
+                        std::string tagData = minitech::getObjDescriptionTagData(objComment, tagName.c_str());
+
+                        if( !tagData.empty() ) {
+                            std::string remainingUseCount = tagData.substr(tagName.size() + 1); 
+                            displayedComment = remainingUseCount;
+                            }
+                        if( !displayedComment.empty() ) {
+                            char *display = autoSprintf("USE: %s", displayedComment.c_str());
+                            drawCursorTips( display, {4, -24} );
+                            delete [] display;
+                            }
+                        }
+
+                    drawCursorTips( stringUpper );
+
+                    }
+                else if( isHoveringTempMeter() ) {
+                    double length = tinyHandwritingFont->measureString( stringUpper );
+                    doublePair tipPos = { lastScreenViewCenter.x + ( recalcOffsetX( 610 ) * gui_fov_scale - length ), 
+                        lastScreenViewCenter.y - ( recalcOffsetY( 310 ) * gui_fov_scale ) };
+                    
+                    FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+                    FloatColor txtColor = { 1, 1, 1, 1 };
+                    drawChalkBackgroundString( tipPos, stringUpper, 1.0, 100000.0, NULL, -1, &bgColor, &txtColor, true, true );
+                    }
+            }
+            delete [] stringUpper;
+            }
+        else {
+            if( mCurrentDes != NULL ) {
+                // done with this des
+
+                // move to top of stack
+                for( int i=0; i<mOldDesStrings.size(); i++ ) {
+                    if( strcmp( mCurrentDes, 
+                                mOldDesStrings.getElementDirect(i) )
+                        == 0 ) {
+                        // already in stack, move to top
+                        mOldDesStrings.deallocateStringElement( i );
+                        mOldDesFades.deleteElement( i );
+                        i--;
+                        }
+                    }
+                
+                mOldDesStrings.push_back( mCurrentDes );
+                mOldDesFades.push_back( 1.0f );
+                mCurrentDes = NULL;
+                }
+            }
+        }
+
+
+    // Player labels
+    int playerLabelSec = 3;
+    int playerLabelFadeSec = 1;
+    if( game_getCurrentTime() - lastHoverPlayerTime > playerLabelSec + playerLabelFadeSec ) {
+        lastHoverPlayerID = 0;
+        }
+
+    if( alwaysShowPlayerLabelEnabled ) {
+        int showLabelRange = 50;
+
+        for( int i=0; i<gameObjects.size(); i++ ) {
+            LiveObject *o = gameObjects.getElement( i );
+            if ( o == ourLiveObject ) continue;
+            if ( o->heldByAdultID != -1 ) continue;
+            if ( o->id == lastHoverPlayerID ) continue;
+            if ( o->outOfRange ) continue;
+            int distX = o->xd - ourLiveObject->xd;
+            if ( distX > showLabelRange || distX < -showLabelRange) continue;
+            int distY = o->yd - ourLiveObject->yd;
+            if ( distY > showLabelRange || distY < -showLabelRange) continue;
+
+            char *name = NULL;
+            //char infertilityTagPresent = false;
+            if( o->name != NULL ) {
+                name = stringDuplicate(o->name);
+                //infertilityTagPresent = stripFertilitySuffix( name );
+                if( name[0] == '\0' ) {
+                    delete [] name;
+                    name = NULL;
+                    }
+                }
+
+            char *label;
+            if( name != NULL ) {
+                label = autoSprintf("%s", name);
+                }
+            else if( o->relationName != NULL ) {
+                label = autoSprintf("%s", o->relationName);
+                }
+            else {
+                label = autoSprintf("UNNAMED STRANGER");
+                }
+
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+            
+            doublePair labelPos = mult( o->currentPos, CELL_D );
+
+            double labelWidth = tinyHandwritingFont->measureString( label );
+            labelPos.x -= labelWidth / 2;
+            labelPos.y -= 16;
+
+            drawChalkBackgroundString( 
+                labelPos,
+                label, 1.0, 100000.0, o, -1, &bgColor, &txtColor, true, true );
+
+            if( name != NULL ) delete [] name;
+            delete [] label;
+
+            }
+
+        }
+    
+    if( lastHoverPlayerID != 0 ) {
+
+        LiveObject *o = getLiveObject( lastHoverPlayerID );
+
+        if( o != NULL && o->heldByAdultID == -1 ) {
+
+            float delta = (float)(game_getCurrentTime() - lastHoverPlayerTime);
+            float fade = 1.0;
+            if( delta > playerLabelSec ) 
+                fade = (playerLabelSec + playerLabelFadeSec - delta) / playerLabelFadeSec;
+            if( alwaysShowPlayerLabelEnabled ) fade = 1.0;
+            
+            char *name = NULL;
+            char infertilityTagPresent = false;
+            if( o->name != NULL ) {
+                name = stringDuplicate(o->name);
+                infertilityTagPresent = stripFertilitySuffix( name );
+                if( name[0] == '\0' ) {
+                    delete [] name;
+                    name = NULL;
+                    }
+                }
+            char *infertilityString = NULL;
+            if( infertilityTagPresent ) {
+                infertilityString = stringDuplicate( " (INFERTILE)" );
+                }
+            else {
+                infertilityString = stringDuplicate( "" );
+                }
+
+            double age = computeServerAge( computeCurrentAge( o ) );
+            
+            char *label;
+            if( name != NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f, %s%s", name, age, o->relationName, infertilityString);
+                }
+            else if( name == NULL && o->relationName != NULL ) {
+                label = autoSprintf("%s %.1f%s", o->relationName, age, infertilityString);
+                }
+            else if( name != NULL && o->relationName == NULL ) {
+                label = autoSprintf("%s %.1f%s", name, age, infertilityString);
+                }
+            else {
+                label = autoSprintf("UNNAMED STRANGER %.1f%s", age, infertilityString);
+                }
+
+            FloatColor bgColor = { 0.05, 0.05, 0.05, 1.0 };
+            FloatColor txtColor = { 1, 1, 1, 1 };
+
+            doublePair labelPos = mult( o->currentPos, CELL_D );
+
+            double labelWidth = tinyHandwritingFont->measureString( label );
+            labelPos.x -= labelWidth / 2;
+            labelPos.y -= 16;
+
+            drawChalkBackgroundString( 
+                labelPos,
+                label, fade, 100000.0, o, -1, &bgColor, &txtColor, true );
+            
+            if( name != NULL ) delete [] name;
+            delete [] label;
+
+            }
+
+        }
+
+
+    // debug info on cursor
+    if( debugMode ) {
+
+        int mouseX = int(round( lastMouseX / (float)CELL_D ));
+        int mouseY = int(round( lastMouseY / (float)CELL_D ));
+        int objID = getObjId(mouseX, mouseY);
+
+        char *firstLine = autoSprintf( "%d, %d, %d", mouseX, mouseY, objID );
+        char *additionalLine = NULL;
+        char *debugLine = NULL;
+
+        int graveID = -1;
+        if( objID > 0 ) {
+            for( int g=0; g<mGraveInfo.size(); g++ ) {
+                GraveInfo *gI = mGraveInfo.getElement( g );
+                if( gI->worldPos.x == mouseX && gI->worldPos.y == mouseY ) {
+                    graveID = gI->playerID;
+                    }
+                }
+            }
+
+
+        if( currHoverPlayerID != 0 ) {
+            additionalLine = autoSprintf( "PID: %d", currHoverPlayerID );
+            }
+        else if( graveID != -1 ) {
+            additionalLine = autoSprintf( "GRAVE: %d", graveID );
+            }
+        else if( vogFollowMode && vogFollowPlayerID != -1 ) {
+            additionalLine = autoSprintf( "FOLLOWING PID: %d", vogFollowPlayerID );
+            }
+
+        drawCursorTips( firstLine, {0, -24 * 2} );
+        if( additionalLine != NULL ) {
+            drawCursorTips( additionalLine, {0, -24 * 3} );
+            }
+        if( debugLine != NULL ) {
+            drawCursorTips( debugLine, {0, -24 * 4} );
+            }
+
+        if( firstLine != NULL ) delete [] firstLine;
+        if( additionalLine != NULL ) delete [] additionalLine;
+        if( debugLine != NULL ) delete [] debugLine;
+        }
+
     }
 
 
@@ -14793,6 +15050,60 @@ void LivingLifePage::setNewCraving( int inFoodID, int inYumBonus ) {
     }
 
 
+
+void LivingLifePage::displayPhoto( const char *inPhotoID, char inNegative ) {
+    
+    if( strlen( inPhotoID ) != 40 ) {
+        printf( "Bad photo_id received from server in *photo metadata: %s\n",
+                inPhotoID );
+        return;
+        }    
+
+    if( mPhotoToShowIDs[ mLivePhotoSheetIndex ] != NULL &&
+        mPhotoToShowAreNegative[ mLivePhotoSheetIndex ] == inNegative &&
+        strcmp( inPhotoID, mPhotoToShowIDs[ mLivePhotoSheetIndex ] ) == 0 ) {
+        // currently showing this photo
+        // don't re-show it
+        return;
+        }
+    
+    
+    // use next sheet
+    mLivePhotoSheetIndex ++;
+    
+    if( mLivePhotoSheetIndex >= NUM_HINT_SHEETS ) {
+        mLivePhotoSheetIndex = 0;
+        }
+    
+
+    if( mPhotoToShowSprites[ mLivePhotoSheetIndex ] != NULL ) {
+        // currently showing a photo on a still-visible photo sheet
+
+        // skip adding another, because that will create a visual glitch
+        
+        // if the user is picking up photos that quickly, it's okay
+        // if they miss seeing one
+
+        printf( "User swapped viewed photos too quickly, had to skip one\n" );
+        return;
+        }
+
+    if( mPhotoToShowIDs[ mLivePhotoSheetIndex ] != NULL ) {
+        // ID already set, but not showing yet.
+        // cache must still be fetching it.
+        // okay to replace it now
+        delete [] mPhotoToShowIDs[ mLivePhotoSheetIndex ];
+        mPhotoToShowIDs[ mLivePhotoSheetIndex ] = NULL;
+        }
+    
+    // this kicks off the process of loading it from the cache
+    mPhotoToShowIDs[ mLivePhotoSheetIndex ] = stringDuplicate( inPhotoID );
+    mPhotoToShowAreNegative[ mLivePhotoSheetIndex ] = inNegative;
+    }
+
+
+
+
         
 void LivingLifePage::step() {
     
@@ -14985,6 +15296,89 @@ void LivingLifePage::step() {
         }
     
 
+    for( int i=0; i<NUM_HINT_SHEETS; i++ ) {
+
+        if( mPhotoToShowIDs[i] != NULL &&
+            mPhotoToShowSprites[i] == NULL ) {
+            
+            // see if it's ready from cache
+            mPhotoToShowSprites[i] = 
+                getCachedPhoto( mPhotoToShowIDs[i],
+                                mPhotoToShowAreNegative[i] );
+
+            if( mPhotoToShowSprites[i] != NULL ) {
+                // got it for first time from cache
+                // start timing display now
+                mPhotoDisplayStartTime[i] = game_getCurrentTime();
+                }
+            }
+                                                     
+        if( mPhotoToShowSprites[i] != NULL ) {
+            // we have a photo to show
+
+            if( mLivePhotoSheetIndex != i ||
+                game_getCurrentTime() - mPhotoDisplayStartTime[i] > 10 ) {
+                
+                // shown long enough, or we've moved on, hide photo slip
+                mPhotoDisplayPosTargetOffset[i] = mPhotoDisplayHideOffset[i];
+            
+                if( mPhotoDisplayPosOffset[i].y == 
+                    mPhotoDisplayHideOffset[i].y ) {
+                    // done hiding
+
+                    freeSprite( mPhotoToShowSprites[i] );
+                    mPhotoToShowSprites[i] = NULL;
+                    
+                    delete [] mPhotoToShowIDs[i];
+                    mPhotoToShowIDs[i] = NULL;
+                    }
+                }
+            else {
+                // keep showing it
+                mPhotoDisplayPosTargetOffset[i].y = 
+                    mPhotoDisplayHideOffset[i].y - 400;
+                }
+            
+            
+            // update positions
+            doublePair delta = 
+                sub( mPhotoDisplayPosTargetOffset[i], 
+                     mPhotoDisplayPosOffset[i] );
+            
+            double d = 
+                distance( mPhotoDisplayPosTargetOffset[i], 
+                          mPhotoDisplayPosOffset[i] );
+            
+            
+            if( d <= 1 ) {
+                mPhotoDisplayPosOffset[i] = mPhotoDisplayPosTargetOffset[i];
+                }
+            else {
+                int speed = frameRateFactor * 4;
+                
+                if( d < 8 ) {
+                    speed = lrint( frameRateFactor * d / 2 );
+                    }
+                
+                if( speed > d ) {
+                    speed = floor( d );
+                    }
+            
+                if( speed < 1 ) {
+                    speed = 1;
+                }
+                
+                doublePair dir = normalize( delta );
+                
+                mPhotoDisplayPosOffset[i] = 
+                    add( mPhotoDisplayPosOffset[i],
+                         mult( dir, speed ) );
+                }
+            
+            }
+        }
+    
+        
     // move moving objects
     int numCells = mMapD * mMapD;
     
@@ -20205,6 +20599,8 @@ void LivingLifePage::step() {
                         o.futureHeldAnimStack = 
                             new SimpleVector<AnimType>();
                         
+                        o.foodDrainTime = -1;
+                        o.indoorBonusTime = 0;
                         
                         ObjectRecord *obj = getObject( o.displayID );
                         
@@ -21446,6 +21842,53 @@ void LivingLifePage::step() {
                                                 newSpeech;
                                             }
                                         }
+                                    else {
+                                        // no *map metadata in our speech
+
+                                        // look for *photo metadata
+                                        starPos = 
+                                            strstr( existing->currentSpeech,
+                                                    " *photo " );
+                                    
+                                        if( starPos != NULL ) {
+                                            
+                                            if( existing->holdingID > 0 ) {
+                                                ObjectRecord *held = 
+                                                    getObject( 
+                                                        existing->holdingID );
+
+                                                char visibleNegative = false;
+                                                char visiblePositive = false;
+                                                
+                                                if( strstr( 
+                                                    held->description,
+                                                    "+negativePhotoFixed" ) ) {
+                                                    visibleNegative = true;
+                                                    }
+                                                else if( strstr( 
+                                                    held->description,
+                                                    "+positivePhotoFixed" ) ) {
+                                                    visiblePositive = true;
+                                                    }
+                                                
+                                                if( visibleNegative || 
+                                                    visiblePositive ) {
+
+                                                    // skip it to find photo_id
+                                                    char *photoID = 
+                                                        &( starPos[8] );
+                                                    
+                                                    displayPhoto( 
+                                                        photoID,
+                                                        visibleNegative );
+                                                    }
+                                                }
+                                            
+                                            // strip metadata off for 
+                                            // spoken words
+                                            starPos[0] = '\0';
+                                            }
+                                        }
                                     }
                                 }
                             
@@ -22328,8 +22771,10 @@ void LivingLifePage::step() {
             LiveObject *ourLiveObject = getOurLiveObject();
             
             if( ourLiveObject != NULL ) {
-                sscanf( message, "HX\n%f", 
-                        &( ourLiveObject->heat ) );
+                sscanf( message, "HX\n%f %f %f", 
+                        &( ourLiveObject->heat ),
+                        &( ourLiveObject->foodDrainTime ),
+                        &( ourLiveObject->indoorBonusTime ) );
                 
                 }
             }
@@ -22659,11 +23104,19 @@ void LivingLifePage::step() {
                            lastScreenMouseY,
                            &lastMouseX,
                            &lastMouseY );
-                           
-            // camera moved, simulate a pointer move to the last known position
-            // to check again what the pointer is hitting
-            pointerMove( lastMouseX, lastMouseY );
             
+            }
+
+        // cursor tips and object highlight can get noisy when
+        // the screen keeps scrolling and the cursor hits a bunch of objects
+        // (even the empty space within an object sprite can cause the tips 
+        // and highlight to flash)
+        // this is most noticeable if you hold WASD to walk and leave the
+        // cursor still
+        hideCursorTipsAndHighlightChanges = false;
+        if( viewChange &&
+            (game_getCurrentTime() - lastCursorMoveTime > 2.0) ) {
+                hideCursorTipsAndHighlightChanges = true;
             }
 
         }
@@ -23848,6 +24301,7 @@ void LivingLifePage::makeActive( char inFresh ) {
     mEKeyDown = false;
     mZKeyDown = false;
     mXKeyDown = false;
+    mGraveKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
 
@@ -23966,6 +24420,8 @@ void LivingLifePage::makeActive( char inFresh ) {
     takingPhoto = false;
     photoSequenceNumber = -1;
     waitingForPhotoSig = false;
+    waitingForPhotoID = false;
+    
     if( photoSig != NULL ) {
         delete [] photoSig;
         photoSig = NULL;
@@ -24754,6 +25210,8 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
 
 
 void LivingLifePage::pointerMove( float inX, float inY ) {
+
+    if( lastMouseX != inX || lastMouseY != inY ) lastCursorMoveTime = game_getCurrentTime();
     lastMouseX = inX;
     lastMouseY = inY;
         
@@ -25197,6 +25655,8 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     if ( blockMouseScaling ) { scaling = false; }
     
     //FOV
+    bool stillWaitingBirth = mFirstServerMessagesReceived != 3 || !mDoneLoadingFirstObjectSet;
+    if( !stillWaitingBirth ) // Disallow zooming in Connecting screen
     if( scaling ) {
         // if ( isCommandKeyDown() ) {
         //     float currentHUDScale = gui_fov_target_scale_hud;
@@ -25212,38 +25672,9 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
     }
     
-    if (!mForceGroundClick && 
+    if (!mForceGroundClick && !mGraveKeyDown &&
         !isLastMouseButtonRight() &&
         minitech::livingLifePageMouseDown( inX, inY )) return;
-    
-    if( !mForceGroundClick && vogMode && vogPickerOn && 
-        !isHoveringPicker(inX, inY)
-        ) {
-        GridPos pos;
-        pos.x = int(round( inX / (float)CELL_D ));
-        pos.y = int(round( inY / (float)CELL_D ));
-        
-        char rightClick;
-        int id = mObjectPicker.getSelectedObject( &rightClick );
-        if( isLastMouseButtonRight() ) {
-            if( isShiftKeyDown() ) {
-                id = 16003; // Smooth Ground #floor
-                }
-            else {
-                id = 1938; // Smooth Ground
-                }
-            }
-        
-        if( id != -1 ) {
-            char *message = autoSprintf( "VOGI %d %d %d#",
-                                         lrint( pos.x ), 
-                                         lrint( pos.y ), id );
-            sendToServerSocket( message );
-            delete [] message;
-            mObjectPicker.usePickable( id );
-            return;
-            }
-        }
     
     lastMouseX = inX;
     lastMouseY = inY;
@@ -25299,7 +25730,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 
-    if( !mForceGroundClick ) {
+    if( !mForceGroundClick && !mGraveKeyDown ) {
         if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
             if( isLastMouseButtonRight() ) return;
             coordinatesSlipComponent.mActive = false;
@@ -25771,6 +26202,23 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
     nextActionDropping = false;
     
 
+
+    if ( !mForceGroundClick && mouseButton == MouseButton::MIDDLE ) {
+        // Mouse wheel click detected
+        // Just open object minitech and prevents ever after this
+        if ( destID != 0 && p.hitAnObject ) {
+            minitech::minitechMinimized = false;
+            
+            mNextHintObjectID = destID;
+            mNextHintIndex = mHintBookmarks[ destID ];
+            if (minitech::changeHintObjOnTouch) minitech::currentHintObjId = destID;
+        } else {
+            // clicked on ground, minimize minitech
+            minitech::minitechMinimized = true;
+        }
+        
+        return;
+    }
 
     if( p.hitSelf ) {
         // click on self
@@ -26711,11 +27159,23 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                     // consider doing that as a USE
                     ObjectRecord *destObj = getObject( destID );
                     
-                    if( destObj->numSlots > p.hitSlotIndex &&
+                    if( getTrans( 0, destID ) == NULL && // make sure object has no bare-hand transition
+                        p.hitSlotIndex > -1 && // correctly check that a slot is clicked
+                        destObj->numSlots > p.hitSlotIndex &&
                         strstr( destObj->description, "+useOnContained" )
                         != NULL ) {
-                        action = "USE";
-                        useExtraIParam = p.hitSlotIndex;
+                        
+                        char containedHasBareHandTrans = false;
+                        int mapI = getMapIndex(p.closestCellX, p.closestCellY);
+                        if( mapI != -1 ) {
+                            int containedID = mMapContainedStacks[mapI].getElementDirect( p.hitSlotIndex );
+                            if( getTrans( 0, containedID ) != NULL ) containedHasBareHandTrans = true;
+                            }
+                        
+                        if( containedHasBareHandTrans ) {
+                            action = "USE";
+                            useExtraIParam = p.hitSlotIndex;
+                            }
                         }
                     }
                 
@@ -27077,58 +27537,21 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
 
 
-double lastVogDragTime = 0;
-
 void LivingLifePage::pointerDrag( float inX, float inY ) {
     lastMouseX = inX;
     lastMouseY = inY;
     getLastMouseScreenPos( &lastScreenMouseX, &lastScreenMouseY );
 
-    if( !mForceGroundClick && vogMode && vogPickerOn && 
-        !isHoveringPicker(inX, inY)
+    if( vogModeActuallyOn && vogPickerOn && 
+        !isHoveringPicker(inX, inY) // this disallows drags that start and end within the picker UI
         ) {
-
-        if( game_getCurrentTime() - lastVogDragTime < 0.05 ) return;
-
-        GridPos pos;
-        pos.x = int(round( inX / (float)CELL_D ));
-        pos.y = int(round( inY / (float)CELL_D ));
-        
-        char rightClick;
-        int id = mObjectPicker.getSelectedObject( &rightClick );
-        if( isLastMouseButtonRight() ) {
-            if( isShiftKeyDown() ) {
-                id = 16003; // Smooth Ground #floor
-                }
-            else {
-                id = 1938; // Smooth Ground
-                }
-            }
-        
-        if( id != -1 ) {
-
-            ObjectRecord *o = getObject( id );
-            if( o == NULL ) return;
-            if( o->floor ) {
-                int mapI = getMapIndex( pos.x, pos.y );
-                if( mapI != -1 ) {
-                    int currentFloor = mMapFloors[ mapI ];
-                    if( id == currentFloor ) return;
-                    }
-                }
-            else {
-                int currentObject = getObjId( pos.x, pos.y );
-                if( id == currentObject ) return;
-                }
-
-            char *message = autoSprintf( "VOGI %d %d %d#",
-                                         lrint( pos.x ), 
-                                         lrint( pos.y ), id );
-            sendToServerSocket( message );
-            lastVogDragTime = game_getCurrentTime();
-            delete [] message;
-            mObjectPicker.usePickable( id );
-            return;
+        if( !dragging ) {
+            dragging = true;
+            dragStart = {
+                int(round( inX / (float)CELL_D )),
+                int(round( inY / (float)CELL_D ))
+                };
+            dragEnd = {9999, 9999};
             }
         }
     
@@ -27194,6 +27617,73 @@ void LivingLifePage::pointerUp( float inX, float inY ) {
     mPrevMouseOverCellFades.push_back( mCurMouseOverCellFade );
     mCurMouseOverCell.x = -1;
     mCurMouseOverCell.y = -1;
+
+    int mouseButton = getLastMouseButton();
+    if ( mouseButton == MouseButton::WHEELUP || mouseButton == MouseButton::WHEELDOWN ) return;
+    
+    if( !mForceGroundClick && vogModeActuallyOn && vogPickerOn ) {
+
+        // we're either clicking or dragging here
+
+        char rightClick;
+        int id = mObjectPicker.getSelectedObject( &rightClick );
+        if( isLastMouseButtonRight() ) {
+            if( isShiftKeyDown() ) {
+                id = 16003; // Smooth Ground #floor
+                }
+            else {
+                id = 1938; // Smooth Ground
+                }
+            }
+
+        // if we're hovering picker
+        // let dragging go through but stop mouseUp
+
+        if( dragging ) {
+            dragEnd = {
+                int(round( inX / (float)CELL_D )),
+                int(round( inY / (float)CELL_D ))
+                };
+            
+            int minX = std::min(dragStart.x, dragEnd.x);
+            int maxX = std::max(dragStart.x, dragEnd.x);
+            int minY = std::min(dragStart.y, dragEnd.y);
+            int maxY = std::max(dragStart.y, dragEnd.y);
+            
+            if( (maxX - minX) * (maxY - minY) <= 400 ) // don't spam VOGI
+            for( int x = minX; x <= maxX; x++) {
+                for( int y = minY; y <= maxY; y++) {
+                    if( id != -1 ) {
+                        char *message = autoSprintf( "VOGI %d %d %d#",
+                                                    lrint( x ), 
+                                                    lrint( y ), id );
+                        sendToServerSocket( message );
+                        delete [] message;
+                        }
+                    }
+                }
+
+            dragging = false;
+            dragStart = {9999, 9999};
+            dragEnd = {9999, 9999};
+            }
+        else if( !isHoveringPicker(inX, inY) ) {
+            GridPos pos = {
+                int(round( inX / (float)CELL_D )),
+                int(round( inY / (float)CELL_D ))
+                };
+            
+            if( id != -1 ) {
+                char *message = autoSprintf( "VOGI %d %d %d#",
+                                            lrint( pos.x ), 
+                                            lrint( pos.y ), id );
+                sendToServerSocket( message );
+                delete [] message;
+                mObjectPicker.usePickable( id );
+                return;
+                }
+            }
+        }
     }
 
 
@@ -27353,8 +27843,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 useBackpack(true);
                 return;
             }
-            if (isCharKey(inASCII, charKey_Eat)) {
+            if (!shiftKey && isCharKey(inASCII, charKey_Eat)) {
                 useOnSelf();
+                return;
+            }
+            if (shiftKey && isCharKey(inASCII, charKey_Eat)) {
+                takeOffClothing();
                 return;
             }
             if (isCharKey(inASCII, charKey_Baby)) {
@@ -27365,20 +27859,27 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 takeOffBackpack();
                 return;
             }
-            if (shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+            if (shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
                 usePocket(1);
                 return;
             }
-            if (!shiftKey && isCharKey(inASCII, charKey_Pocket)) {
+            if (!shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
                 usePocket(4);
+                return;
+            }
+            if (commandKey && isCharKey(inASCII, charKey_Pocket)) {
+                if(shiftKey) usePocket(0, true);
+                if(!shiftKey) usePocket(0);
                 return;
             }
         }
     }
 
+    LiveObject *ourLiveObject = getOurLiveObject();
+
     // Custom command shortcuts (was FOV emote keys)
     int commandIndex = -1;
-    if( !vogMode && !shiftKey ) {
+    if( !vogMode && !shiftKey && ourLiveObject != NULL ) {
         if ( isAltKeyDown() || !mSayField.isFocused() ) {
             int numberPressed = (int)inASCII - 48;
             if( numberPressed >= 0 && numberPressed <= 9 ) {
@@ -27392,8 +27893,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             char *command = commandShortcuts.getElementDirect( commandIndex );
 
             char *commandWorking = stringDuplicate(command);
-
-            LiveObject *ourLiveObject = getOurLiveObject();
 
             double age = computeCurrentAgeNoOverride( ourLiveObject );
 
@@ -27779,6 +28278,9 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case 96: { // grave
+            if( !TextField::isAnyFocused() && !vogMode) {
+                mGraveKeyDown = true;
+                }
             // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
             // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
             // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
@@ -27790,6 +28292,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             if( !TextField::isAnyFocused() ) {
                 drawGridToggle = !drawGridToggle;
                 }
+            break;
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
                 
@@ -27825,6 +28328,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 mEKeyDown = false;
                 mZKeyDown = false;
                 mXKeyDown = false;
+                mGraveKeyDown = false;
                 
                 // start typing a filter
                 mSayField.setText( "/" );
@@ -27837,6 +28341,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 mEKeyDown = false;
                 mZKeyDown = false;
                 mXKeyDown = false;
+                mGraveKeyDown = false;
                 
                 mSayField.setText( "" );
                 mSayField.focus();
@@ -27878,6 +28383,16 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 
 
                 if( strcmp( typedText, "" ) == 0 ) {
+                    mSayField.unfocus();
+                    }
+                else if( strcmp( typedText, "/NO BB" ) == 0 || strcmp( typedText, "/NOBB" ) == 0 ) {
+                    sendToServerSocket((char*)"SAY 0 0 NO BB#");
+                    mSayField.setText( "" );
+                    mSayField.unfocus();
+                    }
+                else if( strcmp( typedText, "/YES BB" ) == 0 || strcmp( typedText, "/YESBB" ) == 0 ) {
+                    sendToServerSocket((char*)"SAY 0 0 YES BB#");
+                    mSayField.setText( "" );
                     mSayField.unfocus();
                     }
                 else {
@@ -28321,6 +28836,7 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
             mEKeyDown = false;
             mZKeyDown = false;
             mXKeyDown = false;
+            mGraveKeyDown = false;
             }
         else {
             char *curText = mSayField.getText();
@@ -28425,6 +28941,10 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
     bool commandKey = isCommandKeyDown();
     bool shiftKey = isShiftKeyDown();
 
+    dragging = false;
+    dragStart = {9999, 9999};
+    dragEnd = {9999, 9999};
+
     if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
         upKeyDown = false;
     }
@@ -28484,6 +29004,10 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
         case 'f':
         case 'F':
             if (SettingsManager::getIntSetting( "keyboardActions", 1 )) shouldMoveCamera = true;
+            break;
+        case 96: { // grave
+            mGraveKeyDown = false;
+            }
             break;
         }
 
@@ -28624,10 +29148,12 @@ void LivingLifePage::changeFOV( float newScale ) {
 
     calcOffsetHUD();
 
+    float viewHeightFraction = viewHeight / viewWidth;
     visibleViewWidth = 1280 * newScale;
     viewHeight = 720 * newScale;
-    setLetterbox( 1280 * newScale, 720 * newScale );
-    setViewSize( 1280 * newScale );
+    viewWidth = viewHeight / viewHeightFraction;
+    setViewSize( viewWidth );
+    setLetterbox( visibleViewWidth, viewHeight );
     }
 
 void LivingLifePage::changeHUDFOV( float newScale ) {
@@ -28842,7 +29368,24 @@ void LivingLifePage::movementStep() {
     int dir = getMoveDirection();
     if (dir <= 0) return;
 
+    // saving the tile we intend to move for use below
+    int unsafeX = x;
+    int unsafeY = y;
+    setMoveDirection(unsafeX, unsafeY, dir);
+
     if (!findNextMove(x, y, dir)) return; // sets x and y
+
+    // if you try to move in a direction say N
+    // when the keyboard movement leads you in a different direction say SE or SW
+    // you can be stuck going back and forth between 2 tiles
+    // the conditions below try to capture and stop that
+    // and let the keyboard movement finishes first
+    if( 
+        dir % 2 == 0 && // if intended movement is cardinal
+        (unsafeX != x || unsafeY != y) && // keyboard movement disagrees with intended tile
+        magnetMoveCount > 0 && // this is after the first tile where the disagreement takes place
+        ourLiveObject->inMotion // we're moving
+    ) return;
 
     lastPosX = sX;
     lastPosY = sY;

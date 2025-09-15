@@ -97,15 +97,15 @@ EditorObjectPage::EditorObjectPage()
           mContainSizeField( smallFont, 
                              250,  -120, 4,
                              false,
-                             "Contain Size", "0123456789.", NULL ),
+                             "ContainSize", "0123456789.", NULL ),
           mSlotSizeField( smallFont, 
                           -625,  -200, 4,
                           false,
-                          "Slot Size", "0123456789.", NULL ),
+                          "SlotSize", "0123456789.", NULL ),
           mSlotTimeStretchField( smallFont, 
                                  -625,  -380, 4,
                                  false,
-                                 "Tm Strch", "0123456789.", NULL ),
+                                 "TmStrch", "0123456789.", NULL ),
           mSlotsBoxCheckbox( -625, -230, 2 ),
           mSlotsTableCheckbox( -625, -250, 2 ),
           mSlotsGroundCheckbox( -625, -270, 2 ),
@@ -116,15 +116,15 @@ EditorObjectPage::EditorObjectPage()
           mDeadlyDistanceField( smallFont, 
                                 150,  -220, 4,
                                 false,
-                                "Deadly Distance", "0123456789", NULL ),
+                                "DeadlyDistance", "0123456789", NULL ),
           mUseDistanceField( smallFont, 
                              150,  -190, 4,
                              false,
-                             "Use Dist", "0123456789", NULL ),
+                             "UseDist", "0123456789", NULL ),
           mMinPickupAgeField( smallFont, 
                               300,  -220, 4,
                               false,
-                              "Pickup Age", "0123456789,", NULL ),
+                              "PickupAge", "0123456789,", NULL ),
           mRaceField( smallFont, 
                       150, -120, 2,
                       true,
@@ -172,7 +172,7 @@ EditorObjectPage::EditorObjectPage()
           mHomeMarkerCheckbox( 635, -290, 2 ),
           mTapoutTriggerCheckbox( 635, -310, 2 ),
           mTapoutTriggerField( smallFont, 602, -334, 8, false, "",
-                       "0123456789,", NULL ),
+                       "-0123456789,", NULL ),
           mFloorCheckbox( 635, -210, 2 ),
           mPartialFloorCheckbox( 635, -230, 2 ),
           mHeldInHandCheckbox( 290, 36, 2 ),
@@ -199,7 +199,7 @@ EditorObjectPage::EditorObjectPage()
           mNumUsesField( smallFont, 
                          258,  110, 2,
                          false,
-                         "# Use", "0123456789", NULL ),
+                         "#Use", "0123456789", NULL ),
           mUseChanceField( smallFont, 
                            300,  110, 4,
                            false,
@@ -3139,6 +3139,7 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             mCurrentObject.id = objectID;
                 
             mDescriptionField.setText( pickedRecord->description );
+            mDescriptionField.cursorReset();
 
             mMapChanceField.setFloat( pickedRecord->mapChance, 4 );
             
@@ -3467,8 +3468,10 @@ void EditorObjectPage::actionPerformed( GUIComponent *inTarget ) {
             if( mTapoutTriggerCheckbox.getToggled() ) {
                 mTapoutTriggerField.setVisible( true );
                 char *tapoutTriggerParametersText = getTapoutTriggerString( pickedRecord );
-                mTapoutTriggerField.setText( tapoutTriggerParametersText );
-                delete [] tapoutTriggerParametersText;
+                if( tapoutTriggerParametersText != NULL ) {
+                    mTapoutTriggerField.setText( tapoutTriggerParametersText );
+                    delete [] tapoutTriggerParametersText;
+                    }
                 }
             else {
                 mTapoutTriggerField.setVisible( false );
@@ -4807,12 +4810,12 @@ void EditorObjectPage::draw( doublePair inViewCenter,
     if( mNoFlipCheckbox.isVisible() ) {
         pos = mNoFlipCheckbox.getPosition();
         pos.x -= checkboxSep;
-        smallFont->drawString( "No Flip", pos, alignRight );
+        smallFont->drawString( "NoFlip", pos, alignRight );
         }
     if( mSideAccessCheckbox.isVisible() ) {
         pos = mSideAccessCheckbox.getPosition();
         pos.x -= checkboxSep;
-        smallFont->drawString( "Side Access", pos, alignRight );
+        smallFont->drawString( "SideAccess", pos, alignRight );
         }
 
     
@@ -4897,7 +4900,7 @@ void EditorObjectPage::draw( doublePair inViewCenter,
     if( mFloorHuggingCheckbox.isVisible() ) {
         pos = mFloorHuggingCheckbox.getPosition();
         pos.x -= checkboxSep;
-        smallFont->drawString( "Hug Floor", pos, alignRight );
+        smallFont->drawString( "HugFloor", pos, alignRight );
         }
         
     if( mWallLayerCheckbox.isVisible() ) {

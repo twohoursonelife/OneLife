@@ -61,6 +61,7 @@
 #include "arcReport.h"
 #include "curseDB.h"
 #include "cravings.h"
+#include "ipBanList.h"
 
 
 #include "minorGems/util/random/JenkinsRandomSource.h"
@@ -149,6 +150,8 @@ static double newPlayerFoodBonusHalfLifeSeconds = 36000;
 
 
 
+static double indoorFoodDecrementSecondsBonus = 20.0;
+
 static int babyBirthFoodDecrement = 10;
 
 // bonus applied to all foods
@@ -159,6 +162,8 @@ static int eatBonus = 0;
 // static double eatBonusHalfLife = 50;
 
 static int canYumChainBreak = 0;
+// -1 for no cap
+static int yumBonusCap = -1;
 
 static double minAgeForCravings = 10;
 
@@ -194,6 +199,7 @@ static int familySpan = 2;
 // phrases that trigger baby and family naming
 static SimpleVector<char*> nameGivingPhrases;
 static SimpleVector<char*> familyNameGivingPhrases;
+static SimpleVector<char*> eveNameGivingPhrases;
 static SimpleVector<char*> cursingPhrases;
 
 char *curseYouPhrase = NULL;
@@ -537,6 +543,9 @@ typedef struct FreshConnection {
         // in a timely manner
         double connectionStartTimeSeconds;
 
+        char *ipAddress;
+
+
         char *email;
         uint32_t hashedSpawnSeed;
         char *famTarget = NULL;
@@ -678,9 +687,17 @@ typedef struct LiveObject {
         int lastSentMapX;
         int lastSentMapY;
         
+        // path dest for the last full path that we checked completely
+        // for getting too close to player's known map chunk
+        GridPos mapChunkPathCheckedDest;
+        
+
         double moveTotalSeconds;
         double moveStartTime;
         
+        double pathDist;
+        
+
         int facingOverride;
         int actionAttempt;
         GridPos actionTarget;
@@ -841,6 +858,21 @@ typedef struct LiveObject {
         // true if heat map features player surrounded by walls
         char isIndoors;
         
+        double foodDrainTime;
+        double indoorBonusTime;
+        double indoorBonusFraction;
+        
+        // if isIndoors is false, when were they last indoors?
+        // this allows the effects of isIndoors to fade gradually over time
+        // and even-out briefly opened doors a bit more
+        double wasIndoorsLastAtTimestamp;
+        
+        // note that after isIndoors becomes false, indoorBonusFraction 
+        // stays set at last fraction when they were indoors
+        // so as time passes (away from the wasIndoorsLastAtTimestamp),
+        // we remember the last effect that they had when they were indoors
+        // and fade that.
+
 
 
         int foodStore;
@@ -924,6 +956,8 @@ typedef struct LiveObject {
         GridPos lastMonumentPos;
         int lastMonumentID;
         char monumentPosSent;
+        
+        char monumentPosInherited;
         
 
         char holdingFlightObject;
@@ -1578,13 +1612,15 @@ void transferHeldContainedToMap( LiveObject *inPlayer, int inX, int inY ) {
 
 
 
+
+// diags are square root of 2 in length
+static double diagLength = 1.41421356237;
+    
+
+
 // diagonal steps are longer
 static double measurePathLength( int inXS, int inYS, 
                                  GridPos *inPathPos, int inPathLength ) {
-    
-    // diags are square root of 2 in length
-    double diagLength = 1.41421356237;
-    
 
     double totalLength = 0;
     
@@ -1717,6 +1753,10 @@ static void deleteMembers( FreshConnection *inConnection ) {
         delete inConnection->ticketServerRequest;
         }
     
+    if( inConnection->ipAddress != NULL ) {
+        delete [] inConnection->ipAddress;
+        }
+
     if( inConnection->email != NULL ) {
         delete [] inConnection->email;
         }
@@ -1731,8 +1771,6 @@ static void deleteMembers( FreshConnection *inConnection ) {
 static SimpleVector<char *> curseWords;
 
 static char *curseSecret = NULL;
-
-static char *playerListSecret = NULL;
 
 void quitCleanup() {
     AppLog::info( "Cleaning up on quit..." );
@@ -1878,6 +1916,9 @@ void quitCleanup() {
     freeFamilySkipList();
 
     freeTriggers();
+    
+    freeIPBanList();
+
 
     freeMap();
 
@@ -1907,6 +1948,7 @@ void quitCleanup() {
 
     nameGivingPhrases.deallocateStringElements();
     familyNameGivingPhrases.deallocateStringElements();
+    eveNameGivingPhrases.deallocateStringElements();
     cursingPhrases.deallocateStringElements();
     
     forgivingPhrases.deallocateStringElements();
@@ -2030,7 +2072,7 @@ void intHandler( int inUnused ) {
     }
 
 
-#ifdef WIN_32
+#ifdef WIN32
 #include <windows.h>
 BOOL WINAPI ctrlHandler( DWORD dwCtrlType ) {
     if( CTRL_C_EVENT == dwCtrlType ) {
@@ -2110,7 +2152,14 @@ char readSocketFull( Socket *inSock, SimpleVector<char> *inBuffer ) {
 
 
 // NULL if there's no full message available
-char *getNextClientMessage( SimpleVector<char> *inBuffer ) {
+// if inLoginMessageOnly true, then we look for messages that start with
+// LOGIN or RLOGIN, and count sufficiently long messages that don't
+// start with either string as NONSENSE (this allows us to instantly reject 
+// web requests and other non-OHOL messages that don't end with # and don't
+// exceed our 200 char limit)
+char *getNextClientMessage( SimpleVector<char> *inBuffer,
+                            char inLoginMessageOnly = false ) {
+
     // find first terminal character #
 
     int index = inBuffer->getElementIndex( '#' );
@@ -2128,6 +2177,25 @@ char *getNextClientMessage( SimpleVector<char> *inBuffer ) {
             
             return stringDuplicate( "NONSENSE 0 0" );
             }
+        else if( inLoginMessageOnly && inBuffer->size() >= 6 ) {
+            char *buffString = inBuffer->getElementString();
+            
+            if( strstr( buffString, "LOGIN" ) != buffString &&
+                strstr( buffString, "RLOGIN" ) != buffString ) {
+                delete [] buffString;
+                
+                AppLog::info( 
+                    "More than 6 characters in client receive buffer "
+                    "with no LOGIN or RLOGIN present, when inLoginMessageOnly "
+                    "set, generating NONSENSE message." );
+                
+                return stringDuplicate( "NONSENSE 0 0" );
+                }
+            
+            delete [] buffString;
+            }
+        
+
 
         return NULL;
         }
@@ -2193,6 +2261,7 @@ typedef enum messageType {
     VOGT,
     VOGX,
     PHOTO,
+    PHOID,
     FLIP,
     UNKNOWN
     } messageType;
@@ -2218,6 +2287,10 @@ typedef struct ClientMessage {
         
         // null if type not BUG
         char *bugText;
+        
+        // null if type not PHOID
+        char *photoIDString;
+        
 
         // for MOVE messages
         int sequenceNumber;
@@ -2251,6 +2324,7 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
     m.extraPos = NULL;
     m.saidText = NULL;
     m.bugText = NULL;
+    m.photoIDString = NULL;
     m.sequenceNumber = -1;
     
     // don't require # terminator here
@@ -2613,6 +2687,16 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
             m.id = 0;
             }
         }
+    else if( strcmp( nameBuffer, "PHOID" ) == 0 ) {
+        m.type = PHOID;
+        
+        m.photoIDString = new char[41];
+        m.photoIDString[0] = '\0';
+        
+        numRead = sscanf( inMessage, 
+                          "%99s %d %d %40s", 
+                          nameBuffer, &( m.x ), &( m.y ), m.photoIDString );
+        }
     else if( strcmp( nameBuffer, "FLIP" ) == 0 ) {
         m.type = FLIP;
         }
@@ -2637,11 +2721,15 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
 
 
 
-// compute closest starting position part way along
-// path
-// (-1 if closest spot is starting spot not included in path steps)
-int computePartialMovePathStep( LiveObject *inPlayer ) {
+// computes a fractional index along path
+// 1.25 means 1/4 way between index 1 and 2 on path
+// thus, this can be as low as -1 (for starting position)
+double computePartialMovePathStepPrecise( LiveObject *inPlayer ) {
     
+    if( inPlayer->pathLength == 0 || inPlayer->pathToDest == NULL ) {
+        return -1;
+        }
+
     double fractionDone = 
         ( Time::getCurrentTime() - 
           inPlayer->moveStartTime )
@@ -2651,18 +2739,124 @@ int computePartialMovePathStep( LiveObject *inPlayer ) {
         fractionDone = 1;
         }
     
-    int c = 
-        lrint( ( inPlayer->pathLength ) *
-               fractionDone );
-    return c - 1;
+    if( fractionDone < 0 ) {
+        fractionDone = 0;
+        }
+
+    if( fractionDone == 1 ) {
+        // at last spot in path, no partial measurment necessary
+        return inPlayer->pathLength - 1;
+        }
+    
+    if( fractionDone == 0 ) {
+        // at start location, before first spot in path
+        return -1;
+        }
+
+    double distDone = fractionDone * inPlayer->pathDist;
+
+    
+    // walk through path steps until we see dist done
+    double totalLength = 0;
+    
+    GridPos lastPos = { inPlayer->xs, inPlayer->ys };
+    
+    double lastPosDist = 0;
+
+    for( int i=0; i<inPlayer->pathLength; i++ ) {
+
+        GridPos thisPos = inPlayer->pathToDest[i];
+        
+        double stepLen;
+        
+
+        if( thisPos.x != lastPos.x &&
+            thisPos.y != lastPos.y ) {
+            stepLen = diagLength;
+            }
+        else {
+            // not diag
+            stepLen = 1;
+            }
+
+        totalLength += stepLen;
+
+        if( totalLength > distDone ) {
+            // add in extra
+            return ( i - 1 ) + (distDone - lastPosDist) / stepLen;
+            }
+
+        lastPos = thisPos;
+        lastPosDist += stepLen;
+        }
+    
+    return inPlayer->pathLength - 1;
     }
 
 
 
-GridPos computePartialMoveSpot( LiveObject *inPlayer ) {
 
-    int c = computePartialMovePathStep( inPlayer );
+int computePartialMovePathStep( LiveObject *inPlayer ) {
+    return lrint( computePartialMovePathStepPrecise( inPlayer ) );
+    }
 
+
+
+doublePair computePartialMoveSpotPrecise( LiveObject *inPlayer ) {
+
+    double c = computePartialMovePathStepPrecise( inPlayer );
+    
+    if( c == -1 ) {
+        doublePair result = { (double)inPlayer->xs, 
+                              (double)inPlayer->ys };
+        return result;
+        }
+
+    
+    int aInd = floor( c );
+    int bInd = ceil( c );
+    
+    
+    GridPos aPos;
+    
+    if( aInd >= 0 ) {
+        aPos = inPlayer->pathToDest[ aInd ];
+        }
+    else {
+        aPos.x = inPlayer->xs;
+        aPos.y = inPlayer->ys;
+        }
+    
+    double bMix = c - aInd;
+    
+    doublePair result = { (double)aPos.x, (double)aPos.y };
+    
+    if( bMix > 0 ) {
+        GridPos bPos = inPlayer->pathToDest[ bInd ];
+        
+        double aMix = 1.0 - bMix;
+        
+        result.x *= aMix;
+        result.y *= aMix;
+        
+        result.x += bMix * bPos.x;
+        result.y += bMix * bPos.y;
+        }
+    
+    return result;
+    }
+
+
+
+
+// if inOverrideC > -2, then it is used instead of current partial move step
+GridPos computePartialMoveSpot( LiveObject *inPlayer, int inOverrideC = -2 ) {
+
+    int c = inOverrideC;
+    if( c < -1 ) {
+        c = computePartialMovePathStep( inPlayer );
+        }
+    
     if( c >= 0 ) {
         
         GridPos cPos = inPlayer->pathToDest[c];
@@ -2725,6 +2919,7 @@ void forcePlayerAge( const char *inEmail, double inAge ) {
 
 
 
+double computeAge( LiveObject *inPlayer );
 
 
 double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
@@ -2775,6 +2970,36 @@ double computeFoodDecrementTimeSeconds( LiveObject *inPlayer ) {
         // still obey the min
         value = std::max(value, minFoodDecrementSeconds);
         }
+
+    inPlayer->indoorBonusTime = 0;
+    
+    if( inPlayer->indoorBonusFraction > 0 &&
+        computeAge( inPlayer ) > defaultActionAge ) {
+        
+        double fadeFactor = 1.0;
+        
+        double maxFadeSeconds = 10;
+        
+        if( ! inPlayer->isIndoors ) {
+            double deltaTime = 
+                Time::getCurrentTime() - inPlayer->wasIndoorsLastAtTimestamp;
+            
+            // goes from 1 to 0 linearly over maxFadeSeconds
+            fadeFactor = 1 - deltaTime / maxFadeSeconds;
+            }
+        
+
+        if( fadeFactor > 0 ) {
+            // non-babies get a bonus for being indoors
+            inPlayer->indoorBonusTime = 
+                fadeFactor * indoorFoodDecrementSecondsBonus *
+                inPlayer->indoorBonusFraction;
+            
+            value += inPlayer->indoorBonusTime;
+            }
+        }
+    
+    inPlayer->foodDrainTime = value;
 
     return value;
     }
@@ -3763,6 +3988,12 @@ static void recomputeHeatMap( LiveObject *inPlayer ) {
         rBoundaryAverage = rBoundarySum / rBoundarySize;
         }
 
+    if( inPlayer->isIndoors ) {
+        // the more insulating the boundary, the bigger the bonus
+        inPlayer->indoorBonusFraction = rBoundaryAverage;
+        
+        inPlayer->wasIndoorsLastAtTimestamp = Time::getCurrentTime();
+        }
     
     
 
@@ -4707,6 +4938,59 @@ static void setFreshEtaDecayForHeld( LiveObject *inPlayer ) {
 
 
 
+
+static void truncateMove( LiveObject *otherPlayer, int blockedStep ) {
+    
+    int c = computePartialMovePathStep( otherPlayer );
+    
+    otherPlayer->pathLength
+        = blockedStep;
+    otherPlayer->pathTruncated
+        = true;
+    
+    // update timing
+    double dist = 
+        measurePathLength( otherPlayer->xs,
+                           otherPlayer->ys,
+                           otherPlayer->pathToDest,
+                           otherPlayer->pathLength );    
+    
+    double distAlreadyDone =
+        measurePathLength( otherPlayer->xs,
+                           otherPlayer->ys,
+                           otherPlayer->pathToDest,
+                           c );
+    
+    double moveSpeed = computeMoveSpeed( otherPlayer ) *
+        getPathSpeedModifier( otherPlayer->pathToDest,
+                              otherPlayer->pathLength );
+    
+    otherPlayer->moveTotalSeconds 
+        = 
+        dist / 
+        moveSpeed;
+    
+    double secondsAlreadyDone = 
+        distAlreadyDone / 
+        moveSpeed;
+    
+    otherPlayer->moveStartTime = 
+        Time::getCurrentTime() - 
+        secondsAlreadyDone;
+    
+    otherPlayer->newMove = true;
+    
+    otherPlayer->xd 
+        = otherPlayer->pathToDest[
+            blockedStep - 1].x;
+    otherPlayer->yd 
+        = otherPlayer->pathToDest[
+            blockedStep - 1].y;
+    }
+
+                        
+
+
 void handleMapChangeToPaths( 
     int inX, int inY, ObjectRecord *inNewObject,
     SimpleVector<int> *inPlayerIndicesToSendUpdatesAbout ) {
@@ -4772,51 +5056,8 @@ void handleMapChangeToPaths(
 
                     if( blocked &&
                         blockedStep > 0 ) {
-                                                
-                        otherPlayer->pathLength
-                            = blockedStep;
-                        otherPlayer->pathTruncated
-                            = true;
-
-                        // update timing
-                        double dist = 
-                            measurePathLength( otherPlayer->xs,
-                                               otherPlayer->ys,
-                                               otherPlayer->pathToDest,
-                                               otherPlayer->pathLength );    
-                                                
-                        double distAlreadyDone =
-                            measurePathLength( otherPlayer->xs,
-                                               otherPlayer->ys,
-                                               otherPlayer->pathToDest,
-                                               c );
-                            
-                        double moveSpeed = computeMoveSpeed( otherPlayer ) *
-                            getPathSpeedModifier( otherPlayer->pathToDest,
-                                                  otherPlayer->pathLength );
-
-                        otherPlayer->moveTotalSeconds 
-                            = 
-                            dist / 
-                            moveSpeed;
-                            
-                        double secondsAlreadyDone = 
-                            distAlreadyDone / 
-                            moveSpeed;
-                                
-                        otherPlayer->moveStartTime = 
-                            Time::getCurrentTime() - 
-                            secondsAlreadyDone;
-                            
-                        otherPlayer->newMove = true;
-                                                
-                        otherPlayer->xd 
-                            = otherPlayer->pathToDest[
-                                blockedStep - 1].x;
-                        otherPlayer->yd 
-                            = otherPlayer->pathToDest[
-                                blockedStep - 1].y;
-                                                
+                        
+                        truncateMove( otherPlayer, blockedStep );
                         }
                     else if( blocked ) {
                         // cutting off path
@@ -5499,7 +5740,13 @@ static void forceObjectToRead( LiveObject *inPlayer,
         
         if( !passToRead )
         if( p.x == inReadPos.x && p.y == inReadPos.y && Time::getCurrentTime() <= eta ){
-            return;
+
+            // allow clickToRead location speech for now
+            // clickToRead container feature needs this to work
+            // you could be reading different written objects at the same pos
+            // because they're sitting in a container
+
+            // return;
         }
         
         if( passToRead )
@@ -6143,7 +6390,21 @@ static char isYummy( LiveObject *inPlayer, int inObjectID ) {
         return false;
         }
 
-    if( inObjectID == inPlayer->cravingFood.foodID &&
+
+    int origID = inObjectID;
+
+    if( o->yumParentID != -1 ) {
+        // set this whether valid or not
+        inObjectID = o->yumParentID;
+        
+        // NOTE:
+        // we're NOT replacing o with the yumParent object
+        // because o isn't used beyond this point
+        }   
+    
+    
+    // don't consider yumParent when testing for craving satisfaction
+    if( origID == inPlayer->cravingFood.foodID &&
         computeAge( inPlayer ) >= minAgeForCravings ) {
         return true;
         }
@@ -6172,6 +6433,17 @@ static char isReallyYummy( LiveObject *inPlayer, int inObjectID ) {
     if( o->foodValue == 0 && ! eatEverythingMode ) {
         return false;
         }
+
+
+    if( o->yumParentID != -1 ) {
+        // set this whether valid or not
+        inObjectID = o->yumParentID;
+        
+        // NOTE:
+        // we're NOT replacing o with the yumParent object
+        // because o isn't used beyond this point
+        }   
+
 
     for( int i=0; i<inPlayer->yummyFoodChain.size(); i++ ) {
         if( inObjectID == inPlayer->yummyFoodChain.getElementDirect(i) ) {
@@ -6218,6 +6490,15 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         inPlayer->yummyFoodChain.size() == 0 ) {
         
         int eatenID = inFoodEatenID;
+
+        ObjectRecord *eatenO = getObject( inFoodEatenID );
+        
+        if( eatenO->yumParentID != -1 ) {
+            // this may or may not be a valid object id
+            // doesn't matter, because it's never used as an object ID
+            // just as a unique food ID in the yummyFoodChain list
+            eatenID = eatenO->yumParentID;
+            }
         
         if( isReallyYummy( inPlayer, eatenID ) ) {
             inPlayer->yummyFoodChain.push_back( eatenID );
@@ -6230,7 +6511,8 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
         // easy food first in an advanced town
         logFoodDepth( inPlayer->lineageEveID, eatenID );
         
-        if( eatenID == inPlayer->cravingFood.foodID &&
+        // don't consider yumParent when testing for craving satisfaction
+        if( inFoodEatenID == inPlayer->cravingFood.foodID &&
             computeAge( inPlayer ) >= minAgeForCravings ) {
             
             for( int i=0; i< inPlayer->cravingFood.bonus; i++ ) {
@@ -6274,6 +6556,11 @@ static void updateYum( LiveObject *inPlayer, int inFoodEatenID,
     if( currentBonus < 0 ) {
         currentBonus = 0;
         }    
+    
+    if( yumBonusCap != -1 &&
+        currentBonus > yumBonusCap ) {
+        currentBonus = yumBonusCap;
+        }
 
     if( wasYummy ) {
         // only get bonus if actually was yummy (whether fed self or not)
@@ -7157,6 +7444,9 @@ int processLoggedInPlayer( char inAllowReconnect,
     babyBirthFoodDecrement = 
         SettingsManager::getIntSetting( "babyBirthFoodDecrement", 10 );
 
+    indoorFoodDecrementSecondsBonus = SettingsManager::getFloatSetting( 
+        "indoorFoodDecrementSecondsBonus", 20 );
+
 
     eatBonus = 
         SettingsManager::getIntSetting( "eatBonus", 0 );
@@ -7168,6 +7458,8 @@ int processLoggedInPlayer( char inAllowReconnect,
         SettingsManager::getIntSetting( "minActivePlayersForLanguages", 15 );
 
     canYumChainBreak = SettingsManager::getIntSetting( "canYumChainBreak", 0 );
+    
+    yumBonusCap = SettingsManager::getIntSetting( "yumBonusCap", -1 );
     
 
     
@@ -7387,10 +7679,10 @@ int processLoggedInPlayer( char inAllowReconnect,
                     }
                 
             
-                if( ( inCurseStatus.curseLevel <= 0 && 
+                if( ( newObject.curseStatus.curseLevel <= 0 && 
                       player->curseStatus.curseLevel <= 0 ) 
                     || 
-                    ( inCurseStatus.curseLevel > 0 && 
+                    ( newObject.curseStatus.curseLevel > 0 && 
                       player->curseStatus.curseLevel > 0 ) ) {
                     // cursed babies only born to cursed mothers
                     // non-cursed babies never born to cursed mothers
@@ -7557,7 +7849,12 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.lastHeatUpdate = currentTime;
     newObject.isIndoors = false;
     
+    newObject.foodDrainTime = 0;
+    newObject.indoorBonusTime = 0;
+    newObject.indoorBonusFraction = 0;
+    
 
+    newObject.wasIndoorsLastAtTimestamp = 0;
     
     
                 
@@ -7585,6 +7882,11 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.facingLeft = 0;
     newObject.lastFlipTime = currentTime;
     
+
+    newObject.mapChunkPathCheckedDest.x = 0;
+    newObject.mapChunkPathCheckedDest.y = 0;
+    
+
     newObject.lastRegionLookTime = 0;
     newObject.playerCrossingCheckTime = 0;
     
@@ -7910,7 +8212,7 @@ int processLoggedInPlayer( char inAllowReconnect,
         // Eve's curse status
         char seekingCursed = false;
         
-        if( inCurseStatus.curseLevel > 0 ) {
+        if( newObject.curseStatus.curseLevel > 0 ) {
             seekingCursed = true;
             }
         
@@ -7943,8 +8245,8 @@ int processLoggedInPlayer( char inAllowReconnect,
                         newObject.id, &startX, &startY, 
                         &otherPeoplePos, allowEveRespawn );
 
-        if( inCurseStatus.curseLevel > 0 ) {
-            // keep cursed players away
+        if( newObject.curseStatus.curseLevel > 0 ) {
+            // keep cursed players away by sticking them in Donkeytown 
 
             // 20K away in X and 20K away in Y, pushing out away from 0
             // in both directions
@@ -8249,6 +8551,8 @@ int processLoggedInPlayer( char inAllowReconnect,
     newObject.monumentPosSet = false;
     newObject.monumentPosSent = true;
     
+    newObject.monumentPosInherited = false;
+
     newObject.holdingFlightObject = false;
 
     newObject.vogMode = false;
@@ -8292,12 +8596,17 @@ int processLoggedInPlayer( char inAllowReconnect,
         
 
         // inherit last heard monument, if any, from parent
-        if( babyInheritMonument ) {
+
+        // but only if parent heard the monument call directly, not if THEY
+        // also inherited it
+        // Don't keep propagating across multiple generations.
+        if( babyInheritMonument && ! parent->monumentPosInherited ) {
             newObject.monumentPosSet = parent->monumentPosSet;
             newObject.lastMonumentPos = parent->lastMonumentPos;
             newObject.lastMonumentID = parent->lastMonumentID;
             if( newObject.monumentPosSet ) {
                 newObject.monumentPosSent = false;
+                newObject.monumentPosInherited = true;
                 }
             }
         
@@ -8633,6 +8942,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                     delete [] inConnection.twinCode;
                     inConnection.twinCode = NULL;
                     }
+                if( inConnection.ipAddress != NULL ) {
+                    delete [] inConnection.ipAddress;
+                    inConnection.twinCode = NULL;
+                    }
                 nextLogInTwin = false;
                 return;
                 }
@@ -8699,6 +9012,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         delete [] inConnection.twinCode;
                         inConnection.twinCode = NULL;
                         }
+                    if( inConnection.ipAddress != NULL ) {
+                        delete [] inConnection.ipAddress;
+                        inConnection.ipAddress = NULL;
+                        }
                     nextLogInTwin = false;
                     return;
                     }
@@ -8715,6 +9032,10 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                         if( nextConnectionToReject->twinCode != NULL ) {
                             delete [] nextConnectionToReject->twinCode;
                             nextConnectionToReject->twinCode = NULL;
+                            }
+                        if( nextConnectionToReject->ipAddress != NULL ) {
+                            delete [] nextConnectionToReject->ipAddress;
+                            nextConnectionToReject->ipAddress = NULL;
                             }
                         }
                     
@@ -8831,7 +9152,14 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                 strcmp( nextConnection->twinCode, twinCode ) == 0 ) {
                 
                 delete [] nextConnection->twinCode;
-                waitingForTwinConnections.deleteElement( i );
+                
+                if( nextConnection->ipAddress != NULL ) {
+                    delete [] nextConnection->ipAddress;
+                    nextConnection->ipAddress = NULL;
+                    }
+
+                waitingForTwinConnections.deleteElement( i );                
+
                 i--;
                 }
             }
@@ -9151,6 +9479,10 @@ static void changeContained( int inX, int inY, int inSlotNumber,
 // check whether container has slots, containability, size and tags
 // whether container has empty slot is checked elsewhere
 char containmentPermitted( int inContainerID, int inContainedID ) {
+
+    // separate object ID from meta ID, in case the objects contain meta data
+    inContainerID = extractObjectID(inContainerID);
+    inContainedID = extractObjectID(inContainedID);
     
     // Use the container's and object's dummy parents to judge
     // So use objects also inherit the cont tag
@@ -9551,6 +9883,29 @@ char removeFromContainerToHold( LiveObject *inPlayer,
         if( target != 0 ) {
                             
             if( target > 0 && getObject( target )->slotsLocked ) {
+
+                if( inSlotNumber >= 0 && // a slot number is specified
+                    getObject( target )->clickToRead &&
+                    strstr( getObject( target )->description, "+useOnContained" ) != NULL
+                ) {
+                    // clickToRead container
+                    // to read written objects contained
+
+                    // target container needs to be:
+                    // 1) clickToRead - not technically required but it makes more sense
+                    // 2) useOnContained - required for USE, when you're holding something;
+                    //                     otherwise client won't send out a slot number
+                    // 3) slotsLocked - required for REMV, when your hands are empty;
+                    //                  otherwise you'd remove the object to hold
+
+                    int contID = getContained( inContX, inContY, inSlotNumber );
+
+                    // we don't need to check if contID contains meta data
+                    // the function will do the checking
+                    forceObjectToRead( inPlayer, contID, {inContX, inContY}, false );
+                    }
+                
+
                 return false;
                 }
 
@@ -10577,6 +10932,10 @@ char *isBabyNamingSay( char *inSaidString ) {
 
 char *isFamilyNamingSay( char *inSaidString ) {
     return isNamingSay( inSaidString, &familyNameGivingPhrases );
+    }
+
+char *isEveNamingSay( char *inSaidString ) {
+    return isNamingSay( inSaidString, &eveNameGivingPhrases );
     }
 
 char *isCurseNamingSay( char *inSaidString ) {
@@ -11766,6 +12125,16 @@ static void setPerpetratorHoldingAfterKill( LiveObject *nextPlayer,
 
 
 
+static void printPath( LiveObject *inPlayer ) {
+    printf( "Path: " );
+    for( int i=0; i<inPlayer->pathLength; i++ ) {
+        printf( "(%d,%d) ", inPlayer->pathToDest[i].x,
+                inPlayer->pathToDest[i].y );
+        }
+    printf( "\n" );
+    }
+
+
 
 void executeKillAction( int inKillerIndex,
                         int inTargetIndex,
@@ -12103,6 +12472,29 @@ void executeKillAction( int inKillerIndex,
                 setPerpetratorHoldingAfterKill( nextPlayer, 
                                                 woundHit, rHit, r );
 
+                // if they are moving, end their move NOW
+                // (this allows their move speed to get updated
+                //  with the murder weapon before their next move)
+                // Otherwise, if their move continues, they might walk
+                // at the wrong speed with the changed weapon
+                
+                if( nextPlayer->xd != nextPlayer->xs ||
+                    nextPlayer->yd != nextPlayer->ys ) {
+                    
+                    int truncationSpot = 
+                        computePartialMovePathStep( nextPlayer );
+                    
+                    if( truncationSpot < nextPlayer->pathLength - 2 ) {
+                        
+                        // truncate a step ahead, to reduce chance 
+                        // of client-side players needing to turn-around
+                        // to reach this truncation point
+
+                        truncateMove( nextPlayer, truncationSpot + 2 );
+                        }                    
+                    }
+                
+
                 timeSec_t oldEtaDecay = 
                     nextPlayer->holdingEtaDecay;
                                     
@@ -12176,6 +12568,48 @@ void executeKillAction( int inKillerIndex,
 
 
 
+static void nameEve( LiveObject *nextPlayer, char *name ) {
+    
+    const char *close = findCloseLastName( name );
+    nextPlayer->name = autoSprintf( "%s %s", eveName, close );
+    
+                                
+    nextPlayer->name = getUniqueCursableName( 
+        nextPlayer->name, 
+        &( nextPlayer->nameHasSuffix ),
+        true );
+                                
+    char firstName[99];
+    char lastName[99];
+    char suffix[99];
+    
+    if( nextPlayer->nameHasSuffix ) {
+        
+        sscanf( nextPlayer->name, 
+                "%s %s %s", 
+                firstName, lastName, suffix );
+        }
+    else {
+        sscanf( nextPlayer->name, 
+                "%s %s", 
+                firstName, lastName );
+        }
+    
+    nextPlayer->familyName = 
+        stringDuplicate( lastName );
+    
+    
+    if( ! nextPlayer->isTutorial ) {    
+        logName( nextPlayer->id,
+                 nextPlayer->email,
+                 nextPlayer->name,
+                 nextPlayer->lineageEveID );
+        }
+    }
+
+                                
+
+
 void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
                SimpleVector<int> *playerIndicesToSendNamesAbout ) {    
 
@@ -12184,9 +12618,17 @@ void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
     
     char *name = inName;
     
+
+    // NEW:  keep the baby's family name at all costs, even in case
+    // of adoption
+    // (if baby has no family name, then take mother's family name as last
+    // name)
     
     const char *lastName = "";
-    if( nextPlayer->name != NULL ) {
+    
+
+    // note that we skip this case now, in favor of keeping baby's family name
+    if( false && nextPlayer->name != NULL ) {
         lastName = strstr( nextPlayer->name, 
                            " " );
                                         
@@ -12230,11 +12672,11 @@ void nameBaby( LiveObject *inNamer, LiveObject *inBaby, char *inName,
                 }
             }
         }
-    else if( nextPlayer->familyName != NULL ) {
-        lastName = nextPlayer->familyName;
-        }
     else if( babyO->familyName != NULL ) {
         lastName = babyO->familyName;
+        }
+    else if( nextPlayer->familyName != NULL ) {
+        lastName = nextPlayer->familyName;
         }
                                     
 
@@ -12539,6 +12981,64 @@ static char isAccessBlocked( LiveObject *inPlayer,
         }
             
     return wrongSide || ownershipBlocked || blockedByPassword || notStandingOnSameTile;
+    }
+
+
+
+void sendHungryWorkSpeech( LiveObject *inPlayer ) {
+    // tell player about it with private global message
+    // (instead of private speech as in OHOL because speech bubble is too intrusive)
+
+    double curTime = Time::getCurrentTime();
+    if( curTime - inPlayer->lastGlobalMessageTime > minGlobalMessageSpacingSeconds ) {
+        // don't even bother sending hungry work messages when the global messages start getting spammy
+        // e.g. when player spams hungryWork action without enough food
+        char *message = autoSprintf( "YOU NEED MORE FOOD PIPS TO COMPLETE THIS ACTION." );
+    
+        sendGlobalMessage( message, inPlayer );
+    
+        delete [] message;
+        }
+
+    }
+
+
+
+// cost set to 0 unless hungry work not blocked
+char isHungryWorkBlocked( LiveObject *inPlayer, 
+                          int inNewTarget, int *outCost ) {          
+    *outCost = 0;
+    
+    char *des =
+        getObject( inNewTarget )->description;
+                                    
+    char *desPos =
+        strstr( des, "+hungryWork" );
+    
+    if( desPos != NULL ) {
+                                        
+        int cost = 0;
+        
+        sscanf( desPos,
+                "+hungryWork%d", 
+                &cost );
+        
+        if( inPlayer->foodStore + 
+            inPlayer->yummyBonusStore < 
+            cost + 3 ) {
+            // block hungry work,
+            // not enough food to have a
+            // "safe" buffer after
+            return true;
+            }
+        
+        // can do work
+        *outCost = cost;
+        return false;
+        }
+
+    // not hungry work at all
+    return false;
     }
 
 
@@ -12854,6 +13354,9 @@ int main() {
     babyBirthFoodDecrement = 
         SettingsManager::getIntSetting( "babyBirthFoodDecrement", 10 );
 
+    indoorFoodDecrementSecondsBonus = SettingsManager::getFloatSetting( 
+        "indoorFoodDecrementSecondsBonus", 20 );
+
 
     eatBonus = 
         SettingsManager::getIntSetting( "eatBonus", 0 );
@@ -12892,10 +13395,30 @@ int main() {
     
     familySpan =
         SettingsManager::getIntSetting( "familySpan", 2 );
+
+    eveName = 
+        SettingsManager::getStringSetting( "eveName", "EVE" );
     
     
     readPhrases( "babyNamingPhrases", &nameGivingPhrases );
     readPhrases( "familyNamingPhrases", &familyNameGivingPhrases );
+
+    readPhrases( "babyNamingPhrases", &eveNameGivingPhrases );
+
+    // add YOU ARE EVE SMITH versions of these
+    // put them in front
+    SimpleVector<char*> oldPhrases( eveNameGivingPhrases.size() * 2 );
+    oldPhrases.push_back_other( &eveNameGivingPhrases );
+    eveNameGivingPhrases.deleteAll();
+    int numEvePhrases = oldPhrases.size();
+    for( int i=0; i<numEvePhrases; i++ ) {
+        char *phrase = oldPhrases.getElementDirect( i );
+        
+        char *newPhrase = autoSprintf( "%s %s", phrase, eveName );
+        eveNameGivingPhrases.push_back( newPhrase );
+        }
+    eveNameGivingPhrases.push_back_other( &oldPhrases );
+    
 
     readPhrases( "cursingPhrases", &cursingPhrases );
 
@@ -12979,7 +13502,7 @@ int main() {
     printf( "Curse word list has %d words\n", curseWords.size() );
     
 
-#ifdef WIN_32
+#ifdef WIN32
     printf( "\n\nPress CTRL-C to shut down server gracefully\n\n" );
 
     SetConsoleCtrlHandler( ctrlHandler, TRUE );
@@ -13008,6 +13531,7 @@ int main() {
     
     initCurseDB();
     
+    initIPBanList();
 
     char rebuilding;
 
@@ -13116,17 +13640,7 @@ int main() {
     
     int port = 
         SettingsManager::getIntSetting( "port", 5077 );
-    
-    char *toTrim = SettingsManager::getStringSetting("playerListSecret", "");
-    char *trimmed = trimWhitespace(toTrim);
-    delete [] toTrim;
-    if(strlen(trimmed) > 0) {
-        playerListSecret = trimmed;
-        }
-    else {
-        playerListSecret = NULL;
-        delete[] trimmed;
-        }
+
     SocketServer *server = new SocketServer(port, 256);
 
     sockPoll.addSocketServer( server );
@@ -13237,16 +13751,6 @@ int main() {
 
                 shutdownMode = 1;
                 forceShutdownMode = 1;
-                }
-            char *toTrim = SettingsManager::getStringSetting("playerListSecret", "");
-            char *trimmed = trimWhitespace(toTrim);
-            delete [] toTrim;
-            if(strlen(trimmed) > 0) {
-                playerListSecret = trimmed;
-                }
-            else {
-                playerListSecret = NULL;
-                delete[] trimmed;
                 }
             }
         
@@ -13625,18 +14129,46 @@ int main() {
 
             if( sock != NULL ) {
                 HostAddress *a = sock->getRemoteHostAddress();
+
+                if( a == NULL ) {
+                    // reject connection from unknown address
+                    delete sock;
+                    sock = NULL;
+                    }
+                else {
+                    if( isIPBanned( a->mAddressString ) ) {
+                        // reject connection from banned IP
+                        // don't even print a log message about this
+                        // save disk space when we are getting hammered by bots
+                        delete sock;
+                        sock = NULL;
+                        }
+                    delete a;
+                    }
+                }
+            
+
+            if( sock != NULL ) {
+                FreshConnection newConnection;
+
+                HostAddress *a = sock->getRemoteHostAddress();
                 
                 if( a == NULL ) {    
                     AppLog::info( "Got connection from unknown address" );
+                    
+                    newConnection.ipAddress = stringDuplicate( "" );
                     }
                 else {
                     AppLog::infoF( "Got connection from %s:%d",
                                   a->mAddressString, a->mPort );
+                    
+                    newConnection.ipAddress = 
+                        stringDuplicate( a->mAddressString );
+
                     delete a;
                     }
             
 
-                FreshConnection newConnection;
                 
                 newConnection.connectionStartTimeSeconds = 
                     Time::getCurrentTime();
@@ -13959,6 +14491,8 @@ int main() {
                             
                     bool removeConnectionFromList = true;
                     
+                    
+
                     if( nextConnection->twinCode != NULL
                         && 
                         nextConnection->twinCount > 0 ) {
@@ -13971,7 +14505,12 @@ int main() {
                             delete [] nextConnection->twinCode;
                             nextConnection->twinCode = NULL;
                             }
-                                
+
+                        if( nextConnection->ipAddress != NULL ) {
+                            delete [] nextConnection->ipAddress;
+                            nextConnection->ipAddress = NULL;
+                            }
+                        
                         int newID = processLoggedInPlayer( 
                             true,
                             nextConnection->sock,
@@ -14029,18 +14568,56 @@ int main() {
                 
                 if( ! nextConnection->shutdownMode ) {
                     message = 
-                        getNextClientMessage( nextConnection->sockBuffer );
+                        getNextClientMessage( nextConnection->sockBuffer,
+                                              // treat non-LOGIN and non-RLOGIN
+                                              // messages as NONSENSE
+                                              true );
                     }
                 else {
                     timeLimit = 5;
+
+                    
+                    // client shouldn't be sending anything after
+                    // they see shutdown message
+                    // If we do receive something, it's probably a non
+                    // client or a web bot, sending us junk
+                    // don't keep a connection open to them
+                    message = 
+                        getNextClientMessage( nextConnection->sockBuffer,
+                                              // treat non-LOGIN and non-RLOGIN
+                                              // messages as NONSENSE
+                                              true );
+                    if( message != NULL ) {
+                        delete [] message;
+                        message = NULL;
+                        
+                        AppLog::info( "Client incorrectly sent a message "
+                                      "after receiving SHUTDOWN or SERVER_FULL "
+                                      "message, "
+                                      "client rejected immediately." );
+                        nextConnection->error = true;
+                        nextConnection->errorCauseString =
+                            "Unexpected post-shutdown message";
+                        
+                        // force connection close right away
+                        // don't send REJECTED message and wait
+                        nextConnection->rejectedSendTime = 1;
+                        
+                        addBadConnectionForIP( nextConnection->ipAddress );
+                        }
                     }
                 
                 if( message != NULL ) {
+
                     char passedSecret = false;
                     if(!nextConnection->playerListSent) {
+
+                        char *playerListSecret = SettingsManager::getStringSetting("playerListSecret", "secret");
+
                         if( (playerListSecret == NULL) && 0 == strcmp( message, "PLAYER_LIST" ) ) {
                             passedSecret = true;
                             } 
+
                         else if( playerListSecret != NULL ) {
                             char *requestWithSecret = autoSprintf("PLAYER_LIST %s", playerListSecret);
                             if(0 == constant_time_strcmp( message, requestWithSecret )) { // TODO: using plain password is not good, it would be better to expect the client to hash his password and we check it with by hashing our copy of the password. if the client can use a hashing library i will leave it to the reviewer to decide.
@@ -14048,9 +14625,11 @@ int main() {
                                 }
                             delete[] requestWithSecret;
                             }
+
+                        delete[] playerListSecret;
                         }
+                        
                     if(passedSecret || nextConnection->playerListSent) {
-                        // request for player list https://github.com/twohoursonelife/OneLife/issues/202
                         if( !nextConnection->playerListSent ) {
                             HostAddress *a = nextConnection->sock->getRemoteHostAddress();
                             char address[100];
@@ -14144,7 +14723,7 @@ int main() {
                             tokens->size() == 7 ) {
                             
                             nextConnection->email = 
-                                stringDuplicate( 
+                                stringToLowerCase( 
                                     tokens->getElementDirect( 1 ) );
 
 
@@ -14201,7 +14780,7 @@ int main() {
                                     std::string famTarget { emailAndFamTarget.substr( famTargetDelimPos + 1 ) };
 
                                     nextConnection->famTarget =
-                                        stringDuplicate( famTarget.c_str() );
+                                        stringToUpperCase( famTarget.c_str() );
 
                                     // Remove famTarget from email
                                     if( famTargetDelimPos == 0 ) {
@@ -14376,6 +14955,14 @@ int main() {
                                             delete [] nextConnection->twinCode;
                                             nextConnection->twinCode = NULL;
                                             }
+                                        
+                                        if( nextConnection->ipAddress
+                                            != NULL ) {
+                                            delete []
+                                                nextConnection->ipAddress;
+                                            nextConnection->ipAddress = NULL;
+                                            }
+                                        
                                         int newID = processLoggedInPlayer( 
                                             true,
                                             nextConnection->sock,
@@ -14410,6 +14997,11 @@ int main() {
                             nextConnection->error = true;
                             nextConnection->errorCauseString =
                                 "Bad login message";
+                            
+                            // close connection with REJECTED
+                            // message and grace period
+                            // they at least tried to send a LOGIN
+                            // message of some kind
                             }
 
 
@@ -14418,17 +15010,22 @@ int main() {
                         }
                     else {
                         AppLog::info( "Client's first message not LOGIN, "
-                                      "client rejected." );
+                                      "client rejected immediately." );
                         nextConnection->error = true;
                         nextConnection->errorCauseString =
                             "Unexpected first message";
+                        
+                        // force connection close right away
+                        // don't send REJECTED message and wait
+                        nextConnection->rejectedSendTime = 1;
+
+                        addBadConnectionForIP( nextConnection->ipAddress );
                         }
                     
                     delete [] message;
                     }
                 else if(nextConnection->playerListSent) {
-                    int timeToClose = playerListSecret != NULL ? 10 : 4; // give more time if it is private.
-                    if(currentTime - nextConnection->connectionStartTimeSeconds > timeToClose) {
+                    if(currentTime - nextConnection->connectionStartTimeSeconds > timeLimit) {
                         HostAddress *a = nextConnection->sock->getRemoteHostAddress();
                         char address[100];
                         if( a == NULL ) {    
@@ -14438,7 +15035,7 @@ int main() {
                             snprintf(address, 99, "%s:%d", a->mAddressString, a->mPort );
                             delete a;
                             }
-                        AppLog::infoF("Closing socket of %s for PLAYER_LIST request after %d seconds", address, timeToClose);
+                        AppLog::infoF("Closing socket of %s for PLAYER_LIST request after %d seconds", address, timeLimit);
                         deleteMembers( nextConnection );
                         newConnections.deleteElement(i);
                         i--;
@@ -14457,6 +15054,14 @@ int main() {
                     nextConnection->error = true;
                     nextConnection->errorCauseString =
                         "Login timeout";
+                    
+                    // note that this is a less noxious offense than sending
+                    // bad first messages
+                    // A slow client could do this innocently sometimes
+                    // but if they do it repeatedly, we ban them for a while.
+                    // Because a DDOS attack could just connect and sit there
+                    // silently, to fill up slots.
+                    addBadConnectionForIP( nextConnection->ipAddress );    
                     }
                 }
             }
@@ -14486,6 +15091,8 @@ int main() {
                     
                 nextConnection->errorCauseString =
                     "Socket read failed";
+                
+                addBadConnectionForIP( nextConnection->ipAddress );        
                 }
             }
             
@@ -15825,6 +16432,80 @@ int main() {
                                          strlen( message ) );
                     delete [] message;
                     }
+                else if( m.type == PHOID ) {
+                    if( strlen( m.photoIDString ) == 40 ) {
+                        
+                        int oldObjectID = getMapObject( m.x, m.y );
+                        
+                        ObjectRecord *oldO = getObject( oldObjectID );
+                        
+                        if( oldO->writable &&
+                            strstr( oldO->description, "+photo" ) ) {
+                            
+                            
+                            // camera-on-camera transition specifies
+                            // what should result if the photo succeeds.
+                            // (The player could never cause this transition
+                            //  manually, since the camera is permanent when
+                            //  it's in photo-taking mode)
+                            TransRecord *writingHappenTrans =
+                                getMetaTrans( oldObjectID, oldObjectID );
+                                
+                            if( writingHappenTrans != NULL &&
+                                writingHappenTrans->newTarget > 0 &&
+                                getObject( writingHappenTrans->newTarget )
+                                ->written &&
+                                strstr( 
+                                    getObject( writingHappenTrans->newTarget )
+                                    ->description,
+                                    "+negativePhotoUnfixed" ) ) {
+                                // bare hands transition going from
+                                // writable to written
+                                // use this to transform object
+                                // with photo data
+                                
+                                const char *name;
+                                
+                                if( nextPlayer->name == NULL ) {
+                                    name = "AN UNKNOWN PHOTOGRAPHER";
+                                    }
+                                else {
+                                    name = nextPlayer->name;
+                                    }
+                                
+
+                                char *textToAdd = autoSprintf( 
+                                    "TAKEN BY %s *photo %s",
+                                    name, m.photoIDString );
+                                
+                                
+                                unsigned char metaData[ MAP_METADATA_LENGTH ];
+
+                                int lenToAdd = strlen( textToAdd );
+                                
+                                // leave room for null char at end
+                                if( lenToAdd > MAP_METADATA_LENGTH - 1 ) {
+                                    lenToAdd = MAP_METADATA_LENGTH - 1;
+                                    }
+
+                                memset( metaData, 0, MAP_METADATA_LENGTH );
+                                // this will leave 0 null character at end
+                                // left over from memset of full length
+                                memcpy( metaData, textToAdd, lenToAdd );
+                                
+                                delete [] textToAdd;
+                                
+                                int newObjectID =
+                                    addMetadata( 
+                                        writingHappenTrans->newTarget,
+                                        metaData );
+                                
+                                setMapObject( m.x, m.y, newObjectID );
+                                }
+                            }
+                        }
+                    delete [] m.photoIDString;
+                    }
                 else if( m.type == FLIP ) {
                     
                     if( currentTime - nextPlayer->lastFlipTime > 1.75 ) {
@@ -15940,12 +16621,20 @@ int main() {
                         char interrupt = false;
                         char pathPrefixAdded = false;
                         
+
+                        // where exactly did we used to be standing?
+                        doublePair startPosPrecise =
+                            computePartialMoveSpotPrecise( nextPlayer );
+                                
+
                         // first, construct a path from any existing
                         // path PLUS path that player is suggesting
                         SimpleVector<GridPos> unfilteredPath;
 
-                        if( nextPlayer->xs != m.x ||
-                            nextPlayer->ys != m.y ) {
+                        if( nextPlayer->pathLength > 0 &&
+                            nextPlayer->pathToDest != NULL &&
+                            ( nextPlayer->xs != m.x ||
+                              nextPlayer->ys != m.y ) ) {
                             
                             // start pos of their submitted path
                             // donesn't match where we think they are
@@ -15963,6 +16652,7 @@ int main() {
 
                             // where we think they are along last move path
                             GridPos cPos;
+                            int c;
                             
                             if( nextPlayer->xs != nextPlayer->xd 
                                 ||
@@ -15970,12 +16660,16 @@ int main() {
                                 
                                 // a real interrupt to a move that is
                                 // still in-progress on server
-                                cPos = computePartialMoveSpot( nextPlayer );
+                                c = computePartialMovePathStep( nextPlayer );
+                                cPos = computePartialMoveSpot( nextPlayer, c );
                                 }
                             else {
                                 // we think their last path is done
                                 cPos.x = nextPlayer->xs;
                                 cPos.y = nextPlayer->ys;
+                                // we think they are on final destination
+                                // spot on last path
+                                c = nextPlayer->pathLength - 1;
                                 }
                             
                             /*
@@ -16055,9 +16749,7 @@ int main() {
                                 // (we may walk backward along the old
                                 //  path to do this)
                                 
-                                int c = computePartialMovePathStep( 
-                                    nextPlayer );
-                                    
+
                                 // -1 means starting, pre-path 
                                 // pos is closest
                                 // but okay to leave c at -1, because
@@ -16355,6 +17047,48 @@ int main() {
                                                        nextPlayer->pathToDest,
                                                        nextPlayer->pathLength );
  
+                                nextPlayer->pathDist = dist;
+
+                                
+                                // get precise about distance for move timing
+                                // we don't necessarily start right
+                                // at naiveStart, but often some distance
+                                // along (or further behind)
+                                GridPos naiveStart;
+                                
+                                if( startIndex > 0 ) {
+                                    naiveStart = 
+                                        nextPlayer->pathToDest[ startIndex -1 ];
+                                    }
+                                else {
+                                    naiveStart.x = nextPlayer->xs;
+                                    naiveStart.y = nextPlayer->ys;
+                                    }
+                                
+                                double naiveStartDist = 
+                                    distance( 
+                                        naiveStart,
+                                        nextPlayer->pathToDest[startIndex] );
+                                
+                                // subtract out this naive
+                                // first-step distance
+                                // before adding in the true distance
+                                dist -= naiveStartDist;
+                                
+                                doublePair newFirstSpot = 
+                                    { (double)
+                                      nextPlayer->pathToDest[startIndex].x,
+                                      (double)
+                                      nextPlayer->pathToDest[startIndex].y };
+                                
+                                        
+                                // now add in true distance to first spot
+                                dist +=
+                                    distance( startPosPrecise, newFirstSpot );
+  
+
+                                
+
                                 double distAlreadyDone =
                                     measurePathLength( nextPlayer->xs,
                                                        nextPlayer->ys,
@@ -16369,7 +17103,15 @@ int main() {
                                 
                                 nextPlayer->moveTotalSeconds = dist / 
                                     moveSpeed;
-                           
+                                
+                                if( nextPlayer->moveTotalSeconds <= 0.1 ) {
+                                    // never allow moveTotalSeconds to be
+                                    // 0, too small, or negative
+                                    // (we divide by it in certain 
+                                    // calculations)
+                                    nextPlayer->moveTotalSeconds = 0.1;
+                                    }
+                                
                                 double secondsAlreadyDone = distAlreadyDone / 
                                     moveSpeed;
                                 /*
@@ -16582,52 +17324,21 @@ int main() {
                             char *name = isFamilyNamingSay( m.saidText );
                             
                             if( name != NULL && strcmp( name, "" ) != 0 ) {
-                                const char *close = findCloseLastName( name );
-                                nextPlayer->name = autoSprintf( "%s %s",
-                                                                eveName, 
-                                                                close );
-
+                                nameEve( nextPlayer, name );
                                 
-                                nextPlayer->name = getUniqueCursableName( 
-                                    nextPlayer->name, 
-                                    &( nextPlayer->nameHasSuffix ),
-                                    true );
-                                
-                                char firstName[99];
-                                char lastName[99];
-                                char suffix[99];
-
-                                if( nextPlayer->nameHasSuffix ) {
-                                    
-                                    sscanf( nextPlayer->name, 
-                                            "%s %s %s", 
-                                            firstName, lastName, suffix );
+                                if ( nextPlayer->displayedName != NULL ) {
+                                    delete [] nextPlayer->displayedName;
+                                    nextPlayer->displayedName = NULL;
                                     }
-                                else {
-                                    sscanf( nextPlayer->name, 
-                                            "%s %s", 
-                                            firstName, lastName );
-                                    }
-                                
-                                nextPlayer->familyName = 
-                                        stringDuplicate( lastName );
-
-
-                                if( ! nextPlayer->isTutorial ) {    
-                                    logName( nextPlayer->id,
-                                             nextPlayer->email,
-                                             nextPlayer->name,
-                                             nextPlayer->lineageEveID );
-                                    }
-                                
-                                if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
                                 if ( nextPlayer->declaredInfertile ) {
+                                    if( nextPlayer->name != NULL )
                                     nextPlayer->displayedName = autoSprintf( "%s %s", nextPlayer->name, infertilitySuffix);
                                     } 
                                 else {
+                                    if( nextPlayer->name != NULL )
                                     nextPlayer->displayedName = stringDuplicate( nextPlayer->name );
                                     }
-                                
+
                                 playerIndicesToSendNamesAbout.push_back( i );
                                 }
                             }
@@ -16638,7 +17349,10 @@ int main() {
                             if( infertilityDeclaring != NULL && !nextPlayer->declaredInfertile ) {
                                 nextPlayer->declaredInfertile = true;
                                 
-                                if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
+                                if ( nextPlayer->displayedName != NULL ) {
+                                    delete [] nextPlayer->displayedName;
+                                    nextPlayer->displayedName = NULL;
+                                    }
                                 if (nextPlayer->name == NULL) {
                                     nextPlayer->displayedName = stringDuplicate( infertilitySuffix );
                                 } else {
@@ -16650,7 +17364,10 @@ int main() {
                             } else if( fertilityDeclaring != NULL && nextPlayer->declaredInfertile ) {
                                 nextPlayer->declaredInfertile = false;
                                 
-                                if ( nextPlayer->displayedName != NULL ) delete [] nextPlayer->displayedName;
+                                if ( nextPlayer->displayedName != NULL ) {
+                                    delete [] nextPlayer->displayedName;
+                                    nextPlayer->displayedName = NULL;
+                                    }
                                 if (nextPlayer->name == NULL) {
                                     nextPlayer->displayedName = stringDuplicate( fertilitySuffix );
                                 } else {
@@ -16712,11 +17429,16 @@ int main() {
                                     nameBaby( nextPlayer, babyO, name,
                                               &playerIndicesToSendNamesAbout );
                                     
-                                    if ( babyO->displayedName != NULL ) delete [] babyO->displayedName;
+                                    if ( babyO->displayedName != NULL ) {
+                                        delete [] babyO->displayedName;
+                                        babyO->displayedName = NULL;
+                                        }
                                     if ( babyO->declaredInfertile ) {
+                                        if( babyO->name != NULL )
                                         babyO->displayedName = autoSprintf( "%s %s", babyO->name, infertilitySuffix);
                                         } 
                                     else {
+                                        if( babyO->name != NULL )
                                         babyO->displayedName = stringDuplicate( babyO->name );
                                         }
                                     }
@@ -16736,15 +17458,39 @@ int main() {
                                                            babyAge, true );
 
                                 if( closestOther != NULL ) {
-                                    nameBaby( nextPlayer, closestOther,
-                                              name, 
-                                              &playerIndicesToSendNamesAbout );
                                     
-                                    if ( closestOther->displayedName != NULL ) delete [] closestOther->displayedName;
+                                    if( closestOther->isEve ) {
+                                        
+                                        name = isEveNamingSay( m.saidText );
+                                        
+                                        if( name != NULL && 
+                                            strcmp( name, "" ) != 0 ) {
+                                            
+                                            nameEve( closestOther, name );
+                                            playerIndicesToSendNamesAbout.
+                                                push_back( 
+                                                    getLiveObjectIndex( 
+                                                        closestOther->id ) );
+                                            }
+                                        }
+                                    else {
+                                        // non-Eve
+                                        nameBaby( 
+                                            nextPlayer, closestOther,
+                                            name, 
+                                            &playerIndicesToSendNamesAbout );
+                                        }
+                                        
+                                    if ( closestOther->displayedName != NULL ) {
+                                        delete [] closestOther->displayedName;
+                                        closestOther->displayedName = NULL;
+                                        }
                                     if ( closestOther->declaredInfertile ) {
+                                        if( closestOther->name != NULL )
                                         closestOther->displayedName = autoSprintf( "%s %s", closestOther->name, infertilitySuffix);
                                         } 
                                     else {
+                                        if( closestOther->name != NULL )
                                         closestOther->displayedName = stringDuplicate( closestOther->name );
                                         }
                                     }
@@ -17492,16 +18238,21 @@ int main() {
                                 if( r != NULL &&
                                     r->newTarget > 0 &&
                                     r->newTarget != target ) {
+
+                                    int floorID = getMapFloor( m.x, m.y );
                                     
                                     // target would change here
-                                    if( getMapFloor( m.x, m.y ) != 0 ) {
+                                    if( floorID != 0 ) {
                                         // floor present
                                         
                                         // make sure new target allowed 
                                         // to exist on floor
                                         if( strstr( getObject( r->newTarget )->
                                                     description, 
-                                                    "groundOnly" ) != NULL ) {
+                                                    "groundOnly" ) != NULL &&
+                                            strstr( getObject( floorID )->description, 
+                                                    "groundLikeFloor" ) == NULL
+                                                 ) {
                                             r = NULL;
                                             }
                                         }
@@ -17522,25 +18273,14 @@ int main() {
                                 
                                 if( r != NULL && 
                                     r->newTarget > 0 ) {
-                                    char *des =
-                                        getObject( r->newTarget )->description;
-                                    
-                                    char *desPos =
-                                        strstr( des, "+hungryWork" );
-                                    
-                                    if( desPos != NULL ) {
+
+                                    if( isHungryWorkBlocked( 
+                                            nextPlayer,
+                                            r->newTarget,
+                                            &hungryWorkCost ) ) {
+                                        r = NULL;
                                         
-                                    
-                                        sscanf( desPos,
-                                                "+hungryWork%d", 
-                                                &hungryWorkCost );
-                                        
-                                        if( nextPlayer->foodStore < 
-                                            hungryWorkCost ) {
-                                            // block transition,
-                                            // not enough food
-                                            r = NULL;
-                                            }
+                                        sendHungryWorkSpeech( nextPlayer );
                                         }
                                     }
 
@@ -17790,19 +18530,24 @@ int main() {
                                         }
                                     
                                     if( hungryWorkCost > 0 ) {
-                                        int oldStore = nextPlayer->foodStore;
+                                        if( nextPlayer->yummyBonusStore > 0 ) {
+                                            if( nextPlayer->yummyBonusStore
+                                                >= hungryWorkCost ) {
+                                                nextPlayer->yummyBonusStore -=
+                                                    hungryWorkCost;
+                                                hungryWorkCost = 0;
+                                                }
+                                            else {
+                                                hungryWorkCost -= 
+                                                    nextPlayer->yummyBonusStore;
+                                                nextPlayer->yummyBonusStore = 0;
+                                                }
+                                            }
                                         
                                         nextPlayer->foodStore -= hungryWorkCost;
                                         
-                                        if( nextPlayer->foodStore < 3 ) {
-                                            if( oldStore > 3  ) {
-                                                // generally leave
-                                                // player with 3 food
-                                                // unless they had less than
-                                                // 3 to start
-                                                nextPlayer->foodStore = 3;
-                                                }
-                                            }
+                                        // we checked above, so player
+                                        // never is taken down below 5 here
                                         nextPlayer->foodUpdate = true;
                                         }
                                     
@@ -17936,12 +18681,29 @@ int main() {
                                 else if( nextPlayer->holdingID >= 0 ) {
                                     
                                     char handled = false;
-                                    
-                                    if( m.i != -1 && targetObj->permanent &&
+
+                                    char validUseOnContainedRequest = 
+                                        m.i != -1 && targetObj->permanent &&
                                         targetObj->numSlots > m.i &&
                                         getNumContained( m.x, m.y ) > m.i &&
                                         strstr( targetObj->description,
-                                                "+useOnContained" ) != NULL ) {
+                                                "+useOnContained" ) != NULL;
+                                        
+                                    if( validUseOnContainedRequest && 
+                                        targetObj->slotsLocked &&
+                                        targetObj->clickToRead
+                                    ) {
+                                        // clickToRead container
+                                        // to read written objects contained
+
+                                        int contID = getContained( m.x, m.y, m.i );
+                                        forceObjectToRead( nextPlayer, contID, {m.x, m.y}, false );
+
+                                        // if slotsLocked, don't allow useOnContained
+                                        handled = true;
+                                        }
+                                    
+                                    if( !handled && validUseOnContainedRequest ) {
                                         // a valid slot specified to use
                                         // held object on.
                                         // AND container allows this
@@ -17952,6 +18714,17 @@ int main() {
                                         char isSubCont = false;
                                         if( contTarget < 0 ) {
                                             contTarget = -contTarget;
+                                            isSubCont = true;
+                                            }
+                                        
+                                        // The isSubCont check above blocks the action
+                                        // whenever the contained item has subcontainment
+                                        // even though the newTarget may have enough slots.
+                                        // So there is no point to allow for the case where
+                                        // contained item is empty while the held item has subcontainment.
+                                        // Case example: using a non-empty basket on an empty basket on wall shelf
+                                        // Blocking it here for simplicity
+                                        if( nextPlayer->numContained ) {
                                             isSubCont = true;
                                             }
 
@@ -18474,7 +19247,9 @@ int main() {
                                             strstr( newTargetObj->description, 
                                                     "groundOnly" ) != NULL
                                             &&
-                                            getMapFloor( m.x, m.y ) != 0 ) {
+                                            getMapFloor( m.x, m.y ) != 0 &&
+                                            strstr( getObject( getMapFloor( m.x, m.y ) )->description, 
+                                                    "groundLikeFloor" ) == NULL ) {
                                             // floor present
                                         
                                             // new target not allowed 
@@ -20514,6 +21289,11 @@ int main() {
                 
                 if( nextPlayer->curseStatus.curseLevel > 0 ) {
                     playerIndicesToSendCursesAbout.push_back( i );
+                    
+                    // tell the donkeytown player about their status
+                    
+                    sendGlobalMessage( (char*)"WELCOME TO DONKEYTOWN.",
+                                       nextPlayer );
                     }
                 
                 if( usePersonalCurses ) {
@@ -22511,8 +23291,10 @@ int main() {
                 
                 char *line;
                 
-                if( nextPlayer->holdingEtaDecay > 0 ) {
-                    // what they have will cure itself in time
+                if( nextPlayer->holdingID > 0 &&
+                    strstr(
+                        getObject( nextPlayer->holdingID )->description,
+                        "sick" ) != NULL ) {
                     // flag as sick
                     line = autoSprintf( "%d 1\n", nextPlayer->id );
                     }
@@ -22657,6 +23439,15 @@ int main() {
                     delete [] emotMessageText;
                     }
                 }
+
+
+            // we have to clear the emotes list NOW, right after composing
+            // this message.  If we wait until later, various actions, below
+            // may add new emotes to the list.  We need to save them for next
+            //  time, when we compose the next PE message
+            newEmotPlayerIDs.deleteAll();
+            newEmotIndices.deleteAll();
+            newEmotTTLs.deleteAll();
             }
 
         
@@ -22675,9 +23466,9 @@ int main() {
         SimpleVector<int> playersReceivingPlayerUpdate;
         
 
-        for( int i=0; i<numLive; i++ ) {
+        for( int p=0; p<numLive; p++ ) {
             
-            LiveObject *nextPlayer = players.getElement(i);
+            LiveObject *nextPlayer = players.getElement(p);
             
             
             // everyone gets all flight messages
@@ -23468,10 +24259,88 @@ int main() {
 
                         delete [] temp;
                         }
+                    
+                    // done handling sending new map chunk and player updates
+                    // for players in the new chunk
                     }
-                // done handling sending new map chunk and player updates
-                // for players in the new chunk
-                
+                else {
+                    // check if moving path goes near edge of player's
+                    // known map
+                    LiveObject *playerToCheck = nextPlayer;
+                    if( nextPlayer->heldByOther ) {
+                        LiveObject *holdingPlayer = 
+                            getLiveObject( nextPlayer->heldByOtherID );
+                        
+                        if( holdingPlayer != NULL ) { 
+                            playerToCheck = holdingPlayer;
+                            }
+                        }
+                    
+                    if( ( playerToCheck->xd != playerToCheck->xs ||
+                          playerToCheck->yd != playerToCheck->ys ) 
+                        && 
+                        playerToCheck->pathToDest != NULL 
+                        &&
+                        ( nextPlayer->mapChunkPathCheckedDest.x 
+                          != playerToCheck->xd || 
+                          nextPlayer->mapChunkPathCheckedDest.y 
+                          != playerToCheck->yd ) ) {
+                        // moving and haven't checked this path before
+                        // to see if it gets too close to the edge of the
+                        // map
+                        
+                        // remember it to not check it again
+                        nextPlayer->mapChunkPathCheckedDest.x =
+                            playerToCheck->xd;
+                        nextPlayer->mapChunkPathCheckedDest.y =
+                            playerToCheck->yd;
+
+                        // find most distant points on current path
+                            
+                        GridPos xFarPos, yFarPos;
+                        int xFarPosDist = 0;
+                        int yFarPosDist = 0;
+                            
+                        for( int i=0; i < playerToCheck->pathLength; i++ ) {
+                            GridPos p = playerToCheck->pathToDest[i];
+                                
+                            int xdist = 
+                                abs( p.x - nextPlayer->lastSentMapX );
+                            int ydist = 
+                                abs( p.y - nextPlayer->lastSentMapY );
+                                
+                            if( xdist > xFarPosDist ) {
+                                xFarPos = p;
+                                xFarPosDist = xdist;
+                                }
+                            if( ydist > yFarPosDist ) {
+                                yFarPos = p;
+                                yFarPosDist = ydist;
+                                }
+                            }
+                            
+                        if( xFarPosDist > 0 && 
+                            abs( xFarPos.x - 
+                                 nextPlayer->lastSentMapX ) > 7 ) {
+                            
+                            sendMapChunkMessage( nextPlayer,
+                                                 // override chunk pos
+                                                 true,
+                                                 xFarPos.x,
+                                                 xFarPos.y );
+                            }
+                        if( yFarPosDist > 0 &&
+                            abs( yFarPos.y - 
+                                 nextPlayer->lastSentMapY ) > 7 ) {
+                                
+                            sendMapChunkMessage( nextPlayer,
+                                                 // override chunk pos
+                                                 true,
+                                                 yFarPos.x,
+                                                 yFarPos.y );
+                            }
+                        }
+                    }
                 
 
                 // EVERYONE gets info about dying players
@@ -24023,6 +24892,21 @@ int main() {
                                     }
 
                                 
+                                // any other * metadata before *map?
+                                char *otherStarLoc = strstr( trimmedPhrase,
+                                                             " *" );
+                                if( otherStarLoc != NULL ) {
+                                    if( speakerID != listenerID ) {
+                                        // only send * metadata through
+                                        // to speaker
+                                        // trim it otherwise
+                                        
+                                        otherStarLoc[0] = '\0';
+                                        }
+                                    }
+                                
+
+                                
                                 char *translatedPhrase;
                                 
                                 // skip language filtering in some cases
@@ -24417,6 +25301,11 @@ int main() {
                         yumMult = 0;
                         }
                     
+                    if( yumBonusCap != -1 &&
+                        yumMult > yumBonusCap ) {
+                        yumMult = yumBonusCap;
+                        }
+
                     if( nextPlayer->connected ) {
                         
                         char *foodMessage = autoSprintf( 
@@ -24461,10 +25350,16 @@ int main() {
                 if( nextPlayer->heatUpdate && nextPlayer->connected ) {
                     // send this player a heat status change
                     
+                    // recompute now to update their decrement time
+                    // and indoor bonus for this message
+                    computeFoodDecrementTimeSeconds( nextPlayer );
+                    
                     char *heatMessage = autoSprintf( 
                         "HX\n"
-                        "%.2f#",
-                        nextPlayer->heat );
+                        "%.2f %.2f %.2f#",
+                        nextPlayer->heat,
+                        nextPlayer->foodDrainTime,
+                        nextPlayer->indoorBonusTime );
                      
                     int messageLength = strlen( heatMessage );
                     
@@ -24600,9 +25495,7 @@ int main() {
         newGraves.deleteAll();
         newGraveMoves.deleteAll();
         
-        newEmotPlayerIDs.deleteAll();
-        newEmotIndices.deleteAll();
-        newEmotTTLs.deleteAll();
+        
         
 
         
@@ -24724,9 +25617,9 @@ int main() {
             }
 
 
-        if( players.size() == 0 && newConnections.size() == 0 ) {
+        if( players.size() == 0 ) {
             if( shutdownMode ) {
-                AppLog::info( "No live players or connections in shutdown " 
+                AppLog::info( "No live players in shutdown " 
                               " mode, auto-quitting." );
                 quit = true;
                 }

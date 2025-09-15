@@ -77,6 +77,7 @@ CustomRandomSource randSource( 34957197 );
 
 #include "emotion.h"
 #include "photos.h"
+#include "photoCache.h"
 #include "lifeTokens.h"
 #include "fitnessScore.h"
 
@@ -865,6 +866,7 @@ void freeFrameDrawer() {
     freeMusicPlayer();
     freeEmotion();
     
+    freePhotoCache();
     freePhotos();
     freeLifeTokens();
     freeFitnessScore();
@@ -2208,6 +2210,7 @@ void drawFrame( char inUpdate ) {
 
                     initEmotion();
                     initPhotos();
+                    initPhotoCache();
                     
                     initLifeTokens();
                     initFitnessScore();
@@ -2563,6 +2566,8 @@ void drawFrame( char inUpdate ) {
                 setViewCenterPosition( lastScreenViewCenter.x, 
                                        lastScreenViewCenter.y );
                 
+                livingLifePage->changeFOV( 1.0f );
+                
                 currentGamePage = existingAccountPage;
                 
                 existingAccountPage->setStatus( "serverShutdown", true );
@@ -2578,6 +2583,8 @@ void drawFrame( char inUpdate ) {
                 setViewCenterPosition( lastScreenViewCenter.x, 
                                        lastScreenViewCenter.y );
                 
+                livingLifePage->changeFOV( 1.0f );
+                
                 currentGamePage = existingAccountPage;
                 
                 existingAccountPage->setStatus( "serverUpdate", true );
@@ -2592,6 +2599,8 @@ void drawFrame( char inUpdate ) {
 
                 setViewCenterPosition( lastScreenViewCenter.x, 
                                        lastScreenViewCenter.y );
+                
+                livingLifePage->changeFOV( 1.0f );
                 
                 currentGamePage = existingAccountPage;
                 
