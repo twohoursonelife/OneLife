@@ -8864,6 +8864,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int maxY = std::max(dragStart.y, end.y);
 
         FloatColor tileColor = {1.0, 1.0, 0.0, 1.0};
+        if( isShiftKeyDown() ) tileColor = {1.0, 0.5, 0.0, 1.0};
         if( (maxX - minX) * (maxY - minY) <= 400 ) // spammy VOGI will not go through anyway
         for( int x = minX; x <= maxX; x++) {
             for( int y = minY; y <= maxY; y++) {
