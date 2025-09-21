@@ -11498,7 +11498,7 @@ char *getUniqueCursableName( char *inPlayerName, char *outSuffixAdded,
             }
         
 
-        return inPlayerName;
+        if( !dup ) return inPlayerName;
         }    
     
     
