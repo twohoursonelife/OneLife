@@ -753,7 +753,7 @@ void minitech::drawStr(
     
     doublePair screenCenter = livingLifePage->minitechGetLastScreenViewCenter();
     
-    char sBuf[64];
+    char sBuf[96];
     sprintf( sBuf, "%s", str.c_str() );
     float textWidth = 0;
     if (font == "handwritten") {

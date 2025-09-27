@@ -8864,6 +8864,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int maxY = std::max(dragStart.y, end.y);
 
         FloatColor tileColor = {1.0, 1.0, 0.0, 1.0};
+        if( isShiftKeyDown() ) tileColor = {1.0, 0.5, 0.0, 1.0};
         if( (maxX - minX) * (maxY - minY) <= 400 ) // spammy VOGI will not go through anyway
         for( int x = minX; x <= maxX; x++) {
             for( int y = minY; y <= maxY; y++) {
@@ -9273,6 +9274,55 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
         }
+
+
+
+    // draw sprites marked as behind player (when whole object is not
+    // marked as behind player) in a separate layer, screen-wide
+    for( int y=yEnd; y>=yStart; y-- ) {
+        
+        int worldY = y + mMapOffsetY - mMapD / 2;
+
+        int screenY = CELL_D * worldY;
+        
+
+        // draw marked objects behind everything else, including players
+        
+        for( int x=xStart; x<=xEnd; x++ ) {
+            
+            int worldX = x + mMapOffsetX - mMapD / 2;
+
+
+            int mapI = y * mMapD + x;
+
+            if( cellDrawn[mapI] ) {
+                continue;
+                }
+
+            int screenX = CELL_D * worldX;
+            
+            if( mMap[ mapI ] > 0 && 
+                mMapMoveSpeeds[ mapI ] == 0 ) {
+               
+                ObjectRecord *o = getObject( mMap[ mapI ] );
+
+                if( o->anySpritesBehindPlayer ) {
+                    
+                    // draw only behind layers now
+                    prepareToSkipSprites( o, true );
+                    drawMapCell( mapI, screenX, screenY, false, 
+                                 // no time effects, because we'll draw
+                                 // again later
+                                 true );
+                    restoreSkipDrawing( o );
+                    }
+                
+                }
+            }
+        }
+    
+
+
     
 
     for( int y=yEnd; y>=yStart; y-- ) {
@@ -9303,20 +9353,20 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 ObjectRecord *o = getObject( mMap[ mapI ] );
 
                 if( o->drawBehindPlayer ) {
+                    if( o->anySpritesBehindPlayer ) {
+                        // skip the behind sprite layers drawn in loop above
+                        prepareToSkipSprites( o, false );
+                        }
+                    
+
                     drawMapCell( mapI, screenX, screenY );
+                    
+                    if( o->anySpritesBehindPlayer ) {
+                        restoreSkipDrawing( o );
+                        }
+                    
                     cellDrawn[mapI] = true;
                     }
-                else if( o->anySpritesBehindPlayer ) {
-                    
-                    // draw only behind layers now
-                    prepareToSkipSprites( o, true );
-                    drawMapCell( mapI, screenX, screenY, false, 
-                                 // no time effects, because we'll draw
-                                 // again later
-                                 true );
-                    restoreSkipDrawing( o );
-                    }
-                
                 }
 
             
@@ -16417,7 +16467,7 @@ void LivingLifePage::step() {
             int numRead = 
                 sscanf( message, "CR\n%d %d", &foodID, &bonus );
             
-            if( numRead == 2 ) {
+            if( numRead == 2 && foodID != -1 ) {
                 setNewCraving( foodID, bonus );
                 }
             }
@@ -20435,7 +20485,8 @@ void LivingLifePage::step() {
                         
                         ObjectRecord *obj = getObject( o.displayID );
                         
-                        if( obj->creationSound.numSubSounds > 0 ) {
+                        if( obj != NULL &&
+                            obj->creationSound.numSubSounds > 0 ) {
                                 
                             playSound( obj->creationSound,
                                        getVectorFromCamera( 
@@ -23946,23 +23997,31 @@ void LivingLifePage::step() {
                 if( ! o->allSpritesLoaded ) {
                     // check if they're loaded yet
                     
-                    int numLoaded = 0;
 
                     ObjectRecord *displayObj = getObject( o->displayID );
-                    for( int s=0; s<displayObj->numSprites; s++ ) {
+                    if( displayObj != NULL ) {
+                        int numLoaded = 0;
                         
-                        if( markSpriteLive( displayObj->sprites[s] ) ) {
-                            numLoaded ++;
+                        for( int s=0; s<displayObj->numSprites; s++ ) {
+                        
+                            if( markSpriteLive( displayObj->sprites[s] ) ) {
+                                numLoaded ++;
+                                }
+                            else if( getSpriteRecord( displayObj->sprites[s] )
+                                     == NULL ) {
+                                // object references sprite that doesn't exist
+                                // count as loaded
+                                numLoaded ++;
+                                }
                             }
-                        else if( getSpriteRecord( displayObj->sprites[s] )
-                                 == NULL ) {
-                            // object references sprite that doesn't exist
-                            // count as loaded
-                            numLoaded ++;
+                        
+                        if( numLoaded == displayObj->numSprites ) {
+                            o->allSpritesLoaded = true;
                             }
                         }
-                    
-                    if( numLoaded == displayObj->numSprites ) {
+                    else {
+                        // no display object
+                        // count as loaded
                         o->allSpritesLoaded = true;
                         }
                     }
@@ -27831,6 +27890,27 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         runningYumFinder = true;
         // make sure the animation plays as soon as the key is pressed
         bouncingAnimationStepOffset = -livingLifeStepCount;
+        }
+
+    if( mSayField.isFocused() ) {
+        if( inASCII >= 48 && inASCII <= 57 ) {
+            char *typedText = mSayField.getText();
+            int n = strlen( typedText );
+            if( !( n > 5 && 
+                typedText[0] == '/' &&
+                typedText[1] == 'M' &&
+                typedText[2] == 'A' &&
+                typedText[3] == 'R' &&
+                typedText[4] == 'K' &&
+                typedText[5] == ' ' )
+            ) {
+                typedText[n-1] = '\0';
+                mSayField.setText( typedText );
+                delete [] typedText;
+                return;
+                }
+            delete [] typedText;
+            }
         }
     
     switch( inASCII ) {

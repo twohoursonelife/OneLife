@@ -2898,6 +2898,10 @@ void resaveAll() {
 
 
 ObjectRecord *getObject( int inID, char inNoDefault ) {
+    if( inID == -1 ) {
+        return NULL;
+        }
+    
     inID = extractObjectID( inID );
     
     if( inID < mapSize ) {
@@ -4134,6 +4138,12 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
                        char inHideAllLimbs,
                        char inHeldNotInPlaceYet,
                        ClothingSet inClothing ) {
+
+    HoldingPos returnHoldingPos = { false, {0, 0}, 0 };
+    
+    if( inObject == NULL ) {
+        return returnHoldingPos;
+        }
     
     if( drawingContained ) { 
         inPos.y += getLivingLifeBouncingYOffset( inObject->id );
@@ -4142,8 +4152,6 @@ HoldingPos drawObject( ObjectRecord *inObject, int inDrawBehindSlots,
     if( inObject->noFlip ) {
         inFlipH = false;
         }
-
-    HoldingPos returnHoldingPos = { false, {0, 0}, 0 };
     
     SimpleVector <int> frontArmIndices;
     getFrontArmIndices( inObject, inAge, &frontArmIndices );
@@ -4546,6 +4554,15 @@ HoldingPos drawObject( ObjectRecord *inObject, doublePair inPos, double inRot,
                 inHideAllLimbs,
                 inHeldNotInPlaceYet,
                 inClothing );
+    
+    if( inObject == NULL ) {
+        return drawObject( inObject, 1, inPos, inRot, inWorn, inFlipH, inAge, 
+                           inHideClosestArm,
+                           inHideAllLimbs,
+                           inHeldNotInPlaceYet,
+                           inClothing );
+        }
+    
 
     // char allBehind = true;
     // for( int i=0; i< inObject->numSprites; i++ ) {
@@ -5272,6 +5289,13 @@ double getClosestObjectPart( ObjectRecord *inObject,
     *outClothing = -1;
     *outSlot = -1;
 
+    double smallestDist = 9999999;
+
+    if( inObject == NULL ) {
+        return smallestDist;
+        }
+    
+
     doublePair headPos = {0,0};
 
     int headIndex = getHeadIndex( inObject, inAge );
@@ -5590,7 +5614,6 @@ double getClosestObjectPart( ObjectRecord *inObject,
         }
     
     
-    double smallestDist = 9999999;
 
     char closestBehindSlots = false;
     

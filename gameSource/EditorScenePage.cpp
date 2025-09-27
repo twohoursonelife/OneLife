@@ -1328,7 +1328,9 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
         }
     
     
-
+    // loop twice to draw all behind-player sprite layers, scene-wide
+    // and then draw other thing after that
+    for( int f=0; f<2; f++ )
     for( int y=0; y<mSceneH; y++ ) {
         
         if( y > mCurY + 6 || 
@@ -1338,7 +1340,7 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
             }
 
 
-        // draw behind stuff first, b=0
+        // draw behind stuff first (whole objects, marked as behind), b=0
         // then people, b=1, with permanent objects in front
         // then non-permanent objects, b=2
         // then non-container walls (floor hugging, no slots), b=3
@@ -1663,8 +1665,12 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                     
                     ObjectRecord *o = getObject( c->oID );
                     
-                    if( ( b == 0 && ! ( o->drawBehindPlayer || 
-                                        o->anySpritesBehindPlayer ) )
+                    if( f == 0 && ! o->anySpritesBehindPlayer ) {
+                        continue;
+                        }
+                    
+
+                    if( ( b == 0 && ! ( o->drawBehindPlayer ) )
                         ||
                         ( b != 0 && o->drawBehindPlayer ) ) {
                         continue;
@@ -1730,11 +1736,11 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                     
 
                     char skippingSome = false;
-                    if( b == 0 && cellO->anySpritesBehindPlayer ) {
+                    if( f == 0 && cellO->anySpritesBehindPlayer ) {
                         prepareToSkipSprites( cellO, true );
                         skippingSome = true;
                         }
-                    else if( b != 0 && cellO->anySpritesBehindPlayer ) {
+                    else if( f == 1 && cellO->anySpritesBehindPlayer ) {
                         prepareToSkipSprites( cellO, false );
                         skippingSome = true;
                         }

@@ -3104,6 +3104,18 @@ char getFemale( LiveObject *inPlayer ) {
 
 
 
+int getRace( LiveObject *inPlayer ) {
+    ObjectRecord *r = getObject( inPlayer->displayID );
+    
+    if( r == NULL ) {
+        return 0;
+        }
+    
+    return r->race;
+    }
+
+
+
 char isFertileAge( LiveObject *inPlayer ) {
     double age = computeAge( inPlayer );
                     
@@ -3441,7 +3453,14 @@ double computeMoveSpeed( LiveObject *inPlayer ) {
 
 
     // apply character's speed mult
-    speed *= getObject( inPlayer->displayID )->speedMult;
+    int speedMult = 1;
+    ObjectRecord *playerDisplayObject = getObject( inPlayer->displayID );
+    
+    if( playerDisplayObject != NULL ) {
+        speedMult = playerDisplayObject->speedMult;
+        }
+    
+    speed *= speedMult;
     
 
     char riding = false;
@@ -8042,16 +8061,16 @@ int processLoggedInPlayer( char inAllowReconnect,
             // set cool-down time before this worman can have another baby
             parent->birthCoolDown = pickBirthCooldownSeconds() + curTime;
 
-            ObjectRecord *parentObject = getObject( parent->displayID );
-
+            int parentRace = getRace( parent );
+            
             // pick race of child
-            int numRaces;
+            int numRaces = 0;
             int *races = getRaces( &numRaces );
         
             int parentRaceIndex = -1;
             
             for( int i=0; i<numRaces; i++ ) {
-                if( parentObject->race == races[i] ) {
+                if( parentRace == races[i] ) {
                     parentRaceIndex = i;
                     break;
                     }
@@ -8060,11 +8079,11 @@ int processLoggedInPlayer( char inAllowReconnect,
 
             if( parentRaceIndex != -1 ) {
                 
-                int childRace = parentObject->race;
+                int childRace = parentRace;
                 
                 char forceDifferentRace = false;
 
-                if( getRaceSize( parentObject->race ) < 3 ) {
+                if( getRaceSize( parentRace ) < 3 ) {
                     // no room in race for diverse family members
                     
                     // pick a different race for child to ensure village 
@@ -8106,7 +8125,7 @@ int processLoggedInPlayer( char inAllowReconnect,
                     childRace = races[ childRaceIndex ];
                     }
                 
-                if( childRace == parentObject->race ) {
+                if( childRace == parentRace ) {
                     
                     if( countYoungFemalesInLineage( parent->lineageEveID ) <
                         SettingsManager::getIntSetting( "minYoungFemalesToForceGirl", 2 ) ) {
@@ -8114,7 +8133,7 @@ int processLoggedInPlayer( char inAllowReconnect,
                         }
                     
                     newObject.displayID = getRandomFamilyMember( 
-                        parentObject->race, parent->displayID, familySpan,
+                        parentRace, parent->displayID, familySpan,
                         forceGirl );
                     }
                 else {
@@ -8856,7 +8875,7 @@ int processLoggedInPlayer( char inAllowReconnect,
               newObject.parentID,
               parentEmail,
               ! getFemale( &newObject ),
-              getObject( newObject.displayID )->race, 
+              getRace( &newObject ), 
               newObject.xd,
               newObject.yd,
               players.size(),
@@ -11479,7 +11498,7 @@ char *getUniqueCursableName( char *inPlayerName, char *outSuffixAdded,
             }
         
 
-        return inPlayerName;
+        if( !dup ) return inPlayerName;
         }    
     
     
@@ -11616,6 +11635,19 @@ char *getUniqueCursableName( char *inPlayerName, char *outSuffixAdded,
                             }
                         }
                     
+                    if( ! dup ) {
+                        // not used by any living family
+                        // however, was this a recent EVE last name
+                        // that is still cursable?
+                        
+                        char *testName = autoSprintf( "EVE %s", tempLastName );
+                        
+                        dup = isNameDuplicateForCurses( testName );
+                        
+                        delete [] testName;
+                        }
+                    
+
                     if( dup ) {
                         i = nextI;
                         }
@@ -14723,7 +14755,7 @@ int main() {
                             tokens->size() == 7 ) {
                             
                             nextConnection->email = 
-                                stringToLowerCase( 
+                                stringDuplicate( 
                                     tokens->getElementDirect( 1 ) );
 
 
@@ -14796,6 +14828,10 @@ int main() {
                                     nextConnection->famTarget = NULL;
                                 }
                             }
+
+                            nextConnection->email = 
+                                stringToLowerCase( 
+                                    nextConnection->email );
 
                             char *pwHash = tokens->getElementDirect( 2 );
                             char *keyHash = tokens->getElementDirect( 3 );
@@ -17500,6 +17536,7 @@ int main() {
                             unsigned char metaData[ MAP_METADATA_LENGTH ];
                             int len = strlen( m.saidText );
                             
+                            if( strcmp( m.saidText, "" ) != 0 )
                             if( nextPlayer->holdingID > 0 &&
                                 len < MAP_METADATA_LENGTH &&
                                 getObject( 
@@ -19761,6 +19798,32 @@ int main() {
                                     targetPlayer->embeddedWeaponID = 0;
                                     targetPlayer->embeddedWeaponEtaDecay = 0;
                                     
+                                    // check if this new wound would leave
+                                    // something embedded in grave
+                                    TransRecord *newWoundEmbed = 
+                                        getPTrans( targetPlayer->holdingID,
+                                                   0, false, false ); 
+                                    
+                                    if( newWoundEmbed != NULL &&
+                                        newWoundEmbed->newTarget > 0 ) {
+                                        
+                                        targetPlayer->embeddedWeaponID = 
+                                            newWoundEmbed->newTarget;
+                                        TransRecord *newDecayT = 
+                                            getMetaTrans( 
+                                                -1, 
+                                                newWoundEmbed->newTarget );
+                    
+                                        if( newDecayT != NULL ) {
+                                            targetPlayer->
+                                                embeddedWeaponEtaDecay = 
+                                                Time::timeSec() + 
+                                                newDecayT->
+                                                autoDecaySeconds;
+                                            }
+                                        }
+                                    
+
                                     
                                     nextPlayer->holdingID = 
                                         healTrans->newActor;
@@ -21258,6 +21321,7 @@ int main() {
                     logDeath( nextPlayer->id,
                               nextPlayer->email,
                               nextPlayer->isEve,
+                              nextPlayer->name,
                               computeAge( nextPlayer ),
                               getSecondsPlayed( 
                                   nextPlayer ),
@@ -21558,6 +21622,7 @@ int main() {
                         logDeath( nextPlayer->id,
                                   nextPlayer->email,
                                   nextPlayer->isEve,
+                                  nextPlayer->name,
                                   age,
                                   getSecondsPlayed( nextPlayer ),
                                   male,
@@ -22678,6 +22743,7 @@ int main() {
                             logDeath( decrementedPlayer->id,
                                       decrementedPlayer->email,
                                       decrementedPlayer->isEve,
+                                      decrementedPlayer->name,
                                       computeAge( decrementedPlayer ),
                                       getSecondsPlayed( decrementedPlayer ),
                                       ! getFemale( decrementedPlayer ),
