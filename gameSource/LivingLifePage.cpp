@@ -9306,7 +9306,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
                
                 ObjectRecord *o = getObject( mMap[ mapI ] );
 
-                if( o->anySpritesBehindPlayer ) {
+                // if an object is marked as "Behind" and it has some sprites marked as "Behind-player"
+                // it denotes a special case where the "Behind-player" sprites in this object should not be
+                // drawn in this separate layer in the back
+                // these "Behind-player" sprites will be drawn in the same row as the player
+                if( o->anySpritesBehindPlayer &&
+                    !o->drawBehindPlayer
+                    ) {
                     
                     // draw only behind layers now
                     prepareToSkipSprites( o, true );
@@ -9352,20 +9358,24 @@ void LivingLifePage::draw( doublePair inViewCenter,
                
                 ObjectRecord *o = getObject( mMap[ mapI ] );
 
-                if( o->drawBehindPlayer ) {
-                    if( o->anySpritesBehindPlayer ) {
-                        // skip the behind sprite layers drawn in loop above
-                        prepareToSkipSprites( o, false );
-                        }
+                if( o->drawBehindPlayer && !o->anySpritesBehindPlayer ) {
                     
-
                     drawMapCell( mapI, screenX, screenY );
                     
-                    if( o->anySpritesBehindPlayer ) {
-                        restoreSkipDrawing( o );
-                        }
-                    
                     cellDrawn[mapI] = true;
+                    }
+                else if( o->drawBehindPlayer && o->anySpritesBehindPlayer ) {
+
+                    // this is a special case meaning the "Behind-player" sprites in this object
+                    // should not be drawn in the separate screen-wide layer in the back
+                    
+                    // draw only behind layers now
+                    prepareToSkipSprites( o, true );
+                    drawMapCell( mapI, screenX, screenY, false, 
+                                 // no time effects, because we'll draw
+                                 // again later
+                                 true );
+                    restoreSkipDrawing( o );
                     }
                 }
 
@@ -9713,10 +9723,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mMap[ mapI ] > 0 ) {
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
-                if( ! o->drawBehindPlayer &&
+                if( (! o->drawBehindPlayer &&
                     ! o->wallLayer &&
                     o->permanent &&
-                    mMapMoveSpeeds[ mapI ] == 0 ) {
+                    mMapMoveSpeeds[ mapI ] == 0) ||
+                    // this is a special case meaning the "Behind-player" sprites in this object
+                    // should not be drawn in the separate screen-wide layer in the back
+                    (o->drawBehindPlayer && o->anySpritesBehindPlayer)
+                    ) {
                     
                     if( o->anySpritesBehindPlayer ) {
                         // draw only non-behind layers now
