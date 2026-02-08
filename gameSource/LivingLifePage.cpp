@@ -21842,6 +21842,129 @@ void LivingLifePage::step() {
 
                             locationSpeech.push_back( ls );
 
+                            // look for map metadata
+                            char *starPos =
+                                strstr( ls.speech, " *map" );
+                            
+                            if( starPos != NULL ) {
+                                
+                                int mapX, mapY;
+                                
+                                int mapAge = 0;
+                                
+                                int numRead = sscanf( starPos,
+                                                        " *map %d %d %d",
+                                                        &mapX, &mapY,
+                                                        &mapAge );
+
+                                int mapYears = 
+                                    floor( 
+                                        mapAge * 
+                                        getOurLiveObject()->ageRate );
+                                
+                                // trim it off
+                                starPos[0] ='\0';
+
+                                char person = false;
+                                int personID = -1;
+                                const char *personKey = NULL;
+                                
+                                if( numRead == 2 || numRead == 3 ) {
+                                    addTempHomeLocation( mapX, mapY,
+                                                            person,
+                                                            personID,
+                                                            personKey );
+                                    
+                                    SavedCoordinates mapCoords = {
+                                        mapX, mapY, 
+                                        extractMapName(ls.speech),
+                                        2
+                                        };
+                                    addCoordinates( mapCoords );
+                                    }
+
+                                doublePair dest = { (double)mapX, 
+                                                    (double)mapY };
+                                double d = 
+                                    distance( dest,
+                                                getOurLiveObject()->currentPos );
+                                
+                                if( d >= 5 ) {
+                                    char *dString = 
+                                        getSpokenNumber( d );
+                                    char *newSpeech =
+                                        autoSprintf( 
+                                            "%s - %s %s",
+                                            speech,
+                                            dString,
+                                            translate( "metersAway" ) );
+                                    delete [] dString;
+                                    // delete [] ls.speech;
+
+                                    if( mapYears > 0 ) {
+                                        const char *yearKey = 
+                                            "yearsAgo";
+                                        if( mapYears == 1 ) {
+                                            yearKey = "yearAgo";
+                                            }
+                                        
+                                        if( mapYears >= 2000 ) {
+                                            mapYears /= 1000;
+                                            yearKey = "millenniaAgo";
+                                            }
+                                        else if( mapYears >= 200 ) {
+                                            mapYears /= 100;
+                                            yearKey = "centuriesAgo";
+                                            }
+                                        else if( mapYears >= 20 ) {
+                                            mapYears /= 10;
+                                            yearKey = "decadesAgo";
+                                            }
+
+                                        char *ageString =
+                                            getSpokenNumber( mapYears );
+                                        char *newSpeechB =
+                                            autoSprintf( 
+                                                "%s - %s %s %s",
+                                                newSpeech,
+                                                translate( "made" ),
+                                                ageString,
+                                                translate( yearKey ) );
+                                        delete [] ageString;
+                                        delete [] newSpeech;
+                                        newSpeech = newSpeechB;
+                                        }
+                                    
+                                    ls.speech =
+                                        newSpeech;
+                                    }
+                                }
+                            else {
+                                // no *map metadata in our speech
+
+                                // look for *photo metadata
+                                starPos = 
+                                    strstr( ls.speech,
+                                            " *photo " );
+                            
+                                if( starPos != NULL ) {
+
+                                    // skip it to find photo_id
+                                    char *photoID = 
+                                        &( starPos[8] );
+                                    
+                                    displayPhoto( 
+                                        photoID,
+                                        // assume the photo source of this LS to be positive
+                                        // since LS message doesn't give us the source object ID
+                                        false );
+                                    
+                                    // strip metadata off for 
+                                    // spoken words
+                                    starPos[0] = '\0';
+                                    }
+                                }
+
                             // remove old location speech at same pos
                             for( int i=0; i<locationSpeech.size() - 1; i++ ) {
                                 LocationSpeech other = 

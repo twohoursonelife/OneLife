@@ -5782,6 +5782,42 @@ static void forceObjectToRead( LiveObject *inPlayer,
         //speech limit is ignored here
         char *quotedPhrase = autoSprintf( ":%s", metaData );
         
+        char *starLoc = 
+            strstr( quotedPhrase, " *map" );
+            
+        if( starLoc != NULL ) {
+            // make coords birth-relative
+            // to person reading map
+            int mapX, mapY;
+
+            // turn time into relative age in sec
+            timeSec_t mapT = 0;
+            
+            int numRead = 
+                sscanf( starLoc, 
+                        " *map %d %d %lf",
+                        &mapX, &mapY, &mapT );
+            if( numRead == 2 || numRead == 3 ) {
+                starLoc[0] = '\0';
+
+                timeSec_t age = 0;
+                
+                if( numRead == 3 ) {
+                    age = Time::timeSec() - mapT;
+                    }
+
+                char *newTrimmed = autoSprintf( 
+                    "%s *map %d %d %.f",
+                    quotedPhrase,
+                    mapX - inPlayer->birthPos.x, 
+                    mapY - inPlayer->birthPos.y,
+                    age );
+                
+                delete [] quotedPhrase;
+                quotedPhrase = newTrimmed;
+                }
+            }
+
         ChangePosition cp;
         cp.x = inReadPos.x;
         cp.y = inReadPos.y;
