@@ -10813,12 +10813,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // pos.y += screenHeight / 2;
 
 
-            char *ourName;
+            char *ourName = NULL;
             
             if( ourLiveObject->name != NULL ) {
-                ourName = ourLiveObject->name;
+                ourName = stringDuplicate( ourLiveObject->name );
+                stripFertilitySuffix( ourName );
+                if( ourName[0] == '\0' ) {
+                    delete [] ourName;
+                    ourName = NULL;
+                    }
                 }
-            else {
+            if( ourName == NULL ) {
                 ourName = (char*)translate( "namelessPerson" );
                 }
             
