@@ -5978,10 +5978,20 @@ void LivingLifePage::drawMapCell( int inMapI,
         char flip = mMapTileFlips[ inMapI ];
         
         ObjectRecord *obj = getObject( oID );
+
+        // allow moving blocking objects to flip
+        // e.g. ducks in deep water
+        bool movingBlockingObject = false;
+        if( obj->permanent && obj->blocksWalking ) {
+            TransRecord *decayTrans = getTrans( -1, oID );
+            if( decayTrans != NULL && decayTrans->move != 0 ) movingBlockingObject = true;
+            }
+
         if( obj->noFlip ||
             ( obj->permanent && 
               ( obj->blocksWalking || obj->drawBehindPlayer || 
-                obj->anySpritesBehindPlayer) ) ) {
+                obj->anySpritesBehindPlayer) &&
+              !movingBlockingObject ) ) {
             // permanent, blocking objects (e.g., walls) 
             // or permanent behind-player objects (e.g., roads) 
             // are never drawn flipped
@@ -18406,7 +18416,6 @@ void LivingLifePage::step() {
                             if( newObj->permanent && newObj->blocksWalking ) {
                                 // clear the locally-stored flip for this
                                 // tile
-                                if( speed == 0 ) //allow blocking objects that move to flip e.g. beaver
                                 mMapTileFlips[mapI] = false;
                                 }    
                             }
