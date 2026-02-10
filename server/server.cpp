@@ -9891,6 +9891,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
         if( contTrans != NULL ) {
             setResponsiblePlayer( -inPlayer->id );
             if( contTrans->newTarget != target ) setMapObject( inContX, inContY, contTrans->newTarget );
+            setResponsiblePlayer( -1 );
         }
 
         return true;
@@ -17870,6 +17871,8 @@ int main() {
                                     nextPlayer->embeddedWeaponID = 0;
                                     nextPlayer->embeddedWeaponEtaDecay = 0;
                                     
+                                    setResponsiblePlayer( nextPlayer->id );
+                                    
                                     setMapObject( m.x, m.y,
                                                   healTrans->newTarget );
                                     
@@ -19077,7 +19080,6 @@ int main() {
                                             if( containmentTrans != NULL ) {
                                                 int newContainerID = containmentTrans->newTarget;
                                                 if( isOutContTrans ) newContainerID = containmentTrans->newActor;
-                                                if( containmentTrans == NULL ) setResponsiblePlayer( -1 );
                                                 setMapObject( m.x, m.y, newContainerID );
                                                 }                     
                                             
@@ -19959,8 +19961,6 @@ int main() {
                                         m.i,
                                         getObject( 
                                             healTrans->newTarget ) );
-                                    
-                                    setResponsiblePlayer( -1 );
                                     
                                     healed = true;
                                     healTarget = healTrans->target;
