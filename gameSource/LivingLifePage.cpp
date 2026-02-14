@@ -3912,7 +3912,7 @@ void LivingLifePage::useBackpack(bool replace) {
     setOurSendPosXY(x, y);
 
     char msg[32];
-    if( ourLiveObject->holdingID > 0 && !nextActionDropping ) {
+    if( ourLiveObject->holdingID > 0 ) {
         if (replace) {
             sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
         } else {
@@ -3923,7 +3923,6 @@ void LivingLifePage::useBackpack(bool replace) {
     } else {
         sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
         setNextActionMessage( msg, x, y );
-        nextActionDropping = false;
     }
 }
 
@@ -29267,19 +29266,8 @@ void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
     int objId = getObjId( x, y );
     bool use = false;
 
-    bool willLeaveHandEmpty = false;
-
-    if (objId > 0) {
-        use = true;
-        TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
-        if( r != NULL && r->newActor == 0 ) {
-            willLeaveHandEmpty = true;
-        } else if( r == NULL && getObject(objId)->numSlots > 0 ) {
-            willLeaveHandEmpty = true;
-        }
-    } else {
-        use = false;
-    }
+    if (objId > 0) use = true;
+    else use = false;
 
     if( ourLiveObject->holdingID > 0 ) {
         ObjectRecord *held = getObject( ourLiveObject->holdingID );
@@ -29288,7 +29276,6 @@ void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
             TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
             if( r != NULL && r->newTarget != 0 ) { // a use-on-ground transition exists!
                 use = true;    // override the drop action
-                if( r->newActor == 0 ) willLeaveHandEmpty = true;
             }
         }
     }
@@ -29306,12 +29293,8 @@ void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
     char msg[32];
     if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
     else if (use) sprintf( msg, "USE %d %d#", x, y);
-    else {
-        sprintf( msg, "DROP %d %d -1#", x, y);
-        willLeaveHandEmpty = true;
-    }
+    else sprintf( msg, "DROP %d %d -1#", x, y);
     setNextActionMessage( msg, x, y );
-    if( willLeaveHandEmpty ) nextActionDropping = true;
 }
 
 void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
