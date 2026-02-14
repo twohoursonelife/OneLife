@@ -3763,9 +3763,6 @@ static char nextActionEating = false;
 static char nextActionDropping = false;
 
 
-static char nextActionWillEmptyHand = false;
-
-
 // block move until next PLAYER_UPDATE received after action sent
 static char playerActionPending = false;
 static int playerActionTargetX, playerActionTargetY;
@@ -3825,7 +3822,6 @@ void LivingLifePage::setNextActionMessage(const char* msg, int x, int y) {
     playerActionTargetY = y;
     playerActionTargetNotAdjacent = true;
     nextActionDropping = false;
-    nextActionWillEmptyHand = false;
     nextActionEating = false;
     nextActionMessageToSend = autoSprintf( "%s", msg );
 }
@@ -3836,14 +3832,6 @@ int LivingLifePage::getObjId( int tileX, int tileY ) {
     int i = mapY * mMapD + mapX;
     if (i < 0 || i >= mMapD*mMapD) return -1;
     return mMap[i];
-}
-
-int LivingLifePage::getNumContained( int tileX, int tileY ) {
-    int mapX = tileX - mMapOffsetX + mMapD / 2;
-    int mapY = tileY - mMapOffsetY + mMapD / 2;
-    int i = mapY * mMapD + mapX;
-    if (i < 0 || i >= mMapD*mMapD) return -1;
-    return mMapContainedStacks[i].size();
 }
 
 bool LivingLifePage::objIdReverseAction( int objId ) {
@@ -3924,19 +3912,18 @@ void LivingLifePage::useBackpack(bool replace) {
     setOurSendPosXY(x, y);
 
     char msg[32];
-    if( ourLiveObject->holdingID > 0 && !nextActionWillEmptyHand ) {
+    if( ourLiveObject->holdingID > 0 && !nextActionDropping ) {
         if (replace) {
-            sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot ); // SWAP, OR PUT IN IF EMPTY
-            setNextActionMessage( msg, x, y );
+            sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
         } else {
-            sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot ); // PUT IN
-            setNextActionMessage( msg, x, y );
-            nextActionWillEmptyHand = true;
+            sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot );
         }
+        setNextActionMessage( msg, x, y );
         nextActionDropping = true;
     } else {
-        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 ); // TAKE OUT
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
         setNextActionMessage( msg, x, y );
+        nextActionDropping = false;
     }
 }
 
@@ -26255,7 +26242,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
     nextActionEating = false;
     nextActionDropping = false;
-    nextActionWillEmptyHand = false;
     
 
 
@@ -27111,28 +27097,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                 
                 send = true;
 
-                if( ourLiveObject->holdingID > 0 ) {
-                    if( destObjInClickedTile == 0 ) {
-                        TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
-                        if( r == NULL ||
-                            (r->newActor == 0 || r->newTarget == 0) // exclude generic transitions by newTarget == 0
-                            ) {
-                            nextActionWillEmptyHand = true;
-                            }
-                        }
-                    else {
-                        if( getNumContainerSlots( destObjInClickedTile ) > 0 && destNumContained == 0 ) {
-                            nextActionWillEmptyHand = true;
-                            }
-                        else if( getObject( destObjInClickedTile )->permanent || 
-                            ourLiveObject->holdingID == destObjInClickedTile // e.g. bowl on bowl
-                            ) {
-                            TransRecord *r = getTrans( ourLiveObject->holdingID, destObjInClickedTile );
-                            if( r != NULL && r->newActor == 0 ) nextActionWillEmptyHand = true;
-                            }
-                        }
-                    }
-
                 // check for other special case
                 // a use-on-ground transition or use-on-floor transition
 
@@ -27272,7 +27236,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                      destNumContained <= getNumContainerSlots( destID ) ) {
                 action = "DROP";
                 nextActionDropping = true;
-                if( destNumContained == 0 ) nextActionWillEmptyHand = true;
                 send = true;
                 }
             else if( modClick && ourLiveObject->holdingID != 0 &&
@@ -27282,11 +27245,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                      ) {
                 action = "DROP";
                 nextActionDropping = true;
-                if( ourLiveObject->holdingID == destID ) {
-                    // e.g. bowl on bowl
-                    TransRecord *r = getTrans( ourLiveObject->holdingID, destID );
-                    if( r != NULL && r->newActor == 0 ) nextActionWillEmptyHand = true;
-                    }
                 send = true;
                 }
             else if( destID != 0 ) {
@@ -27335,24 +27293,6 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
                     if( strstr( destObj->description, "+useOnContained" )
                         != NULL ) {
                         useExtraIParam = p.hitSlotIndex;
-                        }
-                    }
-                else if( ourLiveObject->holdingID > 0 ) { 
-                    
-                    if( !modClick ) {
-                        TransRecord *r = getTrans( ourLiveObject->holdingID, destID );
-                        if( r != NULL ) {
-                            if( r->newActor == 0 ) nextActionWillEmptyHand = true;
-                            }
-                        else if( getNumContainerSlots( destID ) > 0 ) {
-                            nextActionWillEmptyHand = true;
-                            }
-                        }
-                    else {
-                        if( getObject( destID )->permanent ) {
-                            TransRecord *r = getTrans( ourLiveObject->holdingID, destID );
-                            if( r != NULL && r->newActor == 0 ) nextActionWillEmptyHand = true;
-                            }
                         }
                     }
                 
@@ -29327,8 +29267,19 @@ void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
     int objId = getObjId( x, y );
     bool use = false;
 
-    if (objId > 0) use = true;
-    else use = false;
+    bool willLeaveHandEmpty = false;
+
+    if (objId > 0) {
+        use = true;
+        TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
+        if( r != NULL && r->newActor == 0 ) {
+            willLeaveHandEmpty = true;
+        } else if( r == NULL && getObject(objId)->numSlots > 0 ) {
+            willLeaveHandEmpty = true;
+        }
+    } else {
+        use = false;
+    }
 
     if( ourLiveObject->holdingID > 0 ) {
         ObjectRecord *held = getObject( ourLiveObject->holdingID );
@@ -29337,29 +29288,7 @@ void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
             TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
             if( r != NULL && r->newTarget != 0 ) { // a use-on-ground transition exists!
                 use = true;    // override the drop action
-            }
-        }
-    }
-
-    bool willLeaveHandEmpty = false;
-
-    if( ourLiveObject->holdingID > 0 ) {
-        ObjectRecord *held = getObject( ourLiveObject->holdingID );
-        if (objId == 0) {
-            TransRecord *r = getTrans( ourLiveObject->holdingID, -1 );
-            if( r == NULL || 
-                (r->newActor == 0 || r->newTarget == 0) // exclude generic transitions by newTarget == 0
-                ) {
-                willLeaveHandEmpty = true;
-            }
-        } else {
-            TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
-            if( r != NULL && r->newActor == 0 ) {
-                willLeaveHandEmpty = true;
-            } else if( r == NULL ) {
-                if( getObject(objId)->numSlots > 0 ) {
-                    willLeaveHandEmpty = true;
-                }
+                if( r->newActor == 0 ) willLeaveHandEmpty = true;
             }
         }
     }
@@ -29377,9 +29306,12 @@ void LivingLifePage::actionAlphaRelativeToMe( int x, int y ) {
     char msg[32];
     if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
     else if (use) sprintf( msg, "USE %d %d#", x, y);
-    else sprintf( msg, "DROP %d %d -1#", x, y);
+    else {
+        sprintf( msg, "DROP %d %d -1#", x, y);
+        willLeaveHandEmpty = true;
+    }
     setNextActionMessage( msg, x, y );
-    if( willLeaveHandEmpty ) nextActionWillEmptyHand = true;
+    if( willLeaveHandEmpty ) nextActionDropping = true;
 }
 
 void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
@@ -29387,8 +29319,6 @@ void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
     
     x += ourLiveObject->xd;
     y += ourLiveObject->yd;
-
-    bool willLeaveHandEmpty = false;
 
     bool remove = false;
     if (ourLiveObject->holdingID <= 0) {
@@ -29402,29 +29332,6 @@ void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
             TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
             if ( r != NULL && r->newTarget != 0 ) {
                 use = true;
-            }
-        }
-    }
-    
-    if( ourLiveObject->holdingID > 0 ) {
-        if (objId == 0) {
-            willLeaveHandEmpty = true;
-        } else {
-            ObjectRecord* obj = getObject(objId);
-            if( obj->numSlots == 0 ) {
-                if( obj->permanent || 
-                    ourLiveObject->holdingID == objId // e.g. bowl on bowl
-                    ) {
-                    TransRecord *r = getTrans( ourLiveObject->holdingID, objId );
-                    if( r != NULL && r->newActor == 0 ) willLeaveHandEmpty = true;
-                }
-            } else {
-                // this is simplification
-                // we didn't check if the held item can go in the container
-                // but if what we hold cannot go in the container
-                // it is very likely it cannot go in backpack
-                // so this should be fine
-                if( getNumContained(x, y) == 0 ) willLeaveHandEmpty = true;
             }
         }
     }
@@ -29443,7 +29350,7 @@ void LivingLifePage::actionBetaRelativeToMe( int x, int y ) {
     else if (remove) sprintf( msg, "REMV %d %d -1#", x, y);
     else sprintf( msg, "DROP %d %d -1#", x, y);
     setNextActionMessage( msg, x, y );
-    if (willLeaveHandEmpty) nextActionWillEmptyHand = true;
+    if (!remove) nextActionDropping = true;
 }
 
 void LivingLifePage::useTileRelativeToMe( int x, int y ) {

@@ -540,7 +540,6 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         void setNextActionMessage( const char* str, int x, int y );
         int getObjId( int mapX, int mapY );
-        int getNumContained( int mapX, int mapY );
         bool objIdReverseAction( int objId );
         void pickUpBabyInRange();
         void pickUpBaby( int x, int y );
