@@ -2508,11 +2508,20 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
     else if( strcmp( nameBuffer, "SELF" ) == 0 ) {
         m.type = SELF;
 
+        // abusing the c field here for extra parameter
+        // 0 means old behavior
+        // -1 means remove clothing content only
+        // -2 means transform clothing only e.g. remove sword from backpack
+        // -3 means remove clothing only
+
         numRead = sscanf( inMessage, 
-                          "%99s %d %d %d", 
-                          nameBuffer, &( m.x ), &( m.y ), &( m.i ) );
+                          "%99s %d %d %d %d", 
+                          nameBuffer, &( m.x ), &( m.y ), &( m.i ), &( m.c ) );
         
-        if( numRead != 4 ) {
+        if( numRead == 4 ) {
+            m.c = 0;
+            }
+        else if( numRead != 5 ) {
             m.type = UNKNOWN;
             }
         }
@@ -5782,6 +5791,42 @@ static void forceObjectToRead( LiveObject *inPlayer,
         //speech limit is ignored here
         char *quotedPhrase = autoSprintf( ":%s", metaData );
         
+        char *starLoc = 
+            strstr( quotedPhrase, " *map" );
+            
+        if( starLoc != NULL ) {
+            // make coords birth-relative
+            // to person reading map
+            int mapX, mapY;
+
+            // turn time into relative age in sec
+            timeSec_t mapT = 0;
+            
+            int numRead = 
+                sscanf( starLoc, 
+                        " *map %d %d %lf",
+                        &mapX, &mapY, &mapT );
+            if( numRead == 2 || numRead == 3 ) {
+                starLoc[0] = '\0';
+
+                timeSec_t age = 0;
+                
+                if( numRead == 3 ) {
+                    age = Time::timeSec() - mapT;
+                    }
+
+                char *newTrimmed = autoSprintf( 
+                    "%s *map %d %d %.f",
+                    quotedPhrase,
+                    mapX - inPlayer->birthPos.x, 
+                    mapY - inPlayer->birthPos.y,
+                    age );
+                
+                delete [] quotedPhrase;
+                quotedPhrase = newTrimmed;
+                }
+            }
+
         ChangePosition cp;
         cp.x = inReadPos.x;
         cp.y = inReadPos.y;
@@ -9855,6 +9900,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
         if( contTrans != NULL ) {
             setResponsiblePlayer( -inPlayer->id );
             if( contTrans->newTarget != target ) setMapObject( inContX, inContY, contTrans->newTarget );
+            setResponsiblePlayer( -1 );
         }
 
         return true;
@@ -17834,6 +17880,8 @@ int main() {
                                     nextPlayer->embeddedWeaponID = 0;
                                     nextPlayer->embeddedWeaponEtaDecay = 0;
                                     
+                                    setResponsiblePlayer( nextPlayer->id );
+                                    
                                     setMapObject( m.x, m.y,
                                                   healTrans->newTarget );
                                     
@@ -19041,7 +19089,6 @@ int main() {
                                             if( containmentTrans != NULL ) {
                                                 int newContainerID = containmentTrans->newTarget;
                                                 if( isOutContTrans ) newContainerID = containmentTrans->newActor;
-                                                if( containmentTrans == NULL ) setResponsiblePlayer( -1 );
                                                 setMapObject( m.x, m.y, newContainerID );
                                                 }                     
                                             
@@ -19924,8 +19971,6 @@ int main() {
                                         getObject( 
                                             healTrans->newTarget ) );
                                     
-                                    setResponsiblePlayer( -1 );
-                                    
                                     healed = true;
                                     healTarget = healTrans->target;
                                     
@@ -20450,7 +20495,10 @@ int main() {
                                 
 
                                 if( targetPlayer == nextPlayer &&
-                                    bareHandClothingTrans != NULL ) {
+                                    bareHandClothingTrans != NULL &&
+                                    m.c != -1 && // player only wants clothing content
+                                    m.c != -3 // player only wants the clothing itself
+                                    ) {
                                     
                                     // bare hand transforms clothing
                                     
@@ -20488,7 +20536,10 @@ int main() {
                                             deleteAll();
                                         }
                                     }
-                                else if( clothingSlot != NULL ) {
+                                else if( clothingSlot != NULL &&
+                                         m.c != -1 && // player only wants clothing content
+                                         m.c != -2 // player only wants to transform clothing
+                                         ) {
                                     // bare hand removes clothing
                                     
                                     removeClothingToHold( nextPlayer,
@@ -21043,7 +21094,10 @@ int main() {
                         
                         if( nextPlayer->holdingID == 0 && 
                             m.c >= 0 && m.c < NUM_CLOTHING_PIECES  &&
-                            ! worked ) {
+                            ! worked &&
+                            // -2 means player only wants clothing content
+                            m.i != -2
+                            ) {
 
                             // hmm... nothing to remove from slots in clothing
                             
