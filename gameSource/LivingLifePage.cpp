@@ -8266,13 +8266,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             int b = -1;
 
-            char rememberedTile = false;
             int* chunk = NULL;
             // This bounding box is kinda stupid because center of the screen is (32, 32), so this box is too bottom-left.
             // I'm hesitant to put remove *2 from bottom and left due to readability
             char inFOVBounds = x > -mMapD * 2 && y > -mMapD * 2 && x < mMapD * 2 && y < mMapD * 2;
             if( inFOVBounds ) {
-                    rememberedTile = true;
                     chunk = findChunkByCoords(absoluteChunkX, absoluteChunkY);
                     if (chunk != NULL){
                         b = chunk[mapC];
@@ -8302,7 +8300,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             GroundSpriteSet *s = NULL;
             
-            setDrawColor( 1, 1, 1, 1 );
+            // area is loaded by the last MAP_CHUNK update
+            if (inBounds && mMap[mapI] != -1){ 
+                setDrawColor( 1, 1, 1, 1 );
+            }
+            else{
+                setDrawColor( 0.5, 0.5, 0.5, 0.5 );
+            }
 
             if( b >= 0 && b < groundSpritesArraySize ) {
                 s = groundSprites[ b ];
@@ -8339,24 +8343,38 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 // this draws debug info about remembered chunks every 4 tiles
                 // if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
                 //     doublePair drawPos = pos;
-                //     setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
+                //     // setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
                 //     char* string;
-                //     string = autoSprintf("%d,%d", absoluteChunkX, absoluteChunkY);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     string = autoSprintf("%d,%d", x, y);
+                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
                 //     delete[] string;
-                //     drawPos.y += 50;
-                //     string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     delete[] string;
-                //     drawPos.y += 50;
-                //     string = autoSprintf("b%d,c%d", b, chunk != NULL);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     delete[] string;
+                //     // drawPos.y += 50;
+                //     // string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
+                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     // delete[] string;
+                //     // drawPos.y += 50;
+                //     // string = autoSprintf("b%d,c%d", b, chunk != NULL);
+                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     // delete[] string;
                 //     drawPos.y += 50;
                 //     string = autoSprintf("%d,%d", mMapOffsetX, mMapOffsetY);
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
                 //     delete[] string;
-                //     setDrawColor( 1,1,1,1 );
+                //     drawPos.y += 50;
+                //     string = autoSprintf("%d,%d", lastSavedMapChunkSizeX, lastSavedMapChunkSizeY);
+                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
+                //     delete[] string;
+                //     // setDrawColor( 1,1,1,1 );
+
+                //     // if (x >= 16 && y > 16 && x < 48 && y < 48){
+                //     //     setDrawColor( 0, 1, 0, 1 );
+                //     // }
+                //     // else{
+                //     //     setDrawColor( 1, 0, 0, 1 );
+                //     // }
                 // }
 
                 // wrap around
