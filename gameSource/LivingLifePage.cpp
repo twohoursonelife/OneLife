@@ -3913,14 +3913,14 @@ void LivingLifePage::useBackpack(bool replace) {
     char msg[32];
     if( ourLiveObject->holdingID > 0 ) {
         if (replace) {
-            sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot );
+            sprintf( msg, "DROP %d %d %d#", x, y, clothingSlot ); // SWAP
         } else {
-            sprintf( msg, "SELF %d %d %d#", x, y, clothingSlot );
+            sprintf( msg, "SELF %d %d %d -1#", x, y, clothingSlot ); // PUT IN
         }
         setNextActionMessage( msg, x, y );
         nextActionDropping = true;
     } else {
-        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -1 );
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingSlot, -2 ); // TAKE OUT
         setNextActionMessage( msg, x, y );
     }
 }
@@ -4007,11 +4007,14 @@ void LivingLifePage::takeOffClothing() {
     return;
 }
 
-void LivingLifePage::takeOffBackpack() {
+void LivingLifePage::takeOffBackpack(int useOrRemove) {
     LiveObject *ourLiveObject = getOurLiveObject();
     
     char message[32];
-    sprintf(message, "SELF %i %i 5#", ourLiveObject->xd, ourLiveObject->yd);
+    int extraFlag = 0;
+    if( useOrRemove == 1 ) extraFlag = -2;
+    if( useOrRemove == 2 ) extraFlag = -3;
+    sprintf(message, "SELF %i %i 5 %d#", ourLiveObject->xd, ourLiveObject->yd, extraFlag);
     sendToServerSocket( message );
 }
 
@@ -5986,10 +5989,20 @@ void LivingLifePage::drawMapCell( int inMapI,
         char flip = mMapTileFlips[ inMapI ];
         
         ObjectRecord *obj = getObject( oID );
+
+        // allow moving blocking objects to flip
+        // e.g. ducks in deep water
+        bool movingBlockingObject = false;
+        if( obj->permanent && obj->blocksWalking ) {
+            TransRecord *decayTrans = getTrans( -1, oID );
+            if( decayTrans != NULL && decayTrans->move != 0 ) movingBlockingObject = true;
+            }
+
         if( obj->noFlip ||
             ( obj->permanent && 
               ( obj->blocksWalking || obj->drawBehindPlayer || 
-                obj->anySpritesBehindPlayer) ) ) {
+                obj->anySpritesBehindPlayer) &&
+              !movingBlockingObject ) ) {
             // permanent, blocking objects (e.g., walls) 
             // or permanent behind-player objects (e.g., roads) 
             // are never drawn flipped
@@ -8991,6 +9004,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         int maxY = std::max(dragStart.y, end.y);
 
         FloatColor tileColor = {1.0, 1.0, 0.0, 1.0};
+        if( isShiftKeyDown() ) tileColor = {1.0, 0.5, 0.0, 1.0};
         if( (maxX - minX) * (maxY - minY) <= 400 ) // spammy VOGI will not go through anyway
         for( int x = minX; x <= maxX; x++) {
             for( int y = minY; y <= maxY; y++) {
@@ -9400,6 +9414,61 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
         }
+
+
+
+    // draw sprites marked as behind player (when whole object is not
+    // marked as behind player) in a separate layer, screen-wide
+    for( int y=yEnd; y>=yStart; y-- ) {
+        
+        int worldY = y + mMapOffsetY - mMapD / 2;
+
+        int screenY = CELL_D * worldY;
+        
+
+        // draw marked objects behind everything else, including players
+        
+        for( int x=xStart; x<=xEnd; x++ ) {
+            
+            int worldX = x + mMapOffsetX - mMapD / 2;
+
+
+            int mapI = y * mMapD + x;
+
+            if( cellDrawn[mapI] ) {
+                continue;
+                }
+
+            int screenX = CELL_D * worldX;
+            
+            if( mMap[ mapI ] > 0 && 
+                mMapMoveSpeeds[ mapI ] == 0 ) {
+               
+                ObjectRecord *o = getObject( mMap[ mapI ] );
+
+                // if an object is marked as "Behind" and it has some sprites marked as "Behind-player"
+                // it denotes a special case where the "Behind-player" sprites in this object should not be
+                // drawn in this separate layer in the back
+                // these "Behind-player" sprites will be drawn in the same row as the player
+                if( o->anySpritesBehindPlayer &&
+                    !o->drawBehindPlayer
+                    ) {
+                    
+                    // draw only behind layers now
+                    prepareToSkipSprites( o, true );
+                    drawMapCell( mapI, screenX, screenY, false, 
+                                 // no time effects, because we'll draw
+                                 // again later
+                                 true );
+                    restoreSkipDrawing( o );
+                    }
+                
+                }
+            }
+        }
+    
+
+
     
 
     // draw marked objects behind everything else, including players
@@ -9427,11 +9496,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
                
                 ObjectRecord *o = getObject( mMap[ mapI ] );
 
-                if( o->drawBehindPlayer ) {
+                if( o->drawBehindPlayer && !o->anySpritesBehindPlayer ) {
+                    
                     drawMapCell( mapI, screenX, screenY );
+                    
                     cellDrawn[mapI] = true;
                     }
-                else if( o->anySpritesBehindPlayer ) {
+                else if( o->drawBehindPlayer && o->anySpritesBehindPlayer ) {
+
+                    // this is a special case meaning the "Behind-player" sprites in this object
+                    // should not be drawn in the separate screen-wide layer in the back
                     
                     // draw only behind layers now
                     prepareToSkipSprites( o, true );
@@ -9441,7 +9515,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                  true );
                     restoreSkipDrawing( o );
                     }
-                
                 }
 
             
@@ -9788,10 +9861,14 @@ void LivingLifePage::draw( doublePair inViewCenter,
             if( mMap[ mapI ] > 0 ) {
                 ObjectRecord *o = getObject( mMap[ mapI ] );
                 
-                if( ! o->drawBehindPlayer &&
+                if( (! o->drawBehindPlayer &&
                     ! o->wallLayer &&
                     o->permanent &&
-                    mMapMoveSpeeds[ mapI ] == 0 ) {
+                    mMapMoveSpeeds[ mapI ] == 0) ||
+                    // this is a special case meaning the "Behind-player" sprites in this object
+                    // should not be drawn in the separate screen-wide layer in the back
+                    (o->drawBehindPlayer && o->anySpritesBehindPlayer)
+                    ) {
                     
                     if( o->anySpritesBehindPlayer ) {
                         // draw only non-behind layers now
@@ -10874,12 +10951,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // pos.y += screenHeight / 2;
 
 
-            char *ourName;
+            char *ourName = NULL;
             
             if( ourLiveObject->name != NULL ) {
-                ourName = ourLiveObject->name;
+                ourName = stringDuplicate( ourLiveObject->name );
+                stripFertilitySuffix( ourName );
+                if( ourName[0] == '\0' ) {
+                    delete [] ourName;
+                    ourName = NULL;
+                    }
                 }
-            else {
+            if( ourName == NULL ) {
                 ourName = (char*)translate( "namelessPerson" );
                 }
             
@@ -16542,7 +16624,7 @@ void LivingLifePage::step() {
             int numRead = 
                 sscanf( message, "CR\n%d %d", &foodID, &bonus );
             
-            if( numRead == 2 ) {
+            if( numRead == 2 && foodID != -1 ) {
                 setNewCraving( foodID, bonus );
                 }
             }
@@ -18506,7 +18588,6 @@ void LivingLifePage::step() {
                             if( newObj->permanent && newObj->blocksWalking ) {
                                 // clear the locally-stored flip for this
                                 // tile
-                                if( speed == 0 ) //allow blocking objects that move to flip e.g. beaver
                                 mMapTileFlips[mapI] = false;
                                 }    
                             }
@@ -20604,7 +20685,8 @@ void LivingLifePage::step() {
                         
                         ObjectRecord *obj = getObject( o.displayID );
                         
-                        if( obj->creationSound.numSubSounds > 0 ) {
+                        if( obj != NULL &&
+                            obj->creationSound.numSubSounds > 0 ) {
                                 
                             playSound( obj->creationSound,
                                        getVectorFromCamera( 
@@ -21945,6 +22027,129 @@ void LivingLifePage::step() {
                                 strlen( ls.speech ) / 5;
 
                             locationSpeech.push_back( ls );
+
+                            // look for map metadata
+                            char *starPos =
+                                strstr( ls.speech, " *map" );
+                            
+                            if( starPos != NULL ) {
+                                
+                                int mapX, mapY;
+                                
+                                int mapAge = 0;
+                                
+                                int numRead = sscanf( starPos,
+                                                        " *map %d %d %d",
+                                                        &mapX, &mapY,
+                                                        &mapAge );
+
+                                int mapYears = 
+                                    floor( 
+                                        mapAge * 
+                                        getOurLiveObject()->ageRate );
+                                
+                                // trim it off
+                                starPos[0] ='\0';
+
+                                char person = false;
+                                int personID = -1;
+                                const char *personKey = NULL;
+                                
+                                if( numRead == 2 || numRead == 3 ) {
+                                    addTempHomeLocation( mapX, mapY,
+                                                            person,
+                                                            personID,
+                                                            personKey );
+                                    
+                                    SavedCoordinates mapCoords = {
+                                        mapX, mapY, 
+                                        extractMapName(ls.speech),
+                                        2
+                                        };
+                                    addCoordinates( mapCoords );
+                                    }
+
+                                doublePair dest = { (double)mapX, 
+                                                    (double)mapY };
+                                double d = 
+                                    distance( dest,
+                                                getOurLiveObject()->currentPos );
+                                
+                                if( d >= 5 ) {
+                                    char *dString = 
+                                        getSpokenNumber( d );
+                                    char *newSpeech =
+                                        autoSprintf( 
+                                            "%s - %s %s",
+                                            speech,
+                                            dString,
+                                            translate( "metersAway" ) );
+                                    delete [] dString;
+                                    // delete [] ls.speech;
+
+                                    if( mapYears > 0 ) {
+                                        const char *yearKey = 
+                                            "yearsAgo";
+                                        if( mapYears == 1 ) {
+                                            yearKey = "yearAgo";
+                                            }
+                                        
+                                        if( mapYears >= 2000 ) {
+                                            mapYears /= 1000;
+                                            yearKey = "millenniaAgo";
+                                            }
+                                        else if( mapYears >= 200 ) {
+                                            mapYears /= 100;
+                                            yearKey = "centuriesAgo";
+                                            }
+                                        else if( mapYears >= 20 ) {
+                                            mapYears /= 10;
+                                            yearKey = "decadesAgo";
+                                            }
+
+                                        char *ageString =
+                                            getSpokenNumber( mapYears );
+                                        char *newSpeechB =
+                                            autoSprintf( 
+                                                "%s - %s %s %s",
+                                                newSpeech,
+                                                translate( "made" ),
+                                                ageString,
+                                                translate( yearKey ) );
+                                        delete [] ageString;
+                                        delete [] newSpeech;
+                                        newSpeech = newSpeechB;
+                                        }
+                                    
+                                    ls.speech =
+                                        newSpeech;
+                                    }
+                                }
+                            else {
+                                // no *map metadata in our speech
+
+                                // look for *photo metadata
+                                starPos = 
+                                    strstr( ls.speech,
+                                            " *photo " );
+                            
+                                if( starPos != NULL ) {
+
+                                    // skip it to find photo_id
+                                    char *photoID = 
+                                        &( starPos[8] );
+                                    
+                                    displayPhoto( 
+                                        photoID,
+                                        // assume the photo source of this LS to be positive
+                                        // since LS message doesn't give us the source object ID
+                                        false );
+                                    
+                                    // strip metadata off for 
+                                    // spoken words
+                                    starPos[0] = '\0';
+                                    }
+                                }
 
                             // remove old location speech at same pos
                             for( int i=0; i<locationSpeech.size() - 1; i++ ) {
@@ -24115,23 +24320,31 @@ void LivingLifePage::step() {
                 if( ! o->allSpritesLoaded ) {
                     // check if they're loaded yet
                     
-                    int numLoaded = 0;
 
                     ObjectRecord *displayObj = getObject( o->displayID );
-                    for( int s=0; s<displayObj->numSprites; s++ ) {
+                    if( displayObj != NULL ) {
+                        int numLoaded = 0;
                         
-                        if( markSpriteLive( displayObj->sprites[s] ) ) {
-                            numLoaded ++;
+                        for( int s=0; s<displayObj->numSprites; s++ ) {
+                        
+                            if( markSpriteLive( displayObj->sprites[s] ) ) {
+                                numLoaded ++;
+                                }
+                            else if( getSpriteRecord( displayObj->sprites[s] )
+                                     == NULL ) {
+                                // object references sprite that doesn't exist
+                                // count as loaded
+                                numLoaded ++;
+                                }
                             }
-                        else if( getSpriteRecord( displayObj->sprites[s] )
-                                 == NULL ) {
-                            // object references sprite that doesn't exist
-                            // count as loaded
-                            numLoaded ++;
+                        
+                        if( numLoaded == displayObj->numSprites ) {
+                            o->allSpritesLoaded = true;
                             }
                         }
-                    
-                    if( numLoaded == displayObj->numSprites ) {
+                    else {
+                        // no display object
+                        // count as loaded
                         o->allSpritesLoaded = true;
                         }
                     }
@@ -27855,8 +28068,14 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 pickUpBabyInRange();
                 return;
             }
-            if (!commandKey && !shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
-                takeOffBackpack();
+            if (isCharKey(inASCII, charKey_TakeOffBackpack)) {
+                if( !commandKey && !shiftKey ) takeOffBackpack();
+                else if( !commandKey && shiftKey ) takeOffBackpack(1);
+                else takeOffBackpack(2);
+                return;
+            }
+            if (!commandKey && shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
+                takeOffBackpack(true);
                 return;
             }
             if (shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
@@ -28000,6 +28219,27 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         runningYumFinder = true;
         // make sure the animation plays as soon as the key is pressed
         bouncingAnimationStepOffset = -livingLifeStepCount;
+        }
+
+    if( mSayField.isFocused() ) {
+        if( inASCII >= 48 && inASCII <= 57 ) {
+            char *typedText = mSayField.getText();
+            int n = strlen( typedText );
+            if( !( n > 5 && 
+                typedText[0] == '/' &&
+                typedText[1] == 'M' &&
+                typedText[2] == 'A' &&
+                typedText[3] == 'R' &&
+                typedText[4] == 'K' &&
+                typedText[5] == ' ' )
+            ) {
+                typedText[n-1] = '\0';
+                mSayField.setText( typedText );
+                delete [] typedText;
+                return;
+                }
+            delete [] typedText;
+            }
         }
     
     switch( inASCII ) {

@@ -1328,7 +1328,9 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
         }
     
     
-
+    // loop twice to draw all behind-player sprite layers, scene-wide
+    // and then draw other thing after that
+    for( int f=0; f<2; f++ )
     for( int y=0; y<mSceneH; y++ ) {
         
         if( y > mCurY + 6 || 
@@ -1338,7 +1340,7 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
             }
 
 
-        // draw behind stuff first, b=0
+        // draw behind stuff first (whole objects, marked as behind), b=0
         // then people, b=1, with permanent objects in front
         // then non-permanent objects, b=2
         // then non-container walls (floor hugging, no slots), b=3
@@ -1638,6 +1640,74 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                             delete [] subContained;
                             }
                         }
+
+                    SceneCell *c = &( mCells[y][x] );
+
+                    if( c->oID > 0 ) {
+
+                        ObjectRecord *o = getObject( c->oID );
+
+                        // this is a flag that denotes the "Behind-player" sprites in this object
+                        // should be drawn in the same row as the object, instead of all the way in the
+                        // back on a separate layer
+                        char specialPartiallyBehindFlag = o->drawBehindPlayer && o->anySpritesBehindPlayer;
+
+                        if( b == 1 && specialPartiallyBehindFlag ) {
+
+                            doublePair cellPos = pos;
+                            
+                            cellPos.x += c->xOffset;
+                            cellPos.y += c->yOffset;
+
+                            cellPos = add( cellPos, c->moveOffset );
+
+                            
+                            double thisFrameTime = c->frozenAnimTime;
+                                
+                            if( thisFrameTime < 0 ) {
+                                thisFrameTime = frameTime + fabs( thisFrameTime );
+                                }
+
+                        
+                            char used;
+                            int *contained = c->contained.getElementArray();
+                            SimpleVector<int> *subContained = 
+                                c->subContained.getElementArray();
+
+
+                            ObjectRecord *cellO = getObject( c->oID );
+
+                            prepareToSkipSprites( cellO, false );
+
+                            drawObjectAnim( c->oID, c->anim, 
+                                    thisFrameTime, 
+                                    0,
+                                    c->anim,
+                                    thisFrameTime,
+                                    0,
+                                    &used,
+                                    ground,
+                                    ground,
+                                    cellPos,
+                                    0,
+                                    false,
+                                    c->flipH,
+                                    -1,
+                                    0,
+                                    false,
+                                    false,
+                                    c->clothing,
+                                    NULL,
+                                    c->contained.size(), contained,
+                                    subContained );
+                            delete [] contained;
+                            delete [] subContained;
+
+                            restoreSkipDrawing( cellO );
+
+                            }
+                        }
+
                     }
                 }
             
@@ -1662,11 +1732,24 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                 if( c->oID > 0 ) {
                     
                     ObjectRecord *o = getObject( c->oID );
+
+                    // this is a flag that denotes the "Behind-player" sprites in this object
+                    // should be drawn in the same row as the object, instead of all the way in the
+                    // back on a separate layer
+                    char specialPartiallyBehindFlag = o->drawBehindPlayer && o->anySpritesBehindPlayer;
                     
-                    if( ( b == 0 && ! ( o->drawBehindPlayer || 
-                                        o->anySpritesBehindPlayer ) )
+                    if( f == 0 && ! o->anySpritesBehindPlayer ) {
+                        continue;
+                        }
+
+                    if( f == 0 && specialPartiallyBehindFlag ) {
+                        continue;
+                        }
+                    
+
+                    if( ( b == 0 && ! ( o->drawBehindPlayer  ) )
                         ||
-                        ( b != 0 && o->drawBehindPlayer ) ) {
+                        ( b != 0 && ( o->drawBehindPlayer  ) ) ) {
                         continue;
                         }
                     if( ( b == 3 && 
@@ -1730,12 +1813,16 @@ void EditorScenePage::drawUnderComponents( doublePair inViewCenter,
                     
 
                     char skippingSome = false;
-                    if( b == 0 && cellO->anySpritesBehindPlayer ) {
+                    if( f == 0 && cellO->anySpritesBehindPlayer && !specialPartiallyBehindFlag ) {
                         prepareToSkipSprites( cellO, true );
                         skippingSome = true;
                         }
-                    else if( b != 0 && cellO->anySpritesBehindPlayer ) {
+                    else if( f == 1 && cellO->anySpritesBehindPlayer && !specialPartiallyBehindFlag ) {
                         prepareToSkipSprites( cellO, false );
+                        skippingSome = true;
+                        }
+                    else if( f == 1 && specialPartiallyBehindFlag ) {
+                        prepareToSkipSprites( cellO, true );
                         skippingSome = true;
                         }
 

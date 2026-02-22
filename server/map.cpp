@@ -1357,7 +1357,11 @@ static int getBaseMap( int inX, int inY, char *outGridPlacement = NULL ) {
    
         return edgeObjectID;
         }
-   
+    
+    if( numBiomes == 0 ) {
+        return 0;
+        }
+
     int cachedID = mapCacheLookup( inX, inY, outGridPlacement );
    
     if( cachedID != -1 ) {

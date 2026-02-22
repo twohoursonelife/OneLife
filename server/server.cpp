@@ -2508,11 +2508,20 @@ ClientMessage parseMessage( LiveObject *inPlayer, char *inMessage ) {
     else if( strcmp( nameBuffer, "SELF" ) == 0 ) {
         m.type = SELF;
 
+        // abusing the c field here for extra parameter
+        // 0 means old behavior
+        // -1 means remove clothing content only
+        // -2 means transform clothing only e.g. remove sword from backpack
+        // -3 means remove clothing only
+
         numRead = sscanf( inMessage, 
-                          "%99s %d %d %d", 
-                          nameBuffer, &( m.x ), &( m.y ), &( m.i ) );
+                          "%99s %d %d %d %d", 
+                          nameBuffer, &( m.x ), &( m.y ), &( m.i ), &( m.c ) );
         
-        if( numRead != 4 ) {
+        if( numRead == 4 ) {
+            m.c = 0;
+            }
+        else if( numRead != 5 ) {
             m.type = UNKNOWN;
             }
         }
@@ -3104,6 +3113,18 @@ char getFemale( LiveObject *inPlayer ) {
 
 
 
+int getRace( LiveObject *inPlayer ) {
+    ObjectRecord *r = getObject( inPlayer->displayID );
+    
+    if( r == NULL ) {
+        return 0;
+        }
+    
+    return r->race;
+    }
+
+
+
 char isFertileAge( LiveObject *inPlayer ) {
     double age = computeAge( inPlayer );
                     
@@ -3441,7 +3462,14 @@ double computeMoveSpeed( LiveObject *inPlayer ) {
 
 
     // apply character's speed mult
-    speed *= getObject( inPlayer->displayID )->speedMult;
+    int speedMult = 1;
+    ObjectRecord *playerDisplayObject = getObject( inPlayer->displayID );
+    
+    if( playerDisplayObject != NULL ) {
+        speedMult = playerDisplayObject->speedMult;
+        }
+    
+    speed *= speedMult;
     
 
     char riding = false;
@@ -5763,6 +5791,42 @@ static void forceObjectToRead( LiveObject *inPlayer,
         //speech limit is ignored here
         char *quotedPhrase = autoSprintf( ":%s", metaData );
         
+        char *starLoc = 
+            strstr( quotedPhrase, " *map" );
+            
+        if( starLoc != NULL ) {
+            // make coords birth-relative
+            // to person reading map
+            int mapX, mapY;
+
+            // turn time into relative age in sec
+            timeSec_t mapT = 0;
+            
+            int numRead = 
+                sscanf( starLoc, 
+                        " *map %d %d %lf",
+                        &mapX, &mapY, &mapT );
+            if( numRead == 2 || numRead == 3 ) {
+                starLoc[0] = '\0';
+
+                timeSec_t age = 0;
+                
+                if( numRead == 3 ) {
+                    age = Time::timeSec() - mapT;
+                    }
+
+                char *newTrimmed = autoSprintf( 
+                    "%s *map %d %d %.f",
+                    quotedPhrase,
+                    mapX - inPlayer->birthPos.x, 
+                    mapY - inPlayer->birthPos.y,
+                    age );
+                
+                delete [] quotedPhrase;
+                quotedPhrase = newTrimmed;
+                }
+            }
+
         ChangePosition cp;
         cp.x = inReadPos.x;
         cp.y = inReadPos.y;
@@ -8042,16 +8106,16 @@ int processLoggedInPlayer( char inAllowReconnect,
             // set cool-down time before this worman can have another baby
             parent->birthCoolDown = pickBirthCooldownSeconds() + curTime;
 
-            ObjectRecord *parentObject = getObject( parent->displayID );
-
+            int parentRace = getRace( parent );
+            
             // pick race of child
-            int numRaces;
+            int numRaces = 0;
             int *races = getRaces( &numRaces );
         
             int parentRaceIndex = -1;
             
             for( int i=0; i<numRaces; i++ ) {
-                if( parentObject->race == races[i] ) {
+                if( parentRace == races[i] ) {
                     parentRaceIndex = i;
                     break;
                     }
@@ -8060,11 +8124,11 @@ int processLoggedInPlayer( char inAllowReconnect,
 
             if( parentRaceIndex != -1 ) {
                 
-                int childRace = parentObject->race;
+                int childRace = parentRace;
                 
                 char forceDifferentRace = false;
 
-                if( getRaceSize( parentObject->race ) < 3 ) {
+                if( getRaceSize( parentRace ) < 3 ) {
                     // no room in race for diverse family members
                     
                     // pick a different race for child to ensure village 
@@ -8106,7 +8170,7 @@ int processLoggedInPlayer( char inAllowReconnect,
                     childRace = races[ childRaceIndex ];
                     }
                 
-                if( childRace == parentObject->race ) {
+                if( childRace == parentRace ) {
                     
                     if( countYoungFemalesInLineage( parent->lineageEveID ) <
                         SettingsManager::getIntSetting( "minYoungFemalesToForceGirl", 2 ) ) {
@@ -8114,7 +8178,7 @@ int processLoggedInPlayer( char inAllowReconnect,
                         }
                     
                     newObject.displayID = getRandomFamilyMember( 
-                        parentObject->race, parent->displayID, familySpan,
+                        parentRace, parent->displayID, familySpan,
                         forceGirl );
                     }
                 else {
@@ -8856,7 +8920,7 @@ int processLoggedInPlayer( char inAllowReconnect,
               newObject.parentID,
               parentEmail,
               ! getFemale( &newObject ),
-              getObject( newObject.displayID )->race, 
+              getRace( &newObject ), 
               newObject.xd,
               newObject.yd,
               players.size(),
@@ -9836,6 +9900,7 @@ static char addHeldToContainer( LiveObject *inPlayer,
         if( contTrans != NULL ) {
             setResponsiblePlayer( -inPlayer->id );
             if( contTrans->newTarget != target ) setMapObject( inContX, inContY, contTrans->newTarget );
+            setResponsiblePlayer( -1 );
         }
 
         return true;
@@ -11479,7 +11544,7 @@ char *getUniqueCursableName( char *inPlayerName, char *outSuffixAdded,
             }
         
 
-        return inPlayerName;
+        if( !dup ) return inPlayerName;
         }    
     
     
@@ -11616,6 +11681,19 @@ char *getUniqueCursableName( char *inPlayerName, char *outSuffixAdded,
                             }
                         }
                     
+                    if( ! dup ) {
+                        // not used by any living family
+                        // however, was this a recent EVE last name
+                        // that is still cursable?
+                        
+                        char *testName = autoSprintf( "EVE %s", tempLastName );
+                        
+                        dup = isNameDuplicateForCurses( testName );
+                        
+                        delete [] testName;
+                        }
+                    
+
                     if( dup ) {
                         i = nextI;
                         }
@@ -14723,7 +14801,7 @@ int main() {
                             tokens->size() == 7 ) {
                             
                             nextConnection->email = 
-                                stringToLowerCase( 
+                                stringDuplicate( 
                                     tokens->getElementDirect( 1 ) );
 
 
@@ -14796,6 +14874,10 @@ int main() {
                                     nextConnection->famTarget = NULL;
                                 }
                             }
+
+                            nextConnection->email = 
+                                stringToLowerCase( 
+                                    nextConnection->email );
 
                             char *pwHash = tokens->getElementDirect( 2 );
                             char *keyHash = tokens->getElementDirect( 3 );
@@ -17500,6 +17582,7 @@ int main() {
                             unsigned char metaData[ MAP_METADATA_LENGTH ];
                             int len = strlen( m.saidText );
                             
+                            if( strcmp( m.saidText, "" ) != 0 )
                             if( nextPlayer->holdingID > 0 &&
                                 len < MAP_METADATA_LENGTH &&
                                 getObject( 
@@ -17796,6 +17879,8 @@ int main() {
                                     // no longer track embedded weapon
                                     nextPlayer->embeddedWeaponID = 0;
                                     nextPlayer->embeddedWeaponEtaDecay = 0;
+                                    
+                                    setResponsiblePlayer( nextPlayer->id );
                                     
                                     setMapObject( m.x, m.y,
                                                   healTrans->newTarget );
@@ -19004,7 +19089,6 @@ int main() {
                                             if( containmentTrans != NULL ) {
                                                 int newContainerID = containmentTrans->newTarget;
                                                 if( isOutContTrans ) newContainerID = containmentTrans->newActor;
-                                                if( containmentTrans == NULL ) setResponsiblePlayer( -1 );
                                                 setMapObject( m.x, m.y, newContainerID );
                                                 }                     
                                             
@@ -19761,6 +19845,32 @@ int main() {
                                     targetPlayer->embeddedWeaponID = 0;
                                     targetPlayer->embeddedWeaponEtaDecay = 0;
                                     
+                                    // check if this new wound would leave
+                                    // something embedded in grave
+                                    TransRecord *newWoundEmbed = 
+                                        getPTrans( targetPlayer->holdingID,
+                                                   0, false, false ); 
+                                    
+                                    if( newWoundEmbed != NULL &&
+                                        newWoundEmbed->newTarget > 0 ) {
+                                        
+                                        targetPlayer->embeddedWeaponID = 
+                                            newWoundEmbed->newTarget;
+                                        TransRecord *newDecayT = 
+                                            getMetaTrans( 
+                                                -1, 
+                                                newWoundEmbed->newTarget );
+                    
+                                        if( newDecayT != NULL ) {
+                                            targetPlayer->
+                                                embeddedWeaponEtaDecay = 
+                                                Time::timeSec() + 
+                                                newDecayT->
+                                                autoDecaySeconds;
+                                            }
+                                        }
+                                    
+
                                     
                                     nextPlayer->holdingID = 
                                         healTrans->newActor;
@@ -19860,8 +19970,6 @@ int main() {
                                         m.i,
                                         getObject( 
                                             healTrans->newTarget ) );
-                                    
-                                    setResponsiblePlayer( -1 );
                                     
                                     healed = true;
                                     healTarget = healTrans->target;
@@ -20387,7 +20495,10 @@ int main() {
                                 
 
                                 if( targetPlayer == nextPlayer &&
-                                    bareHandClothingTrans != NULL ) {
+                                    bareHandClothingTrans != NULL &&
+                                    m.c != -1 && // player only wants clothing content
+                                    m.c != -3 // player only wants the clothing itself
+                                    ) {
                                     
                                     // bare hand transforms clothing
                                     
@@ -20425,7 +20536,10 @@ int main() {
                                             deleteAll();
                                         }
                                     }
-                                else if( clothingSlot != NULL ) {
+                                else if( clothingSlot != NULL &&
+                                         m.c != -1 && // player only wants clothing content
+                                         m.c != -2 // player only wants to transform clothing
+                                         ) {
                                     // bare hand removes clothing
                                     
                                     removeClothingToHold( nextPlayer,
@@ -20980,7 +21094,10 @@ int main() {
                         
                         if( nextPlayer->holdingID == 0 && 
                             m.c >= 0 && m.c < NUM_CLOTHING_PIECES  &&
-                            ! worked ) {
+                            ! worked &&
+                            // -2 means player only wants clothing content
+                            m.i != -2
+                            ) {
 
                             // hmm... nothing to remove from slots in clothing
                             
@@ -21258,6 +21375,7 @@ int main() {
                     logDeath( nextPlayer->id,
                               nextPlayer->email,
                               nextPlayer->isEve,
+                              nextPlayer->name,
                               computeAge( nextPlayer ),
                               getSecondsPlayed( 
                                   nextPlayer ),
@@ -21558,6 +21676,7 @@ int main() {
                         logDeath( nextPlayer->id,
                                   nextPlayer->email,
                                   nextPlayer->isEve,
+                                  nextPlayer->name,
                                   age,
                                   getSecondsPlayed( nextPlayer ),
                                   male,
@@ -22678,6 +22797,7 @@ int main() {
                             logDeath( decrementedPlayer->id,
                                       decrementedPlayer->email,
                                       decrementedPlayer->isEve,
+                                      decrementedPlayer->name,
                                       computeAge( decrementedPlayer ),
                                       getSecondsPlayed( decrementedPlayer ),
                                       ! getFemale( decrementedPlayer ),
