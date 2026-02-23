@@ -8305,7 +8305,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 setDrawColor( 1, 1, 1, 1 );
             }
             else{
-                setDrawColor( 0.5, 0.5, 0.5, 0.5 );
+                setDrawColor( 0.5, 0.5, 0.5, 1 );
             }
 
             if( b >= 0 && b < groundSpritesArraySize ) {
