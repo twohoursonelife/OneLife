@@ -8298,15 +8298,47 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
             
+            // this draws debug info about remembered chunks every 4 tiles
+            // if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
+            //     doublePair drawPos = { (double)screenX, (double)screenY };
+            //     setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
+            //     char* string;
+            //     string = autoSprintf("%d,%d", x, y);
+            //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+            //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
+            //     delete[] string;
+            //     // drawPos.y += 50;
+            //     // string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
+            //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+            //     // delete[] string;
+            //     // drawPos.y += 50;
+            //     // string = autoSprintf("b%d,c%d", b, chunk != NULL);
+            //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+            //     // delete[] string;
+            //     drawPos.y += 50;
+            //     string = autoSprintf("%d,%d", mMapOffsetX, mMapOffsetY);
+            //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
+            //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
+            //     delete[] string;
+            //     setDrawColor( 1,1,1,1 );
+            // }
+
             GroundSpriteSet *s = NULL;
             
             // area is loaded by the last MAP_CHUNK update
-            if (inBounds && mMap[mapI] != -1){ 
+            if (inBounds && mMap[mapI] != -1){
                 setDrawColor( 1, 1, 1, 1 );
             }
-            else{
+            else {
                 setDrawColor( 0.5, 0.5, 0.5, 1 );
             }
+            // this draws chunks in alternating red-blue checkerboard pattern
+            // if ((absoluteChunkX + absoluteChunkY) % 2 == 0){
+            //     setDrawColor( 1, 0.5, 0.5, 1 );
+            // }
+            // else{
+            //     setDrawColor( 0.5, 0.5, 1, 1 );
+            // }
 
             if( b >= 0 && b < groundSpritesArraySize ) {
                 s = groundSprites[ b ];
@@ -8340,42 +8372,6 @@ void LivingLifePage::draw( doublePair inViewCenter,
                             
                 doublePair pos = { (double)screenX, (double)screenY };
 
-                // this draws debug info about remembered chunks every 4 tiles
-                // if (posInChunkY % 4 == 0 && posInChunkX % 4 == 0){
-                //     doublePair drawPos = pos;
-                //     // setDrawColor( 0,0, getXYRandom( b, b + 300 ), 1 );
-                //     char* string;
-                //     string = autoSprintf("%d,%d", x, y);
-                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
-                //     delete[] string;
-                //     // drawPos.y += 50;
-                //     // string = autoSprintf("%d,%d", posInChunkX, posInChunkY);
-                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     // delete[] string;
-                //     // drawPos.y += 50;
-                //     // string = autoSprintf("b%d,c%d", b, chunk != NULL);
-                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     // delete[] string;
-                //     drawPos.y += 50;
-                //     string = autoSprintf("%d,%d", mMapOffsetX, mMapOffsetY);
-                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
-                //     delete[] string;
-                //     drawPos.y += 50;
-                //     string = autoSprintf("%d,%d", lastSavedMapChunkSizeX, lastSavedMapChunkSizeY);
-                //     // tinyHandwritingFont->drawString( string, drawPos, alignLeft, 5 / gui_fov_scale_hud );
-                //     tinyHandwritingFont->drawString( string, drawPos, alignLeft);
-                //     delete[] string;
-                //     // setDrawColor( 1,1,1,1 );
-
-                //     // if (x >= 16 && y > 16 && x < 48 && y < 48){
-                //     //     setDrawColor( 0, 1, 0, 1 );
-                //     // }
-                //     // else{
-                //     //     setDrawColor( 1, 0, 0, 1 );
-                //     // }
-                // }
 
                 // wrap around
                 int setY = tileY % s->numTilesHigh;
@@ -8478,9 +8474,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         int* leftChunk = findChunkByCoords(leftChunkX, absoluteChunkY);
                         if (leftChunk != NULL){
                             // mapC-1 would bring us to upperleft tile, so we should +mMapD to go back to current line
-                            printf("leftChunkCoord: %d\n", mapC-1+mMapD);
-                            fflush(stdout);
-                            //leftB = leftChunk[mapC-1+mMapD];
+                            leftB = leftChunk[mapC-1+mMapD];
                         }
                     }
                     if( isInBounds( posInChunkX, posInChunkY + 1, mMapD ) ) {    
