@@ -29170,12 +29170,13 @@ void LivingLifePage::calcFontScale( float newScale, Font *font ) {
     }
 
 void LivingLifePage::changeFOV( float newScale ) {
-    
+    float fov_max = SettingsManager::getFloatSetting( "fovMax", 3.0f );
+
     if( newScale < 1.0f ) {
         newScale = 1.0f;
         }
-    else if( newScale > 10.0f ) {
-        newScale = 10.0f;
+    else if( newScale > fov_max ) {
+        newScale = fov_max;
         }
 
     LiveObject *ourLiveObject = getOurLiveObject();
