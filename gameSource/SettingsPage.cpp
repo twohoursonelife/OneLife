@@ -72,7 +72,9 @@ SettingsPage::SettingsPage()
           mEditAccountButton( mainFont, -463, 129, translate( "editAccount" ) ),
 
           // Gameplay
-          mEnableFOVBox( 561, 128, 4 ),
+          mFOVSlider( mainFont, 561, 128, 4, 200, 30,
+                                       1, 10, 
+                                       "" ),
           mEnableCenterCameraBox( 561, 52, 4 ),
           mEnableNudeBox( -335, 148, 4 ),
           mUISizeSlider( mainFont, -335, 148, 4, 200, 30,
@@ -253,8 +255,8 @@ SettingsPage::SettingsPage()
     mEnableNudeBox.addActionListener( this );
     addComponent( &mEnableCenterCameraBox );
     mEnableCenterCameraBox.addActionListener( this );
-    addComponent( &mEnableFOVBox );
-    mEnableFOVBox.addActionListener( this );
+    addComponent( &mFOVSlider );
+    mFOVSlider.addActionListener( this );
     
     // Left pane
     setButtonStyle(&mAdvancedButton);
@@ -321,7 +323,7 @@ SettingsPage::SettingsPage()
 
     mBackButton.setCursorTip( "GO BACK" );
     
-    mEnableFOVBox.setCursorTip( "ENABLE ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
+    mFOVSlider.setCursorTip( "CHANGE LIMITS ON ZOOM-IN AND ZOOM-OUT WITH MOUSE WHEEL SCROLLING" );
     mEnableCenterCameraBox.setCursorTip( "ALWAYS CENTER THE CAMERA VIEW ON YOUR CHARACTER" );
     mEnableNudeBox.setCursorTip( "ENABLE NUDITY" );
     
@@ -388,12 +390,6 @@ SettingsPage::SettingsPage()
         SettingsManager::getIntSetting( "nudeEnabled", 1 );
 
     mEnableNudeBox.setToggled( mEnableNudeSetting );
-
-
-    mEnableFOVSetting =
-        SettingsManager::getIntSetting( "fovEnabled", 0 );
-    
-    mEnableFOVBox.setToggled( mEnableFOVSetting );
     
     mEnableKActionsSetting =
         SettingsManager::getIntSetting( "keyboardActions", 0 );
@@ -645,10 +641,18 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
         mCustomServerAddressField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         mCustomServerPortField.setVisible( mPage == 0 && mUseCustomServerBox.getToggled() );
         }
-    else if( inTarget == &mEnableFOVBox ) {
-        int newSetting = mEnableFOVBox.getToggled();
+    else if( inTarget == &mFOVSlider ) {
+        // change the value in increments of 0.25
+        float newSetting = round(mFOVSlider.getValue() * 4.0f) / 4.0f;
         
-        SettingsManager::setSetting( "fovEnabled", newSetting );
+        if ( newSetting < 1.25f ) {
+            SettingsManager::setSetting( "fovEnabled", 0 );
+            }
+        else {
+            SettingsManager::setSetting( "fovEnabled", 1 );
+            }
+        
+        SettingsManager::setSetting( "fovMax", newSetting );
         }
     else if( inTarget == &mEnableKActionsBox ) {
         int newSetting = mEnableKActionsBox.getToggled();
@@ -1107,13 +1111,14 @@ void SettingsPage::draw( doublePair inViewCenter,
             }
         }
     
-    if( mEnableFOVBox.isVisible() ) {
-        doublePair pos = mEnableFOVBox.getPosition();
+    if( mFOVSlider.isVisible() ) {
+        doublePair pos = mFOVSlider.getPosition();
         
-        pos.x -= 30;
+        pos.x -= 60;
+        pos.y = mFOVSlider.getPosition().y;
         pos.y -= 2;
 
-        drawTextWithShadow( "ENABLE ZOOM", pos, alignRight );
+        drawTextWithShadow( "FIELD OF VIEW", pos, alignRight );
         }
     
     if( mEnableKActionsBox.isVisible() ) {
@@ -1354,6 +1359,8 @@ void SettingsPage::makeActive( char inFresh ) {
         mMusicStartTime = 0;
 
         mUISizeSlider.setValue( 1 / gui_fov_target_scale_hud );
+        
+        mFOVSlider.setValue( SettingsManager::getFloatSetting( "fovMax", 3.0f ) );
 
         mEnableAlwaysShowPlayerLabelsBox.setToggled( alwaysShowPlayerLabelEnabled );
         
@@ -1398,7 +1405,7 @@ void SettingsPage::updatePage() {
 
     double lineSpacing = 52;
     
-    mEnableFOVBox.setPosition( 0, lineSpacing * 4 );
+    mFOVSlider.setPosition( 28, lineSpacing * 4 );
     mEnableCenterCameraBox.setPosition( 0, lineSpacing * 3 );
     mEnableNudeBox.setPosition( 0, lineSpacing * 2 );
     mUISizeSlider.setPosition( 28, lineSpacing * 1 );
@@ -1451,7 +1458,7 @@ void SettingsPage::updatePage() {
     mEnableShowingHeldFoodPips.setPosition(0, lineSpacing * -4);
     mEnableAlwaysShowPlayerLabelsBox.setPosition(0, lineSpacing * -5);
     
-    mEnableFOVBox.setVisible( mPage == 0 );
+    mFOVSlider.setVisible( mPage == 0 );
     mEnableCenterCameraBox.setVisible( mPage == 0 );
     mEnableNudeBox.setVisible( mPage == 0 );
     mUISizeSlider.setVisible( mPage == 0 );

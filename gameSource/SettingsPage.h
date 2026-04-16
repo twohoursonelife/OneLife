@@ -80,7 +80,7 @@ class SettingsPage : public GamePage, public ActionListener {
         TextButton mEditAccountButton;
 
         // Gameplay
-        CheckboxButton mEnableFOVBox;
+        ValueSlider mFOVSlider;
         CheckboxButton mEnableCenterCameraBox;
         CheckboxButton mEnableNudeBox;
         ValueSlider mUISizeSlider;
