@@ -660,14 +660,20 @@ void ExistingAccountPage::makeActive( char inFresh ) {
     
     useSteamUpdate = SettingsManager::getIntSetting( "useSteamUpdate", 0 ) != 0;
     
+    emailFieldLockedMode = 0;
+    keyFieldLockedMode = 0;
+    
+    if (strcmp(mSpawnSeed.getText(), "") == 0) {
+        seedFieldLockedMode = 2;
+        }
+    else {
+        seedFieldLockedMode = 0;
+        }
     
     if( !mFPSMeasureDone || mRetryButton.isVisible() ) {
         
         updateLeftPane();
         
-        emailFieldLockedMode = 0;
-        keyFieldLockedMode = 0;
-        seedFieldLockedMode = 0;
         mEmailField.unfocus();
         mKeyField.unfocus();
         mSpawnSeed.unfocus();
@@ -729,9 +735,6 @@ void ExistingAccountPage::makeActive( char inFresh ) {
         
         updateLeftPane();
         
-        emailFieldLockedMode = 0;
-        keyFieldLockedMode = 0;
-        seedFieldLockedMode = 0;
         mEmailField.unfocus();
         mKeyField.unfocus();
         mSpawnSeed.unfocus();
@@ -966,7 +969,6 @@ void ExistingAccountPage::pointerUp( float inX, float inY ) {
         }
     if( mSpawnSeed.isVisible() && !mSpawnSeed.isMouseOver() ) {
         if( !seedUIElementsClicked ) { // NOT unlock button clicked
-            seedFieldLockedMode = 0;
             mSpawnSeed.unfocus();
             updatefieldsAndLockButtons();
             }
