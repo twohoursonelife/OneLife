@@ -8326,7 +8326,8 @@ void LivingLifePage::draw( doublePair inViewCenter,
             GroundSpriteSet *s = NULL;
             
             // area is loaded by the last MAP_CHUNK update
-            if (inBounds && mMap[mapI] != -1){
+            char shouldDrawFullColor = (inBounds && (mMap[mapI] != -1)) || b == -1;
+            if ( shouldDrawFullColor ){
                 setDrawColor( 1, 1, 1, 1 );
             }
             else {
@@ -8393,14 +8394,21 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     char allSameBiome = true;
                     
                     // check borders of would-be sheet too
-                    for( int nY = posInChunkY+1; nY >= posInChunkY - s->numTilesHigh; nY-- ) {
-                        for( int nX = posInChunkX-1; nX <= posInChunkX + s->numTilesWide; nX++ ) {
-                            int nI = nY * mMapD + nX;
+                    for( int dY = 1; dY >= - s->numTilesHigh; dY-- ) {
+                        for( int dX = -1; dX <= s->numTilesWide; dX++ ) {
+                            int nChunkY = posInChunkY + dY;
+                            int nChunkX = posInChunkX + dX;
+                            int nChunkI = nChunkY * mMapD + nChunkX;
                             int nB = -1;
+
+                            int nY = y + dY;
+                            int nX = x + dX;
+                            int nI = nY * mMapD + nX;
+
                             
-                            if( isInBounds( nX, nY, mMapD ) ) {
+                            if( isInBounds( nChunkX, nChunkY, mMapD ) ) {
                                 if (chunk != NULL){
-                                    nB = chunk[nI];
+                                    nB = chunk[nChunkI];
                                 }
                             }
                             else {
@@ -8408,7 +8416,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                 break;
                             }
 
-                            if( nB != b ) {
+                            char nInBounds = isInBounds( nX, nY, mMapD );
+                            char nShouldDrawFullColor = (nInBounds && (mMap[nI] != -1)) || nB == -1;
+                            if( (nB != b) || (shouldDrawFullColor != nShouldDrawFullColor)) {
                                 allSameBiome = false;
                                 break;
                             }
@@ -8549,7 +8559,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                         
                         // skip if biome square completely covered by floors
                         if( !( floorAt && floorR && floorB && floorBR ) ) {
-                            drawSprite( s->squareTiles[setY][setX], pos );
+                            drawSprite( s->tiles[setY][setX], pos );
                             }
                         }
                     else {
