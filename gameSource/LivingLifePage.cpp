@@ -5776,7 +5776,7 @@ void LivingLifePage::handleAnimSound( int inObjectID, double inAge,
                     
                     
                     
-                    playSound( u,
+                    playCryingSound( u,
                                getVectorFromCamera( inPosX, inPosY ) );
                     
                     }
@@ -11464,8 +11464,9 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                     // make sure it can be heard, even
                                     // if paused
                                     setSoundLoudness( 1.0 );
+                                    float hungerLoudness = SettingsManager::getFloatSetting( "HungerLoudness", 1.0 );
                                     playSoundSprite( mHungerSound, 
-                                                     getSoundEffectsLoudness(),
+                                                     getSoundEffectsLoudness() * hungerLoudness,
                                                      // middle
                                                      0.5 );
                                     }
@@ -22770,8 +22771,9 @@ void LivingLifePage::step() {
                                     // make sure it can be heard
                                     // even if paused
                                     setSoundLoudness( 1.0 );
+                                    float hungerLoudness = SettingsManager::getFloatSetting( "HungerLoudness", 1.0 );
                                     playSoundSprite( mHungerSound, 
-                                                     getSoundEffectsLoudness(),
+                                                     getSoundEffectsLoudness() * hungerLoudness,
                                                      // middle
                                                      0.5 );
                                     }

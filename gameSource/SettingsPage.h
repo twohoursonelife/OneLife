@@ -107,6 +107,8 @@ class SettingsPage : public GamePage, public ActionListener {
         // Sound
         ValueSlider mMusicLoudnessSlider;
         ValueSlider mSoundEffectsLoudnessSlider;
+        ValueSlider mCryingLoudnessSlider;
+        ValueSlider mHungerLoudnessSlider;
 
 #ifdef USE_DISCORD
         // Discord

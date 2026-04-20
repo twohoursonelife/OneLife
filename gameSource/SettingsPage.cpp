@@ -109,6 +109,12 @@ SettingsPage::SettingsPage()
           mTrippingEffectDisabledBox( 0, 168, 4 ),
           
           // Sound
+          mCryingLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
+                                       0.0, 1.0, 
+                                       "CRYING LOUDNESS", true ),
+          mHungerLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
+                                       0.0, 1.0, 
+                                       "HUNGER LOUDNESS", true ),
           mMusicLoudnessSlider( mainFont, 0, 40, 4, 200, 30,
                                 0.0, 1.0, 
                                 translate( "musicLoudness" ), true ),
@@ -189,6 +195,10 @@ SettingsPage::SettingsPage()
     mSoundEffectsLoudnessSlider.addActionListener( this );
     addComponent( &mMusicLoudnessSlider );
     mMusicLoudnessSlider.addActionListener( this );
+    addComponent( &mCryingLoudnessSlider );
+    mCryingLoudnessSlider.addActionListener( this );
+    addComponent( &mHungerLoudnessSlider );
+    mHungerLoudnessSlider.addActionListener( this );
     
     // Screen
     addComponent( &mTrippingEffectDisabledBox );
@@ -766,6 +776,36 @@ void SettingsPage::actionPerformed( GUIComponent *inTarget ) {
             setMusicLoudness( mMusicLoudnessSlider.getValue(), true );
             }
         }
+    else if( inTarget == &mCryingLoudnessSlider ) {
+        setMusicLoudness( 0 );
+        mMusicStartTime = 0;
+        
+        if( ! mCryingLoudnessSlider.isPointerDown() ) {
+            float cryingLoudness = mCryingLoudnessSlider.getValue();
+            
+            setCryingLoudness( cryingLoudness );
+        
+            SoundSpriteHandle mCryingSound = loadSoundSprite( "otherSounds", "cryingTest.aiff" );
+            playSoundSprite( mCryingSound, 
+                             getSoundEffectsLoudness() * cryingLoudness,
+                             0.5 );
+            }
+        }
+    else if( inTarget == &mHungerLoudnessSlider ) {
+        setMusicLoudness( 0 );
+        mMusicStartTime = 0;
+        
+        if( ! mHungerLoudnessSlider.isPointerDown() ) {
+            float hungerLoudness = mHungerLoudnessSlider.getValue();
+            
+            SettingsManager::setSetting( "HungerLoudness", hungerLoudness );
+            
+            SoundSpriteHandle mHungerSound = loadSoundSprite( "otherSounds", "hunger.aiff" );
+            playSoundSprite( mHungerSound, 
+                             getSoundEffectsLoudness() * hungerLoudness,
+                             0.5 );
+            }
+        }        
     else if( inTarget == &mCopyButton ) {
         char *address = mCustomServerAddressField.getText();
         
@@ -1350,6 +1390,8 @@ void SettingsPage::makeActive( char inFresh ) {
 
         mMusicLoudnessSlider.setValue( musicLoudness );
         mSoundEffectsLoudnessSlider.setValue( getSoundEffectsLoudness() );
+        mCryingLoudnessSlider.setValue( getCryingLoudness() );
+        mHungerLoudnessSlider.setValue( SettingsManager::getFloatSetting( "HungerLoudness", 1.0 ) );
         setMusicLoudness( 0 );
         mMusicStartTime = 0;
 
@@ -1420,8 +1462,10 @@ void SettingsPage::updatePage() {
     mCursorModeSet->setPosition( 0, 0 );
     mCursorScaleSlider.setPosition( -80, -lineSpacing * 3 );
     
-    mMusicLoudnessSlider.setPosition( 0, lineSpacing / 2 );
-    mSoundEffectsLoudnessSlider.setPosition( 0, - lineSpacing / 2 );
+    mMusicLoudnessSlider.setPosition( 0, lineSpacing * 2 );
+    mSoundEffectsLoudnessSlider.setPosition( 0, lineSpacing );
+    mCryingLoudnessSlider.setPosition( 0, - lineSpacing );
+    mHungerLoudnessSlider.setPosition( 0, - lineSpacing * 2 );
     
     mTargetFrameRateField.setPosition( 5, lineSpacing );
     mVsyncBox.setPosition( 0, 0 );
@@ -1476,6 +1520,8 @@ void SettingsPage::updatePage() {
 
     mMusicLoudnessSlider.setVisible( mPage == 3 );
     mSoundEffectsLoudnessSlider.setVisible( mPage == 3 );
+    mCryingLoudnessSlider.setVisible( mPage == 3 );
+    mHungerLoudnessSlider.setVisible( mPage == 3 );
 
 #ifdef USE_DISCORD
     mEnableDiscordRichPresence.setVisible(mPage == 4);

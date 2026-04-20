@@ -109,6 +109,19 @@ int getMaxSoundID() {
     }
 
 
+static double cryingLoudness = 1.0;
+
+void setCryingLoudness( double inLoudness ) {
+    cryingLoudness = inLoudness;
+    
+    SettingsManager::setSetting( "cryingLoudness", 
+                                 (float)cryingLoudness );
+    }
+
+double getCryingLoudness() {
+    return cryingLoudness;
+    }
+
 
 static int16_t *readAIFFFile( File *inFile, int *outNumSamples ) {
     int numBytes;
@@ -374,6 +387,9 @@ int initSoundBankStart( char *outRebuildingCache ) {
     
     soundEffectsLoudness = 
         SettingsManager::getFloatSetting( "soundEffectsLoudness", 1.0 );
+
+    cryingLoudness = 
+        SettingsManager::getFloatSetting( "cryingLoudness", 1.0 );
     
     soundEffectsOff = SettingsManager::getIntSetting( "soundEffectsOff", 0 );
     
@@ -1131,6 +1147,18 @@ void playSound( SoundUsage inUsage,
 
     playSound( p.id, volume * p.volume, pan,
                reverbMix );
+    }
+
+
+void playCryingSound( SoundUsage inUsage,
+                doublePair inVectorFromCameraToSoundSource ) {
+    //set new soundEffectsLoudness temporarily to soften sound of baby cries
+    double tempSoundEffectsLoudness = soundEffectsLoudness;
+    soundEffectsLoudness *= cryingLoudness;
+    
+    playSound( inUsage, inVectorFromCameraToSoundSource );
+    
+    soundEffectsLoudness = tempSoundEffectsLoudness; //revert changes
     }
 
 
