@@ -546,12 +546,11 @@ class LivingLifePage : public GamePage, public ActionListener {
         void pickUpBabyInRange();
         void pickUpBaby( int x, int y );
         void useBackpack( bool replace = false );
-        void usePocket( int clothingID, bool replace = false );
+        void usePocket( int clothingID, bool replace = false, bool remove = false );
         void useOnSelf();
         void takeOffClothing();
         void takeOffBackpack( int useOrRemove = 0 );
         void setOurSendPosXY(int &x, int &y);
-        bool isCharKey(unsigned char c, unsigned char key);
         void drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing = false, bool border = true );
         void drawTileVanillaRainbowHighlight( int x, int y );
 
@@ -569,6 +568,7 @@ class LivingLifePage : public GamePage, public ActionListener {
         void clickMove( float x, float y );
         void moveToAndClickTile(int tileX, int tileY, bool alpha);
         void checkIfMoveClickIsDone();
+        char handleMoveAction( const char *inActionName, bool *outKeyDown, char inAlpha, char inBeta, int inX, int inY );
 
         void movementStep();
         bool findNextMove(int &x, int &y, int dir);
@@ -702,8 +702,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         int mMapOffsetY;
         protected: // minitech
 
-        char mEKeyEnabled;
-        char mEKeyDown;
+        char mModClickEnabled;
+        char mModClickKeyDown;
         
 
         SpriteHandle mGuiPanelSprite;
@@ -1122,11 +1122,11 @@ class LivingLifePage : public GamePage, public ActionListener {
         
 
         char mUsingSteam;
-        char mZKeyDown;
-        
-        char mXKeyDown;
-        
-        char mGraveKeyDown;
+        char mHintBackKeyDown;
+
+        char mXrayKeyDown;
+
+        char mHideHudKeyDown;
 
         
         //FOV

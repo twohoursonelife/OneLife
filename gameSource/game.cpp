@@ -106,6 +106,8 @@ CustomRandomSource randSource( 34957197 );
 
 #include "message.h"
 
+#include "KeybindManager.h"
+
 #ifdef USE_DISCORD
 #include "DiscordController.h"
 #endif // USE_DISCORD
@@ -2852,7 +2854,8 @@ void pointerUp( float inX, float inY ) {
 
 
 void keyDown( unsigned char inASCII ) {
-    
+    KeybindManager::keyDown( inASCII );
+
     if( inASCII == 27 ) { // ESCAPE KEY
         TextField::unfocusAll();
         if ( currentGamePage == settingsPage ) {
@@ -2863,7 +2866,7 @@ void keyDown( unsigned char inASCII ) {
         }
 
     // taking screen shot is ALWAYS possible
-    if( inASCII == '=' ) {    
+    if( inASCII == '=' ) {
         saveScreenShot( "screen" );
         }
     /*
@@ -2953,6 +2956,8 @@ void keyUp( unsigned char inASCII ) {
         // even if pause screen no longer up, pay attention to this
         holdDeleteKeySteps = -1;
         }
+    
+    KeybindManager::keyUp( inASCII );
 
     if( isPaused() ) return;
 
@@ -2969,10 +2974,12 @@ void keyUp( unsigned char inASCII ) {
 
 
 void specialKeyDown( int inKey ) {
+    KeybindManager::specialKeyDown( inKey );
+
     if( isPaused() ) {
         return;
         }
-    
+
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyDown( inKey );
         }
@@ -2981,6 +2988,8 @@ void specialKeyDown( int inKey ) {
 
 
 void specialKeyUp( int inKey ) {
+    KeybindManager::specialKeyUp( inKey );
+
     if( isPaused() ) {
         return;
         }
