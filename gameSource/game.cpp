@@ -921,6 +921,43 @@ int currentHelpPage = 0;
 int totalNumOfHelpPages = 0;
 
 
+static void replaceKeybindNames( char *&outLine ) { // use format {k=<actionName>} to replace with the keybinds display string
+
+    if( strstr( outLine, "{k=" ) ) {
+        SimpleVector<char> out;
+        char *pos = outLine;
+
+        while( *pos != '\0' ) {
+            if( strncmp( pos, "{k=", 3 ) == 0 ) {
+                char *start = pos + 3;
+                char *end = strchr( start, '}' );
+
+                if( end == NULL ) {
+                    out.push_back( *pos );
+                    pos++;
+                    continue;
+                    }
+
+                *end = '\0';
+                char *keyString = KeybindManager::buildKeyString( start, true );
+
+                for( int i = 0; keyString[i] != '\0'; i++ ) {
+                    out.push_back( keyString[i] );
+                    }
+                delete [] keyString;
+
+                pos = end + 1;
+                continue;
+                }
+            out.push_back( *pos );
+            pos++;
+            }
+
+        delete [] outLine;
+        outLine = out.getElementString();
+        }
+    }
+
 static void drawPauseScreen() {
     
     if( isPaused() &&
@@ -1135,6 +1172,7 @@ static void drawPauseScreen() {
                         lines[i] = holder[1];
                         subString = holder[2];
                         isSub = true;
+                        replaceKeybindNames( lines[i] );
                         }
                     else if ( strstr( lines[i], "space$" ) != NULL ) {
                         float lineScale;
