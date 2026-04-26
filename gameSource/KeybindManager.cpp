@@ -262,7 +262,7 @@ void KeybindManager::keyDown( unsigned char inASCII ) {
     // reroute enter key to an unused ASCII code to avoid mixups with ctrl+m ctrl code
     // this means there can't be a keybind that includes both enter and ctrl. could be routed through special key instead?
     if( inASCII == 13 && !sControlDown ) inASCII = 28;
-    if( sControlDown && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1;
+    if( sControlDown && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1; // recover key from ctrl codes
     sPressed[ tolower( inASCII ) ] = true;
     }
 

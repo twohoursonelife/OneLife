@@ -4296,32 +4296,36 @@ LivingLifePage::LivingLifePage()
     KeybindManager::registerAction( "selfBackpackTrans", "TRANS", "shift+b" );
     KeybindManager::registerAction( "selfBackpackRemv", "REMV", "ctrl+b" );
 
-    KeybindManager::registerAction( "eatSelf", "EAT/SELF", "e", KEY_ONLY );
+    KeybindManager::registerAction( "eatSelf", "EAT/SELF", "e" );
     KeybindManager::registerAction( "removeClothing", "REMOVE CLOTHING", "shift+e" );
-    KeybindManager::registerAction( "pickUpBaby", "PICK UP BABY", "c", KEY_ONLY );
+    KeybindManager::registerAction( "pickUpBaby", "PICK UP BABY", "c" );
 
 
-    KeybindManager::registerAction( "coordinatesToggle", "COORDINATES PANEL", "g", KEY_ONLY );
-    KeybindManager::registerAction( "yumFinder", "YUM FINDER", "y", KEY_ONLY );
-    KeybindManager::registerAction( "objectSearchToggle", "OBJECT SEARCH PANEL", "j", KEY_ONLY );
-    KeybindManager::registerAction( "familyDisplayToggle", "FAMILY DISPLAY PANEL", "p", KEY_ONLY );
+    KeybindManager::registerAction( "coordinatesToggle", "COORDINATES PANEL", "g" );
+    KeybindManager::registerAction( "yumFinder", "YUM FINDER", "y" );
+    KeybindManager::registerAction( "objectSearchToggle", "OBJECT SEARCH PANEL", "j" );
+    KeybindManager::registerAction( "familyDisplayToggle", "FAMILY DISPLAY PANEL", "p" );
 
-    KeybindManager::registerAction( "xray", "X-RAY MODE", "x", KEY_ONLY );
-    KeybindManager::registerAction( "hideHud", "HIDE HUD", "`", KEY_ONLY );
-    KeybindManager::registerAction( "hintBack", "HINT BACK", "z", KEY_ONLY );
-    KeybindManager::registerAction( "nameLabels", "PLAYER NAMES", "n", KEY_ONLY );
-    KeybindManager::registerAction( "heldUse", "HELD USE", "e", KEY_ONLY );
-    KeybindManager::registerAction( "stopCamera", "STOP CAMERA", "f", KEY_ONLY );
-    KeybindManager::registerAction( "gridToggle", "GRID TOGGLE", "shift+k" );
     KeybindManager::registerAction( "sayCommand", "SAY COMMAND", "/", KEY_ONLY );
     KeybindManager::registerAction( "openChat", "OPEN CHAT", "enter", KEY_ONLY );
 
-    KeybindManager::registerAction( "minitechMinimize", "MINIMIZE CRAFTING GUIDE", "v", KEY_ONLY );
+    KeybindManager::registerAction( "minitechMinimize", "MINIMIZE CRAFTING GUIDE", "v" );
     KeybindManager::registerAction( "minitechSwitchMode", "SWITCH USE/MAKE MODE", "ctrl+v" );
     KeybindManager::registerAction( "minitechPageNext", "CRAFTING GUIDE NEXT PAGE", "tab", KEY_ONLY );
     KeybindManager::registerAction( "minitechPagePrev", "CRAFTING GUIDE PREV PAGE", "shift+tab" );
     KeybindManager::registerAction( "minitechNextObj", "CRAFTING GUIDE NEXT OBJECT", "ctrl+x" );
     KeybindManager::registerAction( "minitechPrevObj", "CRAFTING GUIDE PREV OBJECT", "ctrl+z" );
+
+    // held keybinds
+    KeybindManager::registerAction( "xray", "X-RAY MODE", "x" );
+    KeybindManager::registerAction( "hideHud", "HIDE HUD", "`" );
+    KeybindManager::registerAction( "hintBack", "HINT BACK", "z" );
+    KeybindManager::registerAction( "nameLabels", "PLAYER NAMES", "n" );
+    KeybindManager::registerAction( "heldUse", "HELD USE", "e" );
+    KeybindManager::registerAction( "stopCamera", "STOP CAMERA", "f" );
+    KeybindManager::registerAction( "gridToggle", "GRID TOGGLE", "shift+k" );
+
+
 
     KeybindManager::init();
 
@@ -29197,25 +29201,11 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
 
 
             
-void LivingLifePage::keyUp( unsigned char inASCII ) {
-
-    dragging = false;
-    dragStart = {9999, 9999};
-    dragEnd = {9999, 9999};
-
+void LivingLifePage::checkHeldReleased() {
     if( KeybindManager::isReleased( "moveUp" ) ) upKeyDown = false;
     if( KeybindManager::isReleased( "moveLeft" ) ) leftKeyDown = false;
     if( KeybindManager::isReleased( "moveDown" ) ) downKeyDown = false;
     if( KeybindManager::isReleased( "moveRight" ) ) rightKeyDown = false;
-
-    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) {
-        lastPosX = 9999;
-        lastPosY = 9999;
-        magnetMoveDir = -1;
-        magnetWrongMoveDir = -1;
-        magnetMoveCount = 0;
-    }
-
 
     if( KeybindManager::isReleased( "yumFinder" ) ) runningYumFinder = false;
     if( KeybindManager::isReleased( "xray" ) ) mXrayKeyDown = false;
@@ -29223,13 +29213,33 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
     if( KeybindManager::isReleased( "hideHud" ) ) mHideHudKeyDown = false;
     if( KeybindManager::isReleased( "heldUse" ) ) mModClickKeyDown = false;
 
+    if( KeybindManager::isReleased( "stopCamera" ) ) shouldMoveCamera = true;
+    }
+
+
+void LivingLifePage::keyUp( unsigned char inASCII ) {
+    dragging = false;
+    dragStart = {9999, 9999};
+    dragEnd = {9999, 9999};
+
+    checkHeldReleased();
+
+    if( !upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown ) {
+        lastPosX = 9999;
+        lastPosY = 9999;
+        magnetMoveDir = -1;
+        magnetWrongMoveDir = -1;
+        magnetMoveCount = 0;
+        }
+
     if( !SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
         if( inASCII == ' ' ) shouldMoveCamera = true;
         }
-    else {
-        if( KeybindManager::isReleased( "stopCamera" ) ) shouldMoveCamera = true;
-        }
+    }
 
+
+void LivingLifePage::specialKeyUp( int inKeyCode ) {
+    checkHeldReleased();
     }
 
 
