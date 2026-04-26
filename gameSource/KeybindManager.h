@@ -71,17 +71,11 @@ class KeybindManager {
         static void specialKeyDown( int inKey );
         static void specialKeyUp( int inKey );
 
-        static char isShiftDown();
-        static char isControlDown();
-        static char isAltDown();
     private:
 
         static SimpleVector<KeybindRecord *> sActions;
         static char sInited;
         static char sPressed[256];
-        static char sShiftDown;
-        static char sControlDown;
-        static char sAltDown;
 
         static void ensureDirectory();
         static char *buildFilePath( const char *inActionName );

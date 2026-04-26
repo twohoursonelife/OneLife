@@ -5,6 +5,7 @@
 #include "minorGems/io/file/Path.h"
 #include "minorGems/io/file/Directory.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
+#include "minorGems/game/game.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -13,9 +14,6 @@
 
 SimpleVector<KeybindRecord *> KeybindManager::sActions;
 char KeybindManager::sInited = false;
-char KeybindManager::sShiftDown = false;
-char KeybindManager::sControlDown = false;
-char KeybindManager::sAltDown = false;
 char KeybindManager::sPressed[] = {};
 
 void KeybindManager::init() {
@@ -195,15 +193,18 @@ char KeybindManager::checkActive( const char *inActionName, char inStrict ) {
     char needAlt = ( modifiers & KEYBIND_MOD_ALT ) != 0;
 
     if( !r->keyOnly ) {
+        char shiftDown = isShiftKeyDown();
+        char ctrlDown = isControlKeyDown();
+        char altDown = isAltKeyDown();
         if( !inStrict ) {
-            if( needShift && !sShiftDown ) return false;
-            if( needCtrl && !sControlDown ) return false;
-            if( needAlt && !sAltDown ) return false;
+            if( needShift && !shiftDown ) return false;
+            if( needCtrl && !ctrlDown ) return false;
+            if( needAlt && !altDown ) return false;
             }
         else {
-            if( needShift != sShiftDown ) return false;
-            if( needCtrl != sControlDown ) return false;
-            if( needAlt != sAltDown ) return false;
+            if( needShift != shiftDown ) return false;
+            if( needCtrl != ctrlDown ) return false;
+            if( needAlt != altDown ) return false;
             }
         }
 
@@ -261,14 +262,14 @@ char *KeybindManager::buildFilePath( const char *inActionName ) {
 void KeybindManager::keyDown( unsigned char inASCII ) {
     // reroute enter key to an unused ASCII code to avoid mixups with ctrl+m ctrl code
     // this means there can't be a keybind that includes both enter and ctrl. could be routed through special key instead?
-    if( inASCII == 13 && !sControlDown ) inASCII = 28;
-    if( sControlDown && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1; // recover key from ctrl codes
+    if( inASCII == 13 && !isControlKeyDown() ) inASCII = 28;
+    if( isControlKeyDown() && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1; // recover key from ctrl codes
     sPressed[ tolower( inASCII ) ] = true;
     }
 
 void KeybindManager::keyUp( unsigned char inASCII ) {
-    if( inASCII == 13 && !sControlDown ) inASCII = 28;
-    if( sControlDown && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1;
+    if( inASCII == 13 && !isControlKeyDown() ) inASCII = 28;
+    if( isControlKeyDown() && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1;
     sPressed[ tolower( inASCII ) ] = false;
     }
 
@@ -279,25 +280,8 @@ void KeybindManager::clearAllPressed() {
     }
 
 void KeybindManager::specialKeyDown( int inKey ) {
-    if( inKey == MG_KEY_LSHIFT || inKey == MG_KEY_RSHIFT ) sShiftDown = true;
-    else if( inKey == MG_KEY_LCTRL || inKey == MG_KEY_RCTRL ) sControlDown = true;
-    else if( inKey == MG_KEY_LALT || inKey == MG_KEY_RALT ) sAltDown = true;
     }
 
 void KeybindManager::specialKeyUp( int inKey ) {
-    if( inKey == MG_KEY_LSHIFT || inKey == MG_KEY_RSHIFT ) sShiftDown = false;
-    else if( inKey == MG_KEY_LCTRL || inKey == MG_KEY_RCTRL ) sControlDown = false;
-    else if( inKey == MG_KEY_LALT || inKey == MG_KEY_RALT ) sAltDown = false;
     }
 
-char KeybindManager::isShiftDown() {
-    return sShiftDown;
-    }
-
-char KeybindManager::isControlDown() {
-    return sControlDown;
-    }
-
-char KeybindManager::isAltDown() {
-    return sAltDown;
-    }
