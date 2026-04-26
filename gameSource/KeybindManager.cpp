@@ -139,6 +139,7 @@ void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, i
         if( strcmp( tok, "ctrl" ) == 0 ) *outModifiers |= KEYBIND_MOD_CTRL;
         else if( strcmp( tok, "shift" ) == 0 ) *outModifiers |= KEYBIND_MOD_SHIFT;
         else if( strcmp( tok, "alt" ) == 0 ) *outModifiers |= KEYBIND_MOD_ALT;
+        else if( strcmp( tok, "tab" ) == 0 ) *outKey = 9;
         else if( strcmp( tok, "enter" ) == 0 || strcmp( tok, "\\n" ) == 0 ) *outKey = 28;
         else if( strcmp( tok, "for" ) == 0 || strcmp( tok, ">>" ) == 0 ) *outKey = 30;
         else if( strcmp( tok, "back" ) == 0 || strcmp( tok, "<<" ) == 0 ) *outKey = 31;
@@ -161,7 +162,8 @@ char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inDisplay ) 
     if( inRecord->modifiers & KEYBIND_MOD_SHIFT ) strcat( buf, "shift+" );
     if( inRecord->modifiers & KEYBIND_MOD_ALT ) strcat( buf, "alt+" );
     // keyOnly uses shortened strings to fit in smaller input boxes
-    if( inRecord->key == 28 ) strcat( buf, inRecord->keyOnly && !inDisplay ? "\\n" : "enter" );
+    if( inRecord->key == 9 ) strcat( buf, "tab" );
+    else if( inRecord->key == 28 ) strcat( buf, inRecord->keyOnly && !inDisplay ? "\\n" : "enter" );
     else if( inRecord->key == 30 ) strcat( buf, inRecord->keyOnly && !inDisplay ? ">>" : "for" );
     else if( inRecord->key == 31 ) strcat( buf, inRecord->keyOnly && !inDisplay ? "<<" : "back" );
     else if( inRecord->key == ' ' ) strcat( buf, inRecord->keyOnly && !inDisplay ? "__" : "space" );
