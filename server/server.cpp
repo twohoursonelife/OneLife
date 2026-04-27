@@ -7547,6 +7547,9 @@ int processLoggedInPlayer( char inAllowReconnect,
 
     newObject.lastBabyEmail = NULL;
 
+    newObject.curseStatus = inCurseStatus;
+    newObject.lifeStats = inLifeStats;
+
     newObject.cravingFood = noCraving;
     newObject.cravingFoodYumIncrement = 0;
     newObject.cravingKnown = false;
@@ -8496,8 +8499,6 @@ int processLoggedInPlayer( char inAllowReconnect,
     
     newObject.nameHasSuffix = false;
     newObject.lastSay = NULL;
-    newObject.curseStatus = inCurseStatus;
-    newObject.lifeStats = inLifeStats;
     
     // password-protected objects
     newObject.saidPassword = NULL;
