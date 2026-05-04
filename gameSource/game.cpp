@@ -348,14 +348,14 @@ const char *getFontTGAFileName() {
     
 bool newFontExist() {
     bool exist = false;
-    Image *spriteImage = readTGAFile( "newfont_32_64.tga" );
+    Image *spriteImage = readTGAFile( "font_alt_32_64.tga" );
     if( spriteImage != NULL ) exist = true;
     delete spriteImage;
     return exist;
     }
     
 const char *getNewFontTGAFileName() {
-    return "newfont_32_64.tga";
+    return "font_alt_32_64.tga";
     }
 
 
