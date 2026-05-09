@@ -122,7 +122,7 @@ void KeybindManager::saveCfg() {
         parseKeyString( r->defaultKeyStr, &defaultKey, &defaultMods );
         char changed = r->key != defaultKey || r->modifiers != defaultMods;
         const char *defaultTag = changed ? "  // default: " : "";
-        const char *defaultString = changed ? r->defaultKeyStr : "";
+        const char *defaultString = changed ? ( r->defaultKeyStr[0] == '\0' ? "[none]" : r->defaultKeyStr ) : "";
         file << r->actionName << " = " << keyStr << defaultTag << defaultString << typeTag << "\n";
         delete [] keyStr;
         if( r->options.postComment != NULL ) file << r->options.postComment << "\n";
