@@ -4268,60 +4268,58 @@ LivingLifePage::LivingLifePage()
         familyDisplayEnabled = true;
         }
 
-    KeybindManager::registerAction( "moveUp", "UP", "w", KEY_ONLY );
-    KeybindManager::registerAction( "moveLeft", "LEFT", "a", KEY_ONLY );
-    KeybindManager::registerAction( "moveDown", "DOWN", "s", KEY_ONLY );
-    KeybindManager::registerAction( "moveRight", "RIGHT", "d", KEY_ONLY );
-    KeybindManager::registerAction( "alphaBelow", "BELOW", "space", KEY_ONLY );
+    KeybindManager::registerAction( "moveUp", "UP", "w", { .type = KEY_ONLY, .preComment = "// Movement" } );
+    KeybindManager::registerAction( "moveLeft", "LEFT", "a", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "moveDown", "DOWN", "s", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "moveRight", "RIGHT", "d", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "alphaBelow", "BELOW", "space", { .type = KEY_ONLY, .postComment = "" } );
 
-    KeybindManager::registerAction( "alphaModifier", "ALPHA", "shift", MODIFIER_ONLY );
-    KeybindManager::registerAction( "betaModifier", "BETA", "ctrl", MODIFIER_ONLY );
+    KeybindManager::registerAction( "alphaModifier", "ALPHA", "shift", { .type = MODIFIER_ONLY, .preComment = "// Modifiers" } );
+    KeybindManager::registerAction( "betaModifier", "BETA", "ctrl", { .type = MODIFIER_ONLY, .postComment = "" } );
 
-    KeybindManager::registerAction( "useHat", "USE", "ctrl+t" );
+    KeybindManager::registerAction( "useHat", "USE", "ctrl+t", { .preComment = "// Hat slot" } );
     KeybindManager::registerAction( "useHatReplace", "REPLACE", "ctrl+shift+t" );
-    KeybindManager::registerAction( "useHatRemv", "REMV", "" );
+    KeybindManager::registerAction( "useHatRemv", "REMV", "", { .postComment = "" } );
 
-    KeybindManager::registerAction( "useTop", "USE", "shift+t" );
+    KeybindManager::registerAction( "useTop", "USE", "shift+t", { .preComment = "// Top slot" } );
     KeybindManager::registerAction( "useTopReplace", "REPLACE", "" );
-    KeybindManager::registerAction( "useTopRemv", "REMV", "" );
+    KeybindManager::registerAction( "useTopRemv", "REMV", "", { .postComment = "" } );
 
-    KeybindManager::registerAction( "useBottom", "USE", "t" );
+    KeybindManager::registerAction( "useBottom", "USE", "t", { .preComment = "// Bottom slot" } );
     KeybindManager::registerAction( "useBottomReplace", "REPLACE", "" );
-    KeybindManager::registerAction( "useBottomRemv", "REMV", "" );
+    KeybindManager::registerAction( "useBottomRemv", "REMV", "", { .postComment = "" } );
 
-    KeybindManager::registerAction( "useBackpack", "USE", "q" );
+    KeybindManager::registerAction( "useBackpack", "USE", "q", { .preComment = "// Backpack" } );
     KeybindManager::registerAction( "useBackpackReplace", "REPLACE", "shift+q" );
 
     KeybindManager::registerAction( "selfBackpackTransRemv", "TRANS/REMV", "b" );
     KeybindManager::registerAction( "selfBackpackTrans", "TRANS", "shift+b" );
-    KeybindManager::registerAction( "selfBackpackRemv", "REMV", "ctrl+b" );
+    KeybindManager::registerAction( "selfBackpackRemv", "REMV", "ctrl+b", { .postComment = "" } );
 
-    KeybindManager::registerAction( "eatSelf", "EAT/SELF", "e" );
+    KeybindManager::registerAction( "eatSelf", "EAT/SELF", "e", { .preComment = "// Player actions" } );
     KeybindManager::registerAction( "removeClothing", "REMOVE CLOTHING", "shift+e" );
     KeybindManager::registerAction( "pickUpBaby", "PICK UP BABY", "c" );
+    KeybindManager::registerAction( "heldUse", "HELD USE", "e", { .postComment = "" } );
 
-
-    KeybindManager::registerAction( "coordinatesToggle", "COORDINATES PANEL", "g" );
+    KeybindManager::registerAction( "coordinatesToggle", "COORDINATES PANEL", "g", { .preComment = "// Panels" } );
     KeybindManager::registerAction( "yumFinder", "YUM FINDER", "y" );
     KeybindManager::registerAction( "objectSearchToggle", "OBJECT SEARCH PANEL", "j" );
-    KeybindManager::registerAction( "familyDisplayToggle", "FAMILY DISPLAY PANEL", "p" );
+    KeybindManager::registerAction( "familyDisplayToggle", "FAMILY DISPLAY PANEL", "p", { .postComment = "" } );
 
-    KeybindManager::registerAction( "sayCommand", "SAY COMMAND", "/", KEY_ONLY );
-    KeybindManager::registerAction( "openChat", "OPEN CHAT", "enter", KEY_ONLY );
+    KeybindManager::registerAction( "sayCommand", "SAY COMMAND", "/", { .type = KEY_ONLY, .preComment = "// Chat" } );
+    KeybindManager::registerAction( "openChat", "OPEN CHAT", "enter", { .type = KEY_ONLY, .postComment = "" } );
 
-    KeybindManager::registerAction( "minitechMinimize", "MINIMIZE CRAFTING GUIDE", "v" );
+    KeybindManager::registerAction( "minitechMinimize", "MINIMIZE CRAFTING GUIDE", "v", { .preComment = "// Crafting guide" } );
     KeybindManager::registerAction( "minitechSwitchMode", "SWITCH USE/MAKE MODE", "ctrl+v" );
-    KeybindManager::registerAction( "minitechPageNext", "CRAFTING GUIDE NEXT PAGE", "tab", KEY_ONLY );
+    KeybindManager::registerAction( "minitechPageNext", "CRAFTING GUIDE NEXT PAGE", "tab", { .type = KEY_ONLY } );
     KeybindManager::registerAction( "minitechPagePrev", "CRAFTING GUIDE PREV PAGE", "shift+tab" );
     KeybindManager::registerAction( "minitechNextObj", "CRAFTING GUIDE NEXT OBJECT", "ctrl+x" );
-    KeybindManager::registerAction( "minitechPrevObj", "CRAFTING GUIDE PREV OBJECT", "ctrl+z" );
+    KeybindManager::registerAction( "minitechPrevObj", "CRAFTING GUIDE PREV OBJECT", "ctrl+z", { .postComment = "" } );
 
-    // held keybinds
-    KeybindManager::registerAction( "xray", "X-RAY MODE", "x" );
+    KeybindManager::registerAction( "xray", "X-RAY MODE", "x", { .preComment = "// View" } );
     KeybindManager::registerAction( "hideHud", "HIDE HUD", "`" );
     KeybindManager::registerAction( "hintBack", "HINT BACK", "z" );
     KeybindManager::registerAction( "nameLabels", "PLAYER NAMES", "n" );
-    KeybindManager::registerAction( "heldUse", "HELD USE", "e" );
     KeybindManager::registerAction( "stopCamera", "STOP CAMERA", "f" );
     KeybindManager::registerAction( "gridToggle", "GRID TOGGLE", "shift+k" );
 
@@ -12508,17 +12506,17 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
         else if( coordinatesSlipComponent.mHover ) {
-            char *keyBuf = KeybindManager::buildKeyString( "coordinatesToggle", true );
+            char *keyBuf = KeybindManager::buildKeyString( "coordinatesToggle", true, true );
             coordsTips = autoSprintf( "%s (%s)", translate( "coordsTips" ), keyBuf );
             delete [] keyBuf;
             }
         else if( objectSearchSlipComponent.mHover ) {
-            char *keyBuf = KeybindManager::buildKeyString( "objectSearchToggle", true );
+            char *keyBuf = KeybindManager::buildKeyString( "objectSearchToggle", true, true );
             coordsTips = autoSprintf( "%s (%s)", translate( "objSearchTips" ), keyBuf );
             delete [] keyBuf;
             }
         else if( familyDisplaySlipComponent.mHover ) {
-            char *keyBuf = KeybindManager::buildKeyString( "familyDisplayToggle", true );
+            char *keyBuf = KeybindManager::buildKeyString( "familyDisplayToggle", true, true );
             coordsTips = autoSprintf( "%s (%s)", translate( "famDisplayTips" ), keyBuf );
             delete [] keyBuf;
             }

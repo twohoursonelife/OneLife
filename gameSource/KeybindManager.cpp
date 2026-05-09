@@ -1,24 +1,23 @@
 #include "KeybindManager.h"
 
 #include "minorGems/util/stringUtils.h"
-#include "minorGems/io/file/File.h"
-#include "minorGems/io/file/Path.h"
-#include "minorGems/io/file/Directory.h"
 #include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/game/game.h"
-
+ 
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
+#include <fstream>
+#include <string>
 
 SimpleVector<KeybindRecord *> KeybindManager::sActions;
 char KeybindManager::sInited = false;
 char KeybindManager::sPressed[] = {};
 
 void KeybindManager::init() {
-    ensureDirectory();
-    loadAll();
+    loadCfg();
+    saveCfg();
     sInited = true;
     }
 
@@ -34,17 +33,15 @@ void KeybindManager::deInit() {
     sInited = false;
     }
 
-void KeybindManager::registerAction( const char *inActionName, const char *inDisplayLabel, const char *inDefaultKeyStr, KeybindType inType ) {
+void KeybindManager::registerAction( const char *inActionName, const char *inDisplayLabel, const char *inDefaultKeyStr, KeybindOptions options ) {
     KeybindRecord *r = new KeybindRecord;
     r->actionName = stringDuplicate( inActionName );
     r->displayLabel = stringDuplicate( inDisplayLabel );
     r->defaultKeyStr = stringDuplicate( inDefaultKeyStr );
     r->key = 0;
     r->modifiers = KEYBIND_MOD_NONE;
-    r->modifierOnly = false;
-    r->keyOnly = false;
-    if( inType == KEY_ONLY ) r->keyOnly = true;
-    else if( inType == MODIFIER_ONLY ) r->modifierOnly = true;
+    parseKeyString( inDefaultKeyStr, &r->key, &r->modifiers );
+    r->options = options;
     sActions.push_back( r );
     }
 
@@ -64,41 +61,50 @@ KeybindRecord *KeybindManager::findAction( const char *inActionName ) {
     return NULL;
     }
 
-void KeybindManager::loadAll() {
-    for( int i = 0; i < sActions.size(); i++ ) {
-        KeybindRecord *r = sActions.getElementDirect( i );
+std::string KeybindManager::trim ( const std::string &inString ) {
+    size_t start = inString.find_first_not_of( " \t\r\n" );
+    if( start == std::string::npos ) return "";
+    size_t end = inString.find_last_not_of( " \t\r\n" );
+    return inString.substr( start, end - start + 1 );
+    }
 
-        char *path = buildFilePath( r->actionName );
-        FILE *f = fopen( path, "r" );
-        delete [] path;
+void KeybindManager::loadCfg() {
+    std::ifstream file( "keybinds.cfg" );
+    if( !file.is_open() ) return;
 
-        if( f != NULL ) {
-            char buf[64] = "";
-            fscanf( f, "%63s", buf );
-            fclose( f );
-            parseKeyString( buf, &r->key, &r->modifiers );
-            }
-        else {
-            resetBinding( r->actionName );
-            }
+    std::string line;
+    while( std::getline( file, line ) ) {
+        if( line.empty() || line.rfind( "//", 0 ) == 0 ) continue;
+        size_t eq = line.find( '=' );
+        if( eq == std::string::npos ) continue;
+
+        std::string key = trim( line.substr( 0, eq ) );
+        std::string value = line.substr( eq + 1 );
+        size_t comment = value.find( "//" );
+        if( comment != std::string::npos ) value = value.substr( 0, comment );
+        value = trim( value );
+
+        KeybindRecord *r = findAction( key.c_str() );
+        if( r == NULL ) continue;
+        parseKeyString( value.c_str(), &r->key, &r->modifiers );
         }
     }
 
-void KeybindManager::saveBinding( const char *inActionName ) {
-    KeybindRecord *r = findAction( inActionName );
-    if( r == NULL ) return;
+void KeybindManager::saveCfg() {
+    std::ofstream file( "keybinds.cfg" );
+    if( !file.is_open() ) return;
 
-    char *path = buildFilePath( inActionName );
-    FILE *f = fopen( path, "w" );
-    delete [] path;
-
-    if( f == NULL ) return;
-
-    char *keyStr = buildKeyString( r );
-    fprintf( f, "%s\n", keyStr );
-    delete [] keyStr;
-
-    fclose( f );
+    for( int i = 0; i < sActions.size(); i++ ) {
+        KeybindRecord *r = sActions.getElementDirect( i );
+        if( r->options.preComment != NULL ) file << r->options.preComment << "\n";
+        char *keyStr = buildKeyString( r, true, false );
+        const char *typeTag = "";
+        if( r->options.type == MODIFIER_ONLY ) typeTag = "  // modifier-only";
+        else if( r->options.type == KEY_ONLY ) typeTag = "  // key-only";
+        file << r->actionName << " = " << keyStr << typeTag << "\n";
+        delete [] keyStr;
+        if( r->options.postComment != NULL ) file << r->options.postComment << "\n";
+        }
     }
 
 void KeybindManager::setBinding( const char *inActionName, unsigned char inKey, int inModifiers ) {
@@ -110,13 +116,14 @@ void KeybindManager::setBinding( const char *inActionName, unsigned char inKey, 
 
 void KeybindManager::clearBinding( const char *inActionName ) {
     setBinding( inActionName, 0, KEYBIND_MOD_NONE );
-    saveBinding( inActionName );
+    saveCfg();
     }
 
 void KeybindManager::resetBinding( const char *inActionName ) {
     KeybindRecord *r = findAction( inActionName );
+    if( r == NULL ) return;
     parseKeyString( r->defaultKeyStr, &r->key, &r->modifiers );
-    saveBinding( inActionName );
+    saveCfg();
     }
 
 void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, int *outModifiers ) {
@@ -151,20 +158,24 @@ void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, i
     delete [] tokens;
     }
 
-char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inDisplay ) {
-    if( inRecord == NULL || ( inRecord->key == 0 && inRecord->modifiers == KEYBIND_MOD_NONE ) ) return stringDuplicate( "" );
+char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inLong, char inUppercase ) {
+    if( inRecord == NULL || ( inRecord->key == 0 && inRecord->modifiers == KEYBIND_MOD_NONE ) ) {
+        if ( inLong && inUppercase ) return stringDuplicate( "[NONE]" );
+        return stringDuplicate( "" );
+        }
 
     char buf[64] = "";
 
     if( inRecord->modifiers & KEYBIND_MOD_CTRL ) strcat( buf, "ctrl+" );
     if( inRecord->modifiers & KEYBIND_MOD_SHIFT ) strcat( buf, "shift+" );
     if( inRecord->modifiers & KEYBIND_MOD_ALT ) strcat( buf, "alt+" );
-    // keyOnly uses shortened strings to fit in smaller input boxes
+    // KEY_ONLY uses shortened strings to fit in smaller input boxes
+    char useShort = inRecord->options.type == KEY_ONLY && !inLong;
     if( inRecord->key == 9 ) strcat( buf, "tab" );
-    else if( inRecord->key == 28 ) strcat( buf, inRecord->keyOnly && !inDisplay ? "\\n" : "enter" );
-    else if( inRecord->key == 30 ) strcat( buf, inRecord->keyOnly && !inDisplay ? ">>" : "for" );
-    else if( inRecord->key == 31 ) strcat( buf, inRecord->keyOnly && !inDisplay ? "<<" : "back" );
-    else if( inRecord->key == ' ' ) strcat( buf, inRecord->keyOnly && !inDisplay ? "__" : "space" );
+    else if( inRecord->key == 28 ) strcat( buf, useShort ? "\\n" : "enter" );
+    else if( inRecord->key == 30 ) strcat( buf, useShort ? ">>" : "for" );
+    else if( inRecord->key == 31 ) strcat( buf, useShort ? "<<" : "back" );
+    else if( inRecord->key == ' ' ) strcat( buf, useShort ? "__" : "space" );
     else if( inRecord->key != 0 ) {
         int len = strlen( buf );
         buf[len] = (char)tolower( inRecord->key );
@@ -175,24 +186,24 @@ char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inDisplay ) 
         if( len > 0 && buf[len - 1] == '+' ) buf[len - 1] = '\0';
         }
 
-    if( inDisplay ) return stringToUpperCase( buf );
+    if( inUppercase ) return stringToUpperCase( buf );
     return stringDuplicate( buf );
     }
 
-char *KeybindManager::buildKeyString( const char *inActionName, char inDisplay ) {
-    return buildKeyString( findAction( inActionName ), inDisplay );
+char *KeybindManager::buildKeyString( const char *inActionName, char inLong, char inUppercase ) {
+    return buildKeyString( findAction( inActionName ), inLong, inUppercase );
     }
 
 char KeybindManager::checkActive( const char *inActionName, char inStrict ) {
     KeybindRecord *r = findAction( inActionName );
-    if( r == NULL || ( r->key == 0 && !r->modifierOnly ) ) return false;
+    if( r == NULL || ( r->key == 0 && r->options.type != MODIFIER_ONLY ) ) return false;
 
     int modifiers = r->modifiers;
     char needShift = ( modifiers & KEYBIND_MOD_SHIFT ) != 0;
     char needCtrl = ( modifiers & KEYBIND_MOD_CTRL ) != 0;
     char needAlt = ( modifiers & KEYBIND_MOD_ALT ) != 0;
 
-    if( !r->keyOnly ) {
+    if( r->options.type != KEY_ONLY ) {
         char shiftDown = isShiftKeyDown();
         char ctrlDown = isControlKeyDown();
         char altDown = isAltKeyDown();
@@ -208,7 +219,7 @@ char KeybindManager::checkActive( const char *inActionName, char inStrict ) {
             }
         }
 
-    if( r->modifierOnly ) return true;
+    if( r->options.type == MODIFIER_ONLY ) return true;
 
     return ( sPressed[r->key] == true );
     }
@@ -225,38 +236,6 @@ void KeybindManager::clearAction( const char *inActionName ) {
     KeybindRecord *r = findAction( inActionName );
     if( r == NULL || r->key == 0 ) return;
     sPressed[ r->key ] = false;
-    }
-
-void KeybindManager::ensureDirectory() {
-    char **pathSteps = new char*[1];
-    pathSteps[0] = stringDuplicate( "settings" );
-
-    File *keybindsDir = new File( new Path( pathSteps, 1, false ), "keybinds" );
-
-    delete [] pathSteps[0];
-    delete [] pathSteps;
-
-    if( !keybindsDir->exists() ) Directory::makeDirectory( keybindsDir );
-
-    delete keybindsDir;
-    }
-
-char *KeybindManager::buildFilePath( const char *inActionName ) {
-    char **pathSteps = new char*[2];
-    pathSteps[0] = stringDuplicate( "settings" );
-    pathSteps[1] = stringDuplicate( "keybinds" );
-
-    char *iniName = autoSprintf( "%s.ini", inActionName );
-    File *f = new File( new Path( pathSteps, 2, false ), iniName );
-
-    delete [] iniName;
-    delete [] pathSteps[0];
-    delete [] pathSteps[1];
-    delete [] pathSteps;
-
-    char *fullPath = f->getFullFileName();
-    delete f;
-    return fullPath;
     }
 
 void KeybindManager::keyDown( unsigned char inASCII ) {

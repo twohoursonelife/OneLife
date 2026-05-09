@@ -939,7 +939,7 @@ static void replaceKeybindNames( char *&outLine ) { // use format {k=<actionName
                     }
 
                 *end = '\0';
-                char *keyString = KeybindManager::buildKeyString( start, true );
+                char *keyString = KeybindManager::buildKeyString( start, true, true );
 
                 for( int i = 0; keyString[i] != '\0'; i++ ) {
                     out.push_back( keyString[i] );
