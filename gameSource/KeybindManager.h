@@ -83,8 +83,7 @@ class KeybindManager {
         static char sInited;
         static char sPressed[256];
         static char checkActive( const char *inActionName, char inStrict );
-        static std::string trim ( const std::string &inString );
-    };
+};
 
 
 #endif
