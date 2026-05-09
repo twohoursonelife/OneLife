@@ -101,7 +101,13 @@ void KeybindManager::saveCfg() {
         const char *typeTag = "";
         if( r->options.type == MODIFIER_ONLY ) typeTag = "  // modifier-only";
         else if( r->options.type == KEY_ONLY ) typeTag = "  // key-only";
-        file << r->actionName << " = " << keyStr << typeTag << "\n";
+        unsigned char defaultKey;
+        int defaultMods;
+        parseKeyString( r->defaultKeyStr, &defaultKey, &defaultMods );
+        char changed = r->key != defaultKey || r->modifiers != defaultMods;
+        const char *defaultTag = changed ? "  // default: " : "";
+        const char *defaultString = changed ? r->defaultKeyStr : "";
+        file << r->actionName << " = " << keyStr << defaultTag << defaultString << typeTag << "\n";
         delete [] keyStr;
         if( r->options.postComment != NULL ) file << r->options.postComment << "\n";
         }
