@@ -15,6 +15,22 @@ SimpleVector<KeybindRecord *> KeybindManager::sActions;
 char KeybindManager::sInited = false;
 char KeybindManager::sPressed[] = {};
 
+static void validateBinding( unsigned char *inKey, int *inMods, KeybindType inType ) {
+    if( inType == MODIFIER_ONLY ) {
+        char hasKey = *inKey != 0;
+        char noMod = *inMods == KEYBIND_MOD_NONE;
+        char multiMod = ( *inMods & ( *inMods - 1 ) ) != 0;
+        if( hasKey || noMod || multiMod ) { *inKey = 0; *inMods = KEYBIND_MOD_NONE; }
+        }
+    else if( inType == KEY_ONLY && ( *inKey == 0 || *inMods != KEYBIND_MOD_NONE ) ) { *inKey = 0; *inMods = KEYBIND_MOD_NONE; }
+    else if( inType == DEFAULT_TYPE && *inKey == 0 ) *inMods = KEYBIND_MOD_NONE;
+    }
+
+static void parseAndValidate( const char *inStr, KeybindRecord *inRecord ) {
+    KeybindManager::parseKeyString( inStr, &inRecord->key, &inRecord->modifiers );
+    validateBinding( &inRecord->key, &inRecord->modifiers, inRecord->options.type );
+    }
+
 void KeybindManager::init() {
     loadCfg();
     saveCfg();
@@ -40,7 +56,7 @@ void KeybindManager::registerAction( const char *inActionName, const char *inDis
     r->defaultKeyStr = stringDuplicate( inDefaultKeyStr );
     r->key = 0;
     r->modifiers = KEYBIND_MOD_NONE;
-    parseKeyString( inDefaultKeyStr, &r->key, &r->modifiers );
+    parseAndValidate( inDefaultKeyStr, r );
     r->options = options;
     sActions.push_back( r );
     }
@@ -86,7 +102,7 @@ void KeybindManager::loadCfg() {
 
         KeybindRecord *r = findAction( key.c_str() );
         if( r == NULL ) continue;
-        parseKeyString( value.c_str(), &r->key, &r->modifiers );
+        parseAndValidate( value.c_str(), r );
         }
     }
 
@@ -128,7 +144,7 @@ void KeybindManager::clearBinding( const char *inActionName ) {
 void KeybindManager::resetBinding( const char *inActionName ) {
     KeybindRecord *r = findAction( inActionName );
     if( r == NULL ) return;
-    parseKeyString( r->defaultKeyStr, &r->key, &r->modifiers );
+    parseAndValidate( r->defaultKeyStr, r );
     saveCfg();
     }
 
@@ -139,6 +155,14 @@ void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, i
     if( inStr == NULL || inStr[0] == '\0' ) return;
 
     char *copy = stringToLowerCase( inStr );
+    int j = 0;
+    for( int i = 0; copy[i] != '\0'; i++ ) {
+        if( !isspace( copy[i] ) ) {
+            copy[j] = copy[i];
+            j++;
+            }
+        }
+    copy[j] = '\0';
 
     int numTokens = 0;
     char **tokens = split( copy, "+", &numTokens );
