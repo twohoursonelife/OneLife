@@ -20,6 +20,8 @@ extern double frameRateFactor;
 int DropdownList::sDeleteFirstDelaySteps = 30 / frameRateFactor;
 int DropdownList::sDeleteNextDelaySteps = 2 / frameRateFactor;
 
+extern Font *mainFont;
+
 
 
 DropdownList::DropdownList( Font *inDisplayFont, 
@@ -536,7 +538,10 @@ void DropdownList::draw() {
         
         doublePair labelPos = { xPos, yPos };
         
-        mFont->drawString( mLabelText, labelPos, a );
+        
+        // This was changed such as the label font will always be displayed as mainFont
+        // It let us to change the actual textbox font to something that doesn't display special characters incorrectly
+        mainFont->drawString( mLabelText, labelPos, a );
         }
     
     
