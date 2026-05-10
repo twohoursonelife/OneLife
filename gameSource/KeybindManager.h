@@ -46,10 +46,10 @@ class KeybindManager {
         // gets keybind record by name
         static KeybindRecord *findAction( const char *inActionName );
 
-        // updates keybind records from keybinds.cfg
-        static void loadCfg();
-        // rewrites keybinds.cfg with current keybind records
-        static void saveCfg();
+        // updates keybind records from config file
+        static void loadFromFile();
+        // rewrites config file with current keybind records
+        static void saveToFile();
 
         // set a keybinds key and modifiers through its record
         static void setBinding( const char *inActionName, unsigned char inKey, int inModifiers );

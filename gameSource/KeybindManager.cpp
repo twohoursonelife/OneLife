@@ -14,10 +14,11 @@
 SimpleVector<KeybindRecord *> KeybindManager::sActions;
 char KeybindManager::sInited = false;
 char KeybindManager::sPressed[] = {};
+static const char* configFile = "settings/keybinds.ini";
 
 void KeybindManager::init() {
-    loadCfg();
-    saveCfg();
+    loadFromFile();
+    saveToFile();
     sInited = true;
     }
 
@@ -83,8 +84,8 @@ static std::string trim( const std::string &inString ) {
     return inString.substr( start, end - start + 1 );
     }
 
-void KeybindManager::loadCfg() {
-    std::ifstream file( "keybinds.cfg" );
+void KeybindManager::loadFromFile() {
+    std::ifstream file( configFile );
     if( !file.is_open() ) return;
 
     std::string line;
@@ -106,8 +107,8 @@ void KeybindManager::loadCfg() {
         }
     }
 
-void KeybindManager::saveCfg() {
-    std::ofstream file( "keybinds.cfg" );
+void KeybindManager::saveToFile() {
+    std::ofstream file( configFile );
     if( !file.is_open() ) return;
 
     for( int i = 0; i < sActions.size(); i++ ) {
@@ -138,14 +139,14 @@ void KeybindManager::setBinding( const char *inActionName, unsigned char inKey, 
 
 void KeybindManager::clearBinding( const char *inActionName ) {
     setBinding( inActionName, 0, KEYBIND_MOD_NONE );
-    saveCfg();
+    saveToFile();
     }
 
 void KeybindManager::resetBinding( const char *inActionName ) {
     KeybindRecord *r = findAction( inActionName );
     if( r == NULL ) return;
     parseKeyString( r->defaultKeyStr, &r->key, &r->modifiers );
-    saveCfg();
+    saveToFile();
     }
 
 void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, int *outModifiers ) {
