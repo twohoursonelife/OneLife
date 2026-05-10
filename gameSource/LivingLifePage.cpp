@@ -4270,8 +4270,8 @@ LivingLifePage::LivingLifePage()
 
     const char *infoComment = "// This file is read once on launch, so changes only apply after a restart.\n"
                               "// To reset all keybinds to defaults, delete or clear this file. To reset a single keybind, delete its line.\n"
-                              "// Keybinds tagged modifier-only/key-only MUST have only one key or modifier. Otherwise it will not register.\n"
-                              "// Untagged keybinds must either be a single key, or a key combined with a modifier/modifiers.\n\n"
+                              "// Keybinds tagged modifier-only/key-only MUST have only one key or modifier, or the keybind will be ignored.\n"
+                              "// Untagged keybinds must either be a single key, or a key combined with one or more modifiers.\n\n"
                               "// Valid keys: any single character or tab, enter, space.\n"
                               "// Valid modifiers: ctrl, shift, alt.\n\n\n"
                               "// Movement";
