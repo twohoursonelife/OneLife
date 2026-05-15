@@ -4314,12 +4314,12 @@ LivingLifePage::LivingLifePage()
     KeybindManager::registerAction( "objectSearchToggle", "OBJECT SEARCH PANEL", "j" );
     KeybindManager::registerAction( "familyDisplayToggle", "FAMILY DISPLAY PANEL", "p", { .postComment = "" } );
 
-    KeybindManager::registerAction( "sayCommand", "SAY COMMAND", "/", { .type = KEY_ONLY, .preComment = "// Chat" } );
-    KeybindManager::registerAction( "openChat", "OPEN CHAT", "enter", { .type = KEY_ONLY, .postComment = "" } );
+    KeybindManager::registerAction( "sayCommand", "SAY COMMAND", "/", { .preComment = "// Chat" } );
+    KeybindManager::registerAction( "openChat", "OPEN CHAT", "enter", { .postComment = "" } );
 
     KeybindManager::registerAction( "minitechMinimize", "MINIMIZE CRAFTING GUIDE", "v", { .preComment = "// Crafting guide" } );
     KeybindManager::registerAction( "minitechSwitchMode", "SWITCH USE/MAKE MODE", "ctrl+v" );
-    KeybindManager::registerAction( "minitechPageNext", "CRAFTING GUIDE NEXT PAGE", "tab", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "minitechPageNext", "CRAFTING GUIDE NEXT PAGE", "tab" );
     KeybindManager::registerAction( "minitechPagePrev", "CRAFTING GUIDE PREV PAGE", "shift+tab" );
     KeybindManager::registerAction( "minitechNextObj", "CRAFTING GUIDE NEXT OBJECT", "ctrl+x" );
     KeybindManager::registerAction( "minitechPrevObj", "CRAFTING GUIDE PREV OBJECT", "ctrl+z", { .postComment = "" } );
