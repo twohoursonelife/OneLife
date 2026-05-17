@@ -28099,20 +28099,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
     if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
 
-    if( !TextField::isAnyFocused() ) {
-        char sayCommand = KeybindManager::isActive( "sayCommand" );
-        char openChat = KeybindManager::isActive( "openChat" );
-        if( sayCommand || openChat ) {
-            mModClickKeyDown = false;
-            mHintBackKeyDown = false;
-            mXrayKeyDown = false;
-            mHideHudKeyDown = false;
-            mSayField.setText( sayCommand ? "/" : "" );
-            mSayField.focus();
-            return;
-            }
-        }
-
     if( mSayField.isFocused() ) {
         if( inASCII >= 48 && inASCII <= 57 ) {
             char *typedText = mSayField.getText();
@@ -29037,6 +29023,20 @@ void LivingLifePage::specialKeyUp( int inKeyCode ) {
 void LivingLifePage::keybindKeyDown( int inKey ) {
     if( mServerSocket == -1 ) return;
     if( showBugMessage ) return;
+
+    if( !TextField::isAnyFocused() ) {
+        char sayCommand = KeybindManager::isActive( "sayCommand" );
+        char openChat = KeybindManager::isActive( "openChat" );
+        if( sayCommand || openChat ) {
+            mModClickKeyDown = false;
+            mHintBackKeyDown = false;
+            mXrayKeyDown = false;
+            mHideHudKeyDown = false;
+            mSayField.setText( sayCommand ? "/" : "" );
+            mSayField.focus();
+            return;
+            }
+        }
 
     if( !mSayField.isFocused() && KeybindManager::isActive( "heldUse" ) ) mModClickKeyDown = true;
 
