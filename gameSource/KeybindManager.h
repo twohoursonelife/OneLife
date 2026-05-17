@@ -74,7 +74,8 @@ class KeybindManager {
         static const char *getKeyName( int inKey, int inLong = true );
         static int getKeyCode( const char *inName );
 
-        // returns true if a keybinds key and ONLY its modifiers are pressed (returns false if any extra modifiers pressed)
+        // returns true if a keybind's key is pressed and its required modifiers are down;
+        // extra modifiers are allowed only if no other keybinds conflict
         static char isActive( const char *inActionName );
         // returns false if the key is down regardless of whether extra modifiers are held
         // used for held keybinds to prevent false clears when extra modifiers are held
