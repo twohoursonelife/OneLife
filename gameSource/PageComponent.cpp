@@ -324,13 +324,29 @@ void PageComponent::base_specialKeyDown( int inKeyCode ){
 void PageComponent::base_specialKeyUp( int inKeyCode ){
     for( int i=0; i<mComponents.size(); i++ ) {
         PageComponent *c = *( mComponents.getElement( i ) );
-    
+
         if( c->isVisible() && c->isActive() ) {
             c->base_specialKeyUp( inKeyCode );
             }
         }
 
     specialKeyUp( inKeyCode );
+    }
+
+
+
+void PageComponent::base_keybindKeyDown( int inKey ){
+    if( mIgnoreEvents ) {
+        return;
+        }
+
+    keybindKeyDown( inKey );
+    }
+
+
+
+void PageComponent::base_keybindKeyUp( int inKey ){
+    keybindKeyUp( inKey );
     }
 
 

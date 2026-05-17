@@ -2892,8 +2892,6 @@ void pointerUp( float inX, float inY ) {
 
 
 void keyDown( unsigned char inASCII ) {
-    KeybindManager::keyDown( inASCII );
-
     if( inASCII == 27 ) { // ESCAPE KEY
         TextField::unfocusAll();
         if ( currentGamePage == settingsPage ) {
@@ -2995,8 +2993,6 @@ void keyUp( unsigned char inASCII ) {
         holdDeleteKeySteps = -1;
         }
     
-    KeybindManager::keyUp( inASCII );
-
     if( isPaused() ) return;
 
     if( currentGamePage != NULL ) {
@@ -3012,7 +3008,7 @@ void keyUp( unsigned char inASCII ) {
 
 
 void specialKeyDown( int inKey ) {
-    KeybindManager::specialKeyDown( inKey );
+    KeybindManager::keyDown( inKey );
 
     if( isPaused() ) {
         return;
@@ -3020,13 +3016,14 @@ void specialKeyDown( int inKey ) {
 
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyDown( inKey );
+        currentGamePage->base_keybindKeyDown( inKey );
         }
     }
 
 
 
 void specialKeyUp( int inKey ) {
-    KeybindManager::specialKeyUp( inKey );
+    KeybindManager::keyUp( inKey );
 
     if( isPaused() ) {
         return;
@@ -3034,10 +3031,33 @@ void specialKeyUp( int inKey ) {
 
     if( currentGamePage != NULL ) {
         currentGamePage->base_specialKeyUp( inKey );
+        currentGamePage->base_keybindKeyUp( inKey );
         }
-    } 
+    }
 
+void unmodifiedKeyDown( unsigned char inKey ) {
+    KeybindManager::keyDown( inKey );
 
+    if( isPaused() ) {
+        return;
+        }
+
+    if( currentGamePage != NULL ) {
+        currentGamePage->base_keybindKeyDown( inKey );
+        }
+    }
+
+void unmodifiedKeyUp( unsigned char inKey ) {
+    KeybindManager::keyUp( inKey );
+
+    if( isPaused() ) {
+        return;
+        }
+
+    if( currentGamePage != NULL ) {
+        currentGamePage->base_keybindKeyUp( inKey );
+        }
+    }
 
 
 char getUsesSound() {

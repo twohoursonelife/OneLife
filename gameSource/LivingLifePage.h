@@ -504,6 +504,9 @@ class LivingLifePage : public GamePage, public ActionListener {
         virtual void keyUp( unsigned char inASCII );
         virtual void specialKeyUp( int inKeyCode );
 
+        virtual void keybindKeyDown( int inKey );
+        virtual void keybindKeyUp( int inKey );
+
         void vogMove( int x, int y );
 
         void vogMoveCamera( float newScreenViewCenterX, float newScreenViewCenterY );
@@ -595,8 +598,6 @@ class LivingLifePage : public GamePage, public ActionListener {
         char isTutorial();           // for DiscordController
 
     protected:
-        void checkHeldReleased();
-
         int mServerSocket;
         
         int mRequiredVersion;

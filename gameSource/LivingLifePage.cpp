@@ -28051,101 +28051,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-    if( !mSayField.isFocused() && KeybindManager::isActive( "heldUse" ) ) mModClickKeyDown = true;
-
-    if( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
-        if( !mSayField.isFocused() && !vogMode ) {
-            char alphaActive = KeybindManager::isActive( "alphaModifier" );
-            char betaActive = KeybindManager::isActive( "betaModifier" );
-            if( handleMoveAction( "moveUp", &upKeyDown, alphaActive, betaActive, 0, 1 ) ) return;
-            if( handleMoveAction( "moveLeft", &leftKeyDown, alphaActive, betaActive, -1, 0 ) ) return;
-            if( handleMoveAction( "moveDown", &downKeyDown, alphaActive, betaActive, 0, -1 ) ) return;
-            if( handleMoveAction( "moveRight", &rightKeyDown, alphaActive, betaActive, 1, 0 ) ) return;
-            if( KeybindManager::isActive( "alphaBelow" ) ) {
-                if( betaActive ) { actionBetaRelativeToMe( 0, 0 ); return; }
-                actionAlphaRelativeToMe( 0, 0 );
-                return;
-                }
-
-                
-            if( KeybindManager::isActive( "useHat" ) ) {
-                usePocket( 0 );
-                return;
-                }
-            if( KeybindManager::isActive( "useHatReplace" ) ) {
-                usePocket( 0, true );
-                return;
-                }
-            if( KeybindManager::isActive( "useHatRemv" ) ) {
-                usePocket( 0, false, true );
-                return;
-                }
-
-
-            if( KeybindManager::isActive( "useTop" ) ) {
-                usePocket( 1 );
-                return;
-                }
-            if( KeybindManager::isActive( "useTopReplace" ) ) {
-                usePocket( 1, true );
-                return;
-                }
-            if( KeybindManager::isActive( "useTopRemv" ) ) {
-                usePocket( 1, false, true );
-                return;
-                }
-
-
-            if( KeybindManager::isActive( "useBottom" ) ) {
-                usePocket( 4 );
-                return;
-                }
-            if( KeybindManager::isActive( "useBottomReplace" ) ) {
-                usePocket( 4, true );
-                return;
-                }
-            if( KeybindManager::isActive( "useBottomRemv" ) ) {
-                usePocket( 4, false, true );
-                return;
-                }
-
-
-            if( KeybindManager::isActive( "useBackpack" ) ) {
-                useBackpack();
-                return;
-                }
-            if( KeybindManager::isActive( "useBackpackReplace" ) ) {
-                useBackpack( true );
-                return;
-                }
-            if( KeybindManager::isActive( "selfBackpackTransRemv" ) ) {
-                takeOffBackpack();
-                return;
-                }
-            if( KeybindManager::isActive( "selfBackpackTrans" ) ) {
-                takeOffBackpack( 1 );
-                return;
-                }
-            if( KeybindManager::isActive( "selfBackpackRemv" ) ) {
-                takeOffBackpack( 2 );
-                return;
-                }
-
-            if( KeybindManager::isActive( "eatSelf" ) ) {
-                useOnSelf();
-                return;
-                }
-            if( KeybindManager::isActive( "removeClothing" ) ) {
-                takeOffClothing();
-                return;
-                }
-            if( KeybindManager::isActive( "pickUpBaby" ) ) {
-                pickUpBabyInRange();
-                return;
-                }
-            }
-        }
-
     LiveObject *ourLiveObject = getOurLiveObject();
 
     // Custom command shortcuts (was FOV emote keys)
@@ -28193,108 +28098,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
     if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
-
-    if( ( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled ) &&
-        !mSayField.isFocused() && !vogMode ) {
-
-        char coordinatesKeyPressed = coordinatesEnabled &&
-            KeybindManager::isActive( "coordinatesToggle" );
-        char objectSearchKeyPressed = objectSearchEnabled &&
-            KeybindManager::isActive( "objectSearchToggle" );
-        char familyDisplayKeyPressed = familyDisplayEnabled &&
-            KeybindManager::isActive( "familyDisplayToggle" );
-
-        if( leftPanelComponent.mActive &&
-            ( coordinatesKeyPressed || objectSearchKeyPressed || familyDisplayKeyPressed )
-            ) {
-            if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
-            if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
-            if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
-            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
-            leftPanelComponent.mActive = false;
-            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-                savedCoordsClickable->mActive = false;
-                }
-            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
-                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
-                objectSearchQueryClickable->mActive = false;
-                }
-            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
-                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
-                displayedFamiliesClickable->mActive = false;
-                }
-            return;
-            }
-        else if( coordinatesKeyPressed ) {
-            coordinatesSlipComponent.mActive = false;
-            objectSearchSlipComponent.mActive = false;
-            familyDisplaySlipComponent.mActive = false;
-            topLeftSlipComponent.mActive = false;
-            leftPanelPageNumber = 0;
-            leftPanelComponent.mActive = true;
-            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-                savedCoordsClickable->mActive = true;
-                }
-            return;
-            }
-        else if( objectSearchKeyPressed ) {
-            coordinatesSlipComponent.mActive = false;
-            objectSearchSlipComponent.mActive = false;
-            familyDisplaySlipComponent.mActive = false;
-            topLeftSlipComponent.mActive = false;
-            leftPanelPageNumber = 1;
-            leftPanelComponent.mActive = true;
-            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
-                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
-                objectSearchQueryClickable->mActive = true;
-                }
-            return;
-            }
-        else if( familyDisplayKeyPressed ) {
-            coordinatesSlipComponent.mActive = false;
-            objectSearchSlipComponent.mActive = false;
-            familyDisplaySlipComponent.mActive = false;
-            topLeftSlipComponent.mActive = false;
-            leftPanelPageNumber = 2;
-            leftPanelComponent.mActive = true;
-            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
-                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
-                displayedFamiliesClickable->mActive = true;
-                }
-            return;
-            }
-
-        }
-
-    if( yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
-        KeybindManager::isActive( "yumFinder" ) ) {
-        runningYumFinder = true;
-        // make sure the animation plays as soon as the key is pressed
-        bouncingAnimationStepOffset = -livingLifeStepCount;
-        }
-
-    if( !mSayField.isFocused() ) {
-        if( KeybindManager::isActive( "xray" ) ) mXrayKeyDown = true;
-        if( mUsingSteam && KeybindManager::isActive( "hintBack" ) ) mHintBackKeyDown = true;
-        if( SettingsManager::getIntSetting( "keyboardActions", 1 ) &&
-            KeybindManager::isActive( "stopCamera" ) ) shouldMoveCamera = false;
-        }
-
-    if( !TextField::isAnyFocused() && !vogMode ) {
-        if( KeybindManager::isActive( "hideHud" ) ) mHideHudKeyDown = true;
-        if( !commandKey && !shiftKey && KeybindManager::isActive( "nameLabels" ) ) {
-            alwaysShowPlayerLabelEnabled = !alwaysShowPlayerLabelEnabled;
-            SettingsManager::setSetting( "alwaysShowPlayerLabelEnabled",
-                                         alwaysShowPlayerLabelEnabled );
-            return;
-            }
-        if( KeybindManager::isActive( "gridToggle" ) ) {
-            drawGridToggle = !drawGridToggle;
-            return;
-            }
-        }
 
     if( !TextField::isAnyFocused() ) {
         char sayCommand = KeybindManager::isActive( "sayCommand" );
@@ -29207,28 +29010,10 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
 
 
             
-void LivingLifePage::checkHeldReleased() {
-    if( KeybindManager::isReleased( "moveUp" ) ) upKeyDown = false;
-    if( KeybindManager::isReleased( "moveLeft" ) ) leftKeyDown = false;
-    if( KeybindManager::isReleased( "moveDown" ) ) downKeyDown = false;
-    if( KeybindManager::isReleased( "moveRight" ) ) rightKeyDown = false;
-
-    if( KeybindManager::isReleased( "yumFinder" ) ) runningYumFinder = false;
-    if( KeybindManager::isReleased( "xray" ) ) mXrayKeyDown = false;
-    if( KeybindManager::isReleased( "hintBack" ) ) mHintBackKeyDown = false;
-    if( KeybindManager::isReleased( "hideHud" ) ) mHideHudKeyDown = false;
-    if( KeybindManager::isReleased( "heldUse" ) ) mModClickKeyDown = false;
-
-    if( KeybindManager::isReleased( "stopCamera" ) ) shouldMoveCamera = true;
-    }
-
-
 void LivingLifePage::keyUp( unsigned char inASCII ) {
     dragging = false;
     dragStart = {9999, 9999};
     dragEnd = {9999, 9999};
-
-    checkHeldReleased();
 
     if( !upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown ) {
         lastPosX = 9999;
@@ -29245,9 +29030,227 @@ void LivingLifePage::keyUp( unsigned char inASCII ) {
 
 
 void LivingLifePage::specialKeyUp( int inKeyCode ) {
-    checkHeldReleased();
     }
 
+
+
+void LivingLifePage::keybindKeyDown( int inKey ) {
+    if( mServerSocket == -1 ) return;
+    if( showBugMessage ) return;
+
+    if( !mSayField.isFocused() && KeybindManager::isActive( "heldUse" ) ) mModClickKeyDown = true;
+
+    if( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if( !mSayField.isFocused() && !vogMode ) {
+            char alphaActive = KeybindManager::isActive( "alphaModifier" );
+            char betaActive = KeybindManager::isActive( "betaModifier" );
+            if( handleMoveAction( "moveUp", &upKeyDown, alphaActive, betaActive, 0, 1 ) ) return;
+            if( handleMoveAction( "moveLeft", &leftKeyDown, alphaActive, betaActive, -1, 0 ) ) return;
+            if( handleMoveAction( "moveDown", &downKeyDown, alphaActive, betaActive, 0, -1 ) ) return;
+            if( handleMoveAction( "moveRight", &rightKeyDown, alphaActive, betaActive, 1, 0 ) ) return;
+            if( KeybindManager::isActive( "alphaBelow" ) ) {
+                if( betaActive ) { actionBetaRelativeToMe( 0, 0 ); return; }
+                actionAlphaRelativeToMe( 0, 0 );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useHat" ) ) {
+                usePocket( 0 );
+                return;
+                }
+            if( KeybindManager::isActive( "useHatReplace" ) ) {
+                usePocket( 0, true );
+                return;
+                }
+            if( KeybindManager::isActive( "useHatRemv" ) ) {
+                usePocket( 0, false, true );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useTop" ) ) {
+                usePocket( 1 );
+                return;
+                }
+            if( KeybindManager::isActive( "useTopReplace" ) ) {
+                usePocket( 1, true );
+                return;
+                }
+            if( KeybindManager::isActive( "useTopRemv" ) ) {
+                usePocket( 1, false, true );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useBottom" ) ) {
+                usePocket( 4 );
+                return;
+                }
+            if( KeybindManager::isActive( "useBottomReplace" ) ) {
+                usePocket( 4, true );
+                return;
+                }
+            if( KeybindManager::isActive( "useBottomRemv" ) ) {
+                usePocket( 4, false, true );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useBackpack" ) ) {
+                useBackpack();
+                return;
+                }
+            if( KeybindManager::isActive( "useBackpackReplace" ) ) {
+                useBackpack( true );
+                return;
+                }
+            if( KeybindManager::isActive( "selfBackpackTransRemv" ) ) {
+                takeOffBackpack();
+                return;
+                }
+            if( KeybindManager::isActive( "selfBackpackTrans" ) ) {
+                takeOffBackpack( 1 );
+                return;
+                }
+            if( KeybindManager::isActive( "selfBackpackRemv" ) ) {
+                takeOffBackpack( 2 );
+                return;
+                }
+
+            if( KeybindManager::isActive( "eatSelf" ) ) {
+                useOnSelf();
+                return;
+                }
+            if( KeybindManager::isActive( "removeClothing" ) ) {
+                takeOffClothing();
+                return;
+                }
+            if( KeybindManager::isActive( "pickUpBaby" ) ) {
+                pickUpBabyInRange();
+                return;
+                }
+            }
+        }
+
+    if( ( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled ) &&
+        !mSayField.isFocused() && !vogMode ) {
+
+        char coordinatesKeyPressed = coordinatesEnabled &&
+            KeybindManager::isActive( "coordinatesToggle" );
+        char objectSearchKeyPressed = objectSearchEnabled &&
+            KeybindManager::isActive( "objectSearchToggle" );
+        char familyDisplayKeyPressed = familyDisplayEnabled &&
+            KeybindManager::isActive( "familyDisplayToggle" );
+
+        if( leftPanelComponent.mActive &&
+            ( coordinatesKeyPressed || objectSearchKeyPressed || familyDisplayKeyPressed )
+            ) {
+            if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
+            if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
+            if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
+            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+            leftPanelComponent.mActive = false;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = false;
+                }
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = false;
+                }
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = false;
+                }
+            return;
+            }
+        else if( coordinatesKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 0;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                }
+            return;
+            }
+        else if( objectSearchKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 1;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( familyDisplayKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 2;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
+                }
+            return;
+            }
+
+        }
+
+    if( yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
+        KeybindManager::isActive( "yumFinder" ) ) {
+        runningYumFinder = true;
+        bouncingAnimationStepOffset = -livingLifeStepCount;
+        }
+
+    if( !mSayField.isFocused() ) {
+        if( KeybindManager::isActive( "xray" ) ) mXrayKeyDown = true;
+        if( mUsingSteam && KeybindManager::isActive( "hintBack" ) ) mHintBackKeyDown = true;
+        if( SettingsManager::getIntSetting( "keyboardActions", 1 ) &&
+            KeybindManager::isActive( "stopCamera" ) ) shouldMoveCamera = false;
+        }
+
+    if( !TextField::isAnyFocused() && !vogMode ) {
+        if( KeybindManager::isActive( "hideHud" ) ) mHideHudKeyDown = true;
+        if( KeybindManager::isActive( "nameLabels" ) ) {
+            alwaysShowPlayerLabelEnabled = !alwaysShowPlayerLabelEnabled;
+            SettingsManager::setSetting( "alwaysShowPlayerLabelEnabled",
+                                         alwaysShowPlayerLabelEnabled );
+            return;
+            }
+        if( KeybindManager::isActive( "gridToggle" ) ) {
+            drawGridToggle = !drawGridToggle;
+            return;
+            }
+        }
+    }
+
+
+
+void LivingLifePage::keybindKeyUp( int inKey ) {
+    if( KeybindManager::isReleased( "moveUp" ) ) upKeyDown = false;
+    if( KeybindManager::isReleased( "moveLeft" ) ) leftKeyDown = false;
+    if( KeybindManager::isReleased( "moveDown" ) ) downKeyDown = false;
+    if( KeybindManager::isReleased( "moveRight" ) ) rightKeyDown = false;
+
+    if( KeybindManager::isReleased( "yumFinder" ) ) runningYumFinder = false;
+    if( KeybindManager::isReleased( "xray" ) ) mXrayKeyDown = false;
+    if( KeybindManager::isReleased( "hintBack" ) ) mHintBackKeyDown = false;
+    if( KeybindManager::isReleased( "hideHud" ) ) mHideHudKeyDown = false;
+    if( KeybindManager::isReleased( "heldUse" ) ) mModClickKeyDown = false;
+
+    if( KeybindManager::isReleased( "stopCamera" ) ) shouldMoveCamera = true;
+    }
 
 
 

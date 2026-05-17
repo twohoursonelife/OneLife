@@ -1,20 +1,34 @@
 #include "KeybindManager.h"
 
 #include "minorGems/util/stringUtils.h"
-#include "minorGems/graphics/openGL/KeyboardHandlerGL.h"
 #include "minorGems/game/game.h"
- 
-#include <stdio.h>
+
 #include <string.h>
 #include <ctype.h>
 
 #include <fstream>
-#include <string>
 
 SimpleVector<KeybindRecord *> KeybindManager::sActions;
 char KeybindManager::sInited = false;
-char KeybindManager::sPressed[] = {};
-static const char* configFile = "settings/keybinds.ini";
+char KeybindManager::sKeysInited = false;
+char KeybindManager::sPressed[KEYBIND_KEY_TABLE_SIZE] = {};
+NamedKeyEntry KeybindManager::sNamedKeys[KEYBIND_KEY_TABLE_SIZE] = {};
+std::unordered_map<std::string, int> KeybindManager::sNameToKey;
+
+static const char *configFile = "settings/keybinds.ini";
+
+void KeybindManager::initKeys() {
+    sKeysInited = true;
+    sNamedKeys[ 32 ] = { "space", "__" };
+    sNamedKeys[ 9 ]  = { "tab", "\\t" };
+    sNamedKeys[ 13 ] = { "enter", "\\n" };
+
+    for( int i = 0; i < KEYBIND_KEY_TABLE_SIZE; i++ ) {
+        NamedKeyEntry &k = sNamedKeys[i];
+        if( k.longName != NULL ) sNameToKey[k.longName] = i;
+        if( k.shortName != NULL ) sNameToKey[k.shortName] = i;
+        }
+    }
 
 void KeybindManager::init() {
     loadFromFile();
@@ -60,6 +74,13 @@ KeybindRecord *KeybindManager::findAction( const char *inActionName ) {
     return NULL;
     }
 
+static std::string trim( const std::string &inString ) {
+    size_t start = inString.find_first_not_of( " \t\r\n" );
+    if( start == std::string::npos ) return "";
+    size_t end = inString.find_last_not_of( " \t\r\n" );
+    return inString.substr( start, end - start + 1 );
+    }
+
 static void validateBinding( KeybindRecord *inRecord ) {
     if( inRecord->key == 0 && inRecord->modifiers == KEYBIND_MOD_NONE ) return;
     KeybindType type = inRecord->options.type;
@@ -76,12 +97,6 @@ static void validateBinding( KeybindRecord *inRecord ) {
         inRecord->key = 0;
         inRecord->modifiers = KEYBIND_MOD_NONE;
         }
-    }
-static std::string trim( const std::string &inString ) {
-    size_t start = inString.find_first_not_of( " \t\r\n" );
-    if( start == std::string::npos ) return "";
-    size_t end = inString.find_last_not_of( " \t\r\n" );
-    return inString.substr( start, end - start + 1 );
     }
 
 void KeybindManager::loadFromFile() {
@@ -118,7 +133,7 @@ void KeybindManager::saveToFile() {
         const char *typeTag = "";
         if( r->options.type == MODIFIER_ONLY ) typeTag = "  // modifier-only";
         else if( r->options.type == KEY_ONLY ) typeTag = "  // key-only";
-        unsigned char defaultKey;
+        int defaultKey;
         int defaultMods;
         parseKeyString( r->defaultKeyStr, &defaultKey, &defaultMods );
         char changed = r->key != defaultKey || r->modifiers != defaultMods;
@@ -130,7 +145,7 @@ void KeybindManager::saveToFile() {
         }
     }
 
-void KeybindManager::setBinding( const char *inActionName, unsigned char inKey, int inModifiers ) {
+void KeybindManager::setBinding( const char *inActionName, int inKey, int inModifiers ) {
     KeybindRecord *r = findAction( inActionName );
     if( r == NULL ) return;
     r->key = inKey;
@@ -149,7 +164,8 @@ void KeybindManager::resetBinding( const char *inActionName ) {
     saveToFile();
     }
 
-void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, int *outModifiers ) {
+void KeybindManager::parseKeyString( const char *inStr, int *outKey, int *outModifiers ) {
+    if( !sKeysInited ) initKeys();
     *outKey = 0;
     *outModifiers = KEYBIND_MOD_NONE;
 
@@ -175,15 +191,7 @@ void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, i
         if( strcmp( tok, "ctrl" ) == 0 ) *outModifiers |= KEYBIND_MOD_CTRL;
         else if( strcmp( tok, "shift" ) == 0 ) *outModifiers |= KEYBIND_MOD_SHIFT;
         else if( strcmp( tok, "alt" ) == 0 ) *outModifiers |= KEYBIND_MOD_ALT;
-        else if( strcmp( tok, "tab" ) == 0 ) *outKey = 9;
-        else if( strcmp( tok, "enter" ) == 0 || strcmp( tok, "\\n" ) == 0 ) *outKey = 28;
-        else if( strcmp( tok, "for" ) == 0 || strcmp( tok, ">>" ) == 0 ) *outKey = 30;
-        else if( strcmp( tok, "back" ) == 0 || strcmp( tok, "<<" ) == 0 ) *outKey = 31;
-        else if( strcmp( tok, "space" ) == 0 ) *outKey = ' ';
-        else if( strcmp( tok, "__" ) == 0 ) *outKey = ' ';
-        else if( strcmp( tok, "none" ) == 0 ) {
-            }
-        else *outKey = (unsigned char)tok[0];
+        else *outKey = getKeyCode( tok );
         delete [] tok;
         }
     delete [] tokens;
@@ -191,7 +199,7 @@ void KeybindManager::parseKeyString( const char *inStr, unsigned char *outKey, i
 
 char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inLong, char inUppercase ) {
     if( inRecord == NULL || ( inRecord->key == 0 && inRecord->modifiers == KEYBIND_MOD_NONE ) ) {
-        if ( inLong && inUppercase ) return stringDuplicate( "[NONE]" );
+        if( inLong && inUppercase ) return stringDuplicate( "[NONE]" );
         return stringDuplicate( "" );
         }
 
@@ -200,19 +208,13 @@ char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inLong, char
     if( inRecord->modifiers & KEYBIND_MOD_CTRL ) strcat( buf, "ctrl+" );
     if( inRecord->modifiers & KEYBIND_MOD_SHIFT ) strcat( buf, "shift+" );
     if( inRecord->modifiers & KEYBIND_MOD_ALT ) strcat( buf, "alt+" );
+    
     // KEY_ONLY uses shortened strings to fit in smaller input boxes
     char useShort = inRecord->options.type == KEY_ONLY && !inLong;
-    if( inRecord->key == 9 ) strcat( buf, "tab" );
-    else if( inRecord->key == 28 ) strcat( buf, useShort ? "\\n" : "enter" );
-    else if( inRecord->key == 30 ) strcat( buf, useShort ? ">>" : "for" );
-    else if( inRecord->key == 31 ) strcat( buf, useShort ? "<<" : "back" );
-    else if( inRecord->key == ' ' ) strcat( buf, useShort ? "__" : "space" );
-    else if( inRecord->key != 0 ) {
-        int len = strlen( buf );
-        buf[len] = (char)tolower( inRecord->key );
-        buf[len + 1] = '\0';
+    if( inRecord->key != 0 ) {
+        strcat( buf, getKeyName( inRecord->key, !useShort ) );
         }
-    else {
+    else { // remove trailing + if no key
         int len = strlen( buf );
         if( len > 0 && buf[len - 1] == '+' ) buf[len - 1] = '\0';
         }
@@ -223,6 +225,30 @@ char *KeybindManager::buildKeyString( KeybindRecord *inRecord, char inLong, char
 
 char *KeybindManager::buildKeyString( const char *inActionName, char inLong, char inUppercase ) {
     return buildKeyString( findAction( inActionName ), inLong, inUppercase );
+    }
+
+const char *KeybindManager::getKeyName( int inKey, int inLong ) {
+    NamedKeyEntry entry = sNamedKeys[inKey];
+    if( entry.longName != NULL )
+        return inLong ? entry.longName : entry.shortName;
+    if( inKey >= 33 && inKey <= 126 ) {
+        static char buf[2];
+        buf[0] = (char)inKey;
+        buf[1] = '\0';
+        return buf;
+        }
+    return "";
+    }
+
+int KeybindManager::getKeyCode( const char *inName ) {
+    if( inName[0] != '\0' && inName[1] == '\0' ) {
+        unsigned char c = (unsigned char)inName[0];
+        if( c >= 33 && c <= 126 ) return (int)c;
+        }
+    if( sNameToKey.count( inName ) ) {
+        return sNameToKey[inName];
+        }
+    return 0;
     }
 
 char KeybindManager::checkActive( const char *inActionName, char inStrict ) {
@@ -259,8 +285,23 @@ char KeybindManager::isActive( const char *inActionName ) {
     return checkActive( inActionName, true );
     }
 
+
 char KeybindManager::isReleased( const char *inActionName ) {
     return !checkActive( inActionName, false );
+    }
+
+void KeybindManager::keyDown( int inKey ) {
+    sPressed[inKey] = true;
+    }
+
+void KeybindManager::keyUp( int inKey ) {
+    sPressed[inKey] = false;
+    }
+
+void KeybindManager::clearAllPressed() {
+    for( int i = 0; i < KEYBIND_KEY_TABLE_SIZE; i++ ) {
+        sPressed[i] = false;
+        }
     }
 
 void KeybindManager::clearAction( const char *inActionName ) {
@@ -268,30 +309,3 @@ void KeybindManager::clearAction( const char *inActionName ) {
     if( r == NULL || r->key == 0 ) return;
     sPressed[ r->key ] = false;
     }
-
-void KeybindManager::keyDown( unsigned char inASCII ) {
-    // reroute enter key to an unused ASCII code to avoid mixups with ctrl+m ctrl code
-    // this means there can't be a keybind that includes both enter and ctrl. could be routed through special key instead?
-    if( inASCII == 13 && !isControlKeyDown() ) inASCII = 28;
-    if( isControlKeyDown() && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1; // recover key from ctrl codes
-    sPressed[ tolower( inASCII ) ] = true;
-    }
-
-void KeybindManager::keyUp( unsigned char inASCII ) {
-    if( inASCII == 13 && !isControlKeyDown() ) inASCII = 28;
-    if( isControlKeyDown() && inASCII > 0 && inASCII < 27 ) inASCII = 'a' + inASCII - 1;
-    sPressed[ tolower( inASCII ) ] = false;
-    }
-
-void KeybindManager::clearAllPressed() {
-    for( int i = 0; i < 256; i++ ) {
-        sPressed[i] = false;
-        }
-    }
-
-void KeybindManager::specialKeyDown( int inKey ) {
-    }
-
-void KeybindManager::specialKeyUp( int inKey ) {
-    }
-
