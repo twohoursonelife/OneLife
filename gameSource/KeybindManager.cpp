@@ -38,7 +38,7 @@ void KeybindManager::init() {
 
 void KeybindManager::deInit() {
     for( int i = 0; i < sActions.size(); i++ ) {
-        KeybindRecord *r = sActions.getElementDirect( i );
+        KeybindRecord *r = getAction( i );
         delete [] r->actionName;
         delete [] r->displayLabel;
         delete [] r->defaultKeyStr;
@@ -68,7 +68,7 @@ KeybindRecord *KeybindManager::getAction( int inIndex ) {
 
 KeybindRecord *KeybindManager::findAction( const char *inActionName ) {
     for( int i = 0; i < sActions.size(); i++ ) {
-        KeybindRecord *r = sActions.getElementDirect( i );
+        KeybindRecord *r = getAction( i );
         if( strcmp( r->actionName, inActionName ) == 0 ) return r;
         }
     return NULL;
@@ -127,7 +127,7 @@ void KeybindManager::saveToFile() {
     if( !file.is_open() ) return;
 
     for( int i = 0; i < sActions.size(); i++ ) {
-        KeybindRecord *r = sActions.getElementDirect( i );
+        KeybindRecord *r = getAction( i );
         if( r->options.preComment != NULL ) file << r->options.preComment << "\n";
         char *keyStr = buildKeyString( r, true, false );
         const char *typeTag = "";
@@ -282,7 +282,25 @@ char KeybindManager::checkActive( const char *inActionName, char inStrict ) {
     }
 
 char KeybindManager::isActive( const char *inActionName ) {
-    return checkActive( inActionName, true );
+    if ( checkActive( inActionName, true ) ) return true;
+    if ( !checkActive( inActionName, false ) ) return false;  
+
+    KeybindRecord *r = findAction( inActionName );
+    char shiftDown = isShiftKeyDown();
+    char ctrlDown = isControlKeyDown();
+    char altDown = isAltKeyDown();
+
+    int currentMods = ( shiftDown ? KEYBIND_MOD_SHIFT : 0 ) |
+                      ( ctrlDown ? KEYBIND_MOD_CTRL : 0 ) |
+                      ( altDown ? KEYBIND_MOD_ALT : 0 );
+
+    for ( int i = 0; i < sActions.size(); i++ ) {
+        KeybindRecord *other = getAction( i );
+        if ( other == r ) continue;
+        if ( r->key == other->key && other->modifiers == currentMods ) return false;
+    }
+
+    return true;
     }
 
 
