@@ -4231,6 +4231,7 @@ LivingLifePage::LivingLifePage()
           mHintBackKeyDown( false ),
           mXrayKeyDown( false ),
           mHideHudKeyDown( false ),
+          mJustOpenedSayField( false ),
           mObjectPicker( &objectPickable, +510, 90, true ),
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
@@ -27988,7 +27989,13 @@ char LivingLifePage::handleMoveAction( const char *inAction, bool *outKeyDown, c
 
 
 void LivingLifePage::keyDown( unsigned char inASCII ) {
-    
+
+    if( mJustOpenedSayField ) {
+        mJustOpenedSayField = false;
+        mSayField.setIgnoreEvents( false );
+        return;
+        }
+
     registerTriggerKeyCommand( inASCII, this );
 
 
@@ -29034,6 +29041,8 @@ void LivingLifePage::keybindKeyDown( int inKey ) {
             mHideHudKeyDown = false;
             mSayField.setText( sayCommand ? "/" : "" );
             mSayField.focus();
+            mSayField.setIgnoreEvents( true );
+            mJustOpenedSayField = true;
             return;
             }
         }

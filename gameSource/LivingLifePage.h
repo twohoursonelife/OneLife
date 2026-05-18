@@ -1132,6 +1132,8 @@ class LivingLifePage : public GamePage, public ActionListener {
 
         char mHideHudKeyDown;
 
+        char mJustOpenedSayField;
+
         
         //FOV
         public:
