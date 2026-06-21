@@ -1020,8 +1020,8 @@ static int LINEARDB3_considerFingerprintBucket( LINEARDB3 *inDB,
             
         uint64_t filePosRec = 
             LINEARDB3_HEADER_SIZE +
-            inBucket->fileIndex[ i ] * 
-            inDB->recordSizeBytes;
+            (uint64_t)( inBucket->fileIndex[ i ] ) * 
+            (uint64_t)( inDB->recordSizeBytes );
             
         if( !emptyRec ) {
             
@@ -1227,8 +1227,8 @@ int LINEARDB3_getOrPut( LINEARDB3 *inDB, const void *inKey, void *inOutValue,
 
             uint64_t filePosRec = 
                 LINEARDB3_HEADER_SIZE +
-                newBucket->fileIndex[0] * 
-                inDB->recordSizeBytes;
+                (uint64_t)( newBucket->fileIndex[0] ) * 
+                (uint64_t)( inDB->recordSizeBytes );
 
             // don't seek unless we have to
             if( inDB->lastOp == opRead ||
@@ -1322,7 +1322,7 @@ int LINEARDB3_Iterator_next( LINEARDB3_Iterator *inDBi,
         
         uint64_t fileRecPos = 
             LINEARDB3_HEADER_SIZE + 
-            inDBi->nextRecordIndex * db->recordSizeBytes;
+            (uint64_t)( inDBi->nextRecordIndex ) * (uint64_t)( db->recordSizeBytes );
         
                     
         if( db->lastOp == opWrite ||
