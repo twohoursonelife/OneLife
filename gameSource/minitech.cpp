@@ -8,6 +8,7 @@
 #include <regex> //to tokenize object names for whole word matching, and comment stripping
 
 #include "LivingLifePage.h"
+#include "KeybindManager.h"
 #include "groundSprites.h"
 #include "objectBank.h"
 #include "categoryBank.h"
@@ -45,7 +46,6 @@ SimpleVector<int> *minitech::mMapContainedStacks;
 SimpleVector<SimpleVector<int>> *minitech::mMapSubContainedStacks;
 
 bool minitech::minitechMinimized = true;
-unsigned char minitech::minimizeKey;
 int minitech::stepCount;
 int minitech::currentX;
 int minitech::currentY;
@@ -188,9 +188,6 @@ void minitech::setLivingLifePage(
     mMapSubContainedStacks = inmMapSubContainedStacks;
     
     minitechEnabled = SettingsManager::getIntSetting( "minitechEnabled", 1 );
-    char *minimizeKeyFromSetting = SettingsManager::getStringSetting("minitechMinimizeKey", "v");
-    minimizeKey = minimizeKeyFromSetting[0];
-    delete [] minimizeKeyFromSetting;
     
     showUncraftables = SettingsManager::getIntSetting( "minitechShowUncraftables", 0 );
     
@@ -2406,46 +2403,37 @@ void minitech::livingLifeStep() {
 }
 
 bool minitech::livingLifeKeyDown(unsigned char inASCII) {
-    
-    bool commandKey = isCommandKeyDown();
-    bool shiftKey = isShiftKeyDown();
 
-    if( commandKey && !shiftKey && inASCII == 24 ) { // ctrl + X
+    if( KeybindManager::isActive( "minitechNextObj" ) ) {
         nextHintObj();
         return true;
-    }
-    if( commandKey && !shiftKey && inASCII == 26 ) { // ctrl + Z
+        }
+    if( KeybindManager::isActive( "minitechPrevObj" ) ) {
         prevHintObj();
         return true;
-    }
-    
-    if (!commandKey && !shiftKey && inASCII == 9) {
-        currentTwoTechPage += 1;
-    }
-    
-    if (!commandKey && shiftKey && inASCII == 9) {
-        currentTwoTechPage -= 1;
-    }
-    
-    if (!shiftKey && !commandKey && toupper(inASCII) == toupper(minimizeKey)) { //V
-        // Minitech minimized
-        minitechMinimized = !minitechMinimized;
-
-        // Clear current hinting object
-        highlightObjId = 0;
-
-        // Clear the listeners to avoid any lingering
-        for (auto p: twotechMouseListeners) {
-            delete(p);
         }
+
+    if( KeybindManager::isActive( "minitechPageNext" ) ) {
+        currentTwoTechPage += 1;
+        }
+
+    if( KeybindManager::isActive( "minitechPagePrev" ) ) {
+        currentTwoTechPage -= 1;
+        }
+
+    if( KeybindManager::isActive( "minitechMinimize" ) ) {
+        minitechMinimized = !minitechMinimized;
+        highlightObjId = 0;
+        for( auto p: twotechMouseListeners ) {
+            delete( p );
+            }
         twotechMouseListeners.clear();
         twotechMouseListeners.shrink_to_fit();
+        }
 
-    }
-    
-    if (!shiftKey && commandKey && inASCII + 64 == toupper(minimizeKey)) { //Ctrl + V
+    if( KeybindManager::isActive( "minitechSwitchMode" ) ) {
         useOrMake = 1 - useOrMake;
-    }
+        }
     
     // if ( inASCII == 'p' ) {
         // guiScale += 0.3;

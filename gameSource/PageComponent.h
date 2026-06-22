@@ -81,6 +81,10 @@ class PageComponent : public GUIComponent {
 
         void base_specialKeyUp( int inKeyCode );
 
+        void base_keybindKeyDown( int inKey );
+
+        void base_keybindKeyUp( int inKey );
+
         
         void base_clearState();
         
@@ -144,6 +148,12 @@ class PageComponent : public GUIComponent {
             };
 
         virtual void specialKeyUp( int inKeyCode ) {
+            };
+
+        virtual void keybindKeyDown( int inKey ) {
+            };
+
+        virtual void keybindKeyUp( int inKey ) {
             };
         
 

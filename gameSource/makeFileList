@@ -46,6 +46,7 @@ liveObjectSet.cpp \
 ../commonSource/sayLimit.cpp \
 ExistingAccountPage.cpp \
 KeyEquivalentTextButton.cpp \
+KeybindManager.cpp \
 ServerActionPage.cpp \
 FinalMessagePage.cpp \
 AutoUpdatePage.cpp \

@@ -23,6 +23,8 @@
 
 #include "liveAnimationTriggers.h"
 
+#include "KeybindManager.h"
+
 #include "../commonSource/fractalNoise.h"
 #include "../commonSource/sayLimit.h"
 
@@ -97,7 +99,6 @@ static int holdingYumOrMeh = 0;
 static char shouldMoveCamera = true;
 
 bool showUseOnHoverEnabled = false;
-
 
 extern double viewWidth;
 extern double viewHeight;
@@ -179,18 +180,6 @@ int lastDoorToOpenY;
 float lastPosX;
 float lastPosY;
 
-unsigned char charKey_Up = 'w';
-unsigned char charKey_Down = 's';
-unsigned char charKey_Left = 'a';
-unsigned char charKey_Right = 'd';
-unsigned char charKey_TileStandingOn = ' ';
-
-unsigned char charKey_Backpack = 'q';
-unsigned char charKey_TakeOffBackpack = 'b';
-unsigned char charKey_Pocket = 't';
-unsigned char charKey_Eat = 'e';
-unsigned char charKey_Baby = 'c';
-
 //static bool waitForDoorToOpen;
 
 //FOV
@@ -205,14 +194,10 @@ static SpriteHandle guiPanelTileSprite;
 static SpriteHandle guiPanelRightSprite;
 
 char coordinatesEnabled = false;
-unsigned char coordinatesPanelToggleKey = 'g';
 char persistentEmoteEnabled = false;
 char yumFinderEnabled = false;
-unsigned char yumFinderKey = 'y';
 char objectSearchEnabled = false;
-unsigned char objectSearchPanelToggleKey = 'j';
 char familyDisplayEnabled = false;
-unsigned char familyDisplayPanelToggleKey = 'p';
 char dangerousTileEnabled = false;
 char alwaysShowPlayerLabelEnabled = false;
 
@@ -3925,7 +3910,7 @@ void LivingLifePage::useBackpack(bool replace) {
     }
 }
 
-void LivingLifePage::usePocket(int clothingID, bool replace) {
+void LivingLifePage::usePocket(int clothingID, bool replace, bool remove) {
     LiveObject *ourLiveObject = getOurLiveObject();
     
     int x, y;
@@ -3941,8 +3926,13 @@ void LivingLifePage::usePocket(int clothingID, bool replace) {
         setNextActionMessage( msg, x, y );
         nextActionDropping = true;
     } else {
-        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingID, -1 );
+        if (remove) {
+            sprintf( msg, "SELF %d %d %d#", x, y, clothingID );
+            setNextActionMessage( msg, x, y );
+        } else {
+        sprintf( msg, "SREMV %d %d %d %d#", x, y, clothingID, -2 );
         setNextActionMessage( msg, x, y );
+        }
     }
 }
 
@@ -3977,8 +3967,7 @@ void LivingLifePage::takeOffClothing() {
     
     // If holding clothing, put it on
     if (ourLiveObject->holdingID > 0) {
-        ObjectRecord *held = getObject(ourLiveObject->holdingID);
-
+        // ObjectRecord *held = getObject(ourLiveObject->holdingID);
         // if held object is not wearable
         // if (!held || held->clothing == 'n') return;
 
@@ -4055,12 +4044,6 @@ void LivingLifePage::setOurSendPosXY(int &x, int &y) {
     y = sendY(y);
 }
 
-bool LivingLifePage::isCharKey(unsigned char c, unsigned char key) {
-    char tKey = key;
-    return (c == key || c == toupper(tKey) || 
-        c+64 == toupper(tKey) // ctrl + key
-        );
-}
 
 void LivingLifePage::drawTileVanillaHighlight( int x, int y, FloatColor floatColor, bool flashing, bool border ) {
     doublePair startPos = { (double)x, (double)y };
@@ -4208,7 +4191,6 @@ void LivingLifePage::clearMap() {
     }
 
 
-
 LivingLifePage::LivingLifePage() 
         : mServerSocket( -1 ), 
           mForceRunTutorial( false ),
@@ -4221,8 +4203,8 @@ LivingLifePage::LivingLifePage()
           mMapBiomesRemembered( HashTable<int*>(400 * 400) ),
           mMapOffsetX( 0 ),
           mMapOffsetY( 0 ),
-          mEKeyEnabled( false ),
-          mEKeyDown( false ),
+          mModClickEnabled( false ),
+          mModClickKeyDown( false ),
           mGuiPanelSprite( loadSprite( "guiPanel.tga", false ) ),
           mGuiBloodSprite( loadSprite( "guiBlood.tga", false ) ),
           mNotePaperSprite( loadSprite( "notePaper.tga", false ) ),
@@ -4246,9 +4228,10 @@ LivingLifePage::LivingLifePage()
           mDeathReason( NULL ),
           mShowHighlights( true ),
           mUsingSteam( false ),
-          mZKeyDown( false ),
-          mXKeyDown( false ),
-          mGraveKeyDown( false ),
+          mHintBackKeyDown( false ),
+          mXrayKeyDown( false ),
+          mHideHudKeyDown( false ),
+          mJustOpenedSayField( false ),
           mObjectPicker( &objectPickable, +510, 90, true ),
           topLeftSlipComponent(),
           coordinatesSlipComponent(),
@@ -4285,18 +4268,73 @@ LivingLifePage::LivingLifePage()
     if( SettingsManager::getIntSetting( "familyDisplayEnabled", 0 ) ) {
         familyDisplayEnabled = true;
         }
-    char *coordinatesPanelToggleKeyFromSetting = SettingsManager::getStringSetting("coordinatesPanelToggleKey", "g");
-    coordinatesPanelToggleKey = coordinatesPanelToggleKeyFromSetting[0];
-    delete [] coordinatesPanelToggleKeyFromSetting;
-    char *objectSearchPanelToggleKeyFromSetting = SettingsManager::getStringSetting("objectSearchPanelToggleKey", "j");
-    objectSearchPanelToggleKey = objectSearchPanelToggleKeyFromSetting[0];
-    delete [] objectSearchPanelToggleKeyFromSetting;
-    char *familyDisplayPanelToggleKeyFromSetting = SettingsManager::getStringSetting("familyDisplayPanelToggleKey", "p");
-    familyDisplayPanelToggleKey = familyDisplayPanelToggleKeyFromSetting[0];
-    delete [] familyDisplayPanelToggleKeyFromSetting;
-    char *yumFinderKeyFromSetting = SettingsManager::getStringSetting("yumFinderKey", "y");
-    yumFinderKey = yumFinderKeyFromSetting[0];
-    delete [] yumFinderKeyFromSetting;
+
+    const char *infoComment = "// This file is read once on launch, so changes only apply after a restart.\n"
+                              "// To reset all keybinds to defaults, delete or clear this file. To reset a single keybind, delete its line.\n"
+                              "// Keybinds tagged modifier-only/key-only MUST have only one key or modifier, or the keybind will be ignored.\n"
+                              "// Untagged keybinds must either be a single key, or a key combined with one or more modifiers.\n\n"
+                              "// Valid keys: any single character or tab, enter, space.\n"
+                              "// Valid modifiers: ctrl, shift, alt.\n\n\n"
+                              "// Movement";
+
+    KeybindManager::registerAction( "moveUp", "UP", "w", { .type = KEY_ONLY, .preComment = infoComment } );
+    KeybindManager::registerAction( "moveLeft", "LEFT", "a", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "moveDown", "DOWN", "s", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "moveRight", "RIGHT", "d", { .type = KEY_ONLY } );
+    KeybindManager::registerAction( "alphaBelow", "BELOW", "space", { .type = KEY_ONLY, .postComment = "" } );
+
+    KeybindManager::registerAction( "alphaModifier", "ALPHA", "shift", { .type = MODIFIER_ONLY, .preComment = "// Modifiers" } );
+    KeybindManager::registerAction( "betaModifier", "BETA", "ctrl", { .type = MODIFIER_ONLY, .postComment = "" } );
+
+    KeybindManager::registerAction( "useHat", "USE", "ctrl+t", { .preComment = "// Hat slot" } );
+    KeybindManager::registerAction( "useHatReplace", "REPLACE", "ctrl+shift+t" );
+    KeybindManager::registerAction( "useHatRemv", "REMV", "", { .postComment = "" } );
+
+    KeybindManager::registerAction( "useTop", "USE", "shift+t", { .preComment = "// Top slot" } );
+    KeybindManager::registerAction( "useTopReplace", "REPLACE", "" );
+    KeybindManager::registerAction( "useTopRemv", "REMV", "", { .postComment = "" } );
+
+    KeybindManager::registerAction( "useBottom", "USE", "t", { .preComment = "// Bottom slot" } );
+    KeybindManager::registerAction( "useBottomReplace", "REPLACE", "" );
+    KeybindManager::registerAction( "useBottomRemv", "REMV", "", { .postComment = "" } );
+
+    KeybindManager::registerAction( "useBackpack", "USE", "q", { .preComment = "// Backpack" } );
+    KeybindManager::registerAction( "useBackpackReplace", "REPLACE", "shift+q" );
+
+    KeybindManager::registerAction( "selfBackpackTransRemv", "TRANS/REMV", "b" );
+    KeybindManager::registerAction( "selfBackpackTrans", "TRANS", "shift+b" );
+    KeybindManager::registerAction( "selfBackpackRemv", "REMV", "ctrl+b", { .postComment = "" } );
+
+    KeybindManager::registerAction( "eatSelf", "EAT/SELF", "e", { .preComment = "// Player actions" } );
+    KeybindManager::registerAction( "removeClothing", "REMOVE CLOTHING", "shift+e" );
+    KeybindManager::registerAction( "pickUpBaby", "PICK UP BABY", "c" );
+    KeybindManager::registerAction( "heldUse", "HELD USE", "e", { .postComment = "" } );
+
+    KeybindManager::registerAction( "coordinatesToggle", "COORDINATES PANEL", "g", { .preComment = "// Panels" } );
+    KeybindManager::registerAction( "yumFinder", "YUM FINDER", "y" );
+    KeybindManager::registerAction( "objectSearchToggle", "OBJECT SEARCH PANEL", "j" );
+    KeybindManager::registerAction( "familyDisplayToggle", "FAMILY DISPLAY PANEL", "p", { .postComment = "" } );
+
+    KeybindManager::registerAction( "sayCommand", "SAY COMMAND", "/", { .preComment = "// Chat" } );
+    KeybindManager::registerAction( "openChat", "OPEN CHAT", "enter", { .postComment = "" } );
+
+    KeybindManager::registerAction( "minitechMinimize", "MINIMIZE CRAFTING GUIDE", "v", { .preComment = "// Crafting guide" } );
+    KeybindManager::registerAction( "minitechSwitchMode", "SWITCH USE/MAKE MODE", "ctrl+v" );
+    KeybindManager::registerAction( "minitechPageNext", "CRAFTING GUIDE NEXT PAGE", "tab" );
+    KeybindManager::registerAction( "minitechPagePrev", "CRAFTING GUIDE PREV PAGE", "shift+tab" );
+    KeybindManager::registerAction( "minitechNextObj", "CRAFTING GUIDE NEXT OBJECT", "ctrl+x" );
+    KeybindManager::registerAction( "minitechPrevObj", "CRAFTING GUIDE PREV OBJECT", "ctrl+z", { .postComment = "" } );
+
+    KeybindManager::registerAction( "xray", "X-RAY MODE", "x", { .preComment = "// View" } );
+    KeybindManager::registerAction( "hideHud", "HIDE HUD", "`" );
+    KeybindManager::registerAction( "hintBack", "HINT BACK", "z" );
+    KeybindManager::registerAction( "nameLabels", "PLAYER NAMES", "n" );
+    KeybindManager::registerAction( "stopCamera", "STOP CAMERA", "f" );
+    KeybindManager::registerAction( "gridToggle", "GRID TOGGLE", "shift+k" );
+
+
+
+    KeybindManager::init();
 
     updateObjectSearchArray();
 
@@ -4678,7 +4716,7 @@ LivingLifePage::LivingLifePage()
     mShowHighlights = 
         SettingsManager::getIntSetting( "showMouseOverHighlights", 1 );
 
-    mEKeyEnabled = 
+    mModClickEnabled = 
         SettingsManager::getIntSetting( "eKeyForRightClick", 0 );
 
 
@@ -4791,6 +4829,8 @@ void LivingLifePage::clearLiveObjects() {
 
 
 LivingLifePage::~LivingLifePage() {
+    KeybindManager::deInit();
+
     printf( "Total received = %d bytes (+%d in headers), "
             "total sent = %d bytes (+%d in headers)\n",
             numServerBytesRead, overheadServerBytesRead,
@@ -5809,7 +5849,7 @@ void LivingLifePage::drawMapCell( int inMapI,
         
         objectHeight = getObjectHeight( oID );
 
-        if( mXKeyDown && objectHeight > .75 * CELL_D ) setObjectDrawAlpha( 0.3 );
+        if( mXrayKeyDown && objectHeight > .75 * CELL_D ) setObjectDrawAlpha( 0.3 );
         
         double oldFrameCount = mMapAnimationFrameCount[ inMapI ];
 
@@ -8439,13 +8479,13 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                         // All tiles are drawn to change color independently
                         // Show complete biome in X-ray mode
-                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown) {
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXrayKeyDown ) {
                             // This draws 3x3 patches
                             drawSprite( s->wholeSheet, sheetPos );
                             }
-                        
+
                         // mark all cells under sheet as drawn
-                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXKeyDown ) {
+                        if( (!isTrippingEffectOn || trippingEffectDisabled) && !mXrayKeyDown ) {
                             for( int sY = y; sY > y - s->numTilesHigh; sY-- ) {
                             
                                 if( sY >=0 && sY < mMapD ) {
@@ -8548,7 +8588,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     if( isTrippingEffectOn && !trippingEffectDisabled ) setTrippingColor( pos.x, pos.y );
                     
                     if( (!isTrippingEffectOn || trippingEffectDisabled) && // All tiles are drawn to change color independently
-                        !mXKeyDown && // Show complete biome in X-ray mode
+                        !mXrayKeyDown && // Show complete biome in X-ray mode
                         leftB == b &&
                         aboveB == b &&
                         diagB == b ) {
@@ -8591,7 +8631,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
                         if( !( floorAt && floorR && floorB && floorBR &&
                                floorL && floorA && floorAL && floorAR &&
-                               floorBL ) || mXKeyDown ) {
+                               floorBL ) || mXrayKeyDown ) {
                             // this seems to draw tiles on borders of biomes
                             drawSprite( s->tiles[setY][setX], pos );
                             }
@@ -8779,7 +8819,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                     }
                 
                 
-                if( mXKeyDown ) setObjectDrawAlpha( 0.3 );
+                if( mXrayKeyDown ) setObjectDrawAlpha( 0.3 );
 
                 char used;
                 drawObjectAnim( oID, 2, 
@@ -8797,7 +8837,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                 false, false, false,
                                 getEmptyClothingSet(), NULL );
 
-                if( mXKeyDown ) setObjectDrawAlpha( 1.0 );
+                if( mXrayKeyDown ) setObjectDrawAlpha( 1.0 );
 
                 if( p > 0 ) {
                     stopStencil();
@@ -11076,7 +11116,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
         }
 
     
-    if( hideGuiPanel || (mGraveKeyDown && !vogMode)) {
+    if( hideGuiPanel || (mHideHudKeyDown && !vogMode)) {
         // skip gui
         return;
         }    
@@ -12475,13 +12515,19 @@ void LivingLifePage::draw( doublePair inViewCenter,
                 }
             }
         else if( coordinatesSlipComponent.mHover ) {
-            coordsTips = autoSprintf( "%s (%C)", translate("coordsTips"), toupper(coordinatesPanelToggleKey) );
+            char *keyBuf = KeybindManager::buildKeyString( "coordinatesToggle", true, true );
+            coordsTips = autoSprintf( "%s (%s)", translate( "coordsTips" ), keyBuf );
+            delete [] keyBuf;
             }
         else if( objectSearchSlipComponent.mHover ) {
-            coordsTips = autoSprintf( "%s (%C)", translate("objSearchTips"), toupper(objectSearchPanelToggleKey) );
+            char *keyBuf = KeybindManager::buildKeyString( "objectSearchToggle", true, true );
+            coordsTips = autoSprintf( "%s (%s)", translate( "objSearchTips" ), keyBuf );
+            delete [] keyBuf;
             }
         else if( familyDisplaySlipComponent.mHover ) {
-            coordsTips = autoSprintf( "%s (%C)", translate("famDisplayTips"), toupper(familyDisplayPanelToggleKey) );
+            char *keyBuf = KeybindManager::buildKeyString( "familyDisplayToggle", true, true );
+            coordsTips = autoSprintf( "%s (%s)", translate( "famDisplayTips" ), keyBuf );
+            delete [] keyBuf;
             }
         if( coordsTips != NULL ) {
             drawCursorTips( coordsTips );
@@ -13486,7 +13532,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
             // pencilFont->drawString( stringUpper, pos, alignCenter );
             
             // Moved to be cursor-tips
-            if( ! mXKeyDown ) {
+            if( ! mXrayKeyDown ) {
                 if( mCurMouseOverID != 0 &&
                     // If we're hovering another player
                     // player label will be drawn instead of cursor-tips
@@ -15256,7 +15302,7 @@ void LivingLifePage::step() {
     if( mouseDown ) {
         mouseDownFrames++;
         }
-    
+
     double pageLifeTime = game_getCurrentTime() - mPageStartTime;
 
     if( mServerSocket == -1 ) {
@@ -24532,11 +24578,11 @@ char LivingLifePage::isSameRoad( int inFloor, GridPos inFloorPos,
 
   
 void LivingLifePage::makeActive( char inFresh ) {
-    // unhold E key
-    mEKeyDown = false;
-    mZKeyDown = false;
-    mXKeyDown = false;
-    mGraveKeyDown = false;
+    if( inFresh ) KeybindManager::clearAllPressed();
+    mModClickKeyDown = false;
+    mHintBackKeyDown = false;
+    mXrayKeyDown = false;
+    mHideHudKeyDown = false;
     mouseDown = false;
     shouldMoveCamera = true;
 
@@ -25146,7 +25192,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
         // don't worry about p->hitOurPlacement when checking them
         // next, people in this row
         // recently dropped babies are in front and tested first
-        if( ! mXKeyDown )
+        if( ! mXrayKeyDown )
         for( int d=0; d<2 && ! p->hit; d++ )
         for( int x=clickDestX+1; x>=clickDestX-1 && ! p->hit; x-- ) {
             float clickOffsetX = ( clickDestX  - x ) * CELL_D + clickExtraX;
@@ -25334,7 +25380,7 @@ void LivingLifePage::checkForPointerHit( PointerHitRecord *inRecord,
 
 
 
-    if( !mXKeyDown )
+    if( !mXrayKeyDown )
     if( p->hit && p->hitAnObject && ! p->hitOtherPerson && ! p->hitSelf ) {
         // hit an object
         
@@ -25907,7 +25953,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
     }
     
-    if (!mForceGroundClick && !mGraveKeyDown &&
+    if (!mForceGroundClick && !mHideHudKeyDown &&
         !isLastMouseButtonRight() &&
         minitech::livingLifePageMouseDown( inX, inY )) return;
     
@@ -25929,7 +25975,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
 
     char modClick = false;
     
-    if( ( mEKeyDown && mEKeyEnabled ) || ( isLastMouseButtonRight() && !mForceGroundClick ) ) {
+    if( ( mModClickKeyDown && mModClickEnabled ) || ( isLastMouseButtonRight() && !mForceGroundClick ) ) {
         modClick = true;
         }
    
@@ -25965,7 +26011,7 @@ void LivingLifePage::pointerDown( float inX, float inY ) {
         return;
         }
 
-    if( !mForceGroundClick && !mGraveKeyDown ) {
+    if( !mForceGroundClick && !mHideHudKeyDown ) {
         if( coordinatesSlipComponent.mActive && coordinatesSlipComponent.pointerDown(inX, inY) ) {
             if( isLastMouseButtonRight() ) return;
             coordinatesSlipComponent.mActive = false;
@@ -27927,8 +27973,29 @@ extern char leftKey;
 extern char downKey;
 extern char rightKey;
 
+char LivingLifePage::handleMoveAction( const char *inAction, bool *outKeyDown, char inAlpha, char inBeta, int inX, int inY ) {
+    if( !KeybindManager::isActive( inAction ) ) return false;
+    if( inAlpha || inBeta ) {
+        *outKeyDown = false;
+        KeybindManager::clearAction( inAction );
+        if( inAlpha ) actionAlphaRelativeToMe( inX, inY );
+        else actionBetaRelativeToMe( inX, inY );
+        return true;
+        }
+    *outKeyDown = true;
+    allowAutoRun = isAltKeyDown();
+    return false;
+    }
+
+
 void LivingLifePage::keyDown( unsigned char inASCII ) {
-    
+
+    if( mJustOpenedSayField ) {
+        mJustOpenedSayField = false;
+        mSayField.setIgnoreEvents( false );
+        return;
+        }
+
     registerTriggerKeyCommand( inASCII, this );
 
 
@@ -27991,131 +28058,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         return;
         }
 
-    if ( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
-        if (! mSayField.isFocused() && !vogMode) {
-
-            // This doesn't work at all
-            // when ESC is pressed the control is removed from LivingLifePage
-            
-            // if (!commandKey && !shiftKey && inASCII == 27) { // ESCAPE KEY
-            //     freeWASDKeyPress();
-            // }
-
-            if (commandKey) {
-                if (isCharKey(inASCII, charKey_TileStandingOn)) {
-                    actionBetaRelativeToMe( 0, 0 );
-                    return;
-                }
-            } else {
-                if (isCharKey(inASCII, charKey_TileStandingOn)) {
-                    actionAlphaRelativeToMe( 0, 0 );
-                    return;
-                }
-            }
-            
-            if (!shiftKey && !commandKey) {
-                if (isCharKey(inASCII, charKey_Up)) {
-                    upKeyDown = true;
-                    allowAutoRun = isAltKeyDown();
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Left)) {
-                    leftKeyDown = true;
-                    allowAutoRun = isAltKeyDown();
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Down)) {
-                    downKeyDown = true;
-                    allowAutoRun = isAltKeyDown();
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Right)) {
-                    rightKeyDown = true;
-                    allowAutoRun = isAltKeyDown();
-                    return;
-                }
-            } else if (commandKey) {
-                if (isCharKey(inASCII, charKey_Up)) {
-                    actionBetaRelativeToMe( 0, 1 );
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Left)) {
-                    actionBetaRelativeToMe( -1, 0 );
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Down)) {
-                    actionBetaRelativeToMe( 0, -1 );
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Right)) {
-                    actionBetaRelativeToMe( 1, 0 );
-                    return;
-                }
-            } else if (shiftKey) {
-                if (isCharKey(inASCII, charKey_Up)) {
-                    actionAlphaRelativeToMe( 0, 1 );
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Left)) {
-                    actionAlphaRelativeToMe( -1, 0 );
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Down)) {
-                    actionAlphaRelativeToMe( 0, -1 );
-                    return;
-                }
-                if (isCharKey(inASCII, charKey_Right)) {
-                    actionAlphaRelativeToMe( 1, 0 );
-                    return;
-                }
-            }
-
-            if (!shiftKey && isCharKey(inASCII, charKey_Backpack)) {
-                useBackpack();
-                return;
-            }
-            if ((shiftKey || commandKey) && isCharKey(inASCII, charKey_Backpack)) {
-                useBackpack(true);
-                return;
-            }
-            if (!shiftKey && isCharKey(inASCII, charKey_Eat)) {
-                useOnSelf();
-                return;
-            }
-            if (shiftKey && isCharKey(inASCII, charKey_Eat)) {
-                takeOffClothing();
-                return;
-            }
-            if (isCharKey(inASCII, charKey_Baby)) {
-                pickUpBabyInRange();
-                return;
-            }
-            if (isCharKey(inASCII, charKey_TakeOffBackpack)) {
-                if( !commandKey && !shiftKey ) takeOffBackpack();
-                else if( !commandKey && shiftKey ) takeOffBackpack(1);
-                else takeOffBackpack(2);
-                return;
-            }
-            if (!commandKey && shiftKey && isCharKey(inASCII, charKey_TakeOffBackpack)) {
-                takeOffBackpack(true);
-                return;
-            }
-            if (shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
-                usePocket(1);
-                return;
-            }
-            if (!shiftKey && !commandKey && isCharKey(inASCII, charKey_Pocket)) {
-                usePocket(4);
-                return;
-            }
-            if (commandKey && isCharKey(inASCII, charKey_Pocket)) {
-                if(shiftKey) usePocket(0, true);
-                if(!shiftKey) usePocket(0);
-                return;
-            }
-        }
-    }
-
     LiveObject *ourLiveObject = getOurLiveObject();
 
     // Custom command shortcuts (was FOV emote keys)
@@ -28163,85 +28105,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
 
     if (!mSayField.isFocused() && !vogMode &&
         minitech::livingLifeKeyDown(inASCII)) return;
-
-    if ((coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled) && 
-        !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey ) {
-
-        char coordinatesKeyPressed = coordinatesEnabled && isCharKey(inASCII, coordinatesPanelToggleKey);
-        char objectSearchKeyPressed = objectSearchEnabled && isCharKey(inASCII, objectSearchPanelToggleKey);
-        char familyDisplayKeyPressed = familyDisplayEnabled && isCharKey(inASCII, familyDisplayPanelToggleKey);
-
-        if( leftPanelComponent.mActive &&
-            ( coordinatesKeyPressed || objectSearchKeyPressed || familyDisplayKeyPressed )
-            ) {
-            if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
-            if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
-            if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
-            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
-            leftPanelComponent.mActive = false;
-            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-                savedCoordsClickable->mActive = false;
-                }
-            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
-                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
-                objectSearchQueryClickable->mActive = false;
-                }
-            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
-                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
-                displayedFamiliesClickable->mActive = false;
-                }
-            return;
-            }
-        else if( coordinatesKeyPressed ) {
-            coordinatesSlipComponent.mActive = false;
-            objectSearchSlipComponent.mActive = false;
-            familyDisplaySlipComponent.mActive = false;
-            topLeftSlipComponent.mActive = false;
-            leftPanelPageNumber = 0;
-            leftPanelComponent.mActive = true;
-            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
-                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
-                savedCoordsClickable->mActive = true;
-                }
-            return;
-            }
-        else if( objectSearchKeyPressed ) {
-            coordinatesSlipComponent.mActive = false;
-            objectSearchSlipComponent.mActive = false;
-            familyDisplaySlipComponent.mActive = false;
-            topLeftSlipComponent.mActive = false;
-            leftPanelPageNumber = 1;
-            leftPanelComponent.mActive = true;
-            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
-                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
-                objectSearchQueryClickable->mActive = true;
-                }
-            return;
-            }
-        else if( familyDisplayKeyPressed ) {
-            coordinatesSlipComponent.mActive = false;
-            objectSearchSlipComponent.mActive = false;
-            familyDisplaySlipComponent.mActive = false;
-            topLeftSlipComponent.mActive = false;
-            leftPanelPageNumber = 2;
-            leftPanelComponent.mActive = true;
-            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
-                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
-                displayedFamiliesClickable->mActive = true;
-                }
-            return;
-            }
-
-        }
-
-    if (yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey) ) {
-        runningYumFinder = true;
-        // make sure the animation plays as soon as the key is pressed
-        bouncingAnimationStepOffset = -livingLifeStepCount;
-        }
 
     if( mSayField.isFocused() ) {
         if( inASCII >= 48 && inASCII <= 57 ) {
@@ -28408,14 +28271,6 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 vogPickerOn = ! vogPickerOn;
                 }
             break;
-        case 'n':
-            if( ! mSayField.isFocused() && !vogMode &&
-                !commandKey && !shiftKey ) {
-                alwaysShowPlayerLabelEnabled = !alwaysShowPlayerLabelEnabled;
-                SettingsManager::setSetting("alwaysShowPlayerLabelEnabled",
-                                            alwaysShowPlayerLabelEnabled);
-                }
-            break;
         case 'N':
             if( ! mSayField.isFocused() &&
                 serverSocketConnected &&
@@ -28446,15 +28301,12 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
         case 'X':
             if( userTwinCode != NULL &&
                 ! mStartedLoadingFirstObjectSet ) {
-                
+
                 closeSocket( mServerSocket );
                 mServerSocket = -1;
-                
+
                 setWaiting( false );
                 setSignal( "twinCancel" );
-                }
-            else if( ! mSayField.isFocused() ) {
-                mXKeyDown = true;
                 }
             break;
         /*
@@ -28513,47 +28365,19 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
             trailColors.deleteAll();
             break;
         */
-        case 'e':
-        case 'E':
-            if( ! mSayField.isFocused() ) {
-                mEKeyDown = true;
-                }
-            break;
-        case 'z':
-        case 'Z':
-            if( mUsingSteam && ! mSayField.isFocused() ) {
-                mZKeyDown = true;
-                }
-            break;
         case ' ':
-        if( ! mSayField.isFocused() && ! SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+            if( !mSayField.isFocused() && !SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
                 shouldMoveCamera = false;
                 }
             break;
         case 'f':
         case 'F':
-            if( ! mSayField.isFocused() && SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
-                shouldMoveCamera = false;
-                }
             if( vogMode && !TextField::isAnyFocused() ) {
                 vogScrollingMode = !vogScrollingMode;
                 }
             break;
-        case 96: { // grave
-            if( !TextField::isAnyFocused() && !vogMode) {
-                mGraveKeyDown = true;
-                }
-            // gui_hud_mode = SettingsManager::getIntSetting( "hudDrawMode", 0 );
-            // gui_hud_mode = abs( ( gui_hud_mode + 1 ) % 3 );
-            // SettingsManager::setSetting( "hudDrawMode", gui_hud_mode );
-            // calcOffsetHUD();
-            }
-            break;
         // case 'k':
         case 'K':
-            if( !TextField::isAnyFocused() ) {
-                drawGridToggle = !drawGridToggle;
-                }
             break;
         case 9: // tab
             if( mCurrentHintObjectID != 0 ) {
@@ -28565,7 +28389,7 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 if( !mUsingSteam && isShiftKeyDown() ) {
                     skip = -1;
                     }
-                else if( mUsingSteam && mZKeyDown ) {
+                else if( mUsingSteam && mHintBackKeyDown ) {
                     skip = -1;
                     }
                 if( isCommandKeyDown() ) {
@@ -28586,29 +28410,10 @@ void LivingLifePage::keyDown( unsigned char inASCII ) {
                 }
             break;
         case '/':
-            if( ! mSayField.isFocused() ) {
-                mEKeyDown = false;
-                mZKeyDown = false;
-                mXKeyDown = false;
-                mGraveKeyDown = false;
-                
-                // start typing a filter
-                mSayField.setText( "/" );
-                mSayField.focus();
-                }
             break;
         case 13:  // enter
             // speak
-            if( ! TextField::isAnyFocused() ) {
-                mEKeyDown = false;
-                mZKeyDown = false;
-                mXKeyDown = false;
-                mGraveKeyDown = false;
-                
-                mSayField.setText( "" );
-                mSayField.focus();
-                }
-            else if( mSayField.isFocused() ) {
+            if( mSayField.isFocused() ) {
                 char *typedText = mSayField.getText();
                 
                 
@@ -29095,10 +28900,10 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
                 mSayField.setText( "" );
                 }
             mSayField.focus();
-            mEKeyDown = false;
-            mZKeyDown = false;
-            mXKeyDown = false;
-            mGraveKeyDown = false;
+            mModClickKeyDown = false;
+            mHintBackKeyDown = false;
+            mXrayKeyDown = false;
+            mHideHudKeyDown = false;
             }
         else {
             char *curText = mSayField.getText();
@@ -29199,82 +29004,262 @@ void LivingLifePage::specialKeyDown( int inKeyCode ) {
 
             
 void LivingLifePage::keyUp( unsigned char inASCII ) {
-
-    bool commandKey = isCommandKeyDown();
-    bool shiftKey = isShiftKeyDown();
-
     dragging = false;
     dragStart = {9999, 9999};
     dragEnd = {9999, 9999};
 
-    if (inASCII == charKey_Up || inASCII == toupper(charKey_Up)) {
-        upKeyDown = false;
-    }
-    if (inASCII == charKey_Left || inASCII == toupper(charKey_Left)) {
-        leftKeyDown = false;
-    }
-    if (inASCII == charKey_Down || inASCII == toupper(charKey_Down)) {
-        downKeyDown = false;
-    }
-    if (inASCII == charKey_Right || inASCII == toupper(charKey_Right)) {
-        rightKeyDown = false;
-    }
-    if (commandKey) {
-        if (inASCII+64 == toupper(charKey_Up)) {
-            upKeyDown = false;
-        }
-        if (inASCII+64 == toupper(charKey_Left)) {
-            leftKeyDown = false;
-        }
-        if (inASCII+64 == toupper(charKey_Down)) {
-            downKeyDown = false;
-        }
-        if (inASCII+64 == toupper(charKey_Right)) {
-            rightKeyDown = false;
-        }
-    }
-
-    if (!upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown) {
+    if( !upKeyDown && !leftKeyDown && !downKeyDown && !rightKeyDown ) {
         lastPosX = 9999;
         lastPosY = 9999;
         magnetMoveDir = -1;
         magnetWrongMoveDir = -1;
         magnetMoveCount = 0;
-    }
-
-    if( runningYumFinder && !mSayField.isFocused() && !vogMode &&
-        !commandKey && !shiftKey && isCharKey(inASCII, yumFinderKey)) {
-        runningYumFinder = false;
         }
 
-    switch( inASCII ) {
-        case 'e':
-        case 'E':
-            mEKeyDown = false;
-            break;
-        case 'z':
-        case 'Z':
-            mZKeyDown = false;
-            break;
-        case 'x':
-        case 'X':
-            mXKeyDown = false;
-            break;
-        case ' ':
-            if (! SettingsManager::getIntSetting( "keyboardActions", 1 )) shouldMoveCamera = true;
-            break;
-        case 'f':
-        case 'F':
-            if (SettingsManager::getIntSetting( "keyboardActions", 1 )) shouldMoveCamera = true;
-            break;
-        case 96: { // grave
-            mGraveKeyDown = false;
+    if( !SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if( inASCII == ' ' ) shouldMoveCamera = true;
+        }
+    }
+
+
+void LivingLifePage::specialKeyUp( int inKeyCode ) {
+    }
+
+
+
+void LivingLifePage::keybindKeyDown( int inKey ) {
+    if( mServerSocket == -1 ) return;
+    if( showBugMessage ) return;
+
+    if( !TextField::isAnyFocused() ) {
+        char sayCommand = KeybindManager::isActive( "sayCommand" );
+        char openChat = KeybindManager::isActive( "openChat" );
+        if( sayCommand || openChat ) {
+            mModClickKeyDown = false;
+            mHintBackKeyDown = false;
+            mXrayKeyDown = false;
+            mHideHudKeyDown = false;
+            mSayField.setText( sayCommand ? "/" : "" );
+            mSayField.focus();
+            mSayField.setIgnoreEvents( true );
+            mJustOpenedSayField = true;
+            return;
             }
-            break;
         }
 
+    if( !mSayField.isFocused() && KeybindManager::isActive( "heldUse" ) ) mModClickKeyDown = true;
+
+    if( SettingsManager::getIntSetting( "keyboardActions", 1 ) ) {
+        if( !mSayField.isFocused() && !vogMode ) {
+            char alphaActive = KeybindManager::isActive( "alphaModifier" );
+            char betaActive = KeybindManager::isActive( "betaModifier" );
+            if( handleMoveAction( "moveUp", &upKeyDown, alphaActive, betaActive, 0, 1 ) ) return;
+            if( handleMoveAction( "moveLeft", &leftKeyDown, alphaActive, betaActive, -1, 0 ) ) return;
+            if( handleMoveAction( "moveDown", &downKeyDown, alphaActive, betaActive, 0, -1 ) ) return;
+            if( handleMoveAction( "moveRight", &rightKeyDown, alphaActive, betaActive, 1, 0 ) ) return;
+            if( KeybindManager::isActive( "alphaBelow" ) ) {
+                if( betaActive ) { actionBetaRelativeToMe( 0, 0 ); return; }
+                actionAlphaRelativeToMe( 0, 0 );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useHat" ) ) {
+                usePocket( 0 );
+                return;
+                }
+            if( KeybindManager::isActive( "useHatReplace" ) ) {
+                usePocket( 0, true );
+                return;
+                }
+            if( KeybindManager::isActive( "useHatRemv" ) ) {
+                usePocket( 0, false, true );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useTop" ) ) {
+                usePocket( 1 );
+                return;
+                }
+            if( KeybindManager::isActive( "useTopReplace" ) ) {
+                usePocket( 1, true );
+                return;
+                }
+            if( KeybindManager::isActive( "useTopRemv" ) ) {
+                usePocket( 1, false, true );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useBottom" ) ) {
+                usePocket( 4 );
+                return;
+                }
+            if( KeybindManager::isActive( "useBottomReplace" ) ) {
+                usePocket( 4, true );
+                return;
+                }
+            if( KeybindManager::isActive( "useBottomRemv" ) ) {
+                usePocket( 4, false, true );
+                return;
+                }
+
+
+            if( KeybindManager::isActive( "useBackpack" ) ) {
+                useBackpack();
+                return;
+                }
+            if( KeybindManager::isActive( "useBackpackReplace" ) ) {
+                useBackpack( true );
+                return;
+                }
+            if( KeybindManager::isActive( "selfBackpackTransRemv" ) ) {
+                takeOffBackpack();
+                return;
+                }
+            if( KeybindManager::isActive( "selfBackpackTrans" ) ) {
+                takeOffBackpack( 1 );
+                return;
+                }
+            if( KeybindManager::isActive( "selfBackpackRemv" ) ) {
+                takeOffBackpack( 2 );
+                return;
+                }
+
+            if( KeybindManager::isActive( "eatSelf" ) ) {
+                useOnSelf();
+                return;
+                }
+            if( KeybindManager::isActive( "removeClothing" ) ) {
+                takeOffClothing();
+                return;
+                }
+            if( KeybindManager::isActive( "pickUpBaby" ) ) {
+                pickUpBabyInRange();
+                return;
+                }
+            }
+        }
+
+    if( ( coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled ) &&
+        !mSayField.isFocused() && !vogMode ) {
+
+        char coordinatesKeyPressed = coordinatesEnabled &&
+            KeybindManager::isActive( "coordinatesToggle" );
+        char objectSearchKeyPressed = objectSearchEnabled &&
+            KeybindManager::isActive( "objectSearchToggle" );
+        char familyDisplayKeyPressed = familyDisplayEnabled &&
+            KeybindManager::isActive( "familyDisplayToggle" );
+
+        if( leftPanelComponent.mActive &&
+            ( coordinatesKeyPressed || objectSearchKeyPressed || familyDisplayKeyPressed )
+            ) {
+            if( coordinatesEnabled ) coordinatesSlipComponent.mActive = true;
+            if( objectSearchEnabled ) objectSearchSlipComponent.mActive = true;
+            if( familyDisplayEnabled ) familyDisplaySlipComponent.mActive = true;
+            topLeftSlipComponent.mActive = coordinatesEnabled || objectSearchEnabled || familyDisplayEnabled;
+            leftPanelComponent.mActive = false;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = false;
+                }
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = false;
+                }
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = false;
+                }
+            return;
+            }
+        else if( coordinatesKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 0;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<SavedCoordinatesComponentList.size(); i++ ) {
+                ClickableComponent *savedCoordsClickable = SavedCoordinatesComponentList.getElement( i );
+                savedCoordsClickable->mActive = true;
+                }
+            return;
+            }
+        else if( objectSearchKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 1;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<objectSearchQueriesComponentList.size(); i++ ) {
+                ClickableComponent *objectSearchQueryClickable = objectSearchQueriesComponentList.getElement( i );
+                objectSearchQueryClickable->mActive = true;
+                }
+            return;
+            }
+        else if( familyDisplayKeyPressed ) {
+            coordinatesSlipComponent.mActive = false;
+            objectSearchSlipComponent.mActive = false;
+            familyDisplaySlipComponent.mActive = false;
+            topLeftSlipComponent.mActive = false;
+            leftPanelPageNumber = 2;
+            leftPanelComponent.mActive = true;
+            for( int i=0; i<displayedFamiliesComponentList.size(); i++ ) {
+                ClickableComponent *displayedFamiliesClickable = displayedFamiliesComponentList.getElement( i );
+                displayedFamiliesClickable->mActive = true;
+                }
+            return;
+            }
+
+        }
+
+    if( yumFinderEnabled && !mSayField.isFocused() && !vogMode &&
+        KeybindManager::isActive( "yumFinder" ) ) {
+        runningYumFinder = true;
+        bouncingAnimationStepOffset = -livingLifeStepCount;
+        }
+
+    if( !mSayField.isFocused() ) {
+        if( KeybindManager::isActive( "xray" ) ) mXrayKeyDown = true;
+        if( mUsingSteam && KeybindManager::isActive( "hintBack" ) ) mHintBackKeyDown = true;
+        if( SettingsManager::getIntSetting( "keyboardActions", 1 ) &&
+            KeybindManager::isActive( "stopCamera" ) ) shouldMoveCamera = false;
+        }
+
+    if( !TextField::isAnyFocused() && !vogMode ) {
+        if( KeybindManager::isActive( "hideHud" ) ) mHideHudKeyDown = true;
+        if( KeybindManager::isActive( "nameLabels" ) ) {
+            alwaysShowPlayerLabelEnabled = !alwaysShowPlayerLabelEnabled;
+            SettingsManager::setSetting( "alwaysShowPlayerLabelEnabled",
+                                         alwaysShowPlayerLabelEnabled );
+            return;
+            }
+        if( KeybindManager::isActive( "gridToggle" ) ) {
+            drawGridToggle = !drawGridToggle;
+            return;
+            }
+        }
     }
 
+
+
+void LivingLifePage::keybindKeyUp( int inKey ) {
+    if( KeybindManager::isReleased( "moveUp" ) ) upKeyDown = false;
+    if( KeybindManager::isReleased( "moveLeft" ) ) leftKeyDown = false;
+    if( KeybindManager::isReleased( "moveDown" ) ) downKeyDown = false;
+    if( KeybindManager::isReleased( "moveRight" ) ) rightKeyDown = false;
+
+    if( KeybindManager::isReleased( "yumFinder" ) ) runningYumFinder = false;
+    if( KeybindManager::isReleased( "xray" ) ) mXrayKeyDown = false;
+    if( KeybindManager::isReleased( "hintBack" ) ) mHintBackKeyDown = false;
+    if( KeybindManager::isReleased( "hideHud" ) ) mHideHudKeyDown = false;
+    if( KeybindManager::isReleased( "heldUse" ) ) mModClickKeyDown = false;
+
+    if( KeybindManager::isReleased( "stopCamera" ) ) shouldMoveCamera = true;
+    }
 
 
 
