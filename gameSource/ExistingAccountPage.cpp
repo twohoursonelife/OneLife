@@ -37,6 +37,7 @@ bool twinUIElementsClicked = false;
 
 
 extern Font *mainFont;
+extern Font *oldMainFont;
 
 
 extern char gamePlayingBack;
@@ -66,7 +67,7 @@ ExistingAccountPage::ExistingAccountPage()
           mGameLogo( "logo.tga", 1.0f, {-360, 256} ),
 
           // Left Pane Page 0
-          mEmailField( mainFont, -360, 96, 10, false, 
+          mEmailField( oldMainFont, -360, 96, 10, false, 
                        translate( "username" ),
                        NULL,
                        // forbid only spaces and backslash and 
@@ -76,7 +77,7 @@ ExistingAccountPage::ExistingAccountPage()
           mEmailLockButton( mainFont, -108, 96, "!" ),
           mPasteEmailButton( mainFont, 0, 68, translate( "paste" ) ),
                        
-          mKeyField( mainFont, -360, 0, 15, true,
+          mKeyField( oldMainFont, -360, 0, 15, true,
                      translate( "accountKey" ),
                      // allow only ticket code characters
                      "23456789ABCDEFGHJKLMNPQRSTUVWXYZ-" ),
@@ -98,7 +99,7 @@ ExistingAccountPage::ExistingAccountPage()
           
           mSpecificButton( mainFont, 0, 0, "SPECIFIC" ),
           mRandomButton( mainFont, 0, 0, "RANDOM" ),
-          mSpawnSeed( mainFont, -360, -176, 10, false, 
+          mSpawnSeed( oldMainFont, -360, -176, 10, false, 
                                      "SPAWN CODE:",
                                      NULL,
                                      // forbid spaces and hash
