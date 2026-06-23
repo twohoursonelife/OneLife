@@ -70,6 +70,11 @@ void setSoundEffectsLoudness( double inLoudness );
 
 double getSoundEffectsLoudness();
 
+// defaults to 1.0
+void setCryingLoudness( double inLoudness );
+
+double getCryingLoudness();
+
 // defaults to on
 void setSoundEffectsOff( char inOff );
 
@@ -94,6 +99,9 @@ void playSound( SoundUsage inUsage,
 // sounds at 0,0 are dead center and full volume
 // vector is in world tile units
 void playSound( SoundUsage inUsage,
+                doublePair inVectorFromCameraToSoundSource );
+
+void playCryingSound( SoundUsage inUsage,
                 doublePair inVectorFromCameraToSoundSource );
 
 
