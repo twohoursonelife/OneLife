@@ -3820,6 +3820,47 @@ char initMap() {
  
  
  
+    int metaDBVersion = SettingsManager::getIntSetting( "metaDBVersion", 1 );
+    if( metaDBVersion == 1 ) {
+        AppLog::info( "Upgrading meta.db to version 2 (x2 multiplier for legacy IDs)..." );
+        
+        DB oldMetaDB;
+        int err = DB_open( &oldMetaDB, "meta.db", KISSDB_OPEN_MODE_RDONLY, 500, 4, MAP_METADATA_LENGTH );
+        if( !err ) {
+            DB newMetaDB;
+            DB_open( &newMetaDB, "meta_v2.db", KISSDB_OPEN_MODE_RWCREAT, 500, 4, MAP_METADATA_LENGTH );
+            
+            DB_Iterator metaIter;
+            DB_Iterator_init( &oldMetaDB, &metaIter );
+            unsigned char metaK[4];
+            unsigned char metaV[MAP_METADATA_LENGTH];
+            
+            while( DB_Iterator_next( &metaIter, metaK, metaV ) > 0 ) {
+                int oldID = valueToInt( metaK );
+                int newID = oldID * 2;
+                unsigned char newK[4];
+                intToValue( newID, newK );
+                DB_put( &newMetaDB, newK, metaV );
+            }
+            DB_close( &oldMetaDB );
+            DB_close( &newMetaDB );
+            
+            remove( "meta.db" );
+            rename( "meta_v2.db", "meta.db" );
+            AppLog::info( "Upgraded meta.db to version 2 successfully." );
+        }
+        else {
+            AppLog::info( "No existing meta.db found to upgrade." );
+        }
+        
+        int oldNext = SettingsManager::getIntSetting( "nextMetadataID", 0 );
+        if( oldNext > 0 ) {
+            SettingsManager::setSetting( "nextMetadataID", oldNext * 2 );
+        }
+        
+        SettingsManager::setSetting( "metaDBVersion", 2 );
+    }
+ 
     error = DB_open( &metaDB,
                      "meta.db",
                      KISSDB_OPEN_MODE_RWCREAT,
@@ -3836,35 +3877,6 @@ char initMap() {
         }
    
     metaDBOpen = true;
- 
-    if( false ) { // old way to determine nextMetadataID
-        DB_Iterator metaIterator;
-    
-        DB_Iterator_init( &metaDB, &metaIterator );
-    
-        unsigned char metaKey[4];
-    
-        unsigned char metaValue[MAP_METADATA_LENGTH];
-    
-        int maxMetaID = 0;
-        int numMetaRecords = 0;
-    
-        while( DB_Iterator_next( &metaIterator, metaKey, metaValue ) > 0 ) {
-            numMetaRecords++;
-        
-            int metaID = valueToInt( metaKey );
-    
-            if( metaID > maxMetaID ) {
-                maxMetaID = metaID;
-                }
-            }
-    
-        AppLog::infoF(
-            "MetadataDB:  Found %d records with max MetadataID of %d",
-            numMetaRecords, maxMetaID );
-    
-        setLastMetadataID( maxMetaID );
-        }
     
     
  

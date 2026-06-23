@@ -4,16 +4,16 @@
 
 #include "minorGems/util/SettingsManager.h"
 
-// bottom 17 bits of map database item are object ID
-// enought for 131071 object
-static int objectIDMask = 0x0001FFFF;
+// bottom 16 bits of map database item are object ID
+// enough for 65535 objects
+static int objectIDMask = 0x0000FFFF;
 
-// top 14 bits are metadata ID,
-// enough for 16383 metadata records
+// top 15 bits are metadata ID,
+// enough for 32767 metadata records
 // the sign bit is not used
-static int metadataIDShift = 17;
+static int metadataIDShift = 16;
 
-static int maxMetadataID = 16383;
+static int maxMetadataID = 32767;
 
 // 0 used to represent non-existing metadata
 static int nextMetadataID = 1;
@@ -49,12 +49,14 @@ void setLastMetadataID( int inMetadataID ) {
 
 int getNewMetadataID() {
     nextMetadataID = SettingsManager::getIntSetting( "nextMetadataID", 0 );
-    nextMetadataID++;
     
-    if( nextMetadataID > maxMetadataID ) {
-        // wrap around, reuse old IDs
-        nextMetadataID = 1;
-        }
+    do {
+        nextMetadataID++;
+        if( nextMetadataID > maxMetadataID ) {
+            // wrap around, reuse old IDs
+            nextMetadataID = 1;
+            }
+        } while( nextMetadataID % 2 == 0 ); // skip multiples of 2 to protect legacy migrated metadata IDs
 
     SettingsManager::setSetting( "nextMetadataID", nextMetadataID );
 
