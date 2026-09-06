@@ -7373,13 +7373,13 @@ static void drawFixedShadowString( const char *inString, doublePair inPos ) {
     FloatColor faceColor = getDrawColor();
     
     setDrawColor( 0, 0, 0, 1 );
-    numbersFontFixed->drawString( inString, inPos, alignLeft );
+    numbersFontFixed->drawString( inString, inPos, alignLeft, gui_fov_scale_hud );
             
     setDrawColor( faceColor );
     
-    inPos.x += 2;
-    inPos.y -= 2;
-    numbersFontFixed->drawString( inString, inPos, alignLeft );
+    inPos.x += 2 * gui_fov_scale_hud;
+    inPos.y -= 2 * gui_fov_scale_hud;
+    numbersFontFixed->drawString( inString, inPos, alignLeft, gui_fov_scale_hud );
     }
 
 
@@ -7433,10 +7433,10 @@ static void drawGraph( SimpleVector<double> *inHistory, doublePair inPos,
 
     double graphHeight = 40;
 
-    drawRect( inPos.x - 2, 
-              inPos.y - 2,
-              inPos.x + historyGraphLength + 2,
-              inPos.y + graphHeight + 2 );
+    drawRect( inPos.x - 2 * gui_fov_scale_hud,
+              inPos.y - 2 * gui_fov_scale_hud,
+              inPos.x + (historyGraphLength + 2) * gui_fov_scale_hud,
+              inPos.y + (graphHeight + 2) * gui_fov_scale_hud );
         
     
 
@@ -7446,10 +7446,10 @@ static void drawGraph( SimpleVector<double> *inHistory, doublePair inPos,
 
         double scaledVal = val / max;
         
-        drawRect( inPos.x + i, 
+        drawRect( inPos.x + i * gui_fov_scale_hud,
                   inPos.y,
-                  inPos.x + i + 1,
-                  inPos.y + scaledVal * graphHeight );
+                  inPos.x + (i + 1) * gui_fov_scale_hud,
+                  inPos.y + (scaledVal * graphHeight) * gui_fov_scale_hud );
         }
     }
 
@@ -7471,10 +7471,10 @@ static void drawGraph( SimpleVector<TimeMeasureRecord> *inHistory,
 
     double graphHeight = 40;
 
-    drawRect( inPos.x - 2, 
-              inPos.y - 2,
-              inPos.x + historyGraphLength + 2,
-              inPos.y + graphHeight + 2 );
+    drawRect( inPos.x - 2 * gui_fov_scale_hud, 
+              inPos.y - 2 * gui_fov_scale_hud,
+              inPos.x + (historyGraphLength + 2) * gui_fov_scale_hud,
+              inPos.y + (graphHeight + 2) * gui_fov_scale_hud );
         
     
 
@@ -7495,10 +7495,10 @@ static void drawGraph( SimpleVector<TimeMeasureRecord> *inHistory,
             
             double scaledVal = sum / max;
             
-            drawRect( inPos.x + i, 
+            drawRect( inPos.x + i * gui_fov_scale_hud, 
                       inPos.y,
-                      inPos.x + i + 1,
-                      inPos.y + scaledVal * graphHeight );
+                      inPos.x + (i + 1) * gui_fov_scale_hud,
+                      inPos.y + (scaledVal * graphHeight) * gui_fov_scale_hud );
             }
         }
     }
@@ -11262,11 +11262,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
     if( showFPS ) {
             
         doublePair pos = lastScreenViewCenter;
-        pos.x -= 600;
-        pos.y += 300;
+        pos.x -= 600 * gui_fov_scale_hud;
+        pos.y += 250 * gui_fov_scale_hud;
         
         if( mTutorialNumber > 0 || mGlobalMessageShowing ) {
-            pos.y -= 50;
+            pos.y -= 50 * gui_fov_scale_hud;
             }
 
         if( frameBatchMeasureStartTime == -1 ) {
@@ -11330,16 +11330,16 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             drawFixedShadowStringWhite( fpsString, pos );
             
-            pos.x += 20 + numbersFontFixed->measureString( fpsString );
-            pos.y -= 20;
+            pos.x += (20 + numbersFontFixed->measureString( fpsString )) * gui_fov_scale_hud;
+            pos.y -= 20 * gui_fov_scale_hud;
             
             FloatColor yellow = { 1, 1, 0, 1 };
             drawGraph( &fpsHistoryGraph, pos, yellow );
 
             delete [] fpsString;
 
-            pos.x += 120;
-            pos.y += 60;
+            pos.x += 120 * gui_fov_scale_hud;
+            pos.y += 60 * gui_fov_scale_hud;
             
             double maxStringW = 0;
 
@@ -11351,7 +11351,7 @@ void LivingLifePage::draw( doublePair inViewCenter,
                                  timeMeasureToDraw[i] * 1000,
                                  timeMeasureNames[i],
                                  translate( "ms/f" ) );
-                pos.y -= 20;
+                pos.y -= 20 * gui_fov_scale_hud;
                 
                 setDrawColor( timeMeasureGraphColors[i] );
                 drawFixedShadowString( timeString, pos );
@@ -11366,18 +11366,18 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             pos.y += 0;
             
-            pos.x += 20 + maxStringW;
+            pos.x += (20 + maxStringW) * gui_fov_scale_hud;
 
             drawGraph( &timeMeasureHistoryGraph, pos, timeMeasureGraphColors );
 
             
-            pos.x += 120;
+            pos.x += 120 * gui_fov_scale_hud;
 
             drawGraph( &spriteCountHistoryGraph, pos, yellow );
 
 
-            pos.x -= 60;
-            pos.y += 60;
+            pos.x -= 60 * gui_fov_scale_hud;
+            pos.y += 60 * gui_fov_scale_hud;
             char *spriteString = 
                 autoSprintf( "%6.0f %s", spriteCountToDraw, 
                              translate( "spritesDrawn" ) );
@@ -11386,15 +11386,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
 
             delete [] spriteString;
 
-            pos.x += 60;
-            pos.y -= 60;
+            pos.x += 60 * gui_fov_scale_hud;
+            pos.y -= 60 * gui_fov_scale_hud;
 
 
-            pos.x += 120;
+            pos.x += 120 * gui_fov_scale_hud;
             drawGraph( &uniqueSpriteHistoryGraph, pos, yellow );
 
-            pos.x -= 60;
-            pos.y -= 20;
+            pos.x -= 60 * gui_fov_scale_hud;
+            pos.y -= 20 * gui_fov_scale_hud;
 
             char *unqString = 
                 autoSprintf( "%6.0f %s", uniqueSpriteCountToDraw, 
@@ -11405,11 +11405,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
             delete [] unqString;
 
 
-            pos.y -= 80;
+            pos.y -= 80 * gui_fov_scale_hud;
             drawGraph( &pixelCountHistoryGraph, pos, yellow );
 
-            pos.x -= 60;
-            pos.y -= 20;
+            pos.x -= 60 * gui_fov_scale_hud;
+            pos.y -= 20 * gui_fov_scale_hud;
 
             char pixBuffer[16];
             
@@ -11431,15 +11431,15 @@ void LivingLifePage::draw( doublePair inViewCenter,
     
     if( showNet ) {
         doublePair pos = lastScreenViewCenter;
-        pos.x -= 600;
-        pos.y += 300;
+        pos.x -= 600 * gui_fov_scale_hud;
+        pos.y += 300 * gui_fov_scale_hud;
         
         if( showFPS ) {
-            pos.y -= 50;
+            pos.y -= 300 * gui_fov_scale_hud;
             }
         // covered by tutorial sheets
         if( mTutorialNumber > 0 || mGlobalMessageShowing ) {
-            pos.y -= 50;
+            pos.y -= 50 * gui_fov_scale_hud;
             }
 
         double curTime = game_getCurrentTime();
@@ -11489,27 +11489,27 @@ void LivingLifePage::draw( doublePair inViewCenter,
             
             doublePair graphPos = pos;
             
-            graphPos.x += 20 + numbersFontFixed->measureString( netStringA );
-            graphPos.y -= 20;
+            graphPos.x += (20 + numbersFontFixed->measureString( netStringA )) * gui_fov_scale_hud;
+            graphPos.y -= 20 * gui_fov_scale_hud;
 
             FloatColor yellow = { 1, 1, 0, 1 };
             drawGraph( &messagesOutHistoryGraph, graphPos, yellow );
 
-            graphPos.x += historyGraphLength + 10;
+            graphPos.x += (historyGraphLength + 10) * gui_fov_scale_hud;
             drawGraph( &messagesInHistoryGraph, graphPos, yellow );
 
-            pos.y -= 50;
+            pos.y -= 50 * gui_fov_scale_hud;
             
             drawFixedShadowStringWhite( netStringB, pos );
             
             graphPos = pos;
             
-            graphPos.x += 20 + numbersFontFixed->measureString( netStringB );
-            graphPos.y -= 20;
+            graphPos.x += (20 + numbersFontFixed->measureString( netStringB )) * gui_fov_scale_hud;
+            graphPos.y -= 20 * gui_fov_scale_hud;
 
             drawGraph( &bytesOutHistoryGraph, graphPos, yellow );
 
-            graphPos.x += historyGraphLength + 10;
+            graphPos.x += (historyGraphLength + 10) * gui_fov_scale_hud;
             drawGraph( &bytesInHistoryGraph, graphPos, yellow );
 
 
@@ -11529,11 +11529,11 @@ void LivingLifePage::draw( doublePair inViewCenter,
             }
         
         doublePair pos = lastScreenViewCenter;
-        pos.x += 300;
-        pos.y += 300;
+        pos.x += 300 * gui_fov_scale_hud;
+        pos.y += 300 * gui_fov_scale_hud;
         
         if( mTutorialNumber > 0 || mGlobalMessageShowing ) {
-            pos.y -= 50;
+            pos.y -= 50 * gui_fov_scale_hud;
             }
 
         char *pingString;
