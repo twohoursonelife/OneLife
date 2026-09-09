@@ -12,6 +12,9 @@ SimpleVector<KeybindRecord *> KeybindManager::sActions;
 char KeybindManager::sInited = false;
 char KeybindManager::sKeysInited = false;
 char KeybindManager::sPressed[KEYBIND_KEY_TABLE_SIZE] = {};
+char KeybindManager::sPressedChar[KEYBIND_KEY_TABLE_SIZE] = {};
+int KeybindManager::sLastKeyDown = -1;
+int KeybindManager::sLastRawKey = -1;
 NamedKeyEntry KeybindManager::sNamedKeys[KEYBIND_KEY_TABLE_SIZE] = {};
 std::unordered_map<std::string, int> KeybindManager::sNameToKey;
 
@@ -282,10 +285,18 @@ char KeybindManager::checkActive( const char *inActionName, char inStrict ) {
     }
 
 char KeybindManager::isActive( const char *inActionName ) {
+    KeybindRecord *r = findAction( inActionName );
+    if ( r == NULL ) return false;
+    if ( r->options.type != MODIFIER_ONLY && r->key != sLastKeyDown ) return false;
+
     if ( checkActive( inActionName, true ) ) return true;
+
+    if ( r->modifiers == KEYBIND_MOD_NONE &&
+         ( isControlKeyDown() || isAltKeyDown() ) &&
+         ! sPressedChar[r->key] ) return false;
+
     if ( !checkActive( inActionName, false ) ) return false;  
 
-    KeybindRecord *r = findAction( inActionName );
     char shiftDown = isShiftKeyDown();
     char ctrlDown = isControlKeyDown();
     char altDown = isAltKeyDown();
@@ -310,15 +321,44 @@ char KeybindManager::isReleased( const char *inActionName ) {
 
 void KeybindManager::keyDown( int inKey ) {
     sPressed[inKey] = true;
+    sLastKeyDown = inKey;
+    sLastRawKey = inKey;
     }
 
 void KeybindManager::keyUp( int inKey ) {
     sPressed[inKey] = false;
+    sLastRawKey = inKey;
+    }
+
+char KeybindManager::charDown( int inChar ) {
+    int lastRaw = sLastRawKey;
+    sLastRawKey = -1;
+
+    if( inChar < 33 || inChar > 126 ) return false;
+    if( inChar == lastRaw ) return false;
+
+    sPressed[inChar] = true;
+    sPressedChar[inChar] = true;
+    sLastKeyDown = inChar;
+    return true;
+    }
+
+char KeybindManager::charUp( int inChar ) {
+    int lastRaw = sLastRawKey;
+    sLastRawKey = -1;
+
+    if( inChar < 33 || inChar > 126 ) return false;
+    if( inChar == lastRaw ) return false;
+
+    sPressed[inChar] = false;
+    sPressedChar[inChar] = false;
+    return true;
     }
 
 void KeybindManager::clearAllPressed() {
     for( int i = 0; i < KEYBIND_KEY_TABLE_SIZE; i++ ) {
         sPressed[i] = false;
+        sPressedChar[i] = false;
         }
     }
 
