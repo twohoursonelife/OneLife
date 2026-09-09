@@ -331,8 +331,11 @@ void KeybindManager::keyUp( int inKey ) {
     }
 
 char KeybindManager::charDown( int inChar ) {
+    int lastRaw = sLastRawKey;
+    sLastRawKey = -1;
+
     if( inChar < 33 || inChar > 126 ) return false;
-    if( inChar == sLastRawKey ) return false;
+    if( inChar == lastRaw ) return false;
 
     sPressed[inChar] = true;
     sPressedChar[inChar] = true;
@@ -341,8 +344,11 @@ char KeybindManager::charDown( int inChar ) {
     }
 
 char KeybindManager::charUp( int inChar ) {
+    int lastRaw = sLastRawKey;
+    sLastRawKey = -1;
+
     if( inChar < 33 || inChar > 126 ) return false;
-    if( inChar == sLastRawKey ) return false;
+    if( inChar == lastRaw ) return false;
 
     sPressed[inChar] = false;
     sPressedChar[inChar] = false;
