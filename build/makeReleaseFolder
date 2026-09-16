@@ -115,6 +115,11 @@ if [ "$PLATFORM" = "2" ] ; then
     cp -R macOSX/OneLife.app $BUNDLE
     cp ../gameSource/OneLife $BUNDLE/Contents/MacOS/
 
+    # -g embeds the absolute path of every compiled source file (build
+    # machine's username, folder layout) in the debug symbol table; strip
+    # it before shipping.  Doesn't touch the arch slices or load commands.
+    strip -S -x $BUNDLE/Contents/MacOS/OneLife
+
     rm -f $BUNDLE/Contents/MacOS/empty.txt
     rm -f $BUNDLE/Contents/Frameworks/empty.txt
 
