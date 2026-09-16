@@ -1,0 +1,32 @@
+FIRST LAUNCH ON MAC
+====================
+
+The first time you open the .app in this folder, macOS will refuse with a
+message like "cannot be opened because the developer cannot be verified" --
+this app isn't signed by an identified Apple developer, so this is a
+one-time thing.  Do any one of the following:
+
+Option A (recommended):
+  1. Right-click (or Control-click) the .app
+  2. Choose "Open" from the menu that appears
+  3. Click "Open" again in the dialog that comes up
+
+Option B, if Option A doesn't work:
+  1. Try to open the app normally -- it will be blocked
+  2. Open System Settings -> Privacy & Security
+  3. Scroll down; there should be a message about this app being blocked
+  4. Click "Open Anyway", then confirm
+
+Option C, using Terminal:
+  Open Terminal (Applications -> Utilities -> Terminal), then run, with the
+  correct path to wherever this folder ended up:
+    xattr -dr com.apple.quarantine "/path/to/this/folder/2HOL_*.app"
+
+After doing this once, the app opens normally from then on.
+
+
+IMPORTANT: keep the .app in this same folder, next to the other folders
+(objects, animations, sounds, and so on) -- it reads its data from there.
+Moving just the .app by itself somewhere else will break it; if you want to
+move this somewhere (like /Applications), move or copy this whole folder,
+not just the .app.

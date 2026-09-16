@@ -118,6 +118,11 @@ if [ "$PLATFORM" = "2" ] ; then
     rm -f $BUNDLE/Contents/MacOS/empty.txt
     rm -f $BUNDLE/Contents/Frameworks/empty.txt
 
+    # Sits next to the .app so it's immediately visible after unzipping --
+    # explains the Gatekeeper "unidentified developer" block that this
+    # ad-hoc-signed (not notarized) build always hits on first launch.
+    cp macOSX/MacFirstLaunch.txt $FOLDER/
+
     # Bundle the Homebrew or MacPorts libraries the game links against
     # (sdl12-compat, libpng, zlib) so the .app runs on a Mac with neither
     # package manager installed.
