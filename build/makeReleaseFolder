@@ -118,57 +118,87 @@ if [ "$PLATFORM" = "2" ] ; then
     rm -f $BUNDLE/Contents/MacOS/empty.txt
     rm -f $BUNDLE/Contents/Frameworks/empty.txt
 
-    # Bundle the Homebrew libraries the game links against (sdl12-compat and
-    # libpng) so the .app runs on a Mac with no Homebrew installed.
-    BREW_PREFIX=`brew --prefix 2>/dev/null || echo /usr/local`
+    # Bundle the Homebrew or MacPorts libraries the game links against
+    # (sdl12-compat, libpng, zlib) so the .app runs on a Mac with neither
+    # package manager installed.
+    BREW_PREFIX=`brew --prefix 2>/dev/null || true`
+    if [ -n "$BREW_PREFIX" ] ; then
+        PKG_MANAGER=brew
+        PKG_PREFIX=$BREW_PREFIX
+    elif command -v port >/dev/null 2>&1 ; then
+        PKG_MANAGER=port
+        PKG_PREFIX=/opt/local
+    else
+        PKG_MANAGER=none
+        PKG_PREFIX=/usr/local
+    fi
     GAME_BINARY=$BUNDLE/Contents/MacOS/OneLife
 
     # Start from the game binary and follow each copied library's own
-    # dependencies, so nested Homebrew deps get bundled too.
+    # dependencies, so nested deps get bundled too.
     FRAMEWORKS=$BUNDLE/Contents/Frameworks
 
     targets=$GAME_BINARY
 
-    # sdl12-compat dlopens the next layer down instead of linking it, and so
-    # does sdl2-compat below it:
+    # sdl12-compat dlopens the SDL2 underneath it instead of linking it, so
+    # otool -L can never discover it -- copy it in by hand, under exactly
+    # the name sdl12-compat looks for at @loader_path/@executable_path.
     #
-    #   OneLife -> libSDL-1.2.0.dylib  (sdl12-compat, linked)
-    #                -> libSDL2-2.0.0.dylib  (sdl2-compat, dlopened)
-    #                     -> libSDL3.dylib   (dlopened)
-    #
-    # otool -L only ever reports the first hop, so the walk below cannot
-    # discover the other two and the bundle ships without them
-    # copy them in by hand, under exactly the names
-    # each loader searches for in @loader_path
-    for spec in "sdl2-compat sdl2 libSDL2-2.0.0.dylib" "sdl3 sdl3 libSDL3.dylib" ; do
+    # On Homebrew this is a two-hop chain (sdl12-compat -> sdl2-compat ->
+    # sdl3).  On MacPorts, sdl12-compat links a real libsdl2 instead of
+    # another compat shim, so it is just the one hop and no dlopen beneath
+    # that.
+    if [ "$PKG_MANAGER" = "brew" ] ; then
 
-        set -- $spec
-        libName=$3
+        for spec in "sdl2-compat sdl2 libSDL2-2.0.0.dylib" "sdl3 sdl3 libSDL3.dylib" ; do
 
-        libPath=""
-        for formula in $1 $2 ; do
-            candidate=`brew --prefix $formula 2>/dev/null`/lib/$libName
-            if [ -f "$candidate" ] ; then libPath=$candidate ; break ; fi
+            set -- $spec
+            libName=$3
+
+            libPath=""
+            for formula in $1 $2 ; do
+                candidate=`brew --prefix $formula 2>/dev/null`/lib/$libName
+                if [ -f "$candidate" ] ; then libPath=$candidate ; break ; fi
+            done
+
+            # SDL3 is only in play when libSDL2 is itself sdl2-compat; a real
+            # SDL2 ends the chain, so a missing SDL3 is fine there.
+            if [ -z "$libPath" ] ; then
+                if [ "$libName" = "libSDL3.dylib" ] ; then continue ; fi
+                echo "$0: cannot find $libName -- is sdl2-compat installed?" >&2
+                exit 1
+            fi
+
+            cp -f $libPath $FRAMEWORKS/$libName
+
+            # brew installs these read-only
+            chmod u+w $FRAMEWORKS/$libName
+
+            install_name_tool -id @executable_path/../Frameworks/$libName \
+                $FRAMEWORKS/$libName
+
+            targets="$targets $FRAMEWORKS/$libName"
         done
 
-        # SDL3 is only in play when libSDL2 is itself sdl2-compat; a real
-        # SDL2 ends the chain, so a missing SDL3 is fine there.
-        if [ -z "$libPath" ] ; then
-            if [ "$libName" = "libSDL3.dylib" ] ; then continue ; fi
-            echo "$0: cannot find $libName -- is sdl2-compat installed?" >&2
+    elif [ "$PKG_MANAGER" = "port" ] ; then
+
+        libName=libSDL2-2.0.0.dylib
+        libPath=$PKG_PREFIX/lib/$libName
+
+        if [ ! -f "$libPath" ] ; then
+            echo "$0: cannot find $libName -- is libsdl2 installed?" >&2
             exit 1
         fi
 
         cp -f $libPath $FRAMEWORKS/$libName
-
-        # brew installs these read-only
         chmod u+w $FRAMEWORKS/$libName
 
         install_name_tool -id @executable_path/../Frameworks/$libName \
             $FRAMEWORKS/$libName
 
         targets="$targets $FRAMEWORKS/$libName"
-    done
+
+    fi
 
     while [ -n "$targets" ] ; do
 
@@ -176,7 +206,7 @@ if [ "$PLATFORM" = "2" ] ; then
 
         for target in $targets ; do
 
-            for lib in `otool -L $target | tail -n +2 | awk '{print $1}' | grep "^$BREW_PREFIX/"` ; do
+            for lib in `otool -L $target | tail -n +2 | awk '{print $1}' | grep "^$PKG_PREFIX/"` ; do
 
                 libName=`basename $lib`
                 bundledLib=$BUNDLE/Contents/Frameworks/$libName
