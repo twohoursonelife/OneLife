@@ -9,6 +9,13 @@
 # tells you what's missing and how to install it -- it never installs
 # anything itself.
 #
+# 2026-September-16    hobby-dev
+# Added a post-package check that the shipped binary actually contains
+# every arch MACOSX_ARCHS asked for.  A universal build can otherwise fail
+# silently: make only looks at file timestamps, so a .o left over from an
+# earlier single-arch build gets reused as-is instead of recompiled, and
+# that arch quietly drops out of the link.
+#
 # Usage:
 #     build/macOSX/buildRelease.sh [release_name]
 #     MACOSX_ARCHS="arm64 x86_64" build/macOSX/buildRelease.sh v20327
@@ -141,3 +148,27 @@ RELEASE_NAME=${1:-v$(cat ../OneLifeData7/dataVersionNumber.txt)}
 
 echo "--- packaging $RELEASE_NAME ---"
 build/makeReleaseFolder "$RELEASE_NAME" 2
+
+
+##### Verify the shipped binary actually has every arch that was requested.
+##### A stale .o left over from an earlier single-arch build is reused as-is
+##### by make (it only checks timestamps, not compiler flags), which silently
+##### drops that arch from the link instead of failing the build.
+
+GAME_BINARY="build/release/2HOL_$RELEASE_NAME/2HOL_$RELEASE_NAME.app/Contents/MacOS/OneLife"
+
+BUILT_ARCHS=$(lipo -archs "$GAME_BINARY" 2>&1) \
+    || fail "lipo couldn't read $GAME_BINARY -- is it a valid Mach-O binary?" "$BUILT_ARCHS"
+
+for arch in $archs ; do
+    case " $BUILT_ARCHS " in
+        *" $arch "*) ;;
+        *) fail "Packaged binary is missing arch '$arch' (built: $BUILT_ARCHS)." \
+            "Requested MACOSX_ARCHS=\"$archs\" but the link step didn't" \
+            "produce all of them.  This is usually a stale .o file left over" \
+            "from an earlier single-arch build -- remove them and retry:" \
+            "    find . ../minorGems -name '*.o' -delete" ;;
+    esac
+done
+
+echo "--- verified $GAME_BINARY is built for: $BUILT_ARCHS ---"
