@@ -5,16 +5,11 @@
 #
 # 2026-September-16    hobby-dev
 # Created.  Builds and packages a macOS client release: configure, make,
-# then build/makeReleaseFolder.  Checks for build dependencies first and
-# tells you what's missing and how to install it -- it never installs
+# build/makeReleaseFolder, then verifies the packaged binary has every
+# arch MACOSX_ARCHS asked for (make only checks file timestamps, so a
+# stale single-arch .o can silently drop an arch from the link).  Checks
+# build dependencies up front and says what's missing -- never installs
 # anything itself.
-#
-# 2026-September-16    hobby-dev
-# Added a post-package check that the shipped binary actually contains
-# every arch MACOSX_ARCHS asked for.  A universal build can otherwise fail
-# silently: make only looks at file timestamps, so a .o left over from an
-# earlier single-arch build gets reused as-is instead of recompiled, and
-# that arch quietly drops out of the link.
 #
 # Usage:
 #     build/macOSX/buildRelease.sh [release_name]
@@ -150,10 +145,7 @@ echo "--- packaging $RELEASE_NAME ---"
 build/makeReleaseFolder "$RELEASE_NAME" 2
 
 
-##### Verify the shipped binary actually has every arch that was requested.
-##### A stale .o left over from an earlier single-arch build is reused as-is
-##### by make (it only checks timestamps, not compiler flags), which silently
-##### drops that arch from the link instead of failing the build.
+##### Verify: see modification history above for why this matters.
 
 GAME_BINARY="build/release/2HOL_$RELEASE_NAME/2HOL_$RELEASE_NAME.app/Contents/MacOS/OneLife"
 
@@ -164,9 +156,7 @@ for arch in $archs ; do
     case " $BUILT_ARCHS " in
         *" $arch "*) ;;
         *) fail "Packaged binary is missing arch '$arch' (built: $BUILT_ARCHS)." \
-            "Requested MACOSX_ARCHS=\"$archs\" but the link step didn't" \
-            "produce all of them.  This is usually a stale .o file left over" \
-            "from an earlier single-arch build -- remove them and retry:" \
+            "Usually a stale .o from an earlier single-arch build -- clean and retry:" \
             "    find . ../minorGems -name '*.o' -delete" ;;
     esac
 done

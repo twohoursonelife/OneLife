@@ -118,14 +118,12 @@ if [ "$PLATFORM" = "2" ] ; then
     rm -f $BUNDLE/Contents/MacOS/empty.txt
     rm -f $BUNDLE/Contents/Frameworks/empty.txt
 
-    # Sits next to the .app so it's immediately visible after unzipping --
-    # explains the Gatekeeper "unidentified developer" block that this
-    # ad-hoc-signed (not notarized) build always hits on first launch.
+    # Next to the .app so it's visible right after unzipping -- for the
+    # Gatekeeper block this ad-hoc-signed (unnotarized) build always hits.
     cp macOSX/MacFirstLaunch.txt $FOLDER/
 
-    # Bundle the Homebrew or MacPorts libraries the game links against
-    # (sdl12-compat, libpng, zlib) so the .app runs on a Mac with neither
-    # package manager installed.
+    # Bundle the Homebrew/MacPorts libs the game links against (sdl12-compat,
+    # libpng, zlib) so the .app runs with neither package manager installed.
     BREW_PREFIX=`brew --prefix 2>/dev/null || true`
     if [ -n "$BREW_PREFIX" ] ; then
         PKG_MANAGER=brew
@@ -145,14 +143,10 @@ if [ "$PLATFORM" = "2" ] ; then
 
     targets=$GAME_BINARY
 
-    # sdl12-compat dlopens the SDL2 underneath it instead of linking it, so
-    # otool -L can never discover it -- copy it in by hand, under exactly
-    # the name sdl12-compat looks for at @loader_path/@executable_path.
-    #
-    # On Homebrew this is a two-hop chain (sdl12-compat -> sdl2-compat ->
-    # sdl3).  On MacPorts, sdl12-compat links a real libsdl2 instead of
-    # another compat shim, so it is just the one hop and no dlopen beneath
-    # that.
+    # sdl12-compat dlopens SDL2 instead of linking it, so otool -L can't
+    # discover it -- copy it in by hand, under the exact name it looks for.
+    # Homebrew: two-hop chain (sdl12-compat -> sdl2-compat -> sdl3).
+    # MacPorts: sdl12-compat links a real libsdl2, so it's just one hop.
     if [ "$PKG_MANAGER" = "brew" ] ; then
 
         for spec in "sdl2-compat sdl2 libSDL2-2.0.0.dylib" "sdl3 sdl3 libSDL3.dylib" ; do
