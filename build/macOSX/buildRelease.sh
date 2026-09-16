@@ -9,7 +9,8 @@
 # arch MACOSX_ARCHS asked for (make only checks file timestamps, so a
 # stale single-arch .o can silently drop an arch from the link).  Checks
 # build dependencies up front and says what's missing -- never installs
-# anything itself.
+# anything itself.  Removes the unzipped release folder afterward, so
+# build/release ends up with just the .zip.
 #
 # Usage:
 #     build/macOSX/buildRelease.sh [release_name]
@@ -147,7 +148,8 @@ build/makeReleaseFolder "$RELEASE_NAME" 2
 
 ##### Verify: see modification history above for why this matters.
 
-GAME_BINARY="build/release/2HOL_$RELEASE_NAME/2HOL_$RELEASE_NAME.app/Contents/MacOS/OneLife"
+RELEASE_FOLDER="build/release/2HOL_$RELEASE_NAME"
+GAME_BINARY="$RELEASE_FOLDER/2HOL_$RELEASE_NAME.app/Contents/MacOS/OneLife"
 
 BUILT_ARCHS=$(lipo -archs "$GAME_BINARY" 2>&1) \
     || fail "lipo couldn't read $GAME_BINARY -- is it a valid Mach-O binary?" "$BUILT_ARCHS"
@@ -162,3 +164,10 @@ for arch in $archs ; do
 done
 
 echo "--- verified $GAME_BINARY is built for: $BUILT_ARCHS ---"
+
+
+##### Clean up: the .zip already has everything; drop the unzipped folder
+##### makeReleaseFolder built it from.
+
+rm -rf "$RELEASE_FOLDER"
+echo "--- removed $RELEASE_FOLDER (kept ${RELEASE_FOLDER}_mac.zip) ---"
