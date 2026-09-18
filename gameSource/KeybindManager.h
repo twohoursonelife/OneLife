@@ -83,6 +83,8 @@ class KeybindManager {
 
         static void keyDown( int inKey );
         static void keyUp( int inKey );
+        static char charDown( int inChar );
+        static char charUp( int inChar );
         static void clearAllPressed();
         // sets a keybinds key in sPressed to 0
         static void clearAction( const char *inActionName );
@@ -96,6 +98,9 @@ class KeybindManager {
         static char sInited;
         static char sKeysInited;
         static char sPressed[KEYBIND_KEY_TABLE_SIZE];
+        static char sPressedChar[KEYBIND_KEY_TABLE_SIZE];
+        static int sLastRawKey;
+        static int sLastKeyDown;
         static NamedKeyEntry sNamedKeys[KEYBIND_KEY_TABLE_SIZE];
         static std::unordered_map<std::string, int> sNameToKey;
 
