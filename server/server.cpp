@@ -14938,9 +14938,11 @@ int main() {
                                 }
                             }
 
-                            nextConnection->email = 
+                            char *lowerEmail =
                                 stringToLowerCase( 
                                     nextConnection->email );
+                            delete [] nextConnection->email;
+                            nextConnection->email = lowerEmail;
 
                             char *pwHash = tokens->getElementDirect( 2 );
                             char *keyHash = tokens->getElementDirect( 3 );
