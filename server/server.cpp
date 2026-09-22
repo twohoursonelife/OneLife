@@ -14895,6 +14895,7 @@ int main() {
                                 // Remove seed from email
                                 if( seedDelimPos == 0) {
                                     // There was only a seed not email
+                                    delete[] nextConnection->email;
                                     nextConnection->email = stringDuplicate( "blank_email" );
                                 } else {
                                     std::string onlyEmail { emailAndSeed.substr( 0, seedDelimPos ) };
@@ -14924,6 +14925,7 @@ int main() {
                                     // Remove famTarget from email
                                     if( famTargetDelimPos == 0 ) {
                                         // There was only a famTarget not email
+                                        delete[] nextConnection->email;
                                         nextConnection->email = stringDuplicate( "blank_email" );
                                     } else {
                                         std::string onlyEmail { emailAndFamTarget.substr( 0, famTargetDelimPos ) };
