@@ -9012,6 +9012,14 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                     delete [] inConnection.ipAddress;
                     inConnection.twinCode = NULL;
                     }
+                if( inConnection.email != NULL ) {
+                    delete [] inConnection.email;
+                    inConnection.email = NULL;
+                    }
+                if( inConnection.famTarget != NULL ) {
+                    delete [] inConnection.famTarget;
+                    inConnection.famTarget = NULL;
+                    }
                 nextLogInTwin = false;
                 return;
                 }
