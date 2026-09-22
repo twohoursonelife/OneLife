@@ -9232,6 +9232,11 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                     nextConnection->ipAddress = NULL;
                     }
 
+                if( nextConnection->famTarget != NULL ) {
+                    delete [] nextConnection->famTarget;
+                    nextConnection->famTarget = NULL;
+                    }
+
                 waitingForTwinConnections.deleteElement( i );                
 
                 i--;
