@@ -13549,8 +13549,6 @@ int main() {
     readPhrases( "infertilityDeclaringPhrases", &infertilityDeclaringPhrases );
     readPhrases( "fertilityDeclaringPhrases", &fertilityDeclaringPhrases );
 
-    eveName = 
-        SettingsManager::getStringSetting( "eveName", "EVE" );
     infertilitySuffix = 
         SettingsManager::getStringSetting( "infertilitySuffix", "+INFERTILE+" );
     fertilitySuffix = 
