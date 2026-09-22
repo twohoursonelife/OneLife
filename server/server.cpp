@@ -1706,6 +1706,10 @@ static void deleteMembers( FreshConnection *inConnection ) {
     if( inConnection->twinCode != NULL ) {
         delete [] inConnection->twinCode;
         }
+
+    if( inConnection->famTarget != NULL ) {
+        delete [] inConnection->famTarget;
+        }
     }
 
 
