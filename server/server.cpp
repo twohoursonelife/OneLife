@@ -14664,6 +14664,11 @@ int main() {
                             // we need to notify them about the famTarget failure
                             removeConnectionFromList = false;
                             }
+                        else if( nextConnection->famTarget != NULL ) {
+                            // connection struct is dropped from list below
+                            delete [] nextConnection->famTarget;
+                            nextConnection->famTarget = NULL;
+                            }
                         }
                                                         
                     if( removeConnectionFromList ) {
@@ -15119,6 +15124,11 @@ int main() {
                                             // Do not remove this connection
                                             // we need to notify them about the famTarget failure
                                             removeConnectionFromList = false;
+                                            }
+                                        else if( nextConnection->famTarget != NULL ) {
+                                            // connection struct is dropped from list below
+                                            delete [] nextConnection->famTarget;
+                                            nextConnection->famTarget = NULL;
                                             }
                                         }
                                                                         
