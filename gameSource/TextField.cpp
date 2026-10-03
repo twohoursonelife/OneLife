@@ -22,6 +22,8 @@ extern double frameRateFactor;
 int TextField::sDeleteFirstDelaySteps = 30 / frameRateFactor;
 int TextField::sDeleteNextDelaySteps = 2 / frameRateFactor;
 
+extern Font *mainFont;
+
 
 
 
@@ -377,14 +379,16 @@ void TextField::draw() {
         
         doublePair labelPos = { xPos, yPos };
 
+        // This was changed such as the label font will always be displayed as mainFont
+        // It let us to change the actual textbox font to something that doesn't display special characters incorrectly
         if( mDrawLabelWithShadow ) {
             setDrawColor( 0, 0, 0, 1 );
             doublePair shadowOffset = {-2, 2};
-            mFont->drawString( mLabelText, add(labelPos, shadowOffset), a );
+            mainFont->drawString( mLabelText, add(labelPos, shadowOffset), a );
             setDrawColor( 1, 1, 1, 1 );
             }
         
-        mFont->drawString( mLabelText, labelPos, a );
+        mainFont->drawString( mLabelText, labelPos, a );
         }
     
     
