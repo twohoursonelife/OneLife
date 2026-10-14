@@ -13354,6 +13354,9 @@ int constant_time_strcmp(const char *s1, const char *s2) {
     int areDifferent = 0;
     size_t len1 = strlen(s1);
     size_t len2 = strlen(s2);
+
+    if( len1 == 0 || len2 == 0 ) return len1 == len2 ? 0 : 1;        
+
     size_t max_len = (len1 > len2) ? len1 : len2;
 
     for (i = 0; i < max_len; i++) {
