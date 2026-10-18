@@ -1,0 +1,79 @@
+FIRST LAUNCH ON MAC
+====================
+
+This build isn't signed by a paid Apple developer account, so macOS blocks
+it the first time with a message like "cannot be opened because the
+developer cannot be verified".  Clearing that takes two steps, and it's a
+one-time thing.
+
+
+STEP 1: Unzip, and move the folder out of Downloads
+---------------------------------------------------
+
+Double-click the downloaded .zip in Finder to unpack it.  That gives you a
+folder named 2HOL_<version> containing the .app and the game's data folders
+(objects, animations, sounds, and so on).
+
+Now drag that whole folder somewhere outside Downloads -- your Applications
+folder or your home folder both work fine.  Don't skip this: when an
+unsigned app is launched straight out of Downloads, macOS runs it from a
+hidden read-only copy of itself, where it can't see its own data folders,
+and it will fail to start no matter what else you do.
+
+Move the whole folder, not just the .app.  The game reads and writes its
+data in whatever folder the .app is sitting in, so pulling the .app out by
+itself breaks it.
+
+
+STEP 2: Clear the quarantine flag
+----------------------------------
+
+Open Terminal (Applications -> Utilities -> Terminal), type this, with a
+space at the end:
+
+    xattr -dr com.apple.quarantine 
+
+then drag the 2HOL_<version> folder from Finder onto the Terminal window --
+that fills in the correct path for you -- and press Return.  You'll see no
+output; that means it worked.  Now double-click the .app.
+
+This is the method to use.  macOS puts the quarantine flag on every file in
+the download, including the libraries bundled inside the .app, and the
+point-and-click approvals below only ever clear the .app itself.  That's
+why the app can stay blocked, or quietly do nothing when opened, even after
+you've approved it in System Settings.  The command above clears the whole
+folder at once.
+
+
+If you'd rather not use Terminal
+---------------------------------
+
+These sometimes work on their own, depending on your macOS version.  Try
+them in order, and fall back to Step 2 if the app still won't start:
+
+  - Right-click (or Control-click) the .app, choose "Open", then click
+    "Open" again in the dialog.  (Removed in macOS 15 Sequoia and later.)
+
+  - Try to open the app normally so it gets blocked, then go to System
+    Settings -> Privacy & Security, scroll down to the message about the
+    blocked app, and click "Open Anyway".
+
+
+What you do NOT need to do
+---------------------------
+
+  - Don't grant the app Full Disk Access.  It never needs it, and it won't
+    fix a Gatekeeper block.  If you already added it while trying to get
+    the game running, go to System Settings -> Privacy & Security -> Full
+    Disk Access and remove it.
+
+  - Don't restart your Mac.  Nothing here takes effect at boot.
+
+  - You shouldn't see a prompt asking to let the game access a folder.  If
+    one does appear, allow it -- but its absence isn't the problem, and
+    Step 2 is still what you're missing.
+
+
+After this, the app opens normally from then on -- and keep that folder
+intact, with the .app next to its data folders.  If you later move the game
+somewhere else, move or copy the whole folder.
