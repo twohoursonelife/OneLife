@@ -2898,6 +2898,8 @@ void pointerUp( float inX, float inY ) {
 
 
 void keyDown( unsigned char inASCII ) {
+    char keybindChar = KeybindManager::charDown( inASCII );
+
     if( inASCII == 27 ) { // ESCAPE KEY
         TextField::unfocusAll();
         if ( currentGamePage == settingsPage ) {
@@ -2973,6 +2975,7 @@ void keyDown( unsigned char inASCII ) {
 
     if( currentGamePage != NULL ) {
         currentGamePage->base_keyDown( inASCII );
+        if( keybindChar ) currentGamePage->base_keybindKeyDown( inASCII );
         }
 
 
@@ -2993,6 +2996,8 @@ void keyDown( unsigned char inASCII ) {
 
 
 void keyUp( unsigned char inASCII ) {
+    char keybindChar = KeybindManager::charUp( inASCII );
+
     if( inASCII == 127 || inASCII == 8 ) {
         // delete no longer held
         // even if pause screen no longer up, pay attention to this
@@ -3003,6 +3008,7 @@ void keyUp( unsigned char inASCII ) {
 
     if( currentGamePage != NULL ) {
         currentGamePage->base_keyUp( inASCII );
+        if( keybindChar ) currentGamePage->base_keybindKeyUp( inASCII );
         }
 
     }

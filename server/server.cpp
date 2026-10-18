@@ -1706,6 +1706,10 @@ static void deleteMembers( FreshConnection *inConnection ) {
     if( inConnection->twinCode != NULL ) {
         delete [] inConnection->twinCode;
         }
+
+    if( inConnection->famTarget != NULL ) {
+        delete [] inConnection->famTarget;
+        }
     }
 
 
@@ -9008,6 +9012,14 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                     delete [] inConnection.ipAddress;
                     inConnection.twinCode = NULL;
                     }
+                if( inConnection.email != NULL ) {
+                    delete [] inConnection.email;
+                    inConnection.email = NULL;
+                    }
+                if( inConnection.famTarget != NULL ) {
+                    delete [] inConnection.famTarget;
+                    inConnection.famTarget = NULL;
+                    }
                 nextLogInTwin = false;
                 return;
                 }
@@ -9218,6 +9230,11 @@ static void processWaitingTwinConnection( FreshConnection inConnection ) {
                 if( nextConnection->ipAddress != NULL ) {
                     delete [] nextConnection->ipAddress;
                     nextConnection->ipAddress = NULL;
+                    }
+
+                if( nextConnection->famTarget != NULL ) {
+                    delete [] nextConnection->famTarget;
+                    nextConnection->famTarget = NULL;
                     }
 
                 waitingForTwinConnections.deleteElement( i );                
@@ -13532,8 +13549,6 @@ int main() {
     readPhrases( "infertilityDeclaringPhrases", &infertilityDeclaringPhrases );
     readPhrases( "fertilityDeclaringPhrases", &fertilityDeclaringPhrases );
 
-    eveName = 
-        SettingsManager::getStringSetting( "eveName", "EVE" );
     infertilitySuffix = 
         SettingsManager::getStringSetting( "infertilitySuffix", "+INFERTILE+" );
     fertilitySuffix = 
@@ -14649,6 +14664,11 @@ int main() {
                             // we need to notify them about the famTarget failure
                             removeConnectionFromList = false;
                             }
+                        else if( nextConnection->famTarget != NULL ) {
+                            // connection struct is dropped from list below
+                            delete [] nextConnection->famTarget;
+                            nextConnection->famTarget = NULL;
+                            }
                         }
                                                         
                     if( removeConnectionFromList ) {
@@ -14875,6 +14895,7 @@ int main() {
                                 // Remove seed from email
                                 if( seedDelimPos == 0) {
                                     // There was only a seed not email
+                                    delete[] nextConnection->email;
                                     nextConnection->email = stringDuplicate( "blank_email" );
                                 } else {
                                     std::string onlyEmail { emailAndSeed.substr( 0, seedDelimPos ) };
@@ -14904,6 +14925,7 @@ int main() {
                                     // Remove famTarget from email
                                     if( famTargetDelimPos == 0 ) {
                                         // There was only a famTarget not email
+                                        delete[] nextConnection->email;
                                         nextConnection->email = stringDuplicate( "blank_email" );
                                     } else {
                                         std::string onlyEmail { emailAndFamTarget.substr( 0, famTargetDelimPos ) };
@@ -14916,9 +14938,11 @@ int main() {
                                 }
                             }
 
-                            nextConnection->email = 
+                            char *lowerEmail =
                                 stringToLowerCase( 
                                     nextConnection->email );
+                            delete [] nextConnection->email;
+                            nextConnection->email = lowerEmail;
 
                             char *pwHash = tokens->getElementDirect( 2 );
                             char *keyHash = tokens->getElementDirect( 3 );
@@ -15104,6 +15128,11 @@ int main() {
                                             // Do not remove this connection
                                             // we need to notify them about the famTarget failure
                                             removeConnectionFromList = false;
+                                            }
+                                        else if( nextConnection->famTarget != NULL ) {
+                                            // connection struct is dropped from list below
+                                            delete [] nextConnection->famTarget;
+                                            nextConnection->famTarget = NULL;
                                             }
                                         }
                                                                         
