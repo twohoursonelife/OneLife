@@ -4267,7 +4267,18 @@ static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
 
 
 void LivingLifePage::clearRememberedMap(){
+    // The hash table stores pointers; clearing it does not free the arrays.
+    for( int i=0; i<mRememberedChunkCoordinates.size(); i++ ) {
+        doublePair coords = mRememberedChunkCoordinates.getElementDirect( i );
+        char found;
+        int *chunk = mMapBiomesRemembered.lookup(
+            (int)coords.x, (int)coords.y, 0, 0, &found );
+        if( found ) {
+            delete [] chunk;
+            }
+        }
     mMapBiomesRemembered.clear();
+    mRememberedChunkCoordinates.deleteAll();
 }
 
 void LivingLifePage::clearMap() {
@@ -4317,6 +4328,8 @@ LivingLifePage::LivingLifePage()
           mFirstServerMessagesReceived( 0 ),
           mMapGlobalOffsetSet( false ),
           mMapD( MAP_D ),
+          mFullMapChunkSizeX( 0 ),
+          mFullMapChunkSizeY( 0 ),
           mMapBiomesRemembered( HashTable<int*>(400 * 400) ),
           mMapOffsetX( 0 ),
           mMapOffsetY( 0 ),
@@ -4751,7 +4764,6 @@ LivingLifePage::LivingLifePage()
     //
 
     mMap = new int[ mMapD * mMapD ];
-    SimpleVector<doublePair> mRememberedChunkCoordinates;
 
     mMapFloors = new int[ mMapD * mMapD ];
     
@@ -5025,11 +5037,7 @@ LivingLifePage::~LivingLifePage() {
     delete [] mMapSubContainedStacks;
     
     delete [] mMap;
-    for(int i = 0; i<mRememberedChunkCoordinates.size(); i++){
-        doublePair coords = *mRememberedChunkCoordinates.getElement(i);
-        char found;
-        delete [] mMapBiomesRemembered.lookup((int)coords.x, (int)coords.y, 0, 0, &found); // no need to check for found. Already know that these are used chunks
-    }
+    clearRememberedMap();
     delete [] mMapFloors;
 
     delete [] mMapCellDrawnFlags;
@@ -17535,6 +17543,9 @@ void LivingLifePage::step() {
                     binarySize, compressedSize );
             
             if( ! mMapGlobalOffsetSet ) {
+                // The first update contains the complete server map window.
+                mFullMapChunkSizeX = sizeX;
+                mFullMapChunkSizeY = sizeY;
                 
                 // we need 7 fraction bits to represent 128 pixels per tile
                 // 32-bit float has 23 significant bits, not counting sign
@@ -17785,10 +17796,16 @@ void LivingLifePage::step() {
             delete [] newMapPlayerPlacedFlags;
             
             
-            if (newMapOffsetX == 0 && newMapOffsetY == 0){
-                // probably when we are flying or teleporting. coordinates reset to (0, 0)
+            if( newMapOffsetX == 0 && newMapOffsetY == 0 &&
+                sizeX == mFullMapChunkSizeX &&
+                sizeY == mFullMapChunkSizeY ) {
+                // Flying or teleporting can reset coordinates to (0, 0),
+                // requiring us to forget terrain from the previous location.
+                // Ordinary movement can also send a strip centered at (0, 0).
+                // Require a complete map update so those strips do not erase
+                // remembered terrain outside the strip and leave clouds.
                 clearRememberedMap();
-            }
+                }
             mMapOffsetX = newMapOffsetX;
             mMapOffsetY = newMapOffsetY;
             

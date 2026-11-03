@@ -653,6 +653,8 @@ class LivingLifePage : public GamePage, public ActionListener {
         
     protected:
         
+        int mFullMapChunkSizeX;
+        int mFullMapChunkSizeY;
         SimpleVector<doublePair> mRememberedChunkCoordinates;
         HashTable<int*> mMapBiomesRemembered;
         int *mMapFloors;
