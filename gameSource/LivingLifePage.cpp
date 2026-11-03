@@ -4267,7 +4267,18 @@ static void splitAndExpandSprites( const char *inTgaFileName, int inNumSprites,
 
 
 void LivingLifePage::clearRememberedMap(){
+    // The hash table stores pointers; clearing it does not free the arrays.
+    for( int i=0; i<mRememberedChunkCoordinates.size(); i++ ) {
+        doublePair coords = mRememberedChunkCoordinates.getElementDirect( i );
+        char found;
+        int *chunk = mMapBiomesRemembered.lookup(
+            (int)coords.x, (int)coords.y, 0, 0, &found );
+        if( found ) {
+            delete [] chunk;
+            }
+        }
     mMapBiomesRemembered.clear();
+    mRememberedChunkCoordinates.deleteAll();
 }
 
 void LivingLifePage::clearMap() {
@@ -4753,7 +4764,6 @@ LivingLifePage::LivingLifePage()
     //
 
     mMap = new int[ mMapD * mMapD ];
-    SimpleVector<doublePair> mRememberedChunkCoordinates;
 
     mMapFloors = new int[ mMapD * mMapD ];
     
@@ -5027,11 +5037,7 @@ LivingLifePage::~LivingLifePage() {
     delete [] mMapSubContainedStacks;
     
     delete [] mMap;
-    for(int i = 0; i<mRememberedChunkCoordinates.size(); i++){
-        doublePair coords = *mRememberedChunkCoordinates.getElement(i);
-        char found;
-        delete [] mMapBiomesRemembered.lookup((int)coords.x, (int)coords.y, 0, 0, &found); // no need to check for found. Already know that these are used chunks
-    }
+    clearRememberedMap();
     delete [] mMapFloors;
 
     delete [] mMapCellDrawnFlags;
@@ -17799,7 +17805,7 @@ void LivingLifePage::step() {
                 // Require a complete map update so those strips do not erase
                 // remembered terrain outside the strip and leave clouds.
                 clearRememberedMap();
-            }
+                }
             mMapOffsetX = newMapOffsetX;
             mMapOffsetY = newMapOffsetY;
             
